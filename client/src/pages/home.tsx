@@ -5,29 +5,31 @@ export default function Home() {
   const { isConnected, address } = useWallet();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted p-4">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-12 text-center">
-          <h1 className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-4xl font-bold text-transparent sm:text-6xl">
-            Welcome to DApp
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-4xl mx-auto text-center space-y-8">
+        <div className="space-y-4">
+          <h1 className="text-4xl font-bold sm:text-6xl bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Welcome to Our DApp
           </h1>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Connect your wallet to get started
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Connect your MetaMask wallet to get started with our decentralized application
           </p>
         </div>
 
-        <div className="flex justify-center">
+        <div className="max-w-md mx-auto">
           <ConnectWallet />
         </div>
 
-        {isConnected && (
-          <div className="mt-8 text-center">
-            <h2 className="text-2xl font-semibold text-foreground">
-              Welcome! 👋
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Your wallet ({address?.slice(0, 6)}...{address?.slice(-4)}) is now connected
-            </p>
+        {isConnected && address && (
+          <div className="animate-fade-in">
+            <div className="bg-primary/5 rounded-lg p-6 mt-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-2">
+                🎉 Successfully Connected!
+              </h2>
+              <p className="text-muted-foreground">
+                Your wallet ({address.slice(0, 6)}...{address.slice(-4)}) is now connected to our DApp
+              </p>
+            </div>
           </div>
         )}
       </div>

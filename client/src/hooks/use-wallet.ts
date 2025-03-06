@@ -1,24 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ethers } from "ethers";
-import { connectWallet, disconnectWallet, web3Modal } from "@/lib/web3";
 import { useToast } from "@/hooks/use-toast";
 
 interface WalletState {
   address: string | null;
   isConnecting: boolean;
   isConnected: boolean;
-  signer: ethers.Signer | null;
-  provider: ethers.Provider | null;
-  chainId: bigint | null;
 }
 
 const initialState: WalletState = {
   address: null,
   isConnecting: false,
   isConnected: false,
-  signer: null,
-  provider: null,
-  chainId: null,
 };
 
 export function useWallet() {
@@ -26,17 +19,31 @@ export function useWallet() {
   const { toast } = useToast();
 
   const connect = useCallback(async () => {
+    if (!window.ethereum) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Found",
+        description: "Please install MetaMask to connect your wallet",
+      });
+      return;
+    }
+
     try {
       setWallet(prev => ({ ...prev, isConnecting: true }));
-      const { provider, signer, address, chainId } = await connectWallet();
-      
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+
       setWallet({
         address,
         isConnecting: false,
         isConnected: true,
-        signer,
-        provider,
-        chainId,
+      });
+
+      toast({
+        title: "Wallet Connected",
+        description: "Successfully connected to your wallet",
       });
     } catch (error) {
       setWallet(initialState);
@@ -48,16 +55,13 @@ export function useWallet() {
     }
   }, [toast]);
 
-  const disconnect = useCallback(async () => {
-    await disconnectWallet();
+  const disconnect = useCallback(() => {
     setWallet(initialState);
-  }, []);
-
-  useEffect(() => {
-    if (web3Modal.cachedProvider) {
-      connect();
-    }
-  }, [connect]);
+    toast({
+      title: "Wallet Disconnected",
+      description: "Your wallet has been disconnected",
+    });
+  }, [toast]);
 
   return {
     ...wallet,

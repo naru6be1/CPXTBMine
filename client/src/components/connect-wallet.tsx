@@ -8,11 +8,11 @@ export function ConnectWallet() {
   const { address, isConnecting, isConnected, connect, disconnect } = useWallet();
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md mx-auto shadow-lg">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Wallet2 className="h-6 w-6" />
-          Wallet Connection
+          <Wallet2 className="h-6 w-6 text-primary" />
+          Connect Your Wallet
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -23,7 +23,7 @@ export function ConnectWallet() {
           </div>
         ) : isConnected && address ? (
           <div className="space-y-4">
-            <div className="break-all rounded-lg bg-muted p-4 text-sm">
+            <div className="break-all rounded-lg bg-muted p-4 text-sm font-mono">
               {address}
             </div>
             <Button
@@ -42,7 +42,7 @@ export function ConnectWallet() {
             onClick={connect}
           >
             <Wallet2 className="mr-2 h-4 w-4" />
-            Connect Wallet
+            Connect to MetaMask
           </Button>
         )}
       </CardContent>

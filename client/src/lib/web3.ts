@@ -19,13 +19,13 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains & providers with error handling
+// Configure chains & providers
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [mainnet, sepolia],
   [publicProvider()]
 )
 
-// Create wagmi config with multiple connectors
+// Create wagmi config with connectors
 export const config = createConfig({
   autoConnect: true,
   connectors: [
@@ -34,7 +34,7 @@ export const config = createConfig({
       options: {
         projectId,
         metadata,
-        showQrModal: false // Let Web3Modal handle the QR modal
+        showQrModal: false
       }
     }),
     new InjectedConnector({
@@ -50,7 +50,7 @@ export const config = createConfig({
 })
 
 try {
-  // Initialize web3modal with required parameters
+  // Initialize web3modal
   createWeb3Modal({
     wagmiConfig: config,
     projectId,

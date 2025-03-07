@@ -49,11 +49,16 @@ export const config = createConfig({
   webSocketPublicClient
 })
 
-// Initialize web3modal with required parameters
-createWeb3Modal({
-  wagmiConfig: config,
-  projectId,
-  chains,
-  defaultChain: mainnet,
-  themeMode: 'light'
-})
+try {
+  // Initialize web3modal with required parameters
+  createWeb3Modal({
+    wagmiConfig: config,
+    projectId,
+    chains,
+    defaultChain: mainnet,
+    themeMode: 'light'
+  })
+} catch (error) {
+  console.error('Failed to initialize Web3Modal:', error)
+  throw error // Re-throw to prevent silent failures
+}

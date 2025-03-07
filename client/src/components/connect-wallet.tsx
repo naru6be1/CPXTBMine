@@ -30,15 +30,20 @@ export function ConnectWallet() {
             </Button>
           </div>
         ) : (
-          <Button 
-            className="w-full" 
-            size="lg"
-            onClick={connect}
-            disabled={isConnecting}
-          >
-            <Wallet2 className="mr-2 h-4 w-4" />
-            {isConnecting ? "Connecting..." : "Connect Wallet"}
-          </Button>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Connect your wallet to interact with the DApp
+            </p>
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={connect}
+              disabled={isConnecting}
+            >
+              <Wallet2 className="mr-2 h-4 w-4" />
+              {isConnecting ? "Connecting..." : "Connect Wallet"}
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>

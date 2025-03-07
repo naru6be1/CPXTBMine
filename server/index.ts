@@ -40,8 +40,14 @@ app.use((req, res, next) => {
 (async () => {
   try {
     log("Starting server initialization...");
-    const server = await registerRoutes(app);
 
+    // Initialize routes
+    log("Registering routes...");
+    const server = await registerRoutes(app);
+    log("Routes registered successfully");
+
+    // Setup error handling
+    log("Setting up error handling...");
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error("Server error:", err);
       const status = err.status || err.statusCode || 500;
@@ -49,21 +55,26 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
+    // Setup Vite or static serving
     if (app.get("env") === "development") {
       log("Setting up Vite development server...");
       await setupVite(app, server);
+      log("Vite development server setup complete");
     } else {
       log("Setting up static file serving...");
       serveStatic(app);
+      log("Static file serving setup complete");
     }
 
     const port = 5000;
+    log(`Attempting to start server on port ${port}...`);
+
     server.listen({
       port,
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
-      log(`Server listening on port ${port}`);
+      log(`Server successfully started and listening on port ${port}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

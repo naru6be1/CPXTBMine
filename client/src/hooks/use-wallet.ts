@@ -3,17 +3,17 @@ import { useToast } from "@/hooks/use-toast"
 
 export function useWallet() {
   const { address, isConnected } = useAccount()
-  const { connectAsync, connectors, isLoading } = useConnect()
+  const { connect, connectors, isLoading } = useConnect()
   const { disconnect } = useDisconnect()
   const { toast } = useToast()
 
   const connectWallet = async () => {
     try {
       // Let Web3Modal handle the connection process
-      await connectAsync()
+      connect()
       toast({
-        title: "Wallet Connected",
-        description: "Your wallet has been connected successfully",
+        title: "Opening Wallet Connection",
+        description: "Please select a wallet to connect",
       })
     } catch (error) {
       console.error('Wallet connection error:', error)

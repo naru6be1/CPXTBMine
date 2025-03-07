@@ -8,15 +8,6 @@ export function useWallet() {
   const { toast } = useToast()
 
   const connectWallet = async () => {
-    if (!window.ethereum) {
-      toast({
-        variant: "destructive",
-        title: "MetaMask Required",
-        description: "Please install MetaMask to connect your wallet",
-      })
-      return
-    }
-
     try {
       const result = await connectAsync()
       if (result) {

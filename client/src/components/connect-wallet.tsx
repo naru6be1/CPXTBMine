@@ -32,7 +32,7 @@ export function ConnectWallet() {
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Connect your wallet to interact with the DApp
+              Connect using your preferred wallet - MetaMask, WalletConnect, or other Web3 wallets
             </p>
             <Button 
               className="w-full" 

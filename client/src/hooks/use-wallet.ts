@@ -9,19 +9,12 @@ export function useWallet() {
 
   const connectWallet = async () => {
     try {
-      // Try to connect with the first available connector
-      const connector = connectors[0]
-      if (!connector) {
-        throw new Error("No wallet connectors available")
-      }
-
-      const result = await connectAsync({ connector })
-      if (result) {
-        toast({
-          title: "Wallet Connected",
-          description: "Your wallet has been connected successfully",
-        })
-      }
+      // Let Web3Modal handle connector selection
+      await connectAsync()
+      toast({
+        title: "Wallet Connected",
+        description: "Your wallet has been connected successfully",
+      })
     } catch (error) {
       console.error('Wallet connection error:', error)
       toast({

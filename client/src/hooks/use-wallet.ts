@@ -9,6 +9,9 @@ export function useWallet() {
 
   const connectWallet = async () => {
     try {
+      // Log available connectors for debugging
+      console.log('Available connectors:', connectors.map(c => c.name))
+
       // Let Web3Modal handle the connection process
       connect()
       toast({
@@ -33,6 +36,7 @@ export function useWallet() {
         description: "Your wallet has been disconnected",
       })
     } catch (error) {
+      console.error('Wallet disconnect error:', error)
       toast({
         variant: "destructive",
         title: "Disconnect Failed",

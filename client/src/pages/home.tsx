@@ -1,4 +1,5 @@
 import { ConnectWallet } from "@/components/connect-wallet";
+import { PriceDisplay } from "@/components/price-display";
 import { useWallet } from "@/hooks/use-wallet";
 
 export default function Home() {
@@ -12,9 +13,11 @@ export default function Home() {
             Welcome to Our DApp
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Connect your MetaMask wallet to get started with our decentralized application
+            Connect your wallet and view real-time CPXTB/USDT prices
           </p>
         </div>
+
+        <PriceDisplay />
 
         <div className="max-w-md mx-auto">
           <ConnectWallet />

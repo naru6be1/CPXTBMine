@@ -52,10 +52,12 @@ export const config = createConfig({
   webSocketPublicClient
 })
 
+// Initialize web3modal with enhanced configuration and export it
+let web3Modal: ReturnType<typeof createWeb3Modal>;
+
 try {
   console.log("Creating Web3Modal instance...")
-  // Initialize web3modal with enhanced configuration
-  createWeb3Modal({
+  web3Modal = createWeb3Modal({
     wagmiConfig: config,
     projectId,
     chains,
@@ -74,3 +76,5 @@ try {
   console.error('Failed to initialize Web3Modal:', error)
   throw error // Re-throw to prevent silent failures
 }
+
+export { web3Modal }

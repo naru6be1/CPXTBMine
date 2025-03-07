@@ -1,5 +1,6 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { useToast } from "@/hooks/use-toast"
+import { web3Modal } from '@/lib/web3'
 
 export function useWallet() {
   const { address, isConnected } = useAccount()
@@ -12,11 +13,12 @@ export function useWallet() {
       // Log available connectors for debugging
       console.log('Available connectors:', connectors.map(c => c.name))
 
-      // Let Web3Modal handle the connection process
-      connect()
+      // Open the Web3Modal
+      web3Modal.open()
+
       toast({
-        title: "Opening Wallet Connection",
-        description: "Please select a wallet to connect",
+        title: "Choose Your Wallet",
+        description: "Select your preferred wallet to connect",
       })
     } catch (error) {
       console.error('Wallet connection error:', error)

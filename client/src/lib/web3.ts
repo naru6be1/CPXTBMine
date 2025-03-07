@@ -1,37 +1,39 @@
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi'
+import { createWeb3Modal } from '@web3modal/wagmi'
+import { defaultConfig } from '@web3modal/wagmi/config'
 import { mainnet, sepolia } from 'viem/chains'
 import { http } from 'viem'
 
-// Make sure to use the environment variable for the project ID
+// Get WalletConnect Project ID from environment variable
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+
+if (!projectId) {
+  throw new Error("Missing VITE_WALLETCONNECT_PROJECT_ID environment variable")
+}
 
 const metadata = {
   name: 'Web3 DApp',
-  description: 'Web3 DApp with multiple wallet support',
-  url: 'https://web3-dapp.example.com',
+  description: 'Web3 DApp Example',
+  url: 'https://web3modal.com',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-const chains = [mainnet, sepolia]
+// Configure chains for the application
+const chains = [mainnet, sepolia] as const
 
-// Updated wagmi config with required parameters for v2
-export const wagmiConfig = defaultWagmiConfig({
+// Create wagmi config
+export const wagmiConfig = defaultConfig({
   chains,
   projectId,
   metadata,
-  ssr: false,
   transports: {
     [mainnet.id]: http(),
     [sepolia.id]: http()
   }
 })
 
+// Initialize Web3Modal
 createWeb3Modal({
   wagmiConfig,
   projectId,
-  chains,
-  themeMode: 'light',
-  themeVariables: {
-    '--w3m-font-family': 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
-  }
+  chains
 })

@@ -5,7 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import { wagmiConfig } from "./lib/web3";
-import { createWeb3Modal, WagmiProvider } from '@web3modal/wagmi'
+import { WagmiProvider } from 'wagmi'
+import { Web3Modal } from '@web3modal/wagmi'
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function App() {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <Router />
+        <Web3Modal />
         <Toaster />
       </QueryClientProvider>
     </WagmiProvider>

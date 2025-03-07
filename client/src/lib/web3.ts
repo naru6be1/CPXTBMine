@@ -1,5 +1,5 @@
-import { createWeb3Modal } from '@web3modal/wagmi'
-import { defaultConfig } from '@web3modal/wagmi/config'
+import { createWeb3Modal } from '@web3modal/wagmi/react'
+import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
 import { mainnet, sepolia } from 'viem/chains'
 import { http } from 'viem'
 
@@ -21,7 +21,7 @@ const metadata = {
 const chains = [mainnet, sepolia] as const
 
 // Create wagmi config
-export const wagmiConfig = defaultConfig({
+export const wagmiConfig = defaultWagmiConfig({
   chains,
   projectId,
   metadata,

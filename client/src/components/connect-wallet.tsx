@@ -11,7 +11,7 @@ export function ConnectWallet() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wallet2 className="h-6 w-6 text-primary" />
-          Connect Your Wallet
+          {isConnected ? 'Connected Wallet' : 'Connect Your Wallet'}
         </CardTitle>
       </CardHeader>
       <CardContent>

@@ -9,8 +9,11 @@ import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
 if (!projectId) {
+  console.error("Missing VITE_WALLETCONNECT_PROJECT_ID environment variable")
   throw new Error("Missing VITE_WALLETCONNECT_PROJECT_ID environment variable")
 }
+
+console.log("Initializing Web3Modal with project ID:", projectId.slice(0, 4) + "...")
 
 const metadata = {
   name: 'Web3 DApp',
@@ -50,6 +53,7 @@ export const config = createConfig({
 })
 
 try {
+  console.log("Creating Web3Modal instance...")
   // Initialize web3modal
   createWeb3Modal({
     wagmiConfig: config,
@@ -58,6 +62,7 @@ try {
     defaultChain: mainnet,
     themeMode: 'light'
   })
+  console.log("Web3Modal initialized successfully")
 } catch (error) {
   console.error('Failed to initialize Web3Modal:', error)
   throw error // Re-throw to prevent silent failures

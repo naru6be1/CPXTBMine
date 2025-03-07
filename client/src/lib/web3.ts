@@ -40,12 +40,18 @@ export const config = createConfig({
   publicClient,
   webSocketPublicClient,
   connectors: [
-    new InjectedConnector({ chains }),
+    new InjectedConnector({ 
+      chains,
+      options: {
+        shimDisconnect: true
+      }
+    }),
     new WalletConnectConnector({
       chains,
       options: {
         projectId,
-        metadata
+        metadata,
+        showQrModal: true
       }
     })
   ]

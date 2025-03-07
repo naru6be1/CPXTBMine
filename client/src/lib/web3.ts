@@ -37,7 +37,7 @@ export const config = createConfig({
       options: {
         projectId,
         metadata,
-        showQrModal: false
+        showQrModal: false // Let Web3Modal handle the QR modal
       }
     }),
     new InjectedConnector({
@@ -54,13 +54,20 @@ export const config = createConfig({
 
 try {
   console.log("Creating Web3Modal instance...")
-  // Initialize web3modal
+  // Initialize web3modal with enhanced configuration
   createWeb3Modal({
     wagmiConfig: config,
     projectId,
     chains,
     defaultChain: mainnet,
-    themeMode: 'light'
+    themeMode: 'light',
+    themeVariables: {
+      '--w3m-font-family': 'sans-serif',
+      '--w3m-accent-color': 'hsl(var(--primary))',
+      '--w3m-background-color': 'hsl(var(--background))',
+      '--w3m-text-color': 'hsl(var(--foreground))',
+      '--w3m-z-index': 1000
+    }
   })
   console.log("Web3Modal initialized successfully")
 } catch (error) {

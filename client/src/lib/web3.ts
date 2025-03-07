@@ -20,55 +20,40 @@ const metadata = {
 }
 
 // Configure chains & providers with error handling
-let chains, publicClient, webSocketPublicClient;
-try {
-  const configured = configureChains(
-    [mainnet, sepolia],
-    [publicProvider()]
-  );
-  chains = configured.chains;
-  publicClient = configured.publicClient;
-  webSocketPublicClient = configured.webSocketPublicClient;
-} catch (error) {
-  console.error("Error configuring chains:", error);
-  throw error;
-}
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [mainnet, sepolia],
+  [publicProvider()]
+)
 
-// Create wagmi config
+// Create wagmi config with multiple connectors
 export const config = createConfig({
   autoConnect: true,
-  publicClient,
-  webSocketPublicClient,
   connectors: [
-    new InjectedConnector({ 
-      chains,
-      options: {
-        shimDisconnect: true
-      }
-    }),
     new WalletConnectConnector({
       chains,
       options: {
         projectId,
         metadata,
-        showQrModal: true
+        showQrModal: false // Let Web3Modal handle the QR modal
+      }
+    }),
+    new InjectedConnector({
+      chains,
+      options: {
+        name: 'Injected',
+        shimDisconnect: true,
       }
     })
-  ]
+  ],
+  publicClient,
+  webSocketPublicClient
 })
 
-// Initialize modal after config creation with error handling
-try {
-  createWeb3Modal({ 
-    wagmiConfig: config, 
-    projectId, 
-    chains,
-    themeMode: 'light',
-    themeVariables: {
-      '--w3m-z-index': 1000
-    }
-  })
-} catch (error) {
-  console.error("Error initializing Web3Modal:", error);
-  // Don't throw here to allow app to continue loading
-}
+// Initialize web3modal with required parameters
+createWeb3Modal({
+  wagmiConfig: config,
+  projectId,
+  chains,
+  defaultChain: mainnet,
+  themeMode: 'light'
+})

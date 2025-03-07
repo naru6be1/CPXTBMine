@@ -9,7 +9,7 @@ export function useWallet() {
 
   const connectWallet = async () => {
     try {
-      // Let Web3Modal handle connector selection
+      // Let Web3Modal handle the connection process
       await connectAsync()
       toast({
         title: "Wallet Connected",

@@ -3,13 +3,19 @@ import { useToast } from "@/hooks/use-toast"
 
 export function useWallet() {
   const { address, isConnected } = useAccount()
-  const { connectAsync, isPending } = useConnect()
+  const { connectAsync, connectors, isLoading } = useConnect()
   const { disconnect } = useDisconnect()
   const { toast } = useToast()
 
   const connectWallet = async () => {
     try {
-      const result = await connectAsync()
+      // Try to connect with the first available connector
+      const connector = connectors[0]
+      if (!connector) {
+        throw new Error("No wallet connectors available")
+      }
+
+      const result = await connectAsync({ connector })
       if (result) {
         toast({
           title: "Wallet Connected",
@@ -45,7 +51,7 @@ export function useWallet() {
   return {
     address,
     isConnected,
-    isConnecting: isPending,
+    isConnecting: isLoading,
     connect: connectWallet,
     disconnect: disconnectWallet,
   }

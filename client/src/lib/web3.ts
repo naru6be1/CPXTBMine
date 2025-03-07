@@ -1,7 +1,9 @@
-import { createWeb3Modal } from '@web3modal/wagmi/react'
-import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
+import { createWeb3Modal } from '@web3modal/wagmi'
+import { configureChains, createConfig } from 'wagmi'
 import { mainnet, sepolia } from 'viem/chains'
-import { http } from 'viem'
+import { publicProvider } from 'wagmi/providers/public'
+import { InjectedConnector } from 'wagmi/connectors/injected'
+import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
 
 // Get WalletConnect Project ID from environment variable
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
@@ -17,23 +19,32 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains for the application
-const chains = [mainnet, sepolia] as const
+// Configure chains & providers
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [mainnet, sepolia],
+  [publicProvider()]
+)
 
 // Create wagmi config
-export const wagmiConfig = defaultWagmiConfig({
-  chains,
-  projectId,
-  metadata,
-  transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http()
-  }
+export const config = createConfig({
+  autoConnect: true,
+  publicClient,
+  webSocketPublicClient,
+  connectors: [
+    new InjectedConnector({ chains }),
+    new WalletConnectConnector({
+      chains,
+      options: {
+        projectId,
+        metadata
+      }
+    })
+  ]
 })
 
 // Initialize Web3Modal
 createWeb3Modal({
-  wagmiConfig,
+  wagmiConfig: config,
   projectId,
   chains
 })

@@ -1,16 +1,21 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useToast } from "@/hooks/use-toast"
 
 export function useWallet() {
   const { address, isConnected } = useAccount()
-  const { isOpen, open, close } = useWeb3Modal()
+  const { connectAsync, isPending } = useConnect()
   const { disconnect } = useDisconnect()
   const { toast } = useToast()
 
   const connectWallet = async () => {
     try {
-      await open()
+      const result = await connectAsync()
+      if (result) {
+        toast({
+          title: "Wallet Connected",
+          description: "Your wallet has been connected successfully",
+        })
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -39,7 +44,7 @@ export function useWallet() {
   return {
     address,
     isConnected,
-    isConnecting: isOpen,
+    isConnecting: isPending,
     connect: connectWallet,
     disconnect: disconnectWallet,
   }

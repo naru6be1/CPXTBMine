@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react';
-import { JsonRpcProvider, Contract, formatUnits } from 'ethers';
+import { createPublicClient, http, parseAbi } from 'viem';
+import { base } from 'viem/chains';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
 
 // ABI for Uniswap V4 Pool interaction
-const POOL_ABI = [
+const POOL_ABI = parseAbi([
   'function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)',
   'event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)',
-];
+]);
 
+// Contract addresses - ensure they are properly checksummed
 const POOL_ADDRESS = '0xf8c5dfe02c1199fffc6cea53eec7d8f9da42ca5c72cc426c1637ce24a3c5210a';
 const CPXTB_ADDRESS = '0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b';
 const USDT_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2';
+
+// Create a public client for Base network
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http('https://mainnet.base.org')
+});
 
 export function PriceDisplay() {
   const [price, setPrice] = useState<string>('Loading...');
@@ -20,32 +28,40 @@ export function PriceDisplay() {
   const { toast } = useToast();
 
   useEffect(() => {
-    let poolContract: Contract;
     let mounted = true;
 
     const fetchPrice = async () => {
       try {
         setError(null);
 
-        // Initialize provider and contract
-        const provider = new JsonRpcProvider('https://mainnet.base.org');
-        poolContract = new Contract(POOL_ADDRESS, POOL_ABI, provider);
+        // Check if addresses are valid
+        if (!POOL_ADDRESS || !CPXTB_ADDRESS || !USDT_ADDRESS) {
+          throw new Error('Invalid contract addresses');
+        }
 
         console.log('Fetching price from pool:', POOL_ADDRESS);
-        const slot0 = await poolContract.slot0();
-        console.log('Received slot0 data:', slot0);
+
+        // Get slot0 data from the pool
+        const slot0Data = await publicClient.readContract({
+          address: POOL_ADDRESS as `0x${string}`,
+          abi: POOL_ABI,
+          functionName: 'slot0',
+        });
 
         if (!mounted) return;
 
-        // Convert to string first to avoid precision loss
-        const sqrtPriceX96 = BigInt(slot0.sqrtPriceX96.toString());
+        const sqrtPriceX96 = slot0Data[0]; // First return value is sqrtPriceX96
+        console.log('Received sqrtPriceX96:', sqrtPriceX96);
+
+        // Calculate price using BigInt
         const Q96 = BigInt(2 ** 96);
+        const priceRaw = (sqrtPriceX96 * sqrtPriceX96) / Q96 / Q96;
 
-        // Calculate price
-        const priceValue = (sqrtPriceX96 * sqrtPriceX96) / Q96 / Q96;
-        console.log('Calculated price value:', priceValue.toString());
+        // Format price with 6 decimals (USDT standard)
+        const priceFormatted = (Number(priceRaw) / 10 ** 6).toFixed(6);
+        console.log('Calculated price:', priceFormatted);
 
-        setPrice(formatUnits(priceValue.toString(), 6));
+        setPrice(priceFormatted);
 
       } catch (error) {
         console.error('Error fetching price:', error);
@@ -65,9 +81,6 @@ export function PriceDisplay() {
 
     return () => {
       mounted = false;
-      if (poolContract) {
-        poolContract.removeAllListeners();
-      }
       clearInterval(interval);
     };
   }, [toast]);

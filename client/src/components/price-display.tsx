@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ethers } from 'ethers';
+import { JsonRpcProvider, Contract, formatUnits } from 'ethers';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
@@ -20,42 +20,32 @@ export function PriceDisplay() {
   const { toast } = useToast();
 
   useEffect(() => {
-    let poolContract: ethers.Contract;
+    let poolContract: Contract;
     let mounted = true;
 
     const fetchPrice = async () => {
       try {
         setError(null);
-        // Connect to Base network using a more reliable RPC
-        const provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
-        poolContract = new ethers.Contract(POOL_ADDRESS, POOL_ABI, provider);
 
-        // Get current price from slot0
+        // Initialize provider and contract
+        const provider = new JsonRpcProvider('https://mainnet.base.org');
+        poolContract = new Contract(POOL_ADDRESS, POOL_ABI, provider);
+
+        console.log('Fetching price from pool:', POOL_ADDRESS);
         const slot0 = await poolContract.slot0();
-        const sqrtPriceX96 = slot0.sqrtPriceX96;
+        console.log('Received slot0 data:', slot0);
 
         if (!mounted) return;
 
-        // Calculate price from sqrtPriceX96 using BigNumber to handle large numbers
-        const Q96 = ethers.BigNumber.from(2).pow(96);
-        const price = ethers.BigNumber.from(sqrtPriceX96)
-          .mul(sqrtPriceX96)
-          .div(Q96)
-          .div(Q96);
+        // Convert to string first to avoid precision loss
+        const sqrtPriceX96 = BigInt(slot0.sqrtPriceX96.toString());
+        const Q96 = BigInt(2 ** 96);
 
-        setPrice(ethers.utils.formatUnits(price, 6)); // Assuming 6 decimals for USDT
+        // Calculate price
+        const priceValue = (sqrtPriceX96 * sqrtPriceX96) / Q96 / Q96;
+        console.log('Calculated price value:', priceValue.toString());
 
-        // Listen for Swap events
-        poolContract.on('Swap', async (sender, recipient, amount0, amount1, sqrtPriceX96) => {
-          if (!mounted) return;
-
-          const newPrice = ethers.BigNumber.from(sqrtPriceX96)
-            .mul(sqrtPriceX96)
-            .div(Q96)
-            .div(Q96);
-
-          setPrice(ethers.utils.formatUnits(newPrice, 6));
-        });
+        setPrice(formatUnits(priceValue.toString(), 6));
 
       } catch (error) {
         console.error('Error fetching price:', error);
@@ -73,7 +63,6 @@ export function PriceDisplay() {
     fetchPrice();
     const interval = setInterval(fetchPrice, 15000); // Refresh every 15 seconds
 
-    // Cleanup
     return () => {
       mounted = false;
       if (poolContract) {

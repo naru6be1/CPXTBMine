@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useWallet } from "@/hooks/use-wallet";
 import { Wallet2, LogOut } from "lucide-react";
 
@@ -16,12 +15,7 @@ export function ConnectWallet() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isConnecting ? (
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : isConnected && address ? (
+        {isConnected && address ? (
           <div className="space-y-4">
             <div className="break-all rounded-lg bg-muted p-4 text-sm font-mono">
               {address}
@@ -40,9 +34,10 @@ export function ConnectWallet() {
             className="w-full" 
             size="lg"
             onClick={connect}
+            disabled={isConnecting}
           >
             <Wallet2 className="mr-2 h-4 w-4" />
-            Connect to MetaMask
+            {isConnecting ? "Connecting..." : "Connect Wallet"}
           </Button>
         )}
       </CardContent>

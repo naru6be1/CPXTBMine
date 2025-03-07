@@ -1,71 +1,46 @@
-import { useCallback, useState } from "react";
-import { ethers } from "ethers";
-import { useToast } from "@/hooks/use-toast";
-
-interface WalletState {
-  address: string | null;
-  isConnecting: boolean;
-  isConnected: boolean;
-}
-
-const initialState: WalletState = {
-  address: null,
-  isConnecting: false,
-  isConnected: false,
-};
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useToast } from "@/hooks/use-toast"
 
 export function useWallet() {
-  const [wallet, setWallet] = useState<WalletState>(initialState);
-  const { toast } = useToast();
+  const { address, isConnected } = useAccount()
+  const { isOpen, open, close } = useWeb3Modal()
+  const { disconnect } = useDisconnect()
+  const { toast } = useToast()
 
-  const connect = useCallback(async () => {
-    if (!window.ethereum) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Found",
-        description: "Please install MetaMask to connect your wallet",
-      });
-      return;
-    }
-
+  const connectWallet = async () => {
     try {
-      setWallet(prev => ({ ...prev, isConnecting: true }));
-
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
-
-      setWallet({
-        address,
-        isConnecting: false,
-        isConnected: true,
-      });
-
-      toast({
-        title: "Wallet Connected",
-        description: "Successfully connected to your wallet",
-      });
+      await open()
     } catch (error) {
-      setWallet(initialState);
       toast({
         variant: "destructive",
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Failed to connect wallet",
-      });
+      })
     }
-  }, [toast]);
+  }
 
-  const disconnect = useCallback(() => {
-    setWallet(initialState);
-    toast({
-      title: "Wallet Disconnected",
-      description: "Your wallet has been disconnected",
-    });
-  }, [toast]);
+  const disconnectWallet = async () => {
+    try {
+      disconnect()
+      toast({
+        title: "Wallet Disconnected",
+        description: "Your wallet has been disconnected",
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Disconnect Failed",
+        description: error instanceof Error ? error.message : "Failed to disconnect wallet",
+      })
+    }
+  }
 
   return {
-    ...wallet,
-    connect,
-    disconnect,
-  };
+    address,
+    isConnected,
+    isConnecting: isOpen,
+    connect: connectWallet,
+    disconnect: disconnectWallet,
+  }
 }

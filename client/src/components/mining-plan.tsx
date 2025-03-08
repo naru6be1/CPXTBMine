@@ -81,6 +81,7 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
   const elements = useElements();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +133,7 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
         });
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
         console.log('Payment successful:', paymentIntent);
+        setIsSuccess(true);
         toast({
           title: "Payment Successful",
           description: "Your mining plan has been activated! You will start receiving daily rewards.",
@@ -156,6 +158,21 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
       setIsProcessing(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="animate-fade-in space-y-4 text-center">
+        <div className="bg-primary/10 rounded-lg p-6">
+          <h3 className="text-xl font-semibold text-primary mb-2">
+            🎉 Mining Plan Activated!
+          </h3>
+          <p className="text-muted-foreground">
+            Your mining plan is now active. You will start receiving daily rewards of {dailyRewardCPXTB} CPXTB to address: {withdrawalAddress}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -295,6 +312,7 @@ export function MiningPlan() {
                   withdrawalAddress={withdrawalAddress}
                   amount={investmentAmount}
                   onSuccess={handlePaymentSuccess}
+                  dailyRewardCPXTB={dailyRewardCPXTB}
                 />
               </Elements>
             </div>

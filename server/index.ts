@@ -2,6 +2,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Add more detailed startup logging
+log("Starting server initialization with enhanced logging...");
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -75,6 +78,7 @@ app.use((req, res, next) => {
       reusePort: true,
     }, () => {
       log(`Server successfully started and listening on port ${port}`);
+      log(`Application is now available at http://0.0.0.0:${port}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

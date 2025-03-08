@@ -12,7 +12,7 @@ const POOL_ABI = parseAbi([
 ]);
 
 // Contract addresses - ensure they are properly checksummed
-const POOL_ADDRESS = '0xF8C5dFe02C1199fFFc6Cea53Eec7D8F9Da42CA5C72Cc426c1637Ce24A3c5210a';
+const POOL_ADDRESS = '0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b'; // Corrected pool address
 const CPXTB_ADDRESS = '0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b';
 const USDT_ADDRESS = '0xFdE4C96c8593536E31F229EA8f37b2ADa2699bb2';
 
@@ -20,6 +20,12 @@ const USDT_ADDRESS = '0xFdE4C96c8593536E31F229EA8f37b2ADa2699bb2';
 const publicClient = createPublicClient({
   chain: base,
   transport: http('https://mainnet.base.org')
+});
+
+console.log('Initializing PriceDisplay component with configuration:', {
+  poolAddress: POOL_ADDRESS,
+  cpxtbAddress: CPXTB_ADDRESS,
+  usdtAddress: USDT_ADDRESS
 });
 
 export function PriceDisplay() {
@@ -32,6 +38,7 @@ export function PriceDisplay() {
 
     const fetchPrice = async () => {
       try {
+        console.log('Attempting to fetch price data from Uniswap V4 pool...');
         setError(null);
 
         // Check if addresses are valid
@@ -39,7 +46,7 @@ export function PriceDisplay() {
           throw new Error('Invalid contract addresses');
         }
 
-        console.log('Fetching price from pool:', POOL_ADDRESS);
+        console.log('Making contract call to pool address:', POOL_ADDRESS);
 
         // Get slot0 data from the pool
         const slot0Data = await publicClient.readContract({
@@ -48,18 +55,21 @@ export function PriceDisplay() {
           functionName: 'slot0',
         });
 
+        console.log('Received raw slot0 data:', slot0Data);
+
         if (!mounted) return;
 
-        const sqrtPriceX96 = slot0Data[0]; // First return value is sqrtPriceX96
-        console.log('Received sqrtPriceX96:', sqrtPriceX96);
+        const sqrtPriceX96 = BigInt(slot0Data[0].toString());
+        console.log('Parsed sqrtPriceX96:', sqrtPriceX96.toString());
 
         // Calculate price using BigInt
         const Q96 = BigInt(2 ** 96);
         const priceRaw = (sqrtPriceX96 * sqrtPriceX96) / Q96 / Q96;
+        console.log('Calculated raw price:', priceRaw.toString());
 
         // Format price with 6 decimals (USDT standard)
         const priceFormatted = (Number(priceRaw) / 10 ** 6).toFixed(6);
-        console.log('Calculated price:', priceFormatted);
+        console.log('Final formatted price:', priceFormatted);
 
         setPrice(priceFormatted);
 
@@ -67,11 +77,13 @@ export function PriceDisplay() {
         console.error('Error fetching price:', error);
         if (!mounted) return;
 
-        setError('Failed to fetch price data');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to fetch price data';
+        console.error('Setting error state:', errorMessage);
+        setError(errorMessage);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to fetch price data. Please try again later.",
+          description: errorMessage,
         });
       }
     };

@@ -1,13 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Coins, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useWallet } from "@/hooks/use-wallet";
 
 export function MiningPlan() {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const { toast } = useToast();
+  const { isConnected } = useWallet();
 
   // Constants
   const investmentAmount = 100; // USDT
@@ -21,6 +24,22 @@ export function MiningPlan() {
     toast({
       title: "Copied to clipboard",
       description: "The address has been copied to your clipboard.",
+    });
+  };
+
+  const handleInvest = () => {
+    if (!withdrawalAddress) {
+      toast({
+        variant: "destructive",
+        title: "Missing Withdrawal Address",
+        description: "Please provide your Base network address for CPXTB rewards",
+      });
+      return;
+    }
+
+    toast({
+      title: "Investment Instructions",
+      description: `Please send ${investmentAmount} USDT to the provided wallet address. Your CPXTB rewards will be sent to ${withdrawalAddress}`,
     });
   };
 
@@ -82,6 +101,17 @@ export function MiningPlan() {
               Please provide your Base network address to receive CPXTB rewards
             </p>
           </div>
+
+          {isConnected && (
+            <Button 
+              className="w-full mt-4" 
+              size="lg"
+              onClick={handleInvest}
+            >
+              <Coins className="mr-2 h-4 w-4" />
+              Start Mining Plan
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

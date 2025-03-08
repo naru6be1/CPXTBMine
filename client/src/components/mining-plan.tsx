@@ -72,7 +72,7 @@ function PaymentStatusCheck() {
 }
 
 // Payment Form Component
-function PaymentForm({ withdrawalAddress, amount, onSuccess }: { 
+function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
   withdrawalAddress: string;
   amount: number;
   onSuccess: () => void;
@@ -99,8 +99,16 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
 
     try {
       console.log('Starting payment confirmation...');
-      const { error } = await stripe.confirmPayment({
+
+      // Get payment method
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        throw submitError;
+      }
+
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
+        redirect: "if_required",
         confirmParams: {
           return_url: `${window.location.origin}${window.location.pathname}`,
           payment_method_data: {
@@ -113,6 +121,8 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
         },
       });
 
+      console.log('Payment confirmation response:', { error, paymentIntent });
+
       if (error) {
         console.error('Payment confirmation error:', error);
         toast({
@@ -120,13 +130,20 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
           title: "Payment Failed",
           description: error.message || "Payment could not be processed. Please try again.",
         });
-      } else {
-        console.log('Payment successful');
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        console.log('Payment successful:', paymentIntent);
         toast({
           title: "Payment Successful",
-          description: "Your payment was successful!",
+          description: "Your mining plan has been activated! You will start receiving daily rewards.",
         });
         onSuccess();
+      } else {
+        console.log('Unexpected payment status:', paymentIntent?.status);
+        toast({
+          variant: "destructive",
+          title: "Payment Status Unknown",
+          description: "Please contact support if you see this message.",
+        });
       }
     } catch (error) {
       console.error('Payment processing error:', error);
@@ -157,9 +174,9 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
         </p>
       </div>
       <PaymentElement />
-      <Button 
-        type="submit" 
-        className="w-full" 
+      <Button
+        type="submit"
+        className="w-full"
         disabled={isProcessing}
       >
         {isProcessing ? "Processing Payment..." : "Pay & Start Mining"}
@@ -193,11 +210,11 @@ export function MiningPlan() {
     try {
       console.log('Creating payment intent...');
       const response = await apiRequest(
-        "POST", 
+        "POST",
         "/api/create-payment-intent",
-        { 
+        {
           amount: investmentAmount,
-          withdrawalAddress 
+          withdrawalAddress
         }
       );
       const data = await response.json();
@@ -260,8 +277,8 @@ export function MiningPlan() {
           </div>
 
           {isConnected && !clientSecret && (
-            <Button 
-              className="w-full mt-4" 
+            <Button
+              className="w-full mt-4"
               size="lg"
               onClick={handleInvest}
             >
@@ -274,7 +291,7 @@ export function MiningPlan() {
             <div className="mt-6">
               <Elements stripe={stripePromise} options={{ clientSecret }}>
                 <PaymentStatusCheck />
-                <PaymentForm 
+                <PaymentForm
                   withdrawalAddress={withdrawalAddress}
                   amount={investmentAmount}
                   onSuccess={handlePaymentSuccess}

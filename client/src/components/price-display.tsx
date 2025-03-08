@@ -12,7 +12,7 @@ const POOL_ABI = parseAbi([
 ]);
 
 // Contract addresses - ensure they are properly checksummed
-const POOL_ADDRESS = '0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b'; // Corrected pool address
+const POOL_ADDRESS = '0xf8c5dfe02c1199fffc6cea53eec7d8f9da42ca5c72cc426c1637ce24a3c5210a'; // Updated pool address
 const CPXTB_ADDRESS = '0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b';
 const USDT_ADDRESS = '0xFdE4C96c8593536E31F229EA8f37b2ADa2699bb2';
 
@@ -22,10 +22,13 @@ const publicClient = createPublicClient({
   transport: http('https://mainnet.base.org')
 });
 
+// Add detailed logging
 console.log('Initializing PriceDisplay component with configuration:', {
   poolAddress: POOL_ADDRESS,
   cpxtbAddress: CPXTB_ADDRESS,
-  usdtAddress: USDT_ADDRESS
+  usdtAddress: USDT_ADDRESS,
+  network: 'Base Mainnet',
+  rpcUrl: 'https://mainnet.base.org'
 });
 
 export function PriceDisplay() {

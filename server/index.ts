@@ -49,13 +49,24 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     log("Routes registered successfully");
 
-    // Setup error handling
+    // Setup enhanced error handling
     log("Setting up error handling...");
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error("Server error:", err);
+      console.error("Server error details:", {
+        message: err.message,
+        stack: err.stack,
+        code: err.code,
+        status: err.status || err.statusCode || 500
+      });
+
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
+
+      // Send error response without exposing internal details
+      res.status(status).json({ 
+        message,
+        error: app.get("env") === "development" ? err.stack : undefined
+      });
     });
 
     // Setup Vite or static serving

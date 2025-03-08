@@ -1,5 +1,6 @@
 import { ConnectWallet } from "@/components/connect-wallet";
 import { PriceDisplay } from "@/components/price-display";
+import { MiningPlan } from "@/components/mining-plan";
 import { useWallet } from "@/hooks/use-wallet";
 
 export default function Home() {
@@ -18,6 +19,7 @@ export default function Home() {
         </div>
 
         <PriceDisplay />
+        <MiningPlan />
 
         <div className="max-w-md mx-auto">
           <ConnectWallet />

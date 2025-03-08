@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Coins, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -15,6 +15,61 @@ if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
 }
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+
+// Payment Status Check Component
+function PaymentStatusCheck() {
+  const stripe = useStripe();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!stripe) {
+      console.log('Stripe not initialized in PaymentStatusCheck');
+      return;
+    }
+
+    const clientSecret = new URLSearchParams(window.location.search).get(
+      'payment_intent_client_secret'
+    );
+
+    if (clientSecret) {
+      console.log('Found client secret in URL, checking payment status');
+      stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
+        console.log('Payment intent status:', paymentIntent?.status);
+
+        switch (paymentIntent?.status) {
+          case "succeeded":
+            toast({
+              title: "Payment Successful",
+              description: "Your mining plan has been activated! You will start receiving daily rewards.",
+            });
+            break;
+          case "processing":
+            toast({
+              title: "Payment Processing",
+              description: "Your payment is being processed. We'll notify you when it's complete.",
+            });
+            break;
+          case "requires_payment_method":
+            toast({
+              variant: "destructive",
+              title: "Payment Failed",
+              description: "Please try another payment method.",
+            });
+            break;
+          default:
+            toast({
+              variant: "destructive",
+              title: "Payment Error",
+              description: "Something went wrong with your payment.",
+            });
+            break;
+        }
+      });
+    }
+  }, [stripe, toast]);
+
+  return null;
+}
 
 // Payment Form Component
 function PaymentForm({ withdrawalAddress, amount, onSuccess }: { 
@@ -69,7 +124,7 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
         console.log('Payment successful');
         toast({
           title: "Payment Successful",
-          description: "Your mining plan has been activated! You will start receiving daily rewards.",
+          description: "Your payment was successful!",
         });
         onSuccess();
       }
@@ -218,6 +273,7 @@ export function MiningPlan() {
           {clientSecret && (
             <div className="mt-6">
               <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <PaymentStatusCheck />
                 <PaymentForm 
                   withdrawalAddress={withdrawalAddress}
                   amount={investmentAmount}

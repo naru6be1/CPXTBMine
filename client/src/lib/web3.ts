@@ -1,6 +1,6 @@
 import { createWeb3Modal } from '@web3modal/wagmi'
 import { configureChains, createConfig } from 'wagmi'
-import { mainnet, sepolia } from 'viem/chains'
+import { mainnet, base } from 'viem/chains'
 import { publicProvider } from 'wagmi/providers/public'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
@@ -22,9 +22,9 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains & providers
+// Configure chains & providers with Base network
 const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet, sepolia],
+  [base, mainnet],
   [publicProvider()]
 )
 
@@ -61,7 +61,7 @@ try {
     wagmiConfig: config,
     projectId,
     chains,
-    defaultChain: mainnet,
+    defaultChain: base,
     themeMode: 'light',
     themeVariables: {
       '--w3m-font-family': 'sans-serif',
@@ -74,7 +74,7 @@ try {
   console.log("Web3Modal initialized successfully")
 } catch (error) {
   console.error('Failed to initialize Web3Modal:', error)
-  throw error // Re-throw to prevent silent failures
+  throw error
 }
 
 export { web3Modal }

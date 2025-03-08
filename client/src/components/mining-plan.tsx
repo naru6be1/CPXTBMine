@@ -8,10 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 export function MiningPlan() {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const { toast } = useToast();
-  
+
   // Constants
   const investmentAmount = 100; // USDT
-  const dailyRewardUSD = 7; // USD
+  const dailyRewardUSD = 15; // USD
   const usdtWalletAddress = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
   const cpxtbPrice = 0.002529; // Current CPXTB price in USD
   const dailyRewardCPXTB = (dailyRewardUSD / cpxtbPrice).toFixed(2); // Calculate CPXTB equivalent

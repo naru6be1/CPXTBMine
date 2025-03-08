@@ -35,20 +35,26 @@ export function PaymentVerification({
 
     setVerifying(true);
     try {
+      console.log('Starting transaction verification for hash:', txHash);
+
       // Create provider for Ethereum mainnet
       const provider = new ethers.JsonRpcProvider("https://eth.llamarpc.com");
-      
+
       // Wait for transaction receipt
+      console.log('Fetching transaction receipt...');
       const receipt = await provider.getTransactionReceipt(txHash);
-      
+
       if (!receipt) {
         throw new Error("Transaction not found or pending");
       }
+
+      console.log('Transaction receipt found:', receipt);
 
       // Create USDT contract interface
       const usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, provider);
 
       // Filter and parse Transfer events
+      console.log('Parsing transfer events...');
       const transferEvent = receipt.logs
         .filter(log => log.address.toLowerCase() === USDT_ADDRESS.toLowerCase())
         .map(log => {
@@ -57,7 +63,8 @@ export function PaymentVerification({
               topics: [...log.topics],
               data: log.data
             });
-          } catch {
+          } catch (error) {
+            console.error('Error parsing log:', error);
             return null;
           }
         })
@@ -67,10 +74,19 @@ export function PaymentVerification({
         throw new Error("No USDT transfer found in transaction");
       }
 
+      console.log('Transfer event found:', transferEvent);
+
       // Verify amount and recipient
       const amount = transferEvent.args[2];
       const recipient = transferEvent.args[1].toLowerCase();
       const targetAddress = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27".toLowerCase();
+
+      console.log('Verifying payment details:', {
+        amount: amount.toString(),
+        recipient,
+        targetAddress,
+        required: REQUIRED_AMOUNT.toString()
+      });
 
       if (amount.toString() !== REQUIRED_AMOUNT.toString()) {
         throw new Error("Incorrect payment amount");
@@ -80,6 +96,7 @@ export function PaymentVerification({
         throw new Error("Payment sent to wrong address");
       }
 
+      console.log('Payment verification successful');
       toast({
         title: "Payment Verified",
         description: "Your USDT payment has been confirmed. Starting your mining plan!",

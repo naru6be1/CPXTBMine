@@ -6,12 +6,9 @@ import { useState } from "react";
 import { Coins, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
-import { PaymentVerification } from "./payment-verification";
 
 export function MiningPlan() {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
-  const [showPaymentVerification, setShowPaymentVerification] = useState(false);
-  const [planActive, setPlanActive] = useState(false);
   const { toast } = useToast();
   const { isConnected } = useWallet();
 
@@ -44,109 +41,79 @@ export function MiningPlan() {
       title: "Investment Instructions",
       description: `Please send ${investmentAmount} USDT to the provided wallet address. Your CPXTB rewards will be sent to ${withdrawalAddress}`,
     });
-
-    setShowPaymentVerification(true);
-  };
-
-  const handleVerificationComplete = (success: boolean) => {
-    if (success) {
-      setPlanActive(true);
-      toast({
-        title: "Mining Plan Activated",
-        description: "Your mining plan is now active! You will start receiving daily CPXTB rewards.",
-      });
-    }
   };
 
   return (
-    <>
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Coins className="h-6 w-6 text-primary" />
-            {planActive ? "Active Mining Plan" : "Weekly Mining Plan"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="bg-muted rounded-lg p-6 space-y-4">
-            <h3 className="text-lg font-semibold">Investment Details</h3>
-            <div className="grid gap-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Required Investment</p>
-                <p className="text-2xl font-bold">{investmentAmount} USDT (ERC-20)</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Daily Reward</p>
-                <p className="text-2xl font-bold text-primary">
-                  {dailyRewardCPXTB} CPXTB
-                  <span className="text-sm text-muted-foreground ml-2">
-                    (≈${dailyRewardUSD})
-                  </span>
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Current CPXTB Price</p>
-                <p className="text-lg font-semibold">${cpxtbPrice}</p>
-              </div>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Coins className="h-6 w-6 text-primary" />
+          Weekly Mining Plan
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="bg-muted rounded-lg p-6 space-y-4">
+          <h3 className="text-lg font-semibold">Investment Details</h3>
+          <div className="grid gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Required Investment</p>
+              <p className="text-2xl font-bold">{investmentAmount} USDT (ERC-20)</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Daily Reward</p>
+              <p className="text-2xl font-bold text-primary">
+                {dailyRewardCPXTB} CPXTB
+                <span className="text-sm text-muted-foreground ml-2">
+                  (≈${dailyRewardUSD})
+                </span>
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Current CPXTB Price</p>
+              <p className="text-lg font-semibold">${cpxtbPrice}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Payment Address (USDT ERC-20)</h3>
+            <div className="flex items-center gap-2 bg-muted p-3 rounded-md">
+              <code className="text-sm flex-1 break-all">{usdtWalletAddress}</code>
+              <button
+                onClick={() => copyToClipboard(usdtWalletAddress)}
+                className="p-2 hover:bg-background rounded-md transition-colors"
+              >
+                <Copy className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
-          {planActive ? (
-            <div className="bg-primary/10 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-primary mb-2">
-                Mining Plan Active!
-              </h3>
-              <p className="text-muted-foreground">
-                Your mining plan is active and rewards are being generated. 
-                CPXTB rewards will be sent to: {withdrawalAddress}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Payment Address (USDT ERC-20)</h3>
-                <div className="flex items-center gap-2 bg-muted p-3 rounded-md">
-                  <code className="text-sm flex-1 break-all">{usdtWalletAddress}</code>
-                  <button
-                    onClick={() => copyToClipboard(usdtWalletAddress)}
-                    className="p-2 hover:bg-background rounded-md transition-colors"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
+            <Input
+              id="withdrawal"
+              placeholder="Enter your Base network address for CPXTB withdrawals"
+              value={withdrawalAddress}
+              onChange={(e) => setWithdrawalAddress(e.target.value)}
+            />
+            <p className="text-sm text-muted-foreground">
+              Please provide your Base network address to receive CPXTB rewards
+            </p>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
-                <Input
-                  id="withdrawal"
-                  placeholder="Enter your Base network address for CPXTB withdrawals"
-                  value={withdrawalAddress}
-                  onChange={(e) => setWithdrawalAddress(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Please provide your Base network address to receive CPXTB rewards
-                </p>
-              </div>
-
-              {isConnected && (
-                <Button 
-                  className="w-full mt-4" 
-                  size="lg"
-                  onClick={handleInvest}
-                >
-                  <Coins className="mr-2 h-4 w-4" />
-                  Start Mining Plan
-                </Button>
-              )}
-            </div>
+          {isConnected && (
+            <Button 
+              className="w-full mt-4" 
+              size="lg"
+              onClick={handleInvest}
+            >
+              <Coins className="mr-2 h-4 w-4" />
+              Start Mining Plan
+            </Button>
           )}
-        </CardContent>
-      </Card>
-
-      {showPaymentVerification && !planActive && (
-        <PaymentVerification onVerificationComplete={handleVerificationComplete} />
-      )}
-    </>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

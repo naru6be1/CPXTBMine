@@ -102,7 +102,7 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.origin,
+          return_url: `${window.location.origin}${window.location.pathname}`,
           payment_method_data: {
             billing_details: {
               address: {

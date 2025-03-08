@@ -13,7 +13,7 @@ export default function Home() {
             Welcome to Our DApp
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Connect your wallet and view real-time CPXTB/USDT prices
+            Connect your wallet and view real-time CPXTB/WETH prices
           </p>
         </div>
 

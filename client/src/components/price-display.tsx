@@ -12,9 +12,9 @@ const POOL_ABI = parseAbi([
 ]);
 
 // Contract addresses - ensure they are properly checksummed
-const POOL_ADDRESS = '0xf8c5dfe02c1199fffc6cea53eec7d8f9da42ca5c72cc426c1637ce24a3c5210a'; // Updated pool address
+const POOL_ADDRESS = '0x18fec483ad7f68df0f9cca34d82792376b8d18d0';
 const CPXTB_ADDRESS = '0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b';
-const USDT_ADDRESS = '0xFdE4C96c8593536E31F229EA8f37b2ADa2699bb2';
+const WETH_ADDRESS = '0x4200000000000000000000000000000000000006'; // WETH on Base
 
 // Create a public client for Base network
 const publicClient = createPublicClient({
@@ -26,7 +26,7 @@ const publicClient = createPublicClient({
 console.log('Initializing PriceDisplay component with configuration:', {
   poolAddress: POOL_ADDRESS,
   cpxtbAddress: CPXTB_ADDRESS,
-  usdtAddress: USDT_ADDRESS,
+  wethAddress: WETH_ADDRESS,
   network: 'Base Mainnet',
   rpcUrl: 'https://mainnet.base.org'
 });
@@ -45,11 +45,21 @@ export function PriceDisplay() {
         setError(null);
 
         // Check if addresses are valid
-        if (!POOL_ADDRESS || !CPXTB_ADDRESS || !USDT_ADDRESS) {
+        if (!POOL_ADDRESS || !CPXTB_ADDRESS || !WETH_ADDRESS) {
           throw new Error('Invalid contract addresses');
         }
 
         console.log('Making contract call to pool address:', POOL_ADDRESS);
+
+        // Try to get events first to verify contract interaction
+        const swapEvents = await publicClient.getContractEvents({
+          address: POOL_ADDRESS as `0x${string}`,
+          abi: POOL_ABI,
+          eventName: 'Swap',
+          fromBlock: 'latest'
+        });
+
+        console.log('Latest swap events:', swapEvents);
 
         // Get slot0 data from the pool
         const slot0Data = await publicClient.readContract({
@@ -70,8 +80,8 @@ export function PriceDisplay() {
         const priceRaw = (sqrtPriceX96 * sqrtPriceX96) / Q96 / Q96;
         console.log('Calculated raw price:', priceRaw.toString());
 
-        // Format price with 6 decimals (USDT standard)
-        const priceFormatted = (Number(priceRaw) / 10 ** 6).toFixed(6);
+        // Format price with 18 decimals (ETH standard)
+        const priceFormatted = (Number(priceRaw) / 10 ** 18).toFixed(6);
         console.log('Final formatted price:', priceFormatted);
 
         setPrice(priceFormatted);
@@ -104,13 +114,13 @@ export function PriceDisplay() {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle className="text-xl font-bold flex items-center gap-2">
-          CPXTB/USDT Price
+          CPXTB/WETH Price
           {error && <AlertCircle className="h-5 w-5 text-destructive" />}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold text-center text-primary">
-          {error ? 'Error fetching price' : `${price} USDT`}
+          {error ? 'Error fetching price' : `${price} WETH`}
         </div>
         <div className="text-sm text-muted-foreground text-center mt-2">
           Real-time price from Uniswap V4

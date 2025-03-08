@@ -5,16 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
 
-// ABI for Uniswap V4 Pool interaction
+// ABI for Uniswap V2 Pool interaction
 const POOL_ABI = parseAbi([
-  'function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)',
-  'event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)',
+  'function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
+  'event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1)',
 ]);
 
 // Contract addresses - ensure they are properly checksummed
 const POOL_ADDRESS = '0x18fec483ad7f68df0f9cca34d82792376b8d18d0';
 const CPXTB_ADDRESS = '0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b';
-const WETH_ADDRESS = '0x4200000000000000000000000000000000000006'; // WETH on Base
+const WETH_ADDRESS = '0x4300000000000000000000000000000000000004'; // Updated WETH on Base
 
 // Create a public client for Base network
 const publicClient = createPublicClient({
@@ -41,7 +41,7 @@ export function PriceDisplay() {
 
     const fetchPrice = async () => {
       try {
-        console.log('Attempting to fetch price data from Uniswap V4 pool...');
+        console.log('Attempting to fetch price data from Uniswap V2 pool...');
         setError(null);
 
         // Check if addresses are valid
@@ -61,26 +61,31 @@ export function PriceDisplay() {
 
         console.log('Latest swap events:', swapEvents);
 
-        // Get slot0 data from the pool
-        const slot0Data = await publicClient.readContract({
+        // Get reserves data from the pool
+        const reservesData = await publicClient.readContract({
           address: POOL_ADDRESS as `0x${string}`,
           abi: POOL_ABI,
-          functionName: 'slot0',
+          functionName: 'getReserves',
         });
 
-        console.log('Received raw slot0 data:', slot0Data);
+        console.log('Received raw reserves data:', reservesData);
 
         if (!mounted) return;
 
-        const sqrtPriceX96 = BigInt(slot0Data[0].toString());
-        console.log('Parsed sqrtPriceX96:', sqrtPriceX96.toString());
+        // Assuming WETH is token1 and CPXTB is token0
+        const reserve0 = BigInt(reservesData[0].toString()); // CPXTB reserve
+        const reserve1 = BigInt(reservesData[1].toString()); // WETH reserve
+        console.log('Parsed reserves:', {
+          cpxtbReserve: reserve0.toString(),
+          wethReserve: reserve1.toString()
+        });
 
-        // Calculate price using BigInt
-        const Q96 = BigInt(2 ** 96);
-        const priceRaw = (sqrtPriceX96 * sqrtPriceX96) / Q96 / Q96;
+        // Calculate price (WETH per CPXTB)
+        // Price = reserve1/reserve0 * (10^18/10^18) for tokens with same decimals
+        const priceRaw = (reserve1 * BigInt(10 ** 18)) / reserve0;
         console.log('Calculated raw price:', priceRaw.toString());
 
-        // Format price with 18 decimals (ETH standard)
+        // Format price for display
         const priceFormatted = (Number(priceRaw) / 10 ** 18).toFixed(6);
         console.log('Final formatted price:', priceFormatted);
 
@@ -123,7 +128,7 @@ export function PriceDisplay() {
           {error ? 'Error fetching price' : `${price} WETH`}
         </div>
         <div className="text-sm text-muted-foreground text-center mt-2">
-          Real-time price from Uniswap V4
+          Real-time price from Uniswap V2
         </div>
       </CardContent>
     </Card>

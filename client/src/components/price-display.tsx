@@ -92,21 +92,22 @@ export function PriceDisplay() {
           wethReserve: reserve1.toString()
         });
 
-        // Calculate price (WETH per CPXTB)
-        // Both tokens have 18 decimals, so we need to maintain precision
-        const priceInWei = (reserve1 * BigInt(10 ** 18)) / reserve0;
-        console.log('Raw WETH price:', priceInWei.toString());
+        // Calculate CPXTB price in WETH
+        // Price = reserve0/reserve1 to get CPXTB/WETH ratio
+        const priceInWei = (reserve0 * BigInt(10 ** 18)) / reserve1;
+        const priceInEth = Number(priceInWei) / 10 ** 18;
+        console.log('Raw WETH price:', priceInEth.toString());
 
-        // Convert to human-readable format with high precision
-        const priceFormatted = (Number(priceInWei) / 10 ** 18).toFixed(18);
-        console.log('Final WETH price:', priceFormatted);
+        // Format price for display with enough precision for small values
+        const priceFormatted = priceInEth.toFixed(18);
 
         setPrice(priceFormatted);
 
         // Fetch and calculate USD price
         const ethUsdPrice = await fetchEthPrice();
         if (ethUsdPrice) {
-          const usdPriceValue = (Number(priceFormatted) * ethUsdPrice).toFixed(6);
+          // Calculate USD price: CPXTB price in ETH * ETH price in USD
+          const usdPriceValue = (priceInEth * ethUsdPrice).toFixed(6);
           setUsdPrice(usdPriceValue);
           console.log('USD price:', usdPriceValue);
         }

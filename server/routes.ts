@@ -15,7 +15,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create payment intent for mining plan
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
-      const { amount } = req.body;
+      const { amount, withdrawalAddress } = req.body;
+
+      if (!amount || !withdrawalAddress) {
+        throw new Error('Missing required fields: amount or withdrawalAddress');
+      }
+
+      console.log('Creating payment intent:', {
+        amount,
+        withdrawalAddress,
+        timestamp: new Date().toISOString()
+      });
 
       // Create a PaymentIntent with the order amount and currency
       const paymentIntent = await stripe.paymentIntents.create({
@@ -24,15 +34,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         payment_method_types: ['card'],
         metadata: {
           type: 'mining_plan',
-          withdrawal_address: req.body.withdrawalAddress
+          withdrawal_address: withdrawalAddress
         }
+      });
+
+      console.log('Payment intent created:', {
+        id: paymentIntent.id,
+        status: paymentIntent.status,
+        timestamp: new Date().toISOString()
       });
 
       res.json({
         clientSecret: paymentIntent.client_secret
       });
     } catch (error: any) {
-      console.error('Error creating payment intent:', error);
+      console.error('Error creating payment intent:', {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+
       res.status(500).json({ 
         error: error.message 
       });

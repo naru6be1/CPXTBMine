@@ -31,38 +31,54 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      console.error('Stripe not initialized');
+      toast({
+        variant: "destructive",
+        title: "Payment Error",
+        description: "Payment system not initialized properly. Please try again.",
+      });
       return;
     }
 
     setIsProcessing(true);
 
     try {
+      console.log('Starting payment confirmation...');
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: window.location.origin,
+          payment_method_data: {
+            billing_details: {
+              address: {
+                country: 'US',
+              },
+            },
+          },
         },
       });
 
       if (error) {
+        console.error('Payment confirmation error:', error);
         toast({
           variant: "destructive",
           title: "Payment Failed",
-          description: error.message,
+          description: error.message || "Payment could not be processed. Please try again.",
         });
       } else {
+        console.log('Payment successful');
         toast({
           title: "Payment Successful",
-          description: "Your mining plan has been activated!",
+          description: "Your mining plan has been activated! You will start receiving daily rewards.",
         });
         onSuccess();
       }
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Payment processing error:', error);
       toast({
         variant: "destructive",
         title: "Payment Error",
-        description: "An unexpected error occurred during payment.",
+        description: "An unexpected error occurred during payment. Please try again.",
       });
     } finally {
       setIsProcessing(false);
@@ -71,13 +87,27 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="bg-muted p-4 rounded-lg mb-4">
+        <h3 className="font-semibold mb-2">Test Card Details:</h3>
+        <p className="text-sm text-muted-foreground">
+          Use these test card details:
+          <br />
+          Card: 4242 4242 4242 4242
+          <br />
+          Expiry: Any future date
+          <br />
+          CVC: Any 3 digits
+          <br />
+          ZIP: Any 5 digits
+        </p>
+      </div>
       <PaymentElement />
       <Button 
         type="submit" 
         className="w-full" 
         disabled={isProcessing}
       >
-        {isProcessing ? "Processing..." : "Pay & Start Mining"}
+        {isProcessing ? "Processing Payment..." : "Pay & Start Mining"}
       </Button>
     </form>
   );
@@ -106,6 +136,7 @@ export function MiningPlan() {
     }
 
     try {
+      console.log('Creating payment intent...');
       const response = await apiRequest(
         "POST", 
         "/api/create-payment-intent",
@@ -115,6 +146,7 @@ export function MiningPlan() {
         }
       );
       const data = await response.json();
+      console.log('Payment intent created:', data);
       setClientSecret(data.clientSecret);
     } catch (error) {
       console.error('Error creating payment:', error);

@@ -33,11 +33,23 @@ console.log('Initializing PriceDisplay component with configuration:', {
 
 export function PriceDisplay() {
   const [price, setPrice] = useState<string>('Loading...');
+  const [usdPrice, setUsdPrice] = useState<string>('Loading...');
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     let mounted = true;
+
+    const fetchEthPrice = async () => {
+      try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+        const data = await response.json();
+        return data.ethereum.usd;
+      } catch (error) {
+        console.error('Error fetching ETH price:', error);
+        return null;
+      }
+    };
 
     const fetchPrice = async () => {
       try {
@@ -91,6 +103,14 @@ export function PriceDisplay() {
 
         setPrice(priceFormatted);
 
+        // Fetch and calculate USD price
+        const ethUsdPrice = await fetchEthPrice();
+        if (ethUsdPrice) {
+          const usdPriceValue = (Number(priceFormatted) * ethUsdPrice).toFixed(2);
+          setUsdPrice(usdPriceValue);
+          console.log('USD price:', usdPriceValue);
+        }
+
       } catch (error) {
         console.error('Error fetching price:', error);
         if (!mounted) return;
@@ -126,6 +146,9 @@ export function PriceDisplay() {
       <CardContent>
         <div className="text-3xl font-bold text-center text-primary">
           {error ? 'Error fetching price' : `${price} WETH`}
+        </div>
+        <div className="text-xl font-semibold text-center text-muted-foreground mt-2">
+          {error ? '' : `$${usdPrice}`}
         </div>
         <div className="text-sm text-muted-foreground text-center mt-2">
           Real-time price from Uniswap V2

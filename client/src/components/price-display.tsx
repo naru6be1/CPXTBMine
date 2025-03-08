@@ -84,29 +84,29 @@ export function PriceDisplay() {
 
         if (!mounted) return;
 
-        // Assuming WETH is token1 and CPXTB is token0
-        const reserve0 = BigInt(reservesData[0].toString()); // CPXTB reserve
-        const reserve1 = BigInt(reservesData[1].toString()); // WETH reserve
+        // Get reserves with proper decimal handling
+        const reserve0 = BigInt(reservesData[0].toString()); // CPXTB reserve (18 decimals)
+        const reserve1 = BigInt(reservesData[1].toString()); // WETH reserve (18 decimals)
         console.log('Parsed reserves:', {
           cpxtbReserve: reserve0.toString(),
           wethReserve: reserve1.toString()
         });
 
         // Calculate price (WETH per CPXTB)
-        // Price = reserve1/reserve0 * (10^18/10^18) for tokens with same decimals
-        const priceRaw = (reserve1 * BigInt(10 ** 18)) / reserve0;
-        console.log('Calculated raw price:', priceRaw.toString());
+        // Both tokens have 18 decimals, so we need to maintain precision
+        const priceInWei = (reserve1 * BigInt(10 ** 18)) / reserve0;
+        console.log('Raw WETH price:', priceInWei.toString());
 
-        // Format price for display
-        const priceFormatted = (Number(priceRaw) / 10 ** 18).toFixed(6);
-        console.log('Final formatted price:', priceFormatted);
+        // Convert to human-readable format with high precision
+        const priceFormatted = (Number(priceInWei) / 10 ** 18).toFixed(18);
+        console.log('Final WETH price:', priceFormatted);
 
         setPrice(priceFormatted);
 
         // Fetch and calculate USD price
         const ethUsdPrice = await fetchEthPrice();
         if (ethUsdPrice) {
-          const usdPriceValue = (Number(priceFormatted) * ethUsdPrice).toFixed(2);
+          const usdPriceValue = (Number(priceFormatted) * ethUsdPrice).toFixed(6);
           setUsdPrice(usdPriceValue);
           console.log('USD price:', usdPriceValue);
         }
@@ -145,7 +145,7 @@ export function PriceDisplay() {
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold text-center text-primary">
-          {error ? 'Error fetching price' : `${price} WETH`}
+          {error ? 'Error fetching price' : `${Number(price).toFixed(8)} WETH`}
         </div>
         <div className="text-xl font-semibold text-center text-muted-foreground mt-2">
           {error ? '' : `$${usdPrice}`}

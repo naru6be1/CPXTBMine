@@ -158,7 +158,6 @@ export function MiningPlan() {
 
   const { writeAsync: transferWrite } = useContractWrite(transferConfig);
 
-  // Check for active plan on component mount
   useEffect(() => {
     const storedPlan = localStorage.getItem('activeMiningPlan');
     if (storedPlan) {
@@ -168,7 +167,6 @@ export function MiningPlan() {
     }
   }, []);
 
-  // Effect to monitor transaction status
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -226,8 +224,7 @@ export function MiningPlan() {
       const approveTx = await approveWrite?.();
 
       if (approveTx) {
-        const approveReceipt = await approveTx.wait();
-        console.log("Approve transaction receipt:", approveReceipt);
+        console.log("Approve transaction submitted:", approveTx);
       }
 
       setIsApproving(false);
@@ -237,18 +234,14 @@ export function MiningPlan() {
       const transferTx = await transferWrite?.();
 
       if (transferTx) {
-        const transferReceipt = await transferTx.wait();
-        console.log("Transfer transaction receipt:", transferReceipt);
+        console.log("Transfer transaction submitted:", transferTx);
+        setTransactionHash(transferTx.hash);
+        setIsValidating(true);
 
-        if (transferReceipt.hash) {
-          setTransactionHash(transferReceipt.hash);
-          setIsValidating(true);
-
-          toast({
-            title: "Transaction Submitted",
-            description: "Waiting for blockchain confirmation. This may take a few minutes.",
-          });
-        }
+        toast({
+          title: "Transaction Submitted",
+          description: "Waiting for blockchain confirmation. This may take a few minutes.",
+        });
       }
     } catch (error) {
       console.error('Error during plan activation:', error);

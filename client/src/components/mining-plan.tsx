@@ -224,23 +224,31 @@ export function MiningPlan() {
       // First approve USDT spending
       setIsApproving(true);
       const approveTx = await approveWrite?.();
-      await approveTx?.wait();
+
+      if (approveTx) {
+        const approveReceipt = await approveTx.wait();
+        console.log("Approve transaction receipt:", approveReceipt);
+      }
+
       setIsApproving(false);
 
       // Then transfer USDT
       setIsTransferring(true);
       const transferTx = await transferWrite?.();
-      const receipt = await transferTx?.wait();
-      setIsTransferring(false);
 
-      if (receipt?.transactionHash) {
-        setTransactionHash(receipt.transactionHash);
-        setIsValidating(true);
+      if (transferTx) {
+        const transferReceipt = await transferTx.wait();
+        console.log("Transfer transaction receipt:", transferReceipt);
 
-        toast({
-          title: "Transaction Submitted",
-          description: "Waiting for blockchain confirmation. This may take a few minutes.",
-        });
+        if (transferReceipt.hash) {
+          setTransactionHash(transferReceipt.hash);
+          setIsValidating(true);
+
+          toast({
+            title: "Transaction Submitted",
+            description: "Waiting for blockchain confirmation. This may take a few minutes.",
+          });
+        }
       }
     } catch (error) {
       console.error('Error during plan activation:', error);
@@ -249,8 +257,6 @@ export function MiningPlan() {
         title: "Activation Failed",
         description: "Failed to activate mining plan. Please try again.",
       });
-      setIsValidating(false);
-      setTransactionHash(null);
     } finally {
       setIsApproving(false);
       setIsTransferring(false);
@@ -346,7 +352,7 @@ export function MiningPlan() {
             </Button>
           )}
 
-          {isValidating && transactionHash && ( // Added transactionHash check
+          {isValidating && transactionHash && (
             <div className="mt-4 p-4 bg-primary/5 rounded-lg">
               <p className="text-sm text-center text-muted-foreground">
                 Waiting for transaction confirmation...

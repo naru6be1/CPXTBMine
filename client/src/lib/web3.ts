@@ -16,20 +16,20 @@ if (!projectId) {
 console.log("Initializing Web3Modal with project ID:", projectId.slice(0, 4) + "...")
 
 const metadata = {
-  name: 'Web3 DApp',
-  description: 'Web3 DApp Example',
-  url: 'https://web3modal.com',
+  name: 'CPXTB Mining DApp',
+  description: 'CPXTB Mining and Investment Platform',
+  url: 'https://web3modal.com', // Will be updated with actual URL
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains & providers with Base network
+// Configure chains & providers
 const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [base, mainnet],
+  [mainnet, base], 
   [publicProvider()]
 )
 
-// Create wagmi config with connectors
-export const config = createConfig({
+// Create wagmi config
+const config = createConfig({
   autoConnect: true,
   connectors: [
     new WalletConnectConnector({
@@ -37,7 +37,7 @@ export const config = createConfig({
       options: {
         projectId,
         metadata,
-        showQrModal: false // Let Web3Modal handle the QR modal
+        showQrModal: false // Web3Modal handles QR modal
       }
     }),
     new InjectedConnector({
@@ -52,29 +52,20 @@ export const config = createConfig({
   webSocketPublicClient
 })
 
-// Initialize web3modal with enhanced configuration and export it
-let web3Modal: ReturnType<typeof createWeb3Modal>;
+// Create web3Modal instance
+const web3Modal = createWeb3Modal({
+  wagmiConfig: config,
+  projectId,
+  chains,
+  defaultChain: mainnet,
+  themeMode: 'dark',
+  themeVariables: {
+    '--w3m-font-family': 'Inter, sans-serif',
+    '--w3m-accent': 'hsl(var(--primary))',
+    '--w3m-bg-color': 'hsl(var(--background))',
+    '--w3m-color': 'hsl(var(--foreground))',
+    '--w3m-z-index': 1000
+  }
+})
 
-try {
-  console.log("Creating Web3Modal instance...")
-  web3Modal = createWeb3Modal({
-    wagmiConfig: config,
-    projectId,
-    chains,
-    defaultChain: base,
-    themeMode: 'light',
-    themeVariables: {
-      '--w3m-font-family': 'sans-serif',
-      '--w3m-accent-color': 'hsl(var(--primary))',
-      '--w3m-background-color': 'hsl(var(--background))',
-      '--w3m-text-color': 'hsl(var(--foreground))',
-      '--w3m-z-index': 1000
-    }
-  })
-  console.log("Web3Modal initialized successfully")
-} catch (error) {
-  console.error('Failed to initialize Web3Modal:', error)
-  throw error
-}
-
-export { web3Modal }
+export { web3Modal, config }

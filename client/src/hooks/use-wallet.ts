@@ -10,11 +10,15 @@ export function useWallet() {
 
   const connectWallet = async () => {
     try {
-      // Log available connectors for debugging
-      console.log('Available connectors:', connectors.map(c => c.name))
+      console.log('Attempting to connect wallet...')
+      console.log('Available connectors:', connectors.map(c => ({
+        name: c.name,
+        ready: c.ready,
+        id: c.id
+      })))
 
-      // Open the Web3Modal
-      web3Modal.open()
+      // Open Web3Modal
+      await web3Modal.open()
 
       toast({
         title: "Choose Your Wallet",
@@ -25,24 +29,28 @@ export function useWallet() {
       toast({
         variant: "destructive",
         title: "Connection Failed",
-        description: error instanceof Error ? error.message : "Failed to connect wallet",
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : "Failed to connect wallet. Please try again.",
       })
     }
   }
 
   const disconnectWallet = async () => {
     try {
-      disconnect()
+      await disconnect()
       toast({
         title: "Wallet Disconnected",
-        description: "Your wallet has been disconnected",
+        description: "Your wallet has been successfully disconnected",
       })
     } catch (error) {
       console.error('Wallet disconnect error:', error)
       toast({
         variant: "destructive",
         title: "Disconnect Failed",
-        description: error instanceof Error ? error.message : "Failed to disconnect wallet",
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : "Failed to disconnect wallet. Please try again.",
       })
     }
   }

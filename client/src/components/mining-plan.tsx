@@ -108,7 +108,7 @@ function ActivePlanDisplay({
   );
 }
 
-// Update PaymentForm component to show active plan after success
+// Update PaymentForm component
 function PaymentForm({ withdrawalAddress, amount, onSuccess, dailyRewardCPXTB }: {
   withdrawalAddress: string;
   amount: number;
@@ -176,6 +176,14 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess, dailyRewardCPXTB }:
           title: "Payment Successful",
           description: "Your mining plan has been activated! You will start receiving daily rewards.",
         });
+
+        // Store active plan in localStorage
+        localStorage.setItem('activeMiningPlan', JSON.stringify({
+          withdrawalAddress,
+          dailyRewardCPXTB,
+          activatedAt: new Date().toISOString()
+        }));
+
         onSuccess();
       } else {
         console.log('Unexpected payment status:', paymentIntent?.status);
@@ -229,10 +237,17 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess, dailyRewardCPXTB }:
   );
 }
 
-// Rest of the file
+// Update MiningPlan component
 export function MiningPlan() {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [hasActivePlan, setHasActivePlan] = useState(false);
+  const [activePlanDetails, setActivePlanDetails] = useState<{
+    withdrawalAddress: string;
+    dailyRewardCPXTB: string;
+    activatedAt: string;
+  } | null>(null);
+
   const { toast } = useToast();
   const { isConnected } = useWallet();
 
@@ -241,6 +256,16 @@ export function MiningPlan() {
   const dailyRewardUSD = 15; // USD
   const cpxtbPrice = 0.002529; // Current CPXTB price in USD
   const dailyRewardCPXTB = (dailyRewardUSD / cpxtbPrice).toFixed(2); // Calculate CPXTB equivalent
+
+  // Check for active plan on component mount
+  useEffect(() => {
+    const storedPlan = localStorage.getItem('activeMiningPlan');
+    if (storedPlan) {
+      const plan = JSON.parse(storedPlan);
+      setHasActivePlan(true);
+      setActivePlanDetails(plan);
+    }
+  }, []);
 
   const handleInvest = async () => {
     if (!withdrawalAddress) {
@@ -276,8 +301,29 @@ export function MiningPlan() {
   };
 
   const handlePaymentSuccess = () => {
-    setClientSecret(null); // Reset payment form
+    setClientSecret(null);
+    setHasActivePlan(true);
   };
+
+  // Show active plan if exists
+  if (hasActivePlan && activePlanDetails) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Coins className="h-6 w-6 text-primary" />
+            Active Mining Plan
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivePlanDisplay 
+            withdrawalAddress={activePlanDetails.withdrawalAddress}
+            dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">

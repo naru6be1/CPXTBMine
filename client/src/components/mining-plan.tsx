@@ -145,10 +145,9 @@ export function MiningPlan() {
     abi: USDT_ABI,
     functionName: 'balanceOf',
     args: [address as `0x${string}`],
-    enabled: !!address && !!chain, // Removed chain.id === 1 check
+    enabled: !!address && !!chain,
     watch: true,
   });
-
 
   // Mint Test USDT
   const { config: mintConfig } = usePrepareContractWrite({
@@ -159,7 +158,7 @@ export function MiningPlan() {
     enabled: !!address && chain?.id === 11155111,
   });
 
-  const { writeAsync: mintWrite, isLoading: isMinting } = useContractWrite(mintConfig);
+  const { write: mintWrite, isLoading: isMinting } = useContractWrite(mintConfig);
 
   const handleMintTestUSDT = async () => {
     if (!address || chain?.id !== 11155111) {
@@ -173,19 +172,20 @@ export function MiningPlan() {
 
     try {
       console.log("Minting test USDT...");
-      const tx = await mintWrite?.();
+      console.log("Current chain:", chain?.id);
+      console.log("Contract address:", USDT_CONTRACT_ADDRESS);
+      console.log("User address:", address);
 
-      if (tx) {
-        toast({
-          title: "Minting Test USDT",
-          description: "Transaction submitted. Please wait for confirmation.",
-        });
-        await tx.wait();
-        toast({
-          title: "Success",
-          description: "1000 test USDT has been minted to your address!",
-        });
+      if (!mintWrite) {
+        throw new Error("Mint function not available");
       }
+
+      mintWrite();
+
+      toast({
+        title: "Minting Test USDT",
+        description: "Transaction submitted. Please wait for confirmation.",
+      });
     } catch (error) {
       console.error("Error minting test USDT:", error);
       toast({
@@ -196,6 +196,45 @@ export function MiningPlan() {
     }
   };
 
+  // Network status component with more detailed information
+  const NetworkStatus = () => {
+    if (!chain) return null;
+
+    if (chain.id !== 11155111) {
+      return (
+        <div className="mb-4 p-4 bg-yellow-500/10 rounded-lg">
+          <div className="flex items-center gap-2 text-yellow-500 mb-2">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-semibold">Test Mode: Switch to Sepolia</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Please connect to Sepolia testnet to test with test USDT. {switchNetwork
+              ? "Click the button below to switch networks automatically."
+              : "Please switch networks manually in your wallet."}
+          </p>
+          <a
+            href="https://sepolia-faucet.pk910.de/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline mt-2 inline-block"
+          >
+            Get test ETH from Sepolia faucet
+          </a>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mb-4 p-4 bg-green-500/10 rounded-lg">
+        <div className="flex items-center gap-2 text-green-500">
+          <span className="font-semibold">✓ Connected to Sepolia Testnet</span>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Testing mode active. Using test USDT on Sepolia network.
+        </p>
+      </div>
+    );
+  };
 
   useEffect(() => {
     const storedPlan = localStorage.getItem('activeMiningPlan');
@@ -246,6 +285,7 @@ export function MiningPlan() {
       }
     };
   }, [transactionHash, isValidating, withdrawalAddress, dailyRewardCPXTB]);
+
 
   // Function to check and switch network
   const ensureTestnetConnection = async () => {
@@ -366,46 +406,6 @@ export function MiningPlan() {
     });
   };
 
-  // Network status component with more detailed information
-  const NetworkStatus = () => {
-    if (!chain) return null;
-
-    if (chain.id !== 11155111) {
-      return (
-        <div className="mb-4 p-4 bg-yellow-500/10 rounded-lg">
-          <div className="flex items-center gap-2 text-yellow-500 mb-2">
-            <AlertCircle className="h-5 w-5" />
-            <span className="font-semibold">Test Mode: Switch to Sepolia</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Please connect to Sepolia testnet to test with test USDT. {switchNetwork
-              ? "Click the button below to switch networks automatically."
-              : "Please switch networks manually in your wallet."}
-          </p>
-          <a
-            href="https://sepolia-faucet.pk910.de/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline mt-2 inline-block"
-          >
-            Get test ETH from Sepolia faucet
-          </a>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mb-4 p-4 bg-green-500/10 rounded-lg">
-        <div className="flex items-center gap-2 text-green-500">
-          <span className="font-semibold">✓ Connected to Sepolia Testnet</span>
-        </div>
-        <p className="text-sm text-muted-foreground mt-2">
-          Testing mode active. Using test USDT on Sepolia network.
-        </p>
-      </div>
-    );
-  };
-
   useEffect(() => {
     if (address && chain) {
       console.log("Current wallet state:", {
@@ -416,7 +416,6 @@ export function MiningPlan() {
       });
     }
   }, [address, chain, usdtBalance, investmentAmount]);
-
 
   // Show active plan if exists
   if (hasActivePlan && activePlanDetails) {
@@ -445,7 +444,7 @@ export function MiningPlan() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Coins className="h-6 w-6 text-primary" />
-          Weekly Mining Plan
+          Get Test USDT
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -473,88 +472,15 @@ export function MiningPlan() {
         </div>
         <NetworkStatus />
         <div className="bg-muted rounded-lg p-6 space-y-4">
-          <h3 className="text-lg font-semibold">Mining Plan Details</h3>
+          <h3 className="text-lg font-semibold">Current Balance</h3>
           <div className="grid gap-3">
             <div>
-              <p className="text-sm text-muted-foreground">Current USDT Balance</p>
+              <p className="text-sm text-muted-foreground">Your USDT Balance</p>
               <p className="text-2xl font-bold">
                 {usdtBalance ? formatUnits(usdtBalance, 6) : '0.00'} USDT
               </p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Required Investment</p>
-              <p className="text-2xl font-bold">100 USDT</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Daily Reward</p>
-              <p className="text-2xl font-bold text-primary">
-                {dailyRewardCPXTB} CPXTB
-                <span className="text-sm text-muted-foreground ml-2">
-                  (≈${dailyRewardUSD})
-                </span>
-              </p>
-            </div>
           </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
-            <Input
-              id="withdrawal"
-              placeholder="Enter your Base network address for CPXTB withdrawals"
-              value={withdrawalAddress}
-              onChange={(e) => setWithdrawalAddress(e.target.value)}
-            />
-            <p className="text-sm text-muted-foreground">
-              Please provide your Base network address to receive CPXTB rewards
-            </p>
-          </div>
-
-          {isConnected && (
-            <Button
-              className="w-full mt-4"
-              size="lg"
-              onClick={handleActivatePlan}
-              disabled={
-                isApproving ||
-                isTransferring ||
-                isValidating ||
-                isSwitchingNetwork ||
-                (chain?.id !== 11155111 && !switchNetwork)
-              }
-            >
-              <Coins className="mr-2 h-4 w-4" />
-              {isSwitchingNetwork ? "Switching Network..." :
-                chain?.id !== 11155111 ? "Switch to Sepolia Testnet" :
-                  isApproving ? "Approving USDT..." :
-                    isTransferring ? "Transferring USDT..." :
-                      isValidating ? "Validating Transaction..." :
-                        "Activate Mining Plan (100 USDT)"}
-            </Button>
-          )}
-
-          {/* Transaction status section - Always show when transaction hash exists */}
-          {transactionHash && (
-            <div className="mt-4 p-4 bg-primary/5 rounded-lg">
-              <p className="text-sm text-center text-muted-foreground">
-                {isValidating ? "Waiting for transaction confirmation..." : "Transaction submitted:"}
-                <br />
-                <span className="font-mono text-xs break-all">
-                  Transaction Hash: {transactionHash}
-                </span>
-                <br />
-                <a
-                  href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline mt-2 inline-block"
-                >
-                  View on Etherscan
-                </a>
-              </p>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

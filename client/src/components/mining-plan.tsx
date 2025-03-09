@@ -26,15 +26,18 @@ const REQUIRED_CONFIRMATIONS = 3;
 // Function to check transaction status on Etherscan
 async function checkTransactionStatus(txHash: string): Promise<boolean> {
   try {
+    console.log(`Checking transaction status for hash: ${txHash}`);
     const response = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`);
     const data = await response.json();
+    console.log('Transaction receipt status response:', data);
 
     if (data.status === "1" && data.result.status === "1") {
-      // Also check confirmations
       const txResponse = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxinfo&txhash=${txHash}`);
       const txData = await txResponse.json();
+      console.log('Transaction info response:', txData);
 
       if (txData.status === "1" && txData.result.confirmations >= REQUIRED_CONFIRMATIONS) {
+        console.log(`Transaction confirmed with ${txData.result.confirmations} confirmations`);
         return true;
       }
     }
@@ -46,12 +49,12 @@ async function checkTransactionStatus(txHash: string): Promise<boolean> {
 }
 
 // ActivePlanDisplay component with end date
-function ActivePlanDisplay({ 
-  withdrawalAddress, 
+function ActivePlanDisplay({
+  withdrawalAddress,
   dailyRewardCPXTB,
   activatedAt,
   onReset
-}: { 
+}: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
@@ -104,8 +107,8 @@ function ActivePlanDisplay({
               Your mining plan will be active for 7 days from activation.
             </p>
           </div>
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             className="w-full mt-4"
             onClick={onReset}
           >
@@ -235,6 +238,7 @@ export function MiningPlan() {
 
       if (transferTx) {
         console.log("Transfer transaction submitted:", transferTx);
+        // Set transaction hash immediately after submission
         setTransactionHash(transferTx.hash);
         setIsValidating(true);
 
@@ -277,7 +281,7 @@ export function MiningPlan() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ActivePlanDisplay 
+          <ActivePlanDisplay
             withdrawalAddress={activePlanDetails.withdrawalAddress}
             dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
             activatedAt={activePlanDetails.activatedAt}
@@ -338,21 +342,22 @@ export function MiningPlan() {
               disabled={isApproving || isTransferring || isValidating}
             >
               <Coins className="mr-2 h-4 w-4" />
-              {isApproving ? "Approving USDT..." : 
-               isTransferring ? "Transferring USDT..." :
-               isValidating ? "Validating Transaction..." :
-               "Activate Mining Plan (100 USDT)"}
+              {isApproving ? "Approving USDT..." :
+                isTransferring ? "Transferring USDT..." :
+                  isValidating ? "Validating Transaction..." :
+                    "Activate Mining Plan (100 USDT)"}
             </Button>
           )}
 
-          {isValidating && transactionHash && (
+          {/* Transaction status section - Always show when transaction hash exists */}
+          {transactionHash && (
             <div className="mt-4 p-4 bg-primary/5 rounded-lg">
               <p className="text-sm text-center text-muted-foreground">
-                Waiting for transaction confirmation...
+                {isValidating ? "Waiting for transaction confirmation..." : "Transaction submitted:"}
                 <br />
                 Transaction Hash: {transactionHash}
                 <br />
-                <a 
+                <a
                   href={`https://etherscan.io/tx/${transactionHash}`}
                   target="_blank"
                   rel="noopener noreferrer"

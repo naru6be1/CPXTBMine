@@ -71,14 +71,29 @@ function PaymentStatusCheck() {
   return null;
 }
 
-// Add ActivePlanDisplay component
+// Update ActivePlanDisplay component with end date
 function ActivePlanDisplay({ 
   withdrawalAddress, 
-  dailyRewardCPXTB 
+  dailyRewardCPXTB,
+  activatedAt 
 }: { 
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
+  activatedAt: string;
 }) {
+  // Calculate end date (7 days from activation)
+  const activationDate = new Date(activatedAt);
+  const endDate = new Date(activationDate);
+  endDate.setDate(endDate.getDate() + 7);
+
+  // Format dates nicely
+  const formatDate = (date: Date) => {
+    return date.toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+  };
+
   return (
     <div className="animate-fade-in space-y-4">
       <div className="bg-primary/10 rounded-lg p-6">
@@ -98,9 +113,20 @@ function ActivePlanDisplay({
             <p className="text-sm text-muted-foreground">Withdrawal Address</p>
             <p className="text-sm font-mono break-all">{withdrawalAddress}</p>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Activation Time</p>
-            <p className="text-lg font-semibold">{new Date().toLocaleString()}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Activation Time</p>
+              <p className="text-lg font-semibold">{formatDate(activationDate)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">End Time</p>
+              <p className="text-lg font-semibold">{formatDate(endDate)}</p>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-primary/10">
+            <p className="text-sm text-muted-foreground">
+              Your mining plan will be active for 7 days from activation.
+            </p>
           </div>
         </div>
       </div>
@@ -108,7 +134,7 @@ function ActivePlanDisplay({
   );
 }
 
-// Update PaymentForm component
+// Update PaymentForm to pass activatedAt
 function PaymentForm({ withdrawalAddress, amount, onSuccess, dailyRewardCPXTB }: {
   withdrawalAddress: string;
   amount: number;
@@ -177,11 +203,13 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess, dailyRewardCPXTB }:
           description: "Your mining plan has been activated! You will start receiving daily rewards.",
         });
 
-        // Store active plan in localStorage
+        const activationTime = new Date().toISOString();
+
+        // Store active plan in localStorage with activation time
         localStorage.setItem('activeMiningPlan', JSON.stringify({
           withdrawalAddress,
           dailyRewardCPXTB,
-          activatedAt: new Date().toISOString()
+          activatedAt: activationTime
         }));
 
         onSuccess();
@@ -206,7 +234,13 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess, dailyRewardCPXTB }:
   };
 
   if (isSuccess) {
-    return <ActivePlanDisplay withdrawalAddress={withdrawalAddress} dailyRewardCPXTB={dailyRewardCPXTB} />;
+    return (
+      <ActivePlanDisplay 
+        withdrawalAddress={withdrawalAddress} 
+        dailyRewardCPXTB={dailyRewardCPXTB}
+        activatedAt={new Date().toISOString()}
+      />
+    );
   }
 
   return (
@@ -237,7 +271,7 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess, dailyRewardCPXTB }:
   );
 }
 
-// Update MiningPlan component
+// Update MiningPlan component to handle activatedAt
 export function MiningPlan() {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -319,6 +353,7 @@ export function MiningPlan() {
           <ActivePlanDisplay 
             withdrawalAddress={activePlanDetails.withdrawalAddress}
             dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
+            activatedAt={activePlanDetails.activatedAt}
           />
         </CardContent>
       </Card>

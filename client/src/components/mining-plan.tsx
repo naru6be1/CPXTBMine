@@ -239,7 +239,9 @@ export function MiningPlan() {
       if (transferTx) {
         console.log("Transfer transaction submitted:", transferTx);
         // Set transaction hash immediately after submission
-        setTransactionHash(transferTx.hash);
+        const hash = transferTx.hash;
+        console.log("Setting transaction hash:", hash);
+        setTransactionHash(hash);
         setIsValidating(true);
 
         toast({
@@ -355,13 +357,15 @@ export function MiningPlan() {
               <p className="text-sm text-center text-muted-foreground">
                 {isValidating ? "Waiting for transaction confirmation..." : "Transaction submitted:"}
                 <br />
-                Transaction Hash: {transactionHash}
+                <span className="font-mono text-xs break-all">
+                  Transaction Hash: {transactionHash}
+                </span>
                 <br />
                 <a
                   href={`https://etherscan.io/tx/${transactionHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline mt-2 inline-block"
                 >
                   View on Etherscan
                 </a>

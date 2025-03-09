@@ -25,11 +25,13 @@ const TREASURY_ADDRESS = "0x123..."; // Replace with your treasury address
 function ActivePlanDisplay({ 
   withdrawalAddress, 
   dailyRewardCPXTB,
-  activatedAt 
+  activatedAt,
+  onReset
 }: { 
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
+  onReset: () => void;
 }) {
   // Calculate end date (7 days from activation)
   const activationDate = new Date(activatedAt);
@@ -78,6 +80,13 @@ function ActivePlanDisplay({
               Your mining plan will be active for 7 days from activation.
             </p>
           </div>
+          <Button 
+            variant="destructive" 
+            className="w-full mt-4"
+            onClick={onReset}
+          >
+            Reset Mining Plan
+          </Button>
         </div>
       </div>
     </div>
@@ -185,6 +194,16 @@ export function MiningPlan() {
     }
   };
 
+  const handleResetPlan = () => {
+    localStorage.removeItem('activeMiningPlan');
+    setHasActivePlan(false);
+    setActivePlanDetails(null);
+    toast({
+      title: "Mining Plan Reset",
+      description: "Your mining plan has been reset. You can now activate a new plan.",
+    });
+  };
+
   // Show active plan if exists
   if (hasActivePlan && activePlanDetails) {
     return (
@@ -200,6 +219,7 @@ export function MiningPlan() {
             withdrawalAddress={activePlanDetails.withdrawalAddress}
             dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
             activatedAt={activePlanDetails.activatedAt}
+            onReset={handleResetPlan}
           />
         </CardContent>
       </Card>

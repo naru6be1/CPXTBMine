@@ -11,7 +11,7 @@ export default function Home() {
       <div className="w-full max-w-4xl mx-auto text-center space-y-8">
         <div className="space-y-4">
           <h1 className="text-4xl font-bold sm:text-6xl bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            Welcome to Our DApp
+            Welcome to CPXTB Mining DApp
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Connect your wallet and view real-time CPXTB/WETH prices

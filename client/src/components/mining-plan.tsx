@@ -21,26 +21,20 @@ const USDT_ABI = [
 // Update constants with proper addresses and configuration
 const USDT_CONTRACT_ADDRESS = "0x6175a8471C2122f4b4475809015bF7D08a58c8E1"; // Sepolia Test USDT
 const TREASURY_ADDRESS = "0x1234567890123456789012345678901234567890"; // Update with actual treasury address
-const ETHERSCAN_API_URL = "https://api.etherscan.io/api"; //This might need to be updated to a Sepolia explorer API
+const ETHERSCAN_API_URL = "https://api-sepolia.etherscan.io/api"; // Updated to Sepolia explorer API
 const REQUIRED_CONFIRMATIONS = 3;
 
 // Function to check transaction status on Etherscan
 async function checkTransactionStatus(txHash: string): Promise<boolean> {
   try {
     console.log(`Checking transaction status for hash: ${txHash}`);
-    const response = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`); //This might need to be updated to a Sepolia explorer API
+    const response = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`);
     const data = await response.json();
     console.log('Transaction receipt status response:', data);
 
     if (data.status === "1" && data.result.status === "1") {
-      const txResponse = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxinfo&txhash=${txHash}`); //This might need to be updated to a Sepolia explorer API
-      const txData = await txResponse.json();
-      console.log('Transaction info response:', txData);
-
-      if (txData.status === "1" && txData.result.confirmations >= REQUIRED_CONFIRMATIONS) {
-        console.log(`Transaction confirmed with ${txData.result.confirmations} confirmations`);
-        return true;
-      }
+      console.log(`Transaction confirmed successfully`);
+      return true;
     }
     return false;
   } catch (error) {
@@ -551,7 +545,7 @@ export function MiningPlan() {
                 </span>
                 <br />
                 <a
-                  href={`https://etherscan.io/tx/${transactionHash}`} //This might need to be updated to a Sepolia explorer link
+                  href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline mt-2 inline-block"

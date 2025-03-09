@@ -226,21 +226,42 @@ export function MiningPlan() {
 
   // Function to check and switch network
   const ensureMainnetConnection = async () => {
+    console.log("Current network state:", {
+      chainId: chain?.id,
+      chainName: chain?.name,
+      switchNetworkAvailable: !!switchNetwork
+    });
+
     if (!chain || chain.id !== 1) {
       if (switchNetwork) {
-        toast({
-          title: "Wrong Network",
-          description: "Switching to Ethereum mainnet...",
-        });
-        await switchNetwork(1);
+        console.log("Attempting to switch to Ethereum mainnet...");
+        try {
+          toast({
+            title: "Wrong Network",
+            description: "Switching to Ethereum mainnet...",
+          });
+          await switchNetwork(1);
+          console.log("Network switch initiated successfully");
+        } catch (error) {
+          console.error("Failed to switch network:", error);
+          toast({
+            variant: "destructive",
+            title: "Network Switch Failed",
+            description: "Please manually switch to Ethereum mainnet in your wallet",
+          });
+          return false;
+        }
       } else {
+        console.log("Automatic network switching not available");
         toast({
           variant: "destructive",
           title: "Network Switch Not Supported",
-          description: "Please manually switch to Ethereum mainnet in your wallet",
+          description: "Please manually switch to Ethereum mainnet in your wallet settings",
         });
         return false;
       }
+    } else {
+      console.log("Already on Ethereum mainnet");
     }
     return true;
   };
@@ -339,14 +360,21 @@ export function MiningPlan() {
     });
   };
 
-  // Add network status display
+  // Network status component with more detailed information
   const NetworkStatus = () => {
     if (!chain) return null;
 
     return chain.id !== 1 ? (
-      <div className="mb-4 p-4 bg-yellow-500/10 rounded-lg flex items-center gap-2 text-yellow-500">
-        <AlertCircle className="h-5 w-5" />
-        <span>Please connect to Ethereum mainnet to continue</span>
+      <div className="mb-4 p-4 bg-yellow-500/10 rounded-lg">
+        <div className="flex items-center gap-2 text-yellow-500 mb-2">
+          <AlertCircle className="h-5 w-5" />
+          <span className="font-semibold">Network Switch Required</span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Please connect to Ethereum mainnet to continue. {switchNetwork
+            ? "Click the button below to switch networks automatically."
+            : "Please switch networks manually in your wallet."}
+        </p>
       </div>
     ) : null;
   };

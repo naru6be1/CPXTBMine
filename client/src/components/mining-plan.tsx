@@ -10,12 +10,13 @@ import { ethers } from "ethers";
 import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
 import { formatUnits } from "ethers";
 
-// USDT Contract ABI (only including necessary functions)
+// USDT Contract ABI (including mint function)
 const USDT_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function transfer(address recipient, uint256 amount) external returns (bool)",
   "function balanceOf(address account) external view returns (uint256)",
-  "function allowance(address owner, address spender) external view returns (uint256)"
+  "function allowance(address owner, address spender) external view returns (uint256)",
+  "function mint(address to, uint256 amount) external" // Add mint function
 ];
 
 // Update constants with proper addresses and configuration
@@ -175,6 +176,53 @@ export function MiningPlan() {
   });
 
   const { writeAsync: transferWrite, isLoading: isTransferLoading } = useContractWrite(transferConfig);
+
+  // Mint Test USDT
+  const { config: mintConfig } = usePrepareContractWrite({
+    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
+    abi: USDT_ABI,
+    functionName: 'mint',
+    args: [address as `0x${string}`, ethers.parseUnits("1000", 6)], // Mint 1000 test USDT
+    enabled: !!address && chain?.id === 11155111,
+  });
+
+  const { writeAsync: mintWrite, isLoading: isMinting } = useContractWrite(mintConfig);
+
+  const handleMintTestUSDT = async () => {
+    if (!address || chain?.id !== 11155111) {
+      toast({
+        variant: "destructive",
+        title: "Network Error",
+        description: "Please connect to Sepolia testnet first",
+      });
+      return;
+    }
+
+    try {
+      console.log("Minting test USDT...");
+      const tx = await mintWrite?.();
+
+      if (tx) {
+        toast({
+          title: "Minting Test USDT",
+          description: "Transaction submitted. Please wait for confirmation.",
+        });
+        await tx.wait();
+        toast({
+          title: "Success",
+          description: "1000 test USDT has been minted to your address!",
+        });
+      }
+    } catch (error) {
+      console.error("Error minting test USDT:", error);
+      toast({
+        variant: "destructive",
+        title: "Minting Failed",
+        description: error instanceof Error ? error.message : "Failed to mint test USDT",
+      });
+    }
+  };
+
 
   useEffect(() => {
     const storedPlan = localStorage.getItem('activeMiningPlan');
@@ -379,9 +427,9 @@ export function MiningPlan() {
               ? "Click the button below to switch networks automatically."
               : "Please switch networks manually in your wallet."}
           </p>
-          <a 
-            href="https://sepolia-faucet.pk910.de/" 
-            target="_blank" 
+          <a
+            href="https://sepolia-faucet.pk910.de/"
+            target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline mt-2 inline-block"
           >
@@ -452,12 +500,21 @@ export function MiningPlan() {
             <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
               <li>Switch your wallet to Sepolia testnet</li>
               <li>Get test ETH from the <a href="https://sepolia-faucet.pk910.de/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Sepolia faucet</a></li>
-              <li>Get test USDT from our test USDT contract (you can mint test tokens)</li>
+              <li>Click the button below to mint test USDT tokens</li>
               <li>Use the test USDT to activate the mining plan</li>
             </ol>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Note: This is a test environment. No real tokens will be used.
-            </p>
+            <div className="mt-4">
+              <Button
+                onClick={handleMintTestUSDT}
+                disabled={!address || chain?.id !== 11155111 || isMinting}
+                className="w-full"
+              >
+                {isMinting ? "Minting..." : "Mint 1000 Test USDT"}
+              </Button>
+              <p className="text-sm text-muted-foreground mt-2">
+                Note: This is a test environment. These are not real tokens.
+              </p>
+            </div>
           </div>
         </div>
         <NetworkStatus />
@@ -512,12 +569,12 @@ export function MiningPlan() {
                 isApproveLoading ||
                 isTransferLoading ||
                 isSwitchingNetwork ||
-                (chain?.id !== 11155111 && !switchNetwork) // Changed to Sepolia chain ID
+                (chain?.id !== 11155111 && !switchNetwork)
               }
             >
               <Coins className="mr-2 h-4 w-4" />
               {isSwitchingNetwork ? "Switching Network..." :
-                chain?.id !== 11155111 ? "Switch to Sepolia Testnet" : // Changed to Sepolia
+                chain?.id !== 11155111 ? "Switch to Sepolia Testnet" :
                   isApproveLoading ? "Waiting for Approval..." :
                     isApproving ? "Approving USDT..." :
                       isTransferLoading ? "Waiting for Transfer..." :

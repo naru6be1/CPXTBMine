@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Coins, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -24,16 +24,8 @@ const TREASURY_ADDRESS = "0x1234567890123456789012345678901234567890"; // Update
 const ETHERSCAN_API_URL = "https://api-sepolia.etherscan.io/api"; // Updated to Sepolia explorer API
 const REQUIRED_CONFIRMATIONS = 3;
 
-// Function to check transaction status on Etherscan
-
 export function MiningPlan() {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
-  const [hasActivePlan, setHasActivePlan] = useState(false);
-  const [activePlanDetails, setActivePlanDetails] = useState<{
-    withdrawalAddress: string;
-    dailyRewardCPXTB: string;
-    activatedAt: string;
-  } | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
@@ -61,7 +53,24 @@ export function MiningPlan() {
     enabled: !!address && chain?.id === 11155111,
   });
 
-  const { write: mintWrite, isLoading: isMinting } = useContractWrite(mintConfig);
+  const { write: mintWrite, isLoading: isMinting } = useContractWrite({
+    ...mintConfig,
+    onSuccess(data) {
+      console.log("Mint transaction submitted:", data.hash);
+      toast({
+        title: "Transaction Submitted",
+        description: "Your test USDT minting transaction has been submitted.",
+      });
+    },
+    onError(error) {
+      console.error("Mint error:", error);
+      toast({
+        variant: "destructive",
+        title: "Minting Failed",
+        description: error instanceof Error ? error.message : "Failed to mint test USDT",
+      });
+    },
+  });
 
   const handleMintTestUSDT = async () => {
     console.log("Starting mint process...");
@@ -82,15 +91,11 @@ export function MiningPlan() {
     try {
       console.log("Attempting to mint USDT...");
       if (!mintWrite) {
-        throw new Error("Mint function not available");
+        console.error("Mint function not available. Contract config:", mintConfig);
+        throw new Error("Mint function not available. Please make sure you're connected to Sepolia testnet.");
       }
 
       mintWrite();
-
-      toast({
-        title: "Minting Test USDT",
-        description: "Transaction submitted. Please wait for confirmation.",
-      });
     } catch (error) {
       console.error("Error minting test USDT:", error);
       toast({

@@ -3,11 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Coins } from "lucide-react";
+import { Coins, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { ethers } from "ethers";
-import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork } from 'wagmi';
+import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
 
 // USDT Contract ABI (only including necessary functions)
 const USDT_ABI = [
@@ -136,6 +136,7 @@ export function MiningPlan() {
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
   const { chain } = useNetwork();
+  const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
 
   // Constants
   const investmentAmount = ethers.parseUnits("100", 6); // 100 USDT (6 decimals)
@@ -223,6 +224,27 @@ export function MiningPlan() {
     };
   }, [transactionHash, isValidating, withdrawalAddress, dailyRewardCPXTB]);
 
+  // Function to check and switch network
+  const ensureMainnetConnection = async () => {
+    if (!chain || chain.id !== 1) {
+      if (switchNetwork) {
+        toast({
+          title: "Wrong Network",
+          description: "Switching to Ethereum mainnet...",
+        });
+        await switchNetwork(1);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Network Switch Not Supported",
+          description: "Please manually switch to Ethereum mainnet in your wallet",
+        });
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleActivatePlan = async () => {
     if (!withdrawalAddress) {
       toast({
@@ -233,14 +255,9 @@ export function MiningPlan() {
       return;
     }
 
-    if (!chain || chain.id !== 1) { // Check if connected to Ethereum mainnet
-      toast({
-        variant: "destructive",
-        title: "Wrong Network",
-        description: "Please connect to Ethereum mainnet to continue",
-      });
-      return;
-    }
+    // Check network connection first
+    const isMainnet = await ensureMainnetConnection();
+    if (!isMainnet) return;
 
     if (!usdtBalance || usdtBalance.lt(investmentAmount)) {
       toast({
@@ -322,6 +339,18 @@ export function MiningPlan() {
     });
   };
 
+  // Add network status display
+  const NetworkStatus = () => {
+    if (!chain) return null;
+
+    return chain.id !== 1 ? (
+      <div className="mb-4 p-4 bg-yellow-500/10 rounded-lg flex items-center gap-2 text-yellow-500">
+        <AlertCircle className="h-5 w-5" />
+        <span>Please connect to Ethereum mainnet to continue</span>
+      </div>
+    ) : null;
+  };
+
   // Show active plan if exists
   if (hasActivePlan && activePlanDetails) {
     return (
@@ -353,6 +382,7 @@ export function MiningPlan() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        <NetworkStatus />
         <div className="bg-muted rounded-lg p-6 space-y-4">
           <h3 className="text-lg font-semibold">Mining Plan Details</h3>
           <div className="grid gap-3">
@@ -391,15 +421,25 @@ export function MiningPlan() {
               className="w-full mt-4"
               size="lg"
               onClick={handleActivatePlan}
-              disabled={isApproving || isTransferring || isValidating || isApproveLoading || isTransferLoading}
+              disabled={
+                isApproving ||
+                isTransferring ||
+                isValidating ||
+                isApproveLoading ||
+                isTransferLoading ||
+                isSwitchingNetwork ||
+                (chain?.id !== 1 && !switchNetwork)
+              }
             >
               <Coins className="mr-2 h-4 w-4" />
-              {isApproveLoading ? "Waiting for Approval..." :
-                isApproving ? "Approving USDT..." :
-                isTransferLoading ? "Waiting for Transfer..." :
-                isTransferring ? "Transferring USDT..." :
-                isValidating ? "Validating Transaction..." :
-                "Activate Mining Plan (100 USDT)"}
+              {isSwitchingNetwork ? "Switching Network..." :
+                chain?.id !== 1 ? "Switch to Ethereum Mainnet" :
+                  isApproveLoading ? "Waiting for Approval..." :
+                    isApproving ? "Approving USDT..." :
+                      isTransferLoading ? "Waiting for Transfer..." :
+                        isTransferring ? "Transferring USDT..." :
+                          isValidating ? "Validating Transaction..." :
+                            "Activate Mining Plan (100 USDT)"}
             </Button>
           )}
 

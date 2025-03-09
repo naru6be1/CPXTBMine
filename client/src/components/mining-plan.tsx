@@ -20,6 +20,30 @@ const USDT_ABI = [
 // Constants
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Ethereum Mainnet USDT
 const TREASURY_ADDRESS = "0x123..."; // Replace with your treasury address
+const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
+const REQUIRED_CONFIRMATIONS = 3;
+
+// Function to check transaction status on Etherscan
+async function checkTransactionStatus(txHash: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`);
+    const data = await response.json();
+
+    if (data.status === "1" && data.result.status === "1") {
+      // Also check confirmations
+      const txResponse = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxinfo&txhash=${txHash}`);
+      const txData = await txResponse.json();
+
+      if (txData.status === "1" && txData.result.confirmations >= REQUIRED_CONFIRMATIONS) {
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    console.error("Error checking transaction status:", error);
+    return false;
+  }
+}
 
 // ActivePlanDisplay component with end date
 function ActivePlanDisplay({ 
@@ -103,6 +127,8 @@ export function MiningPlan() {
   } | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
@@ -142,6 +168,48 @@ export function MiningPlan() {
     }
   }, []);
 
+  // Effect to monitor transaction status
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const validateTransaction = async () => {
+      if (transactionHash && isValidating) {
+        const isConfirmed = await checkTransactionStatus(transactionHash);
+
+        if (isConfirmed) {
+          // Transaction confirmed, activate plan
+          const activationTime = new Date().toISOString();
+          const planDetails = {
+            withdrawalAddress,
+            dailyRewardCPXTB,
+            activatedAt: activationTime
+          };
+
+          localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
+          setHasActivePlan(true);
+          setActivePlanDetails(planDetails);
+          setIsValidating(false);
+          setTransactionHash(null);
+
+          toast({
+            title: "Mining Plan Activated",
+            description: "Transaction confirmed! Your mining plan has been activated.",
+          });
+        }
+      }
+    };
+
+    if (isValidating && transactionHash) {
+      intervalId = setInterval(validateTransaction, 15000); // Check every 15 seconds
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [transactionHash, isValidating, withdrawalAddress, dailyRewardCPXTB]);
+
   const handleActivatePlan = async () => {
     if (!withdrawalAddress) {
       toast({
@@ -162,25 +230,18 @@ export function MiningPlan() {
       // Then transfer USDT
       setIsTransferring(true);
       const transferTx = await transferWrite?.();
-      await transferTx?.wait();
+      const receipt = await transferTx?.wait();
       setIsTransferring(false);
 
-      // After successful payment, activate the plan
-      const activationTime = new Date().toISOString();
-      const planDetails = {
-        withdrawalAddress,
-        dailyRewardCPXTB,
-        activatedAt: activationTime
-      };
+      if (receipt?.transactionHash) {
+        setTransactionHash(receipt.transactionHash);
+        setIsValidating(true);
 
-      localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
-      setHasActivePlan(true);
-      setActivePlanDetails(planDetails);
-
-      toast({
-        title: "Mining Plan Activated",
-        description: "Your mining plan has been activated! You will start receiving daily rewards.",
-      });
+        toast({
+          title: "Transaction Submitted",
+          description: "Waiting for blockchain confirmation. This may take a few minutes.",
+        });
+      }
     } catch (error) {
       console.error('Error during plan activation:', error);
       toast({
@@ -188,6 +249,8 @@ export function MiningPlan() {
         title: "Activation Failed",
         description: "Failed to activate mining plan. Please try again.",
       });
+      setIsValidating(false);
+      setTransactionHash(null);
     } finally {
       setIsApproving(false);
       setIsTransferring(false);
@@ -273,13 +336,33 @@ export function MiningPlan() {
               className="w-full mt-4"
               size="lg"
               onClick={handleActivatePlan}
-              disabled={isApproving || isTransferring}
+              disabled={isApproving || isTransferring || isValidating}
             >
               <Coins className="mr-2 h-4 w-4" />
               {isApproving ? "Approving USDT..." : 
-               isTransferring ? "Transferring USDT..." : 
+               isTransferring ? "Transferring USDT..." :
+               isValidating ? "Validating Transaction..." :
                "Activate Mining Plan (100 USDT)"}
             </Button>
+          )}
+
+          {isValidating && (
+            <div className="mt-4 p-4 bg-primary/5 rounded-lg">
+              <p className="text-sm text-center text-muted-foreground">
+                Waiting for transaction confirmation...
+                <br />
+                Transaction Hash: {transactionHash}
+                <br />
+                <a 
+                  href={`https://etherscan.io/tx/${transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  View on Etherscan
+                </a>
+              </p>
+            </div>
           )}
         </div>
       </CardContent>

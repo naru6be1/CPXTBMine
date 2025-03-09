@@ -346,7 +346,7 @@ export function MiningPlan() {
             </Button>
           )}
 
-          {isValidating && (
+          {isValidating && transactionHash && ( // Added transactionHash check
             <div className="mt-4 p-4 bg-primary/5 rounded-lg">
               <p className="text-sm text-center text-muted-foreground">
                 Waiting for transaction confirmation...

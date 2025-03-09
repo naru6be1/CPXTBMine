@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { ethers } from "ethers";
 import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
+import { formatUnits } from "ethers";
 
 // USDT Contract ABI (only including necessary functions)
 const USDT_ABI = [
@@ -149,8 +150,9 @@ export function MiningPlan() {
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'balanceOf',
-    args: [address],
-    enabled: !!address,
+    args: [address as `0x${string}`],
+    enabled: !!address && !!chain && chain.id === 1,
+    watch: true,
   });
 
   // Contract interactions
@@ -281,10 +283,11 @@ export function MiningPlan() {
     if (!isMainnet) return;
 
     if (!usdtBalance || usdtBalance.lt(investmentAmount)) {
+      const currentBalance = usdtBalance ? formatUnits(usdtBalance, 6) : '0';
       toast({
         variant: "destructive",
         title: "Insufficient USDT Balance",
-        description: "You need at least 100 USDT to activate the mining plan",
+        description: `You need 100 USDT to activate the mining plan. Your current balance is ${currentBalance} USDT.`,
       });
       return;
     }
@@ -379,6 +382,18 @@ export function MiningPlan() {
     ) : null;
   };
 
+  useEffect(() => {
+    if (address && chain) {
+      console.log("Current wallet state:", {
+        address,
+        chainId: chain.id,
+        usdtBalance: usdtBalance ? formatUnits(usdtBalance, 6) : '0',
+        requiredAmount: formatUnits(investmentAmount, 6)
+      });
+    }
+  }, [address, chain, usdtBalance, investmentAmount]);
+
+
   // Show active plan if exists
   if (hasActivePlan && activePlanDetails) {
     return (
@@ -414,6 +429,12 @@ export function MiningPlan() {
         <div className="bg-muted rounded-lg p-6 space-y-4">
           <h3 className="text-lg font-semibold">Mining Plan Details</h3>
           <div className="grid gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Current USDT Balance</p>
+              <p className="text-2xl font-bold">
+                {usdtBalance ? formatUnits(usdtBalance, 6) : '0.00'} USDT
+              </p>
+            </div>
             <div>
               <p className="text-sm text-muted-foreground">Required Investment</p>
               <p className="text-2xl font-bold">100 USDT</p>

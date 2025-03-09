@@ -144,22 +144,24 @@ export function MiningPlan() {
 
   // Contract interactions
   const { config: approveConfig } = usePrepareContractWrite({
-    address: USDT_CONTRACT_ADDRESS,
+    address: USDT_CONTRACT_ADDRESS as `0x${string}`, // Add type assertion
     abi: USDT_ABI,
     functionName: 'approve',
-    args: [TREASURY_ADDRESS, investmentAmount],
+    args: [TREASURY_ADDRESS as `0x${string}`, investmentAmount],
+    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS, // Add enabled condition
   });
 
-  const { writeAsync: approveWrite } = useContractWrite(approveConfig);
+  const { writeAsync: approveWrite, isLoading: isApproveLoading } = useContractWrite(approveConfig);
 
   const { config: transferConfig } = usePrepareContractWrite({
-    address: USDT_CONTRACT_ADDRESS,
+    address: USDT_CONTRACT_ADDRESS as `0x${string}`, // Add type assertion
     abi: USDT_ABI,
     functionName: 'transfer',
-    args: [TREASURY_ADDRESS, investmentAmount],
+    args: [TREASURY_ADDRESS as `0x${string}`, investmentAmount],
+    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS, // Add enabled condition
   });
 
-  const { writeAsync: transferWrite } = useContractWrite(transferConfig);
+  const { writeAsync: transferWrite, isLoading: isTransferLoading } = useContractWrite(transferConfig);
 
   useEffect(() => {
     const storedPlan = localStorage.getItem('activeMiningPlan');
@@ -222,39 +224,51 @@ export function MiningPlan() {
     }
 
     try {
+      console.log("Starting plan activation process...");
+
       // First approve USDT spending
       setIsApproving(true);
+      console.log("Initiating USDT approval...");
       const approveTx = await approveWrite?.();
 
-      if (approveTx) {
-        console.log("Approve transaction submitted:", approveTx);
+      if (!approveTx) {
+        throw new Error("Failed to initiate approval transaction");
       }
+
+      console.log("Approve transaction submitted:", approveTx);
+      toast({
+        title: "Approval Initiated",
+        description: "Please confirm the approval transaction in your wallet",
+      });
 
       setIsApproving(false);
 
       // Then transfer USDT
       setIsTransferring(true);
+      console.log("Initiating USDT transfer...");
       const transferTx = await transferWrite?.();
 
-      if (transferTx) {
-        console.log("Transfer transaction submitted:", transferTx);
-        // Set transaction hash immediately after submission
-        const hash = transferTx.hash;
-        console.log("Setting transaction hash:", hash);
-        setTransactionHash(hash);
-        setIsValidating(true);
-
-        toast({
-          title: "Transaction Submitted",
-          description: "Waiting for blockchain confirmation. This may take a few minutes.",
-        });
+      if (!transferTx) {
+        throw new Error("Failed to initiate transfer transaction");
       }
+
+      console.log("Transfer transaction submitted:", transferTx);
+      const hash = transferTx.hash;
+      console.log("Transaction hash:", hash);
+
+      setTransactionHash(hash);
+      setIsValidating(true);
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Waiting for blockchain confirmation. This may take a few minutes.",
+      });
     } catch (error) {
       console.error('Error during plan activation:', error);
       toast({
         variant: "destructive",
         title: "Activation Failed",
-        description: "Failed to activate mining plan. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to activate mining plan. Please try again.",
       });
     } finally {
       setIsApproving(false);
@@ -341,13 +355,15 @@ export function MiningPlan() {
               className="w-full mt-4"
               size="lg"
               onClick={handleActivatePlan}
-              disabled={isApproving || isTransferring || isValidating}
+              disabled={isApproving || isTransferring || isValidating || isApproveLoading || isTransferLoading}
             >
               <Coins className="mr-2 h-4 w-4" />
-              {isApproving ? "Approving USDT..." :
+              {isApproveLoading ? "Waiting for Approval..." :
+                isApproving ? "Approving USDT..." :
+                isTransferLoading ? "Waiting for Transfer..." :
                 isTransferring ? "Transferring USDT..." :
-                  isValidating ? "Validating Transaction..." :
-                    "Activate Mining Plan (100 USDT)"}
+                isValidating ? "Validating Transaction..." :
+                "Activate Mining Plan (100 USDT)"}
             </Button>
           )}
 

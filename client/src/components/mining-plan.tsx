@@ -71,11 +71,49 @@ function PaymentStatusCheck() {
   return null;
 }
 
-// Payment Form Component
-function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
+// Add ActivePlanDisplay component
+function ActivePlanDisplay({ 
+  withdrawalAddress, 
+  dailyRewardCPXTB 
+}: { 
+  withdrawalAddress: string;
+  dailyRewardCPXTB: string;
+}) {
+  return (
+    <div className="animate-fade-in space-y-4">
+      <div className="bg-primary/10 rounded-lg p-6">
+        <h3 className="text-xl font-semibold text-primary mb-2">
+          🎉 Mining Plan Status
+        </h3>
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm text-muted-foreground">Status</p>
+            <p className="text-lg font-semibold text-green-500">Active</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Daily Reward</p>
+            <p className="text-lg font-semibold">{dailyRewardCPXTB} CPXTB</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Withdrawal Address</p>
+            <p className="text-sm font-mono break-all">{withdrawalAddress}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Activation Time</p>
+            <p className="text-lg font-semibold">{new Date().toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Update PaymentForm component to show active plan after success
+function PaymentForm({ withdrawalAddress, amount, onSuccess, dailyRewardCPXTB }: {
   withdrawalAddress: string;
   amount: number;
   onSuccess: () => void;
+  dailyRewardCPXTB: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -160,18 +198,7 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
   };
 
   if (isSuccess) {
-    return (
-      <div className="animate-fade-in space-y-4 text-center">
-        <div className="bg-primary/10 rounded-lg p-6">
-          <h3 className="text-xl font-semibold text-primary mb-2">
-            🎉 Mining Plan Activated!
-          </h3>
-          <p className="text-muted-foreground">
-            Your mining plan is now active. You will start receiving daily rewards of {dailyRewardCPXTB} CPXTB to address: {withdrawalAddress}
-          </p>
-        </div>
-      </div>
-    );
+    return <ActivePlanDisplay withdrawalAddress={withdrawalAddress} dailyRewardCPXTB={dailyRewardCPXTB} />;
   }
 
   return (
@@ -202,6 +229,7 @@ function PaymentForm({ withdrawalAddress, amount, onSuccess }: {
   );
 }
 
+// Rest of the file
 export function MiningPlan() {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [clientSecret, setClientSecret] = useState<string | null>(null);

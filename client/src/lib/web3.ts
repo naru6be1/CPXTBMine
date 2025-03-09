@@ -1,6 +1,6 @@
 import { createWeb3Modal } from '@web3modal/wagmi'
 import { configureChains, createConfig } from 'wagmi'
-import { mainnet, base, sepolia } from 'viem/chains'
+import { sepolia } from 'viem/chains'
 import { publicProvider } from 'wagmi/providers/public'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
@@ -18,13 +18,13 @@ console.log("Initializing Web3Modal with project ID:", projectId.slice(0, 4) + "
 const metadata = {
   name: 'CPXTB Mining DApp',
   description: 'CPXTB Mining and Investment Platform',
-  url: 'https://web3modal.com', // Will be updated with actual URL
+  url: 'https://web3modal.com',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains & providers
+// Configure chains & providers - Only using Sepolia for testing
 export const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [sepolia, mainnet, base], // Put Sepolia first since it's our primary testnet
+  [sepolia],
   [publicProvider()]
 )
 
@@ -37,7 +37,7 @@ const config = createConfig({
       options: {
         projectId,
         metadata,
-        showQrModal: false // Web3Modal handles QR modal
+        showQrModal: false
       }
     }),
     new InjectedConnector({
@@ -57,7 +57,7 @@ const web3Modal = createWeb3Modal({
   wagmiConfig: config,
   projectId,
   chains,
-  defaultChain: sepolia, // Set default to Sepolia for testing
+  defaultChain: sepolia,
   themeMode: 'dark',
   themeVariables: {
     '--w3m-font-family': 'Inter, sans-serif',

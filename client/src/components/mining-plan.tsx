@@ -10,13 +10,12 @@ import { ethers } from "ethers";
 import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
 import { formatUnits } from "ethers";
 
-// USDT Contract ABI (including mint function)
+// Update the USDT ABI to make it simpler
 const USDT_ABI = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-  "function transfer(address recipient, uint256 amount) external returns (bool)",
+  "function mint(address to, uint256 amount) external", // Mint function for test tokens
   "function balanceOf(address account) external view returns (uint256)",
-  "function allowance(address owner, address spender) external view returns (uint256)",
-  "function mint(address to, uint256 amount) external" // Add mint function
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function transfer(address recipient, uint256 amount) external returns (bool)"
 ];
 
 // Update constants with proper addresses and configuration
@@ -156,26 +155,6 @@ export function MiningPlan() {
     watch: true,
   });
 
-  // Contract interactions
-  const { config: approveConfig } = usePrepareContractWrite({
-    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
-    abi: USDT_ABI,
-    functionName: 'approve',
-    args: [TREASURY_ADDRESS as `0x${string}`, investmentAmount],
-    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
-  });
-
-  const { writeAsync: approveWrite, isLoading: isApproveLoading } = useContractWrite(approveConfig);
-
-  const { config: transferConfig } = usePrepareContractWrite({
-    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
-    abi: USDT_ABI,
-    functionName: 'transfer',
-    args: [TREASURY_ADDRESS as `0x${string}`, investmentAmount],
-    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
-  });
-
-  const { writeAsync: transferWrite, isLoading: isTransferLoading } = useContractWrite(transferConfig);
 
   // Mint Test USDT
   const { config: mintConfig } = usePrepareContractWrite({
@@ -350,28 +329,10 @@ export function MiningPlan() {
       setIsApproving(true);
       console.log("Initiating USDT approval...");
 
-      if (!approveWrite) {
-        throw new Error("Approval function not available. Please check your wallet connection.");
-      }
-
-      const approveTx = await approveWrite();
-      console.log("Approve transaction submitted:", approveTx);
-
-      toast({
-        title: "Approval Initiated",
-        description: "Please confirm the approval transaction in your wallet",
-      });
-
-      await approveTx.wait(); // Wait for approval confirmation
-      setIsApproving(false);
 
       // Then transfer USDT
       setIsTransferring(true);
       console.log("Initiating USDT transfer...");
-
-      if (!transferWrite) {
-        throw new Error("Transfer function not available. Please check your wallet connection.");
-      }
 
       const transferTx = await transferWrite();
       console.log("Transfer transaction submitted:", transferTx);
@@ -496,12 +457,11 @@ export function MiningPlan() {
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="bg-blue-500/10 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-500 mb-2">Test Mode Instructions</h3>
+            <h3 className="text-lg font-semibold text-blue-500 mb-2">Simple Test Mode</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
               <li>Switch your wallet to Sepolia testnet</li>
               <li>Get test ETH from the <a href="https://sepolia-faucet.pk910.de/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Sepolia faucet</a></li>
               <li>Click the button below to mint test USDT tokens</li>
-              <li>Use the test USDT to activate the mining plan</li>
             </ol>
             <div className="mt-4">
               <Button
@@ -509,7 +469,7 @@ export function MiningPlan() {
                 disabled={!address || chain?.id !== 11155111 || isMinting}
                 className="w-full"
               >
-                {isMinting ? "Minting..." : "Mint 1000 Test USDT"}
+                {isMinting ? "Minting..." : "Get 1000 Test USDT"}
               </Button>
               <p className="text-sm text-muted-foreground mt-2">
                 Note: This is a test environment. These are not real tokens.
@@ -566,8 +526,6 @@ export function MiningPlan() {
                 isApproving ||
                 isTransferring ||
                 isValidating ||
-                isApproveLoading ||
-                isTransferLoading ||
                 isSwitchingNetwork ||
                 (chain?.id !== 11155111 && !switchNetwork)
               }
@@ -575,12 +533,10 @@ export function MiningPlan() {
               <Coins className="mr-2 h-4 w-4" />
               {isSwitchingNetwork ? "Switching Network..." :
                 chain?.id !== 11155111 ? "Switch to Sepolia Testnet" :
-                  isApproveLoading ? "Waiting for Approval..." :
-                    isApproving ? "Approving USDT..." :
-                      isTransferLoading ? "Waiting for Transfer..." :
-                        isTransferring ? "Transferring USDT..." :
-                          isValidating ? "Validating Transaction..." :
-                            "Activate Mining Plan (100 USDT)"}
+                  isApproving ? "Approving USDT..." :
+                    isTransferring ? "Transferring USDT..." :
+                      isValidating ? "Validating Transaction..." :
+                        "Activate Mining Plan (100 USDT)"}
             </Button>
           )}
 

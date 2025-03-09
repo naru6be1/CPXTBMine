@@ -23,7 +23,7 @@ const metadata = {
 }
 
 // Configure chains & providers
-const { chains, publicClient, webSocketPublicClient } = configureChains(
+export const { chains, publicClient, webSocketPublicClient } = configureChains(
   [mainnet, sepolia, base], 
   [publicProvider()]
 )

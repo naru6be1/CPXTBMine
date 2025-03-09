@@ -25,7 +25,6 @@ const ETHERSCAN_API_URL = "https://api-sepolia.etherscan.io/api"; // Updated to 
 const REQUIRED_CONFIRMATIONS = 3;
 
 export function MiningPlan() {
-  const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
@@ -78,13 +77,36 @@ export function MiningPlan() {
     console.log("Contract address:", USDT_CONTRACT_ADDRESS);
     console.log("User address:", address);
 
-    if (!address || chain?.id !== 11155111) {
-      console.log("Network check failed:", { address, chainId: chain?.id });
+    if (!address) {
       toast({
         variant: "destructive",
-        title: "Network Error",
-        description: "Please connect to Sepolia testnet first",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet first",
       });
+      return;
+    }
+
+    if (chain?.id !== 11155111) {
+      console.log("Network check failed:", { address, chainId: chain?.id });
+      if (switchNetwork) {
+        try {
+          await switchNetwork(11155111);
+          return; // Return here as we need to wait for the network to switch
+        } catch (error) {
+          console.error("Failed to switch network:", error);
+          toast({
+            variant: "destructive",
+            title: "Network Switch Failed",
+            description: "Please manually switch to Sepolia testnet in your wallet",
+          });
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Wrong Network",
+          description: "Please switch to Sepolia testnet manually in your wallet",
+        });
+      }
       return;
     }
 
@@ -92,7 +114,7 @@ export function MiningPlan() {
       console.log("Attempting to mint USDT...");
       if (!mintWrite) {
         console.error("Mint function not available. Contract config:", mintConfig);
-        throw new Error("Mint function not available. Please make sure you're connected to Sepolia testnet.");
+        throw new Error("Please make sure you're connected to Sepolia testnet and have some ETH for gas.");
       }
 
       mintWrite();

@@ -24,7 +24,7 @@ const metadata = {
 
 // Configure chains & providers
 export const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet, sepolia, base], 
+  [sepolia, mainnet, base], // Put Sepolia first since it's our primary testnet
   [publicProvider()]
 )
 
@@ -62,9 +62,9 @@ const web3Modal = createWeb3Modal({
   themeVariables: {
     '--w3m-font-family': 'Inter, sans-serif',
     '--w3m-accent': 'hsl(var(--primary))',
-    '--w3m-bg-color': 'hsl(var(--background))',
-    '--w3m-color': 'hsl(var(--foreground))',
-    '--w3m-z-index': 1000
+    '--w3m-background': 'hsl(var(--background))',
+    '--w3m-text-color': 'hsl(var(--foreground))',
+    '--w3m-z-index': '1000'
   }
 })
 

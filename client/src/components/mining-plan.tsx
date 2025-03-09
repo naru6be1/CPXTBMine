@@ -7,7 +7,7 @@ import { Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { ethers } from "ethers";
-import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite } from 'wagmi';
+import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork } from 'wagmi';
 
 // USDT Contract ABI (only including necessary functions)
 const USDT_ABI = [
@@ -17,9 +17,9 @@ const USDT_ABI = [
   "function allowance(address owner, address spender) external view returns (uint256)"
 ];
 
-// Constants
+// Update constants with proper addresses and configuration
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Ethereum Mainnet USDT
-const TREASURY_ADDRESS = "0x123..."; // Replace with your treasury address
+const TREASURY_ADDRESS = "0x1234567890123456789012345678901234567890"; // Update with actual treasury address
 const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
 const REQUIRED_CONFIRMATIONS = 3;
 
@@ -135,6 +135,7 @@ export function MiningPlan() {
 
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
+  const { chain } = useNetwork();
 
   // Constants
   const investmentAmount = ethers.parseUnits("100", 6); // 100 USDT (6 decimals)
@@ -142,23 +143,32 @@ export function MiningPlan() {
   const cpxtbPrice = 0.002529; // Current CPXTB price in USD
   const dailyRewardCPXTB = (dailyRewardUSD / cpxtbPrice).toFixed(2); // Calculate CPXTB equivalent
 
+  // Read USDT balance
+  const { data: usdtBalance } = useContractRead({
+    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
+    abi: USDT_ABI,
+    functionName: 'balanceOf',
+    args: [address],
+    enabled: !!address,
+  });
+
   // Contract interactions
   const { config: approveConfig } = usePrepareContractWrite({
-    address: USDT_CONTRACT_ADDRESS as `0x${string}`, // Add type assertion
+    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'approve',
     args: [TREASURY_ADDRESS as `0x${string}`, investmentAmount],
-    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS, // Add enabled condition
+    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
   });
 
   const { writeAsync: approveWrite, isLoading: isApproveLoading } = useContractWrite(approveConfig);
 
   const { config: transferConfig } = usePrepareContractWrite({
-    address: USDT_CONTRACT_ADDRESS as `0x${string}`, // Add type assertion
+    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'transfer',
     args: [TREASURY_ADDRESS as `0x${string}`, investmentAmount],
-    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS, // Add enabled condition
+    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
   });
 
   const { writeAsync: transferWrite, isLoading: isTransferLoading } = useContractWrite(transferConfig);
@@ -223,36 +233,60 @@ export function MiningPlan() {
       return;
     }
 
+    if (!chain || chain.id !== 1) { // Check if connected to Ethereum mainnet
+      toast({
+        variant: "destructive",
+        title: "Wrong Network",
+        description: "Please connect to Ethereum mainnet to continue",
+      });
+      return;
+    }
+
+    if (!usdtBalance || usdtBalance.lt(investmentAmount)) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient USDT Balance",
+        description: "You need at least 100 USDT to activate the mining plan",
+      });
+      return;
+    }
+
     try {
       console.log("Starting plan activation process...");
+      console.log("Current chain:", chain);
+      console.log("USDT balance:", usdtBalance.toString());
+      console.log("Investment amount:", investmentAmount.toString());
 
       // First approve USDT spending
       setIsApproving(true);
       console.log("Initiating USDT approval...");
-      const approveTx = await approveWrite?.();
 
-      if (!approveTx) {
-        throw new Error("Failed to initiate approval transaction");
+      if (!approveWrite) {
+        throw new Error("Approval function not available. Please check your wallet connection.");
       }
 
+      const approveTx = await approveWrite();
       console.log("Approve transaction submitted:", approveTx);
+
       toast({
         title: "Approval Initiated",
         description: "Please confirm the approval transaction in your wallet",
       });
 
+      await approveTx.wait(); // Wait for approval confirmation
       setIsApproving(false);
 
       // Then transfer USDT
       setIsTransferring(true);
       console.log("Initiating USDT transfer...");
-      const transferTx = await transferWrite?.();
 
-      if (!transferTx) {
-        throw new Error("Failed to initiate transfer transaction");
+      if (!transferWrite) {
+        throw new Error("Transfer function not available. Please check your wallet connection.");
       }
 
+      const transferTx = await transferWrite();
       console.log("Transfer transaction submitted:", transferTx);
+
       const hash = transferTx.hash;
       console.log("Transaction hash:", hash);
 
@@ -268,7 +302,9 @@ export function MiningPlan() {
       toast({
         variant: "destructive",
         title: "Activation Failed",
-        description: error instanceof Error ? error.message : "Failed to activate mining plan. Please try again.",
+        description: error instanceof Error
+          ? `Error: ${error.message}`
+          : "Failed to activate mining plan. Please try again.",
       });
     } finally {
       setIsApproving(false);

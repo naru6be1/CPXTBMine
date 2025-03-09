@@ -1,6 +1,6 @@
 import { createWeb3Modal } from '@web3modal/wagmi'
 import { configureChains, createConfig } from 'wagmi'
-import { mainnet, base } from 'viem/chains'
+import { mainnet, base, sepolia } from 'viem/chains'
 import { publicProvider } from 'wagmi/providers/public'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
@@ -24,7 +24,7 @@ const metadata = {
 
 // Configure chains & providers
 const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet, base], 
+  [mainnet, sepolia, base], 
   [publicProvider()]
 )
 
@@ -57,7 +57,7 @@ const web3Modal = createWeb3Modal({
   wagmiConfig: config,
   projectId,
   chains,
-  defaultChain: mainnet,
+  defaultChain: sepolia, // Set default to Sepolia for testing
   themeMode: 'dark',
   themeVariables: {
     '--w3m-font-family': 'Inter, sans-serif',

@@ -19,21 +19,21 @@ const USDT_ABI = [
 ];
 
 // Update constants with proper addresses and configuration
-const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Ethereum Mainnet USDT
+const USDT_CONTRACT_ADDRESS = "0x6175a8471C2122f4b4475809015bF7D08a58c8E1"; // Sepolia Test USDT
 const TREASURY_ADDRESS = "0x1234567890123456789012345678901234567890"; // Update with actual treasury address
-const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
+const ETHERSCAN_API_URL = "https://api.etherscan.io/api"; //This might need to be updated to a Sepolia explorer API
 const REQUIRED_CONFIRMATIONS = 3;
 
 // Function to check transaction status on Etherscan
 async function checkTransactionStatus(txHash: string): Promise<boolean> {
   try {
     console.log(`Checking transaction status for hash: ${txHash}`);
-    const response = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`);
+    const response = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`); //This might need to be updated to a Sepolia explorer API
     const data = await response.json();
     console.log('Transaction receipt status response:', data);
 
     if (data.status === "1" && data.result.status === "1") {
-      const txResponse = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxinfo&txhash=${txHash}`);
+      const txResponse = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxinfo&txhash=${txHash}`); //This might need to be updated to a Sepolia explorer API
       const txData = await txResponse.json();
       console.log('Transaction info response:', txData);
 
@@ -151,7 +151,7 @@ export function MiningPlan() {
     abi: USDT_ABI,
     functionName: 'balanceOf',
     args: [address as `0x${string}`],
-    enabled: !!address && !!chain && chain.id === 1,
+    enabled: !!address && !!chain, // Removed chain.id === 1 check
     watch: true,
   });
 
@@ -227,29 +227,29 @@ export function MiningPlan() {
   }, [transactionHash, isValidating, withdrawalAddress, dailyRewardCPXTB]);
 
   // Function to check and switch network
-  const ensureMainnetConnection = async () => {
+  const ensureTestnetConnection = async () => {
     console.log("Current network state:", {
       chainId: chain?.id,
       chainName: chain?.name,
       switchNetworkAvailable: !!switchNetwork
     });
 
-    if (!chain || chain.id !== 1) {
+    if (!chain || chain.id !== 11155111) { // Sepolia chain ID
       if (switchNetwork) {
-        console.log("Attempting to switch to Ethereum mainnet...");
+        console.log("Attempting to switch to Sepolia testnet...");
         try {
           toast({
             title: "Wrong Network",
-            description: "Switching to Ethereum mainnet...",
+            description: "Switching to Sepolia testnet...",
           });
-          await switchNetwork(1);
+          await switchNetwork(11155111);
           console.log("Network switch initiated successfully");
         } catch (error) {
           console.error("Failed to switch network:", error);
           toast({
             variant: "destructive",
             title: "Network Switch Failed",
-            description: "Please manually switch to Ethereum mainnet in your wallet",
+            description: "Please manually switch to Sepolia testnet in your wallet",
           });
           return false;
         }
@@ -258,12 +258,12 @@ export function MiningPlan() {
         toast({
           variant: "destructive",
           title: "Network Switch Not Supported",
-          description: "Please manually switch to Ethereum mainnet in your wallet settings",
+          description: "Please manually switch to Sepolia testnet in your wallet settings",
         });
         return false;
       }
     } else {
-      console.log("Already on Ethereum mainnet");
+      console.log("Already on Sepolia testnet");
     }
     return true;
   };
@@ -279,15 +279,15 @@ export function MiningPlan() {
     }
 
     // Check network connection first
-    const isMainnet = await ensureMainnetConnection();
-    if (!isMainnet) return;
+    const isTestnet = await ensureTestnetConnection();
+    if (!isTestnet) return;
 
     if (!usdtBalance || usdtBalance.lt(investmentAmount)) {
       const currentBalance = usdtBalance ? formatUnits(usdtBalance, 6) : '0';
       toast({
         variant: "destructive",
         title: "Insufficient USDT Balance",
-        description: `You need 100 USDT to activate the mining plan. Your current balance is ${currentBalance} USDT.`,
+        description: `You need 100 USDT to activate the mining plan. Your current balance is ${currentBalance} USDT. Visit the Sepolia faucet to get test USDT.`,
       });
       return;
     }
@@ -295,7 +295,7 @@ export function MiningPlan() {
     try {
       console.log("Starting plan activation process...");
       console.log("Current chain:", chain);
-      console.log("USDT balance:", usdtBalance.toString());
+      console.log("USDT balance:", usdtBalance?.toString());
       console.log("Investment amount:", investmentAmount.toString());
 
       // First approve USDT spending
@@ -367,19 +367,40 @@ export function MiningPlan() {
   const NetworkStatus = () => {
     if (!chain) return null;
 
-    return chain.id !== 1 ? (
-      <div className="mb-4 p-4 bg-yellow-500/10 rounded-lg">
-        <div className="flex items-center gap-2 text-yellow-500 mb-2">
-          <AlertCircle className="h-5 w-5" />
-          <span className="font-semibold">Network Switch Required</span>
+    if (chain.id !== 11155111) {
+      return (
+        <div className="mb-4 p-4 bg-yellow-500/10 rounded-lg">
+          <div className="flex items-center gap-2 text-yellow-500 mb-2">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-semibold">Test Mode: Switch to Sepolia</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Please connect to Sepolia testnet to test with test USDT. {switchNetwork
+              ? "Click the button below to switch networks automatically."
+              : "Please switch networks manually in your wallet."}
+          </p>
+          <a 
+            href="https://sepolia-faucet.pk910.de/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-primary hover:underline mt-2 inline-block"
+          >
+            Get test ETH from Sepolia faucet
+          </a>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Please connect to Ethereum mainnet to continue. {switchNetwork
-            ? "Click the button below to switch networks automatically."
-            : "Please switch networks manually in your wallet."}
+      );
+    }
+
+    return (
+      <div className="mb-4 p-4 bg-green-500/10 rounded-lg">
+        <div className="flex items-center gap-2 text-green-500">
+          <span className="font-semibold">✓ Connected to Sepolia Testnet</span>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Testing mode active. Using test USDT on Sepolia network.
         </p>
       </div>
-    ) : null;
+    );
   };
 
   useEffect(() => {
@@ -425,6 +446,20 @@ export function MiningPlan() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <div className="bg-blue-500/10 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-blue-500 mb-2">Test Mode Instructions</h3>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+              <li>Switch your wallet to Sepolia testnet</li>
+              <li>Get test ETH from the <a href="https://sepolia-faucet.pk910.de/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Sepolia faucet</a></li>
+              <li>Get test USDT from our test USDT contract (you can mint test tokens)</li>
+              <li>Use the test USDT to activate the mining plan</li>
+            </ol>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Note: This is a test environment. No real tokens will be used.
+            </p>
+          </div>
+        </div>
         <NetworkStatus />
         <div className="bg-muted rounded-lg p-6 space-y-4">
           <h3 className="text-lg font-semibold">Mining Plan Details</h3>
@@ -477,12 +512,12 @@ export function MiningPlan() {
                 isApproveLoading ||
                 isTransferLoading ||
                 isSwitchingNetwork ||
-                (chain?.id !== 1 && !switchNetwork)
+                (chain?.id !== 11155111 && !switchNetwork) // Changed to Sepolia chain ID
               }
             >
               <Coins className="mr-2 h-4 w-4" />
               {isSwitchingNetwork ? "Switching Network..." :
-                chain?.id !== 1 ? "Switch to Ethereum Mainnet" :
+                chain?.id !== 11155111 ? "Switch to Sepolia Testnet" : // Changed to Sepolia
                   isApproveLoading ? "Waiting for Approval..." :
                     isApproving ? "Approving USDT..." :
                       isTransferLoading ? "Waiting for Transfer..." :
@@ -503,7 +538,7 @@ export function MiningPlan() {
                 </span>
                 <br />
                 <a
-                  href={`https://etherscan.io/tx/${transactionHash}`}
+                  href={`https://etherscan.io/tx/${transactionHash}`} //This might need to be updated to a Sepolia explorer link
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline mt-2 inline-block"

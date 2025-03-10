@@ -7,31 +7,31 @@ import { Coins, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { ethers } from "ethers";
-import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork, useBalance } from 'wagmi';
+import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
 import { formatUnits } from "ethers";
 
 // Update the USDT ABI to make it simpler
 const USDT_ABI = [
-  "function mint(address to, uint256 amount) external",
+  "function mint(address to, uint256 amount) external", // Mint function for test tokens
   "function balanceOf(address account) external view returns (uint256)",
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function transfer(address recipient, uint256 amount) external returns (bool)"
 ];
 
+// Update constants with proper addresses and configuration
 const USDT_CONTRACT_ADDRESS = "0x6175a8471C2122f4b4475809015bF7D08a58c8E1"; // Sepolia Test USDT
-const MIN_ETH_BALANCE = BigInt("10000000000000000"); // 0.01 ETH for gas
+const TREASURY_ADDRESS = "0x1234567890123456789012345678901234567890"; // Update with actual treasury address
+const ETHERSCAN_API_URL = "https://api-sepolia.etherscan.io/api"; // Updated to Sepolia explorer API
+const REQUIRED_CONFIRMATIONS = 3;
 
 export function MiningPlan() {
+  const [isValidating, setIsValidating] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
+
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
   const { chain } = useNetwork();
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
-
-  // Get ETH balance
-  const { data: ethBalance } = useBalance({
-    address: address as `0x${string}`,
-    enabled: !!address,
-  });
 
   // Read USDT balance
   const { data: usdtBalance } = useContractRead({
@@ -76,23 +76,12 @@ export function MiningPlan() {
     console.log("Current chain:", chain?.id);
     console.log("Contract address:", USDT_CONTRACT_ADDRESS);
     console.log("User address:", address);
-    console.log("ETH Balance:", ethBalance?.formatted);
 
     if (!address) {
       toast({
         variant: "destructive",
         title: "Wallet Not Connected",
         description: "Please connect your wallet first",
-      });
-      return;
-    }
-
-    // Check ETH balance
-    if (ethBalance?.value && ethBalance.value < MIN_ETH_BALANCE) {
-      toast({
-        variant: "destructive",
-        title: "Insufficient ETH Balance",
-        description: "You need at least 0.01 ETH for gas. Please get some test ETH from the Sepolia faucet.",
       });
       return;
     }
@@ -184,11 +173,6 @@ export function MiningPlan() {
         </div>
         <p className="text-sm text-muted-foreground mt-2">
           Testing mode active. Using test USDT on Sepolia network.
-          {ethBalance && ethBalance.value < MIN_ETH_BALANCE && (
-            <span className="block mt-2 text-yellow-500">
-              ⚠️ Low ETH balance. You need at least 0.01 ETH for gas.
-            </span>
-          )}
         </p>
       </div>
     );
@@ -215,7 +199,7 @@ export function MiningPlan() {
             <div className="mt-4">
               <Button
                 onClick={handleMintTestUSDT}
-                disabled={!address || chain?.id !== 11155111 || isMinting || (ethBalance?.value || BigInt(0)) < MIN_ETH_BALANCE}
+                disabled={!address || chain?.id !== 11155111 || isMinting}
                 className="w-full"
               >
                 {isMinting ? "Minting..." : "Get 1000 Test USDT"}
@@ -230,12 +214,6 @@ export function MiningPlan() {
         <div className="bg-muted rounded-lg p-6 space-y-4">
           <h3 className="text-lg font-semibold">Current Balance</h3>
           <div className="grid gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Your ETH Balance</p>
-              <p className="text-2xl font-bold">
-                {ethBalance ? ethBalance.formatted : '0.00'} ETH
-              </p>
-            </div>
             <div>
               <p className="text-sm text-muted-foreground">Your USDT Balance</p>
               <p className="text-2xl font-bold">

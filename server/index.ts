@@ -63,7 +63,7 @@ app.use((req, res, next) => {
       const message = err.message || "Internal Server Error";
 
       // Send error response without exposing internal details
-      res.status(status).json({ 
+      res.status(status).json({
         message,
         error: app.get("env") === "development" ? err.stack : undefined
       });
@@ -80,7 +80,7 @@ app.use((req, res, next) => {
       log("Static file serving setup complete");
     }
 
-    const port = 5000;
+    const port = process.env.PORT || 5000;
     log(`Attempting to start server on port ${port}...`);
 
     server.listen({

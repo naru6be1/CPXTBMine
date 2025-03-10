@@ -44,6 +44,14 @@ app.use((req, res, next) => {
   try {
     log("Starting server initialization...");
 
+    // Check critical environment variables
+    log("Checking environment variables...");
+    log("VITE_WALLETCONNECT_PROJECT_ID exists:", !!process.env.VITE_WALLETCONNECT_PROJECT_ID);
+
+    // Force development mode
+    process.env.NODE_ENV = "development";
+    log(`NODE_ENV set to: ${process.env.NODE_ENV}`);
+
     // Initialize routes
     log("Registering routes...");
     const server = await registerRoutes(app);
@@ -69,25 +77,13 @@ app.use((req, res, next) => {
       });
     });
 
-    // Set NODE_ENV explicitly for debugging
-    if (!process.env.NODE_ENV) {
-      process.env.NODE_ENV = "development";
-    }
-    log(`Current NODE_ENV: ${process.env.NODE_ENV}`);
-
-    // Setup Vite or static serving with enhanced error handling
+    // Setup Vite with enhanced error handling
     try {
-      if (process.env.NODE_ENV === "development") {
-        log("Setting up Vite development server...");
-        await setupVite(app, server);
-        log("Vite development server setup complete");
-      } else {
-        log("Setting up static file serving...");
-        serveStatic(app);
-        log("Static file serving setup complete");
-      }
+      log("Setting up Vite development server...");
+      await setupVite(app, server);
+      log("Vite development server setup complete");
     } catch (error) {
-      console.error("Failed to setup server:", error);
+      console.error("CRITICAL ERROR during Vite setup:", error);
       throw error;
     }
 

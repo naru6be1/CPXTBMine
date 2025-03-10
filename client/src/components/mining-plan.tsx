@@ -20,9 +20,35 @@ const USDT_ABI = [
 
 // Update constants with proper addresses and configuration
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Ethereum Mainnet USDT
-const TREASURY_ADDRESS = "0x1234567890123456789012345678901234567890"; // Update with actual treasury address
-const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
+const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27"; // New treasury address
 const REQUIRED_CONFIRMATIONS = 3;
+const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
+
+// Plan types
+type PlanType = 'daily' | 'weekly';
+
+interface PlanConfig {
+  investmentAmount: bigint;
+  displayAmount: string;
+  rewardUSD: number;
+  duration: string;
+}
+
+const PLANS: Record<PlanType, PlanConfig> = {
+  daily: {
+    investmentAmount: ethers.parseUnits("1", 6), // 1 USDT
+    displayAmount: "1",
+    rewardUSD: 1.5, // 1.5 USD daily reward
+    duration: "24 hours"
+  },
+  weekly: {
+    investmentAmount: ethers.parseUnits("100", 6), // 100 USDT
+    displayAmount: "100",
+    rewardUSD: 15, // 15 USD daily reward
+    duration: "7 days"
+  }
+};
+
 
 // Function to check transaction status on Etherscan
 async function checkTransactionStatus(txHash: string): Promise<boolean> {
@@ -54,19 +80,19 @@ function ActivePlanDisplay({
   withdrawalAddress,
   dailyRewardCPXTB,
   activatedAt,
+  planType,
   onReset
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
+  planType: PlanType;
   onReset: () => void;
 }) {
-  // Calculate end date (7 days from activation)
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
-  endDate.setDate(endDate.getDate() + 7);
+  endDate.setDate(endDate.getDate() + (planType === 'weekly' ? 7 : 1));
 
-  // Format dates nicely
   const formatDate = (date: Date) => {
     return date.toLocaleString('en-US', {
       dateStyle: 'medium',
@@ -86,6 +112,10 @@ function ActivePlanDisplay({
             <p className="text-lg font-semibold text-green-500">Active</p>
           </div>
           <div>
+            <p className="text-sm text-muted-foreground">Plan Type</p>
+            <p className="text-lg font-semibold capitalize">{planType} Plan</p>
+          </div>
+          <div>
             <p className="text-sm text-muted-foreground">Daily Reward</p>
             <p className="text-lg font-semibold">{dailyRewardCPXTB} CPXTB</p>
           </div>
@@ -103,11 +133,6 @@ function ActivePlanDisplay({
               <p className="text-lg font-semibold">{formatDate(endDate)}</p>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-primary/10">
-            <p className="text-sm text-muted-foreground">
-              Your mining plan will be active for 7 days from activation.
-            </p>
-          </div>
           <Button
             variant="destructive"
             className="w-full mt-4"
@@ -122,12 +147,14 @@ function ActivePlanDisplay({
 }
 
 export function MiningPlan() {
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [hasActivePlan, setHasActivePlan] = useState(false);
   const [activePlanDetails, setActivePlanDetails] = useState<{
     withdrawalAddress: string;
     dailyRewardCPXTB: string;
     activatedAt: string;
+    planType: PlanType;
   } | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
@@ -139,13 +166,11 @@ export function MiningPlan() {
   const { chain } = useNetwork();
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
 
-  // Constants
-  const investmentAmount = ethers.parseUnits("100", 6); // 100 USDT (6 decimals)
-  const dailyRewardUSD = 15; // USD
+  const currentPlan = PLANS[selectedPlan];
   const cpxtbPrice = 0.002529; // Current CPXTB price in USD
-  const dailyRewardCPXTB = (dailyRewardUSD / cpxtbPrice).toFixed(2); // Calculate CPXTB equivalent
+  const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
 
-  // Read USDT balance
+  // Contract reads and writes remain the same, just use currentPlan.investmentAmount
   const { data: usdtBalance } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
@@ -155,12 +180,12 @@ export function MiningPlan() {
     watch: true,
   });
 
-  // Contract interactions
+  // Contract interactions using currentPlan.investmentAmount
   const { config: approveConfig } = usePrepareContractWrite({
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'approve',
-    args: [TREASURY_ADDRESS as `0x${string}`, investmentAmount],
+    args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
     enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
   });
 
@@ -170,7 +195,7 @@ export function MiningPlan() {
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'transfer',
-    args: [TREASURY_ADDRESS as `0x${string}`, investmentAmount],
+    args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
     enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
   });
 
@@ -198,7 +223,8 @@ export function MiningPlan() {
           const planDetails = {
             withdrawalAddress,
             dailyRewardCPXTB,
-            activatedAt: activationTime
+            activatedAt: activationTime,
+            planType: selectedPlan
           };
 
           localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
@@ -224,7 +250,7 @@ export function MiningPlan() {
         clearInterval(intervalId);
       }
     };
-  }, [transactionHash, isValidating, withdrawalAddress, dailyRewardCPXTB]);
+  }, [transactionHash, isValidating, withdrawalAddress, dailyRewardCPXTB, selectedPlan]);
 
   // Function to check and switch network
   const ensureMainnetConnection = async () => {
@@ -282,26 +308,18 @@ export function MiningPlan() {
     const isMainnet = await ensureMainnetConnection();
     if (!isMainnet) return;
 
-    if (!usdtBalance || usdtBalance.lt(investmentAmount)) {
+    if (!usdtBalance || usdtBalance.lt(currentPlan.investmentAmount)) {
       const currentBalance = usdtBalance ? formatUnits(usdtBalance, 6) : '0';
       toast({
         variant: "destructive",
         title: "Insufficient USDT Balance",
-        description: `You need 100 USDT to activate the mining plan. Your current balance is ${currentBalance} USDT.`,
+        description: `You need ${currentPlan.displayAmount} USDT to activate the ${selectedPlan} plan. Your current balance is ${currentBalance} USDT.`,
       });
       return;
     }
 
     try {
-      console.log("Starting plan activation process...");
-      console.log("Current chain:", chain);
-      console.log("USDT balance:", usdtBalance.toString());
-      console.log("Investment amount:", investmentAmount.toString());
-
-      // First approve USDT spending
       setIsApproving(true);
-      console.log("Initiating USDT approval...");
-
       if (!approveWrite) {
         throw new Error("Approval function not available. Please check your wallet connection.");
       }
@@ -314,13 +332,10 @@ export function MiningPlan() {
         description: "Please confirm the approval transaction in your wallet",
       });
 
-      await approveTx.wait(); // Wait for approval confirmation
+      await approveTx.wait();
       setIsApproving(false);
 
-      // Then transfer USDT
       setIsTransferring(true);
-      console.log("Initiating USDT transfer...");
-
       if (!transferWrite) {
         throw new Error("Transfer function not available. Please check your wallet connection.");
       }
@@ -329,8 +344,6 @@ export function MiningPlan() {
       console.log("Transfer transaction submitted:", transferTx);
 
       const hash = transferTx.hash;
-      console.log("Transaction hash:", hash);
-
       setTransactionHash(hash);
       setIsValidating(true);
 
@@ -388,10 +401,10 @@ export function MiningPlan() {
         address,
         chainId: chain.id,
         usdtBalance: usdtBalance ? formatUnits(usdtBalance, 6) : '0',
-        requiredAmount: formatUnits(investmentAmount, 6)
+        requiredAmount: formatUnits(currentPlan.investmentAmount, 6)
       });
     }
-  }, [address, chain, usdtBalance, investmentAmount]);
+  }, [address, chain, usdtBalance, currentPlan.investmentAmount]);
 
 
   // Show active plan if exists
@@ -409,6 +422,7 @@ export function MiningPlan() {
             withdrawalAddress={activePlanDetails.withdrawalAddress}
             dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
             activatedAt={activePlanDetails.activatedAt}
+            planType={activePlanDetails.planType}
             onReset={handleResetPlan}
           />
         </CardContent>
@@ -421,32 +435,46 @@ export function MiningPlan() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Coins className="h-6 w-6 text-primary" />
-          Weekly Mining Plan
+          Mining Plans
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <NetworkStatus />
+        <div className="flex gap-4 mb-6">
+          <Button
+            variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+            onClick={() => setSelectedPlan('daily')}
+            className="flex-1"
+          >
+            Daily Plan
+          </Button>
+          <Button
+            variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
+            onClick={() => setSelectedPlan('weekly')}
+            className="flex-1"
+          >
+            Weekly Plan
+          </Button>
+        </div>
+
         <div className="bg-muted rounded-lg p-6 space-y-4">
-          <h3 className="text-lg font-semibold">Mining Plan Details</h3>
+          <h3 className="text-lg font-semibold capitalize">{selectedPlan} Mining Plan Details</h3>
           <div className="grid gap-3">
             <div>
-              <p className="text-sm text-muted-foreground">Current USDT Balance</p>
-              <p className="text-2xl font-bold">
-                {usdtBalance ? formatUnits(usdtBalance, 6) : '0.00'} USDT
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Required Investment</p>
-              <p className="text-2xl font-bold">100 USDT</p>
+              <p className="text-sm text-muted-foreground">Investment Required</p>
+              <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Daily Reward</p>
               <p className="text-2xl font-bold text-primary">
                 {dailyRewardCPXTB} CPXTB
                 <span className="text-sm text-muted-foreground ml-2">
-                  (≈${dailyRewardUSD})
+                  (≈${currentPlan.rewardUSD})
                 </span>
               </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Duration</p>
+              <p className="text-2xl font-bold">{currentPlan.duration}</p>
             </div>
           </div>
         </div>
@@ -488,11 +516,11 @@ export function MiningPlan() {
                       isTransferLoading ? "Waiting for Transfer..." :
                         isTransferring ? "Transferring USDT..." :
                           isValidating ? "Validating Transaction..." :
-                            "Activate Mining Plan (100 USDT)"}
+                            `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
             </Button>
           )}
 
-          {/* Transaction status section - Always show when transaction hash exists */}
+          {/* Transaction status section */}
           {transactionHash && (
             <div className="mt-4 p-4 bg-primary/5 rounded-lg">
               <p className="text-sm text-center text-muted-foreground">

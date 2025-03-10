@@ -22,13 +22,20 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains & providers
+// Configure chains & providers with error handling
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [mainnet, base], 
-  [publicProvider()]
+  [
+    publicProvider(),
+  ],
+  {
+    pollingInterval: 5000,
+    retryCount: 3,
+    retryDelay: 1000,
+  }
 )
 
-// Create wagmi config
+// Create wagmi config with detailed logging
 const config = createConfig({
   autoConnect: true,
   connectors: [
@@ -49,10 +56,14 @@ const config = createConfig({
     })
   ],
   publicClient,
-  webSocketPublicClient
+  webSocketPublicClient,
+  logger: {
+    warn: (message) => console.warn(`[Web3 Warning]: ${message}`),
+    error: (error) => console.error(`[Web3 Error]: ${error instanceof Error ? error.message : error}`),
+  }
 })
 
-// Create web3Modal instance
+// Create web3Modal instance with enhanced error handling
 const web3Modal = createWeb3Modal({
   wagmiConfig: config,
   projectId,
@@ -67,5 +78,7 @@ const web3Modal = createWeb3Modal({
     '--w3m-z-index': 1000
   }
 })
+
+console.log("Web3Modal initialization completed")
 
 export { web3Modal, config }

@@ -9,6 +9,8 @@ import { useWallet } from "@/hooks/use-wallet";
 import { ethers } from "ethers";
 import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
 import { formatUnits } from "ethers";
+import { TransactionStatus } from "./transaction-status";
+import { motion, AnimatePresence } from "framer-motion";
 
 // USDT Contract ABI (only including necessary functions)
 const USDT_ABI = [
@@ -160,6 +162,7 @@ export function MiningPlan() {
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
@@ -218,25 +221,30 @@ export function MiningPlan() {
         const isConfirmed = await checkTransactionStatus(transactionHash);
 
         if (isConfirmed) {
-          // Transaction confirmed, activate plan
-          const activationTime = new Date().toISOString();
-          const planDetails = {
-            withdrawalAddress,
-            dailyRewardCPXTB,
-            activatedAt: activationTime,
-            planType: selectedPlan
-          };
+          setIsConfirmed(true);
 
-          localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
-          setHasActivePlan(true);
-          setActivePlanDetails(planDetails);
-          setIsValidating(false);
-          setTransactionHash(null);
+          // Animate confirmation before activating plan
+          setTimeout(() => {
+            const activationTime = new Date().toISOString();
+            const planDetails = {
+              withdrawalAddress,
+              dailyRewardCPXTB,
+              activatedAt: activationTime,
+              planType: selectedPlan
+            };
 
-          toast({
-            title: "Mining Plan Activated",
-            description: "Transaction confirmed! Your mining plan has been activated.",
-          });
+            localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
+            setHasActivePlan(true);
+            setActivePlanDetails(planDetails);
+            setIsValidating(false);
+            setTransactionHash(null);
+            setIsConfirmed(false);
+
+            toast({
+              title: "Mining Plan Activated",
+              description: "Transaction confirmed! Your mining plan has been activated.",
+            });
+          }, 1500); // Give time for the confirmation animation
         }
       }
     };
@@ -521,26 +529,15 @@ export function MiningPlan() {
           )}
 
           {/* Transaction status section */}
-          {transactionHash && (
-            <div className="mt-4 p-4 bg-primary/5 rounded-lg">
-              <p className="text-sm text-center text-muted-foreground">
-                {isValidating ? "Waiting for transaction confirmation..." : "Transaction submitted:"}
-                <br />
-                <span className="font-mono text-xs break-all">
-                  Transaction Hash: {transactionHash}
-                </span>
-                <br />
-                <a
-                  href={`https://etherscan.io/tx/${transactionHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline mt-2 inline-block"
-                >
-                  View on Etherscan
-                </a>
-              </p>
-            </div>
-          )}
+          <AnimatePresence>
+            {transactionHash && (
+              <TransactionStatus
+                hash={transactionHash}
+                isValidating={isValidating}
+                isConfirmed={isConfirmed}
+              />
+            )}
+          </AnimatePresence>
         </div>
       </CardContent>
     </Card>

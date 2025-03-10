@@ -71,19 +71,12 @@ export function MiningPlan() {
     },
   });
 
-  // Add debugging logs to diagnose button state
   const handleMintTestUSDT = async () => {
     console.log("Starting mint process...");
     console.log("Current chain:", chain?.id);
     console.log("Contract address:", USDT_CONTRACT_ADDRESS);
     console.log("User address:", address);
     console.log("ETH Balance:", ethBalance?.formatted);
-    console.log("Button disabled conditions:", {
-      noWallet: !address,
-      wrongNetwork: chain?.id !== 11155111,
-      minting: isMinting,
-      lowEthBalance: (ethBalance?.value || BigInt(0)) < MIN_ETH_BALANCE
-    });
 
     if (!address) {
       toast({
@@ -109,10 +102,6 @@ export function MiningPlan() {
       if (switchNetwork) {
         try {
           await switchNetwork(11155111);
-          toast({
-            title: "Switching Network",
-            description: "Please wait while we switch to Sepolia testnet...",
-          });
           return; // Return here as we need to wait for the network to switch
         } catch (error) {
           console.error("Failed to switch network:", error);
@@ -167,7 +156,7 @@ export function MiningPlan() {
               : "Please switch networks manually in your wallet."}
           </p>
           {switchNetwork && (
-            <Button
+            <Button 
               onClick={() => switchNetwork(11155111)}
               variant="outline"
               className="mt-2"
@@ -217,12 +206,11 @@ export function MiningPlan() {
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="bg-blue-500/10 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-500 mb-2">Test Mode Requirements</h3>
+            <h3 className="text-lg font-semibold text-blue-500 mb-2">Simple Test Mode</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
               <li>Switch your wallet to Sepolia testnet</li>
               <li>Get test ETH from the <a href="https://sepolia-faucet.pk910.de/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Sepolia faucet</a></li>
-              <li>You need at least 0.01 ETH for gas fees</li>
-              <li>Click below to mint test USDT tokens</li>
+              <li>Click the button below to mint test USDT tokens</li>
             </ol>
             <div className="mt-4">
               <Button
@@ -232,15 +220,9 @@ export function MiningPlan() {
               >
                 {isMinting ? "Minting..." : "Get 1000 Test USDT"}
               </Button>
-              {!address && (
-                <p className="text-sm text-red-500 mt-2">Please connect your wallet first</p>
-              )}
-              {address && chain?.id !== 11155111 && (
-                <p className="text-sm text-yellow-500 mt-2">Please switch to Sepolia testnet</p>
-              )}
-              {address && ethBalance?.value && ethBalance.value < MIN_ETH_BALANCE && (
-                <p className="text-sm text-red-500 mt-2">You need at least 0.01 ETH for gas fees</p>
-              )}
+              <p className="text-sm text-muted-foreground mt-2">
+                Note: This is a test environment. These are not real tokens.
+              </p>
             </div>
           </div>
         </div>

@@ -16,7 +16,7 @@ if (!projectId) {
 console.log("Initializing Web3Modal with project ID:", projectId.slice(0, 4) + "...")
 
 const metadata = {
-  name: 'CPXTB Mining DApp',
+  name: 'CPXTBMining',
   description: 'CPXTB Mining and Investment Platform',
   url: 'https://web3modal.com', // Will be updated with actual URL
   icons: ['https://avatars.githubusercontent.com/u/37784886']

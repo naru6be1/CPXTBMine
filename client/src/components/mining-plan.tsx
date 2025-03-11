@@ -6,21 +6,19 @@ import { useState, useEffect } from "react";
 import { Coins, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
-import { ethers } from "ethers";
-import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
+import { useAccount, useContractRead, useNetwork, useSwitchNetwork } from 'wagmi';
 import { formatUnits, parseUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { motion, AnimatePresence } from "framer-motion";
+import { type Address, getContract } from 'viem';
 
-// USDT Contract Interface
-const USDT_ABI = [
+// ERC20 ABI with detailed function signatures
+const ERC20_ABI = [
   {
     "constant": true,
     "inputs": [{"name": "_owner", "type": "address"}],
     "name": "balanceOf",
     "outputs": [{"name": "balance", "type": "uint256"}],
-    "payable": false,
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -30,10 +28,18 @@ const USDT_ABI = [
       {"name": "_value", "type": "uint256"}
     ],
     "name": "transfer",
-    "outputs": [{"name": "", "type": "bool"}],
-    "payable": false,
-    "stateMutability": "nonpayable",
+    "outputs": [{"name": "success", "type": "bool"}],
     "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "name": "from", "type": "address"},
+      {"indexed": true, "name": "to", "type": "address"},
+      {"indexed": false, "name": "value", "type": "uint256"}
+    ],
+    "name": "Transfer",
+    "type": "event"
   }
 ];
 
@@ -46,13 +52,13 @@ const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
   daily: {
-    amount: "1000000", // 1 USDT with 6 decimals
+    amount: parseUnits("1", 6), // 1 USDT
     displayAmount: "1",
     rewardUSD: 1.5,
     duration: "24 hours"
   },
   weekly: {
-    amount: "100000000", // 100 USDT with 6 decimals
+    amount: parseUnits("100", 6), // 100 USDT
     displayAmount: "100",
     rewardUSD: 15,
     duration: "7 days"
@@ -62,7 +68,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
 type PlanType = 'daily' | 'weekly';
 
 interface PlanConfig {
-  amount: string;
+  amount: bigint;
   displayAmount: string;
   rewardUSD: number;
   duration: string;
@@ -166,7 +172,6 @@ function ActivePlanDisplay({
 
 
 export function MiningPlan() {
-  // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [hasActivePlan, setHasActivePlan] = useState(false);
@@ -190,271 +195,40 @@ export function MiningPlan() {
   const cpxtbPrice = 0.002529;
   const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
 
-  // USDT Balance Check
+  // USDT Balance Check with improved error handling
   const { data: usdtBalance, isError: isBalanceError, refetch: refetchBalance } = useContractRead({
-    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
-    abi: USDT_ABI,
+    address: USDT_CONTRACT_ADDRESS as Address,
+    abi: ERC20_ABI,
     functionName: 'balanceOf',
-    args: [address as `0x${string}`],
+    args: [address as Address],
     enabled: !!address && chain?.id === 1,
     watch: true,
-    cacheTime: 5000,
-    staleTime: 5000,
     onError: (error) => {
-      console.error('Error reading USDT balance:', error);
-      console.error('Contract parameters:', {
-        contractAddress: USDT_CONTRACT_ADDRESS,
-        userAddress: address,
-        chainId: chain?.id,
-        isEnabled: !!address && chain?.id === 1
-      });
+      console.error('USDT balance read error:', error);
       toast({
         variant: "destructive",
         title: "Balance Check Failed",
-        description: "Unable to read your USDT balance. Please ensure you're connected to Ethereum mainnet.",
+        description: "Unable to read USDT balance. Please try again.",
       });
     }
   });
 
-  // Add manual balance check function
-  const checkBalance = async () => {
-    try {
-      if (!isConnected || !address || chain?.id !== 1) {
-        console.log('Balance check skipped:', {
-          isConnected,
-          address,
-          chainId: chain?.id
-        });
-        return;
-      }
-
-      console.log('Manually checking balance...');
-      await refetchBalance();
-    } catch (error) {
-      console.error('Manual balance check failed:', error);
-    }
-  };
-
-  // Add effect to check balance on network/wallet changes
-  useEffect(() => {
-    checkBalance();
-  }, [isConnected, address, chain?.id]);
-
-  // Update balance refresh interval
-  useEffect(() => {
-    if (isConnected && chain?.id === 1 && address) {
-      console.log('Setting up balance refresh interval');
-      const interval = setInterval(checkBalance, 5000);
-      return () => {
-        console.log('Clearing balance refresh interval');
-        clearInterval(interval);
-      };
-    }
-  }, [isConnected, chain?.id, address]);
-
-  // Add effect to log wallet state changes
-  useEffect(() => {
-    console.log('Wallet state changed:', {
-      isConnected,
-      address,
-      chainId: chain?.id,
-      usdtBalance: usdtBalance ? formatUnits(usdtBalance, 6n) : '0',
-      requiredAmount: formatUnits(parseUnits(currentPlan.amount, 6n), 6n)
-    });
-  }, [isConnected, address, chain, usdtBalance, currentPlan.amount]);
-
-  // Helper to format balance display with additional error checking
+  // Helper to format balance display
   const getBalanceDisplay = () => {
     if (!isConnected) return "Not connected";
     if (chain?.id !== 1) return "Wrong network";
     if (isBalanceError) return "Error loading balance";
     if (!usdtBalance) return "0 USDT";
     try {
-      return `${formatUnits(usdtBalance, 6n)} USDT`;
+      return `${formatUnits(usdtBalance, 6)} USDT`;
     } catch (error) {
       console.error('Error formatting balance:', error);
       return "Error displaying balance";
     }
   };
 
-  useEffect(() => {
-    const storedPlan = localStorage.getItem('activeMiningPlan');
-    if (storedPlan) {
-      const plan = JSON.parse(storedPlan);
-      setHasActivePlan(true);
-      setActivePlanDetails(plan);
-    }
-  }, []);
-
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-
-    const validateTransaction = async () => {
-      if (transactionHash && isValidating) {
-        const isConfirmed = await checkTransactionStatus(transactionHash);
-
-        if (isConfirmed) {
-          setIsConfirmed(true);
-
-          // Animate confirmation before activating plan
-          setTimeout(() => {
-            const activationTime = new Date().toISOString();
-            const planDetails = {
-              withdrawalAddress,
-              dailyRewardCPXTB,
-              activatedAt: activationTime,
-              planType: selectedPlan
-            };
-
-            localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
-            setHasActivePlan(true);
-            setActivePlanDetails(planDetails);
-            setIsValidating(false);
-            setTransactionHash(null);
-            setIsConfirmed(false);
-
-            toast({
-              title: "Mining Plan Activated",
-              description: "Transaction confirmed! Your mining plan has been activated.",
-            });
-          }, 1500); // Give time for the confirmation animation
-        }
-      }
-    };
-
-    if (isValidating && transactionHash) {
-      intervalId = setInterval(validateTransaction, 15000); // Check every 15 seconds
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [transactionHash, isValidating, withdrawalAddress, dailyRewardCPXTB, selectedPlan]);
-
-  // Function to check and switch network
-  const ensureMainnetConnection = async () => {
-    console.log("Current network state:", {
-      chainId: chain?.id,
-      chainName: chain?.name,
-      switchNetworkAvailable: !!switchNetwork
-    });
-
-    if (!chain || chain.id !== 1) {
-      if (switchNetwork) {
-        console.log("Attempting to switch to Ethereum mainnet...");
-        try {
-          toast({
-            title: "Wrong Network",
-            description: "Switching to Ethereum mainnet...",
-          });
-          await switchNetwork(1);
-          console.log("Network switch initiated successfully");
-        } catch (error) {
-          console.error("Failed to switch network:", error);
-          toast({
-            variant: "destructive",
-            title: "Network Switch Failed",
-            description: "Please manually switch to Ethereum mainnet in your wallet",
-          });
-          return false;
-        }
-      } else {
-        console.log("Automatic network switching not available");
-        toast({
-          variant: "destructive",
-          title: "Network Switch Not Supported",
-          description: "Please manually switch to Ethereum mainnet in your wallet settings",
-        });
-        return false;
-      }
-    } else {
-      console.log("Already on Ethereum mainnet");
-    }
-    return true;
-  };
-
-  // Transfer Transaction Setup
-  const { config: transferConfig } = usePrepareContractWrite({
-    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
-    abi: USDT_ABI,
-    functionName: 'transfer',
-    args: [
-      TREASURY_ADDRESS as `0x${string}`,
-      BigInt(currentPlan.amount) // Use BigInt for the raw amount
-    ],
-    enabled: Boolean(
-      USDT_CONTRACT_ADDRESS &&
-      TREASURY_ADDRESS &&
-      address &&
-      chain?.id === 1 &&
-      !isTransferring
-    )
-  });
-
-  const {
-    write: transferWrite,
-    isLoading: isTransferLoading,
-    isSuccess: isTransferSuccess,
-    error: transferError
-  } = useContractWrite({
-    ...transferConfig,
-    onError: (error) => {
-      console.error('USDT transfer error:', {
-        error,
-        details: {
-          amount: currentPlan.amount,
-          displayAmount: currentPlan.displayAmount,
-          address,
-          chainId: chain?.id
-        }
-      });
-      setIsTransferring(false);
-      toast({
-        variant: "destructive",
-        title: "Transfer Failed",
-        description: error instanceof Error
-          ? `Error: ${error.message}`
-          : "Failed to transfer USDT. Please check your wallet and try again.",
-      });
-    },
-    onSuccess: (data) => {
-      console.log('Transfer successful:', {
-        hash: data.hash,
-        amount: currentPlan.amount,
-        displayAmount: currentPlan.displayAmount
-      });
-      setTransactionHash(data.hash);
-      setIsValidating(true);
-      toast({
-        title: "Transfer Submitted",
-        description: "Transaction submitted to the network. Waiting for confirmation...",
-      });
-    }
-  });
-
-  useEffect(() => {
-    if (transferConfig?.error || transferError) {
-      console.error('Transfer error:', transferConfig?.error || transferError);
-      toast({
-        variant: "destructive",
-        title: "Transfer Error",
-        description: (transferConfig?.error || transferError)?.message || "Failed to transfer USDT",
-      });
-    }
-  }, [transferConfig, transferError]);
-
-  const handleActivatePlan = async () => {
-    if (!withdrawalAddress) {
-      toast({
-        variant: "destructive",
-        title: "Missing Address",
-        description: "Please provide your Base network address for CPXTB rewards"
-      });
-      return;
-    }
-
+  // Handle transaction submission
+  const handleTransfer = async () => {
     if (!chain || chain.id !== 1) {
       toast({
         variant: "destructive",
@@ -464,45 +238,82 @@ export function MiningPlan() {
       return;
     }
 
-    try {
-      // Check balance with proper decimal handling
-      const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
-      const required = BigInt(currentPlan.amount);
-
-      console.log('Balance check:', {
-        balance: balance.toString(),
-        required: required.toString(),
-        displayBalance: formatUnits(balance, 6n),
-        displayRequired: currentPlan.displayAmount,
-        hasEnough: balance >= required
+    if (!withdrawalAddress) {
+      toast({
+        variant: "destructive",
+        title: "Missing Address",
+        description: "Please provide your Base network address for CPXTB rewards"
       });
+      return;
+    }
 
-      if (balance < required) {
+    try {
+      // Check balance
+      const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
+      if (balance < currentPlan.amount) {
         toast({
           variant: "destructive",
           title: "Insufficient Balance",
-          description: `You need ${currentPlan.displayAmount} USDT. Current balance: ${formatUnits(balance, 6n)} USDT`
+          description: `You need ${currentPlan.displayAmount} USDT. Current balance: ${formatUnits(balance, 6)} USDT`
         });
         return;
       }
 
       setIsTransferring(true);
 
-      if (!transferWrite) {
-        throw new Error('Transfer not available. Please check your wallet connection and try again.');
+      // Create contract instance
+      const contract = getContract({
+        address: USDT_CONTRACT_ADDRESS as Address,
+        abi: ERC20_ABI,
+        chain: chain
+      });
+
+      // Send transaction
+      const tx = await contract.write.transfer([
+        TREASURY_ADDRESS as Address,
+        currentPlan.amount
+      ]);
+
+      console.log('Transaction submitted:', tx);
+      setTransactionHash(tx.hash);
+      setIsValidating(true);
+
+      toast({
+        title: "Transfer Submitted",
+        description: "Transaction sent to network. Waiting for confirmation..."
+      });
+
+      // Wait for confirmation
+      const receipt = await tx.wait();
+      if (receipt.status === 1) {
+        setIsConfirmed(true);
+        const activationTime = new Date().toISOString();
+        const planDetails = {
+          withdrawalAddress,
+          dailyRewardCPXTB,
+          activatedAt: activationTime,
+          planType: selectedPlan
+        };
+
+        localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
+        setHasActivePlan(true);
+        setActivePlanDetails(planDetails);
+
+        toast({
+          title: "Plan Activated",
+          description: "Your mining plan has been successfully activated!"
+        });
       }
 
-      transferWrite();
-
     } catch (error) {
-      console.error('Activation error:', error);
+      console.error('Transfer error:', error);
       setIsTransferring(false);
       setIsValidating(false);
 
       toast({
         variant: "destructive",
-        title: "Activation Failed",
-        description: error instanceof Error ? error.message : "Failed to start mining plan"
+        title: "Transfer Failed",
+        description: error instanceof Error ? error.message : "Failed to transfer USDT"
       });
     }
   };
@@ -512,40 +323,10 @@ export function MiningPlan() {
     setHasActivePlan(false);
     setActivePlanDetails(null);
     toast({
-      title: "Mining Plan Reset",
-      description: "Your mining plan has been reset. You can now activate a new plan.",
+      title: "Plan Reset",
+      description: "Your mining plan has been reset."
     });
   };
-
-  // Add network status display component
-  const NetworkStatus = () => {
-    if (!chain) return null;
-
-    return chain.id !== 1 ? (
-      <div className="mb-4 p-4 bg-yellow-500/10 rounded-lg">
-        <div className="flex items-center gap-2 text-yellow-500 mb-2">
-          <AlertCircle className="h-5 w-5" />
-          <span className="font-semibold">Network Switch Required</span>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Please connect to Ethereum mainnet to view your USDT balance. {switchNetwork
-            ? "Click the button below to switch networks automatically."
-            : "Please switch networks manually in your wallet."}
-        </p>
-        {switchNetwork && (
-          <Button
-            variant="outline"
-            className="mt-2"
-            onClick={() => switchNetwork(1)}
-            disabled={isSwitchingNetwork}
-          >
-            {isSwitchingNetwork ? "Switching..." : "Switch to Ethereum Mainnet"}
-          </Button>
-        )}
-      </div>
-    ) : null;
-  };
-
 
   // Show active plan if exists
   if (hasActivePlan && activePlanDetails) {
@@ -579,7 +360,6 @@ export function MiningPlan() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <NetworkStatus />
         <div className="flex gap-4 mb-6">
           <Button
             variant={selectedPlan === 'daily' ? 'default' : 'outline'}
@@ -602,14 +382,7 @@ export function MiningPlan() {
           <div className="grid gap-3">
             <div>
               <p className="text-sm text-muted-foreground">Your USDT Balance</p>
-              <p className="text-2xl font-bold">
-                {getBalanceDisplay()}
-              </p>
-              {chain?.id !== 1 && (
-                <p className="text-sm text-red-500 mt-1">
-                  Please switch to Ethereum mainnet
-                </p>
-              )}
+              <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Investment Required</p>
@@ -640,44 +413,30 @@ export function MiningPlan() {
               value={withdrawalAddress}
               onChange={(e) => setWithdrawalAddress(e.target.value)}
             />
-            <p className="text-sm text-muted-foreground">
-              Please provide your Base network address to receive CPXTB rewards
-            </p>
           </div>
 
           {isConnected && (
             <Button
               className="w-full mt-4"
               size="lg"
-              onClick={handleActivatePlan}
-              disabled={
-                isTransferring ||
-                isValidating ||
-                isTransferLoading ||
-                isSwitchingNetwork ||
-                (chain?.id !== 1 && !switchNetwork)
-              }
+              onClick={handleTransfer}
+              disabled={isTransferring || isValidating || isSwitchingNetwork}
             >
               <Coins className="mr-2 h-4 w-4" />
               {isSwitchingNetwork ? "Switching Network..." :
-                chain?.id !== 1 ? "Switch to Ethereum Mainnet" :
-                  isTransferLoading ? "Waiting for Transfer..." :
-                    isTransferring ? "Transferring USDT..." :
-                      isValidating ? "Validating Transaction..." :
-                        `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
+                isTransferring ? "Transferring USDT..." :
+                  isValidating ? "Validating Transaction..." :
+                    `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
             </Button>
           )}
 
-          {/* Transaction status section */}
-          <AnimatePresence>
-            {transactionHash && (
-              <TransactionStatus
-                hash={transactionHash}
-                isValidating={isValidating}
-                isConfirmed={isConfirmed}
-              />
-            )}
-          </AnimatePresence>
+          {transactionHash && (
+            <TransactionStatus
+              hash={transactionHash}
+              isValidating={isValidating}
+              isConfirmed={isConfirmed}
+            />
+          )}
         </div>
       </CardContent>
     </Card>

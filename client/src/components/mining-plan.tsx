@@ -99,13 +99,15 @@ function ActivePlanDisplay({
   dailyRewardCPXTB,
   activatedAt,
   planType,
-  walletAddress
+  walletAddress,
+  transactionHash
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
   planType: PlanType;
   walletAddress: string;
+  transactionHash: string;
 }) {
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
@@ -159,6 +161,17 @@ function ActivePlanDisplay({
               <p className="text-lg font-semibold">{formatDate(endDate)}</p>
             </div>
           </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Transaction Hash</p>
+            <a
+              href={`https://etherscan.io/tx/${transactionHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-mono break-all text-primary hover:underline"
+            >
+              {transactionHash}
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -175,6 +188,7 @@ export function MiningPlan() {
     activatedAt: string;
     planType: PlanType;
     walletAddress: string;
+    transactionHash: string;
   } | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
@@ -355,7 +369,7 @@ export function MiningPlan() {
       }
 
       setIsConfirmed(true);
-      activatePlan();
+      activatePlan(hash);
 
     } catch (error) {
       console.error('Validation error:', error);
@@ -369,14 +383,15 @@ export function MiningPlan() {
     }
   };
 
-  const activatePlan = () => {
+  const activatePlan = (hash: string) => {
     const activationTime = new Date().toISOString();
     const planDetails = {
       withdrawalAddress,
       dailyRewardCPXTB,
       activatedAt: activationTime,
       planType: selectedPlan,
-      walletAddress: address // Store the wallet address that activated the plan
+      walletAddress: address, // Store the wallet address that activated the plan
+      transactionHash: hash // Store the transaction hash
     };
 
     localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
@@ -528,6 +543,7 @@ export function MiningPlan() {
                 activatedAt={activePlanDetails.activatedAt}
                 planType={activePlanDetails.planType}
                 walletAddress={activePlanDetails.walletAddress}
+                transactionHash={activePlanDetails.transactionHash}
               />
             ) : (
               <div className="text-center py-8 space-y-4">

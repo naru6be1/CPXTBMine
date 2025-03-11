@@ -26,6 +26,11 @@ export function useWallet() {
       })
     } catch (error) {
       console.error('Wallet connection error:', error)
+      console.error('Connection parameters:', {
+        isConnected,
+        address,
+        connectors: connectors.map(c => c.name),
+      })
       toast({
         variant: "destructive",
         title: "Connection Failed",
@@ -54,6 +59,14 @@ export function useWallet() {
       })
     }
   }
+
+  // Log wallet state changes
+  console.log('Wallet Hook State:', {
+    isConnected,
+    address,
+    isConnecting: isLoading,
+    availableConnectors: connectors.map(c => c.name)
+  })
 
   return {
     address,

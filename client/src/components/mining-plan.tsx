@@ -385,6 +385,58 @@ export function MiningPlan() {
     return true;
   };
 
+  const { config: approveConfig, error: approveConfigError } = usePrepareContractWrite({
+    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
+    abi: USDT_ABI,
+    functionName: 'approve',
+    args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
+    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
+  });
+
+  const { 
+    write: approveWrite,
+    isLoading: isApproveLoading,
+    isSuccess: isApproveSuccess,
+    error: approveError
+  } = useContractWrite(approveConfig);
+
+  const { config: transferConfig, error: transferConfigError } = usePrepareContractWrite({
+    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
+    abi: USDT_ABI,
+    functionName: 'transfer',
+    args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
+    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
+  });
+
+  const {
+    write: transferWrite,
+    isLoading: isTransferLoading,
+    isSuccess: isTransferSuccess,
+    error: transferError
+  } = useContractWrite(transferConfig);
+
+  useEffect(() => {
+    if (approveConfigError || approveError) {
+      console.error('Approve error:', approveConfigError || approveError);
+      toast({
+        variant: "destructive",
+        title: "Approval Error",
+        description: (approveConfigError || approveError)?.message || "Failed to approve USDT transfer",
+      });
+    }
+  }, [approveConfigError, approveError]);
+
+  useEffect(() => {
+    if (transferConfigError || transferError) {
+      console.error('Transfer error:', transferConfigError || transferError);
+      toast({
+        variant: "destructive",
+        title: "Transfer Error",
+        description: (transferConfigError || transferError)?.message || "Failed to transfer USDT",
+      });
+    }
+  }, [transferConfigError, transferError]);
+
   const handleActivatePlan = async () => {
     if (!withdrawalAddress) {
       toast({
@@ -427,61 +479,58 @@ export function MiningPlan() {
 
       setIsApproving(true);
 
-      // First approve USDT spending
-      const { writeAsync: approveWrite, isLoading: isApproveLoading } = usePrepareContractWrite({
-        address: USDT_CONTRACT_ADDRESS as `0x${string}`,
-        abi: USDT_ABI,
-        functionName: 'approve',
-        args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
-        enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
-        onError: (error) => {
-          console.error('Approval preparation error:', error);
-          throw new Error(`Failed to prepare approval: ${error.message}`);
-        },
-        onSuccess: (data) => {
-          console.log('Approval prepared successfully:', data);
-        }
-      });
       if (!approveWrite) {
         throw new Error('Failed to prepare approval transaction');
       }
 
-      const approveTx = await approveWrite();
-      console.log("Approve transaction submitted:", approveTx);
+      approveWrite();
 
       toast({
         title: "Approval Initiated",
         description: "Please confirm the approval transaction in your wallet",
       });
 
-      await approveTx.wait();
-      console.log('Approve transaction confirmed');
-      setIsApproving(false);
-
-      setIsTransferring(true);
-      const { writeAsync: transferWrite, isLoading: isTransferLoading } = usePrepareContractWrite({
-        address: USDT_CONTRACT_ADDRESS as `0x${string}`,
-        abi: USDT_ABI,
-        functionName: 'transfer',
-        args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
-        enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
-        onError: (error) => {
-          console.error('Transfer preparation error:', error);
-          throw new Error(`Failed to prepare transfer: ${error.message}`);
-        },
-        onSuccess: (data) => {
-          console.log('Transfer prepared successfully:', data);
-        }
+      // Wait for approval success
+      await new Promise<void>((resolve, reject) => {
+        const checkApproval = setInterval(() => {
+          if (isApproveSuccess) {
+            clearInterval(checkApproval);
+            resolve();
+          }
+          if (approveError) {
+            clearInterval(checkApproval);
+            reject(approveError);
+          }
+        }, 1000);
       });
+
+      setIsApproving(false);
+      setIsTransferring(true);
+
       if (!transferWrite) {
         throw new Error('Failed to prepare transfer transaction');
       }
 
-      const transferTx = await transferWrite();
-      console.log("Transfer transaction submitted:", transferTx);
+      transferWrite();
 
-      const hash = transferTx.hash;
-      setTransactionHash(hash);
+      // Wait for transfer success and get transaction hash
+      const transferResult = await new Promise<string>((resolve, reject) => {
+        const checkTransfer = setInterval(() => {
+          if (isTransferSuccess) {
+            clearInterval(checkTransfer);
+            // Get transaction hash from event
+            const hash = localStorage.getItem('lastTransactionHash');
+            if (hash) resolve(hash);
+            else reject(new Error('Transaction hash not found'));
+          }
+          if (transferError) {
+            clearInterval(checkTransfer);
+            reject(transferError);
+          }
+        }, 1000);
+      });
+
+      setTransactionHash(transferResult);
       setIsValidating(true);
 
       toast({

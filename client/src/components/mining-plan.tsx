@@ -3,16 +3,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Coins, AlertCircle } from "lucide-react";
+import { Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
-import { useAccount, useContractRead, useNetwork, useSwitchNetwork } from 'wagmi';
+import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
 import { formatUnits, parseUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
-import { motion, AnimatePresence } from "framer-motion";
-import { type Address, getContract } from 'viem';
+import { type Address } from 'viem';
 
-// ERC20 ABI with detailed function signatures
+// USDT Contract Interface
 const ERC20_ABI = [
   {
     "constant": true,
@@ -30,24 +29,12 @@ const ERC20_ABI = [
     "name": "transfer",
     "outputs": [{"name": "success", "type": "bool"}],
     "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {"indexed": true, "name": "from", "type": "address"},
-      {"indexed": true, "name": "to", "type": "address"},
-      {"indexed": false, "name": "value", "type": "uint256"}
-    ],
-    "name": "Transfer",
-    "type": "event"
   }
 ];
 
 // Constants
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
-const REQUIRED_CONFIRMATIONS = 3;
-const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
 
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
@@ -72,31 +59,6 @@ interface PlanConfig {
   displayAmount: string;
   rewardUSD: number;
   duration: string;
-}
-
-// Function to check transaction status on Etherscan
-async function checkTransactionStatus(txHash: string): Promise<boolean> {
-  try {
-    console.log(`Checking transaction status for hash: ${txHash}`);
-    const response = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`);
-    const data = await response.json();
-    console.log('Transaction receipt status response:', data);
-
-    if (data.status === "1" && data.result.status === "1") {
-      const txResponse = await fetch(`${ETHERSCAN_API_URL}?module=transaction&action=gettxinfo&txhash=${txHash}`);
-      const txData = await txResponse.json();
-      console.log('Transaction info response:', txData);
-
-      if (txData.status === "1" && txData.result.confirmations >= REQUIRED_CONFIRMATIONS) {
-        console.log(`Transaction confirmed with ${txData.result.confirmations} confirmations`);
-        return true;
-      }
-    }
-    return false;
-  } catch (error) {
-    console.error("Error checking transaction status:", error);
-    return false;
-  }
 }
 
 // ActivePlanDisplay component with end date
@@ -190,13 +152,15 @@ export function MiningPlan() {
   const { isConnected, address } = useWallet();
   const { chain } = useNetwork();
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
+  const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
 
   const currentPlan = PLANS[selectedPlan];
   const cpxtbPrice = 0.002529;
   const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
 
-  // USDT Balance Check with improved error handling
-  const { data: usdtBalance, isError: isBalanceError, refetch: refetchBalance } = useContractRead({
+  // USDT Balance Check
+  const { data: usdtBalance, isError: isBalanceError } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as Address,
     abi: ERC20_ABI,
     functionName: 'balanceOf',
@@ -227,7 +191,7 @@ export function MiningPlan() {
     }
   };
 
-  // Handle transaction submission
+  // Handle transaction submission with improved error handling
   const handleTransfer = async () => {
     if (!chain || chain.id !== 1) {
       toast({
@@ -247,6 +211,15 @@ export function MiningPlan() {
       return;
     }
 
+    if (!walletClient || !publicClient) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet and try again"
+      });
+      return;
+    }
+
     try {
       // Check balance
       const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
@@ -261,21 +234,20 @@ export function MiningPlan() {
 
       setIsTransferring(true);
 
-      // Create contract instance
-      const contract = getContract({
+      // Prepare transaction data
+      const { request } = await publicClient.simulateContract({
         address: USDT_CONTRACT_ADDRESS as Address,
         abi: ERC20_ABI,
-        chain: chain
+        functionName: 'transfer',
+        args: [TREASURY_ADDRESS as Address, currentPlan.amount],
+        account: address as Address,
       });
 
       // Send transaction
-      const tx = await contract.write.transfer([
-        TREASURY_ADDRESS as Address,
-        currentPlan.amount
-      ]);
+      const hash = await walletClient.writeContract(request);
+      console.log('Transaction submitted:', hash);
 
-      console.log('Transaction submitted:', tx);
-      setTransactionHash(tx.hash);
+      setTransactionHash(hash);
       setIsValidating(true);
 
       toast({
@@ -284,8 +256,9 @@ export function MiningPlan() {
       });
 
       // Wait for confirmation
-      const receipt = await tx.wait();
-      if (receipt.status === 1) {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      if (receipt.status === 'success') {
         setIsConfirmed(true);
         const activationTime = new Date().toISOString();
         const planDetails = {

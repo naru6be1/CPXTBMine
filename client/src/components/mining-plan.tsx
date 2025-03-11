@@ -154,14 +154,12 @@ function ActivePlanDisplay({
               <p className="text-lg font-semibold">{formatDate(endDate)}</p>
             </div>
           </div>
-          <div className="pt-4">
-            <TelegramSupport />
-          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 
 export function MiningPlan() {

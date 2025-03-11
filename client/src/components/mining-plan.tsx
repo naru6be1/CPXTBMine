@@ -218,7 +218,7 @@ export function MiningPlan() {
         isConnected: isConnected
       });
 
-      // Check if it's an RPC error
+      // Check if it's an RPC error and show appropriate message
       if (error.message?.includes('Internal error') || error.message?.includes('Cannot fulfill request')) {
         toast({
           variant: "destructive",

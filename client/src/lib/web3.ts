@@ -2,6 +2,7 @@ import { createWeb3Modal } from '@web3modal/wagmi'
 import { configureChains, createConfig } from 'wagmi'
 import { mainnet } from 'viem/chains'
 import { publicProvider } from 'wagmi/providers/public'
+import { jsonRpcProvider } from 'wagmi/providers/jsonRpc'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
 
@@ -24,23 +25,27 @@ const metadata = {
 // Configure chains with improved error handling
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [mainnet],
-  [publicProvider()],
+  [
+    jsonRpcProvider({
+      rpc: (chain) => ({
+        http: chain.id === 1 ? [
+          'https://eth.llamarpc.com',
+          'https://rpc.ankr.com/eth',
+          'https://ethereum.publicnode.com',
+          'https://eth-mainnet.public.blastapi.io',
+          'https://rpc.mevblocker.io',
+        ] : undefined,
+      }),
+    }),
+    publicProvider()
+  ],
   {
     pollingInterval: 5000,
     retryCount: 5,
-    retryDelay: 1000,
+    retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000),
     stallTimeout: 5000,
     batch: {
       multicall: true
-    },
-    // Use alternative RPC endpoints
-    rpcUrls: {
-      1: [
-        'https://eth.llamarpc.com',
-        'https://rpc.ankr.com/eth',
-        'https://ethereum.publicnode.com',
-        'https://1.rpc.rivet.cloud'
-      ]
     }
   }
 );

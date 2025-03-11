@@ -12,23 +12,13 @@ import { formatUnits } from "ethers";
 import { TransactionStatus } from "./transaction-status";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Update the USDT ABI to include more detailed function definitions
+// Update the USDT ABI
 const USDT_ABI = [
   {
     constant: true,
     inputs: [{ name: "_owner", type: "address" }],
     name: "balanceOf",
     outputs: [{ name: "balance", type: "uint256" }],
-    type: "function"
-  },
-  {
-    constant: false,
-    inputs: [
-      { name: "_spender", type: "address" },
-      { name: "_value", type: "uint256" }
-    ],
-    name: "approve",
-    outputs: [{ name: "success", type: "bool" }],
     type: "function"
   },
   {
@@ -43,9 +33,9 @@ const USDT_ABI = [
   }
 ];
 
-// Update constants with proper addresses and configuration
+// Update constants with proper addresses
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Ethereum Mainnet USDT
-const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27"; // New treasury address
+const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27"; // Treasury address
 const REQUIRED_CONFIRMATIONS = 3;
 const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
 
@@ -181,7 +171,6 @@ export function MiningPlan() {
     activatedAt: string;
     planType: PlanType;
   } | null>(null);
-  const [isApproving, setIsApproving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -196,16 +185,16 @@ export function MiningPlan() {
   const cpxtbPrice = 0.002529; // Current CPXTB price in USD
   const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
 
-  // Update the balance reading section with improved error handling and logging
+  // Update the balance reading section
   const { data: usdtBalance, isError: isBalanceError, refetch: refetchBalance } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'balanceOf',
     args: [address as `0x${string}`],
-    enabled: !!address && chain?.id === 1, // Only enable on Ethereum mainnet
+    enabled: !!address && chain?.id === 1,
     watch: true,
-    cacheTime: 5000, // Reduce cache time to 5 seconds
-    staleTime: 5000, // Consider data stale after 5 seconds
+    cacheTime: 5000,
+    staleTime: 5000,
     onSuccess: (data) => {
       console.log('USDT balance read successfully:', {
         raw: data?.toString(),
@@ -400,51 +389,7 @@ export function MiningPlan() {
     return true;
   };
 
-  const { config: approveConfig, error: approveConfigError } = usePrepareContractWrite({
-    address: USDT_CONTRACT_ADDRESS as `0x${string}`,
-    abi: USDT_ABI,
-    functionName: 'approve',
-    args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
-    enabled: Boolean(
-      USDT_CONTRACT_ADDRESS &&
-      TREASURY_ADDRESS &&
-      address &&
-      chain?.id === 1 &&
-      !isApproving &&
-      !isTransferring
-    ),
-    onError: (error) => {
-      console.error('Error preparing approve transaction:', error);
-    }
-  });
-
-  const {
-    write: approveWrite,
-    isLoading: isApproveLoading,
-    isSuccess: isApproveSuccess,
-    error: approveError
-  } = useContractWrite({
-    ...approveConfig,
-    onError: (error) => {
-      console.error('USDT approval error:', error);
-      setIsApproving(false);
-      toast({
-        variant: "destructive",
-        title: "USDT Approval Failed",
-        description: error instanceof Error 
-          ? `Error: ${error.message}` 
-          : "Failed to approve USDT transfer",
-      });
-    },
-    onSuccess: (data) => {
-      console.log('USDT approval successful:', data);
-      toast({
-        title: "Approval Submitted",
-        description: "Please wait for the approval transaction to be confirmed",
-      });
-    }
-  });
-
+  // Transfer configuration
   const { config: transferConfig, error: transferConfigError } = usePrepareContractWrite({
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
@@ -455,7 +400,6 @@ export function MiningPlan() {
       TREASURY_ADDRESS &&
       address &&
       chain?.id === 1 &&
-      isApproveSuccess &&
       !isTransferring
     ),
     onError: (error) => {
@@ -476,8 +420,8 @@ export function MiningPlan() {
       toast({
         variant: "destructive",
         title: "USDT Transfer Failed",
-        description: error instanceof Error 
-          ? `Error: ${error.message}` 
+        description: error instanceof Error
+          ? `Error: ${error.message}`
           : "Failed to transfer USDT",
       });
     },
@@ -490,17 +434,6 @@ export function MiningPlan() {
       });
     }
   });
-
-  useEffect(() => {
-    if (approveConfigError || approveError) {
-      console.error('Approve error:', approveConfigError || approveError);
-      toast({
-        variant: "destructive",
-        title: "Approval Error",
-        description: (approveConfigError || approveError)?.message || "Failed to approve USDT transfer",
-      });
-    }
-  }, [approveConfigError, approveError]);
 
   useEffect(() => {
     if (transferConfigError || transferError) {
@@ -552,30 +485,6 @@ export function MiningPlan() {
         userAddress: address
       });
 
-      // Start approval process
-      setIsApproving(true);
-
-      if (!approveWrite) {
-        throw new Error('Unable to prepare approval transaction. Please try again.');
-      }
-
-      approveWrite();
-
-      // Wait for approval success
-      await new Promise<void>((resolve, reject) => {
-        const checkApproval = setInterval(() => {
-          if (isApproveSuccess) {
-            clearInterval(checkApproval);
-            resolve();
-          }
-          if (approveError) {
-            clearInterval(checkApproval);
-            reject(approveError);
-          }
-        }, 1000);
-      });
-
-      setIsApproving(false);
       setIsTransferring(true);
 
       if (!transferWrite) {
@@ -602,15 +511,14 @@ export function MiningPlan() {
 
     } catch (error) {
       console.error('Error during plan activation:', error);
-      setIsApproving(false);
       setIsTransferring(false);
       setIsValidating(false);
 
       toast({
         variant: "destructive",
         title: "Activation Failed",
-        description: error instanceof Error 
-          ? `Error: ${error.message}` 
+        description: error instanceof Error
+          ? `Error: ${error.message}`
           : "Failed to activate mining plan. Please try again.",
       });
     }
@@ -760,10 +668,8 @@ export function MiningPlan() {
               size="lg"
               onClick={handleActivatePlan}
               disabled={
-                isApproving ||
                 isTransferring ||
                 isValidating ||
-                isApproveLoading ||
                 isTransferLoading ||
                 isSwitchingNetwork ||
                 (chain?.id !== 1 && !switchNetwork)
@@ -772,12 +678,10 @@ export function MiningPlan() {
               <Coins className="mr-2 h-4 w-4" />
               {isSwitchingNetwork ? "Switching Network..." :
                 chain?.id !== 1 ? "Switch to Ethereum Mainnet" :
-                  isApproveLoading ? "Waiting for Approval..." :
-                    isApproving ? "Approving USDT..." :
-                      isTransferLoading ? "Waiting for Transfer..." :
-                        isTransferring ? "Transferring USDT..." :
-                          isValidating ? "Validating Transaction..." :
-                            `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
+                  isTransferLoading ? "Waiting for Transfer..." :
+                    isTransferring ? "Transferring USDT..." :
+                      isValidating ? "Validating Transaction..." :
+                        `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
             </Button>
           )}
 

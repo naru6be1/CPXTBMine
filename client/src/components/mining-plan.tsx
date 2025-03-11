@@ -173,14 +173,29 @@ export function MiningPlan() {
   const cpxtbPrice = 0.002529; // Current CPXTB price in USD
   const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
 
-  // Contract reads and writes remain the same, just use currentPlan.investmentAmount
-  const { data: usdtBalance } = useContractRead({
+  // Update the balance reading section with better error handling and logging
+  const { data: usdtBalance, isError: isBalanceError } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'balanceOf',
     args: [address as `0x${string}`],
-    enabled: !!address && !!chain && chain.id === 1,
+    enabled: !!address && !!chain?.id,
     watch: true,
+    onError: (error) => {
+      console.error('Error reading USDT balance:', error);
+      toast({
+        variant: "destructive",
+        title: "Balance Check Failed",
+        description: "Unable to read your USDT balance. Please try again.",
+      });
+    },
+    onSuccess: (data) => {
+      console.log('USDT balance read successfully:', {
+        raw: data?.toString(),
+        formatted: data ? formatUnits(data, 6) : '0',
+        chainId: chain?.id
+      });
+    },
   });
 
   // Contract interactions using currentPlan.investmentAmount
@@ -438,6 +453,8 @@ export function MiningPlan() {
     );
   }
 
+  const formattedBalance = usdtBalance ? formatUnits(usdtBalance, 6) : '0';
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -467,6 +484,12 @@ export function MiningPlan() {
         <div className="bg-muted rounded-lg p-6 space-y-4">
           <h3 className="text-lg font-semibold capitalize">{selectedPlan} Mining Plan Details</h3>
           <div className="grid gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Your USDT Balance</p>
+              <p className="text-2xl font-bold">
+                {isBalanceError ? "Error loading balance" : `${formattedBalance} USDT`}
+              </p>
+            </div>
             <div>
               <p className="text-sm text-muted-foreground">Investment Required</p>
               <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>

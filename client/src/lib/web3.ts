@@ -44,7 +44,7 @@ const config = createConfig({
       options: {
         projectId,
         metadata,
-        showQrModal: false // Web3Modal handles QR modal
+        showQrModal: false
       }
     }),
     new InjectedConnector({
@@ -59,9 +59,27 @@ const config = createConfig({
   webSocketPublicClient,
   logger: {
     warn: (message) => console.warn(`[Web3 Warning]: ${message}`),
-    error: (error) => console.error(`[Web3 Error]: ${error instanceof Error ? error.message : error}`),
+    error: (error) => {
+      console.error(`[Web3 Error]: ${error instanceof Error ? error.message : error}`);
+      // Add detailed error logging
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack);
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          cause: error.cause
+        });
+      }
+    },
   }
-})
+});
+
+// Log connection status
+console.log("Web3 Configuration:", {
+  chainIds: chains.map(c => c.id),
+  connectors: config.connectors.map(c => c.name),
+  autoConnect: config.autoConnect
+});
 
 // Create web3Modal instance with enhanced error handling
 const web3Modal = createWeb3Modal({

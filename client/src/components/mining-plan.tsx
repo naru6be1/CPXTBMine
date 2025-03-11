@@ -405,7 +405,17 @@ export function MiningPlan() {
     abi: USDT_ABI,
     functionName: 'approve',
     args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
-    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address && chain?.id === 1,
+    enabled: Boolean(
+      USDT_CONTRACT_ADDRESS &&
+      TREASURY_ADDRESS &&
+      address &&
+      chain?.id === 1 &&
+      !isApproving &&
+      !isTransferring
+    ),
+    onError: (error) => {
+      console.error('Error preparing approve transaction:', error);
+    }
   });
 
   const {
@@ -417,14 +427,21 @@ export function MiningPlan() {
     ...approveConfig,
     onError: (error) => {
       console.error('USDT approval error:', error);
+      setIsApproving(false);
       toast({
         variant: "destructive",
         title: "USDT Approval Failed",
-        description: error instanceof Error ? error.message : "Failed to approve USDT transfer",
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : "Failed to approve USDT transfer",
       });
     },
     onSuccess: (data) => {
       console.log('USDT approval successful:', data);
+      toast({
+        title: "Approval Submitted",
+        description: "Please wait for the approval transaction to be confirmed",
+      });
     }
   });
 
@@ -433,7 +450,17 @@ export function MiningPlan() {
     abi: USDT_ABI,
     functionName: 'transfer',
     args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
-    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address && chain?.id === 1,
+    enabled: Boolean(
+      USDT_CONTRACT_ADDRESS &&
+      TREASURY_ADDRESS &&
+      address &&
+      chain?.id === 1 &&
+      isApproveSuccess &&
+      !isTransferring
+    ),
+    onError: (error) => {
+      console.error('Error preparing transfer transaction:', error);
+    }
   });
 
   const {
@@ -445,15 +472,22 @@ export function MiningPlan() {
     ...transferConfig,
     onError: (error) => {
       console.error('USDT transfer error:', error);
+      setIsTransferring(false);
       toast({
         variant: "destructive",
         title: "USDT Transfer Failed",
-        description: error instanceof Error ? error.message : "Failed to transfer USDT",
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : "Failed to transfer USDT",
       });
     },
     onSuccess: (data) => {
       console.log('USDT transfer successful:', data);
       setTransactionHash(data.hash);
+      toast({
+        title: "Transfer Submitted",
+        description: "Transaction has been submitted to the network",
+      });
     }
   });
 
@@ -489,7 +523,6 @@ export function MiningPlan() {
       return;
     }
 
-    // Check network connection first
     if (!chain || chain.id !== 1) {
       toast({
         variant: "destructive",
@@ -499,7 +532,7 @@ export function MiningPlan() {
       return;
     }
 
-    if (!usdtBalance || usdtBalance.lt(currentPlan.investmentAmount)) {
+    if (!usdtBalance || usdtBalance < currentPlan.investmentAmount) {
       const currentBalance = usdtBalance ? formatUnits(usdtBalance, 6) : '0';
       toast({
         variant: "destructive",
@@ -519,18 +552,14 @@ export function MiningPlan() {
         userAddress: address
       });
 
+      // Start approval process
       setIsApproving(true);
 
       if (!approveWrite) {
-        throw new Error('Failed to prepare approval transaction');
+        throw new Error('Unable to prepare approval transaction. Please try again.');
       }
 
       approveWrite();
-
-      toast({
-        title: "Approval Initiated",
-        description: "Please confirm the approval transaction in your wallet",
-      });
 
       // Wait for approval success
       await new Promise<void>((resolve, reject) => {
@@ -550,7 +579,7 @@ export function MiningPlan() {
       setIsTransferring(true);
 
       if (!transferWrite) {
-        throw new Error('Failed to prepare transfer transaction');
+        throw new Error('Unable to prepare transfer transaction. Please try again.');
       }
 
       transferWrite();
@@ -571,22 +600,19 @@ export function MiningPlan() {
 
       setIsValidating(true);
 
-      toast({
-        title: "Transaction Submitted",
-        description: "Waiting for blockchain confirmation. This may take a few minutes.",
-      });
     } catch (error) {
       console.error('Error during plan activation:', error);
+      setIsApproving(false);
+      setIsTransferring(false);
+      setIsValidating(false);
+
       toast({
         variant: "destructive",
         title: "Activation Failed",
-        description: error instanceof Error
-          ? `Error: ${error.message}`
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
           : "Failed to activate mining plan. Please try again.",
       });
-    } finally {
-      setIsApproving(false);
-      setIsTransferring(false);
     }
   };
 

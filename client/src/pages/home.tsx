@@ -2,6 +2,7 @@ import { ConnectWallet } from "@/components/connect-wallet";
 import { PriceDisplay } from "@/components/price-display";
 import { MiningPlan } from "@/components/mining-plan";
 import { useWallet } from "@/hooks/use-wallet";
+import { Logo } from "@/components/ui/logo";
 
 export default function Home() {
   const { isConnected, address } = useWallet();
@@ -10,9 +11,9 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-4xl mx-auto text-center space-y-8">
         <div className="space-y-4">
-          <h1 className="text-4xl font-bold sm:text-6xl bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            Welcome to CPXTBMining
-          </h1>
+          <div className="flex justify-center">
+            <Logo size="lg" />
+          </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Connect your wallet and view real-time CPXTB/WETH prices
           </p>

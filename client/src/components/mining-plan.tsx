@@ -11,23 +11,15 @@ import { formatUnits, parseUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
 
-// Updated USDT Contract Interface
-const ERC20_ABI = [
+// Legacy USDT Contract Interface with exact function signatures
+const USDT_ABI = [
   {
     "constant": true,
     "inputs": [{"name": "_owner", "type": "address"}],
     "name": "balanceOf",
-    "outputs": [{"name": "balance", "type": "uint256"}],
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {"name": "_owner", "type": "address"},
-      {"name": "_spender", "type": "address"}
-    ],
-    "name": "allowance",
-    "outputs": [{"name": "remaining", "type": "uint256"}],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "payable": false,
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -37,18 +29,21 @@ const ERC20_ABI = [
       {"name": "_value", "type": "uint256"}
     ],
     "name": "approve",
-    "outputs": [{"name": "success", "type": "bool"}],
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "constant": false,
     "inputs": [
-      {"name": "_from", "type": "address"},
       {"name": "_to", "type": "address"},
       {"name": "_value", "type": "uint256"}
     ],
-    "name": "transferFrom",
-    "outputs": [{"name": "success", "type": "bool"}],
+    "name": "transfer",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
     "type": "function"
   }
 ];
@@ -184,22 +179,13 @@ export function MiningPlan() {
   // USDT Balance Check
   const { data: usdtBalance, isError: isBalanceError } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as Address,
-    abi: ERC20_ABI,
+    abi: USDT_ABI,
     functionName: 'balanceOf',
     args: [address as Address],
     enabled: !!address && chain?.id === 1,
     watch: true
   });
 
-  // Check allowance
-  const { data: currentAllowance } = useContractRead({
-    address: USDT_CONTRACT_ADDRESS as Address,
-    abi: ERC20_ABI,
-    functionName: 'allowance',
-    args: [address as Address, TREASURY_ADDRESS as Address],
-    enabled: !!address && chain?.id === 1,
-    watch: true
-  });
 
   // Helper to format balance display
   const getBalanceDisplay = () => {
@@ -215,7 +201,7 @@ export function MiningPlan() {
     }
   };
 
-  // Handle transaction submission with improved error handling
+  // Handle transaction submission with direct transfer
   const handleTransfer = async () => {
     if (!chain || chain.id !== 1) {
       toast({
@@ -256,58 +242,22 @@ export function MiningPlan() {
         return;
       }
 
-      // Check and handle allowance
-      const allowance = currentAllowance ? BigInt(currentAllowance.toString()) : BigInt(0);
-      if (allowance < currentPlan.amount) {
-        setIsApproving(true);
-
-        // Prepare approve transaction
-        const { request: approveRequest } = await publicClient.simulateContract({
-          address: USDT_CONTRACT_ADDRESS as Address,
-          abi: ERC20_ABI,
-          functionName: 'approve',
-          args: [TREASURY_ADDRESS as Address, currentPlan.amount],
-          account: address as Address,
-        });
-
-        // Send approve transaction
-        const approveHash = await walletClient.writeContract(approveRequest);
-        console.log('Approval submitted:', approveHash);
-
-        toast({
-          title: "Approval Submitted",
-          description: "Please wait for the approval transaction to be confirmed"
-        });
-
-        // Wait for approval confirmation
-        const approveReceipt = await publicClient.waitForTransactionReceipt({ 
-          hash: approveHash 
-        });
-
-        if (approveReceipt.status !== 'success') {
-          throw new Error('Approval failed');
-        }
-
-        setIsApproving(false);
-      }
-
       setIsTransferring(true);
 
-      // Prepare transferFrom transaction
-      const { request: transferRequest } = await publicClient.simulateContract({
+      // Using direct transfer instead of approve + transferFrom
+      const { request } = await publicClient.simulateContract({
         address: USDT_CONTRACT_ADDRESS as Address,
-        abi: ERC20_ABI,
-        functionName: 'transferFrom',
+        abi: USDT_ABI,
+        functionName: 'transfer',
         args: [
-          address as Address,
           TREASURY_ADDRESS as Address,
           currentPlan.amount
         ],
         account: address as Address,
       });
 
-      // Send transferFrom transaction
-      const hash = await walletClient.writeContract(transferRequest);
+      // Send transaction
+      const hash = await walletClient.writeContract(request);
       console.log('Transaction submitted:', hash);
 
       setTransactionHash(hash);
@@ -345,7 +295,6 @@ export function MiningPlan() {
       console.error('Transfer error:', error);
       setIsTransferring(false);
       setIsValidating(false);
-      setIsApproving(false);
 
       toast({
         variant: "destructive",
@@ -457,14 +406,13 @@ export function MiningPlan() {
               className="w-full mt-4"
               size="lg"
               onClick={handleTransfer}
-              disabled={isApproving || isTransferring || isValidating || isSwitchingNetwork}
+              disabled={isTransferring || isValidating || isSwitchingNetwork}
             >
               <Coins className="mr-2 h-4 w-4" />
               {isSwitchingNetwork ? "Switching Network..." :
-                isApproving ? "Approving USDT..." :
-                  isTransferring ? "Transferring USDT..." :
-                    isValidating ? "Validating Transaction..." :
-                      `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
+                isTransferring ? "Transferring USDT..." :
+                  isValidating ? "Validating Transaction..." :
+                    `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
             </Button>
           )}
 

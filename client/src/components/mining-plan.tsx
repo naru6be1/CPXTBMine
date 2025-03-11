@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -11,7 +11,7 @@ import { formatUnits, parseUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
 
-// USDT Contract Interface
+// Updated USDT Contract Interface
 const ERC20_ABI = [
   {
     "constant": true,
@@ -21,12 +21,33 @@ const ERC20_ABI = [
     "type": "function"
   },
   {
+    "constant": true,
+    "inputs": [
+      {"name": "_owner", "type": "address"},
+      {"name": "_spender", "type": "address"}
+    ],
+    "name": "allowance",
+    "outputs": [{"name": "remaining", "type": "uint256"}],
+    "type": "function"
+  },
+  {
     "constant": false,
     "inputs": [
+      {"name": "_spender", "type": "address"},
+      {"name": "_value", "type": "uint256"}
+    ],
+    "name": "approve",
+    "outputs": [{"name": "success", "type": "bool"}],
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {"name": "_from", "type": "address"},
       {"name": "_to", "type": "address"},
       {"name": "_value", "type": "uint256"}
     ],
-    "name": "transfer",
+    "name": "transferFrom",
     "outputs": [{"name": "success", "type": "bool"}],
     "type": "function"
   }
@@ -143,6 +164,7 @@ export function MiningPlan() {
     activatedAt: string;
     planType: PlanType;
   } | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -166,15 +188,17 @@ export function MiningPlan() {
     functionName: 'balanceOf',
     args: [address as Address],
     enabled: !!address && chain?.id === 1,
-    watch: true,
-    onError: (error) => {
-      console.error('USDT balance read error:', error);
-      toast({
-        variant: "destructive",
-        title: "Balance Check Failed",
-        description: "Unable to read USDT balance. Please try again.",
-      });
-    }
+    watch: true
+  });
+
+  // Check allowance
+  const { data: currentAllowance } = useContractRead({
+    address: USDT_CONTRACT_ADDRESS as Address,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: [address as Address, TREASURY_ADDRESS as Address],
+    enabled: !!address && chain?.id === 1,
+    watch: true
   });
 
   // Helper to format balance display
@@ -232,19 +256,58 @@ export function MiningPlan() {
         return;
       }
 
+      // Check and handle allowance
+      const allowance = currentAllowance ? BigInt(currentAllowance.toString()) : BigInt(0);
+      if (allowance < currentPlan.amount) {
+        setIsApproving(true);
+
+        // Prepare approve transaction
+        const { request: approveRequest } = await publicClient.simulateContract({
+          address: USDT_CONTRACT_ADDRESS as Address,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [TREASURY_ADDRESS as Address, currentPlan.amount],
+          account: address as Address,
+        });
+
+        // Send approve transaction
+        const approveHash = await walletClient.writeContract(approveRequest);
+        console.log('Approval submitted:', approveHash);
+
+        toast({
+          title: "Approval Submitted",
+          description: "Please wait for the approval transaction to be confirmed"
+        });
+
+        // Wait for approval confirmation
+        const approveReceipt = await publicClient.waitForTransactionReceipt({ 
+          hash: approveHash 
+        });
+
+        if (approveReceipt.status !== 'success') {
+          throw new Error('Approval failed');
+        }
+
+        setIsApproving(false);
+      }
+
       setIsTransferring(true);
 
-      // Prepare transaction data
-      const { request } = await publicClient.simulateContract({
+      // Prepare transferFrom transaction
+      const { request: transferRequest } = await publicClient.simulateContract({
         address: USDT_CONTRACT_ADDRESS as Address,
         abi: ERC20_ABI,
-        functionName: 'transfer',
-        args: [TREASURY_ADDRESS as Address, currentPlan.amount],
+        functionName: 'transferFrom',
+        args: [
+          address as Address,
+          TREASURY_ADDRESS as Address,
+          currentPlan.amount
+        ],
         account: address as Address,
       });
 
-      // Send transaction
-      const hash = await walletClient.writeContract(request);
+      // Send transferFrom transaction
+      const hash = await walletClient.writeContract(transferRequest);
       console.log('Transaction submitted:', hash);
 
       setTransactionHash(hash);
@@ -282,6 +345,7 @@ export function MiningPlan() {
       console.error('Transfer error:', error);
       setIsTransferring(false);
       setIsValidating(false);
+      setIsApproving(false);
 
       toast({
         variant: "destructive",
@@ -393,13 +457,14 @@ export function MiningPlan() {
               className="w-full mt-4"
               size="lg"
               onClick={handleTransfer}
-              disabled={isTransferring || isValidating || isSwitchingNetwork}
+              disabled={isApproving || isTransferring || isValidating || isSwitchingNetwork}
             >
               <Coins className="mr-2 h-4 w-4" />
               {isSwitchingNetwork ? "Switching Network..." :
-                isTransferring ? "Transferring USDT..." :
-                  isValidating ? "Validating Transaction..." :
-                    `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
+                isApproving ? "Approving USDT..." :
+                  isTransferring ? "Transferring USDT..." :
+                    isValidating ? "Validating Transaction..." :
+                      `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
             </Button>
           )}
 

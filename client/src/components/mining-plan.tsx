@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -11,6 +11,7 @@ import { formatUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
 import { SiTelegram } from 'react-icons/si';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Legacy USDT Contract Interface with exact function signatures
 const USDT_ABI = [
@@ -187,6 +188,17 @@ export function MiningPlan() {
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [activeTab, setActiveTab] = useState("new-plan");
+
+  // Load active plans from localStorage on component mount
+  useEffect(() => {
+    const savedPlan = localStorage.getItem('activeMiningPlan');
+    if (savedPlan) {
+      const planDetails = JSON.parse(savedPlan);
+      setHasActivePlan(true);
+      setActivePlanDetails(planDetails);
+    }
+  }, []);
 
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
@@ -358,121 +370,143 @@ export function MiningPlan() {
     });
   };
 
-  if (hasActivePlan && activePlanDetails) {
-    return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Coins className="h-6 w-6 text-primary" />
-            Active Mining Plan
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ActivePlanDisplay
-            withdrawalAddress={activePlanDetails.withdrawalAddress}
-            dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
-            activatedAt={activePlanDetails.activatedAt}
-            planType={activePlanDetails.planType}
-            onReset={handleResetPlan}
-          />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Server className="h-6 w-6 text-primary animate-pulse" />
-          Mining Plans
+          Mining Dashboard
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex gap-4 mb-6">
-          <Button
-            variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-            onClick={() => setSelectedPlan('daily')}
-            className="flex-1"
-          >
-            <Cpu className="mr-2 h-4 w-4" />
-            Daily Plan
-          </Button>
-          <Button
-            variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
-            onClick={() => setSelectedPlan('weekly')}
-            className="flex-1"
-          >
-            <Server className="mr-2 h-4 w-4" />
-            Weekly Plan
-          </Button>
-        </div>
+      <CardContent>
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="new-plan" className="flex items-center gap-2">
+              <Cpu className="h-4 w-4" />
+              Mining Plans
+            </TabsTrigger>
+            <TabsTrigger value="active-plans" className="flex items-center gap-2">
+              <Server className="h-4 w-4" />
+              Active Plans
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="bg-muted rounded-lg p-6 space-y-4">
-          <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
-            <Cpu className="h-5 w-5 text-primary" />
-            {selectedPlan} Mining Plan Details
-          </h3>
-          <div className="grid gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Your USDT Balance</p>
-              <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
+          <TabsContent value="new-plan">
+            <div className="flex gap-4 mb-6">
+              <Button
+                variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+                onClick={() => setSelectedPlan('daily')}
+                className="flex-1"
+              >
+                <Cpu className="mr-2 h-4 w-4" />
+                Daily Plan
+              </Button>
+              <Button
+                variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
+                onClick={() => setSelectedPlan('weekly')}
+                className="flex-1"
+              >
+                <Server className="mr-2 h-4 w-4" />
+                Weekly Plan
+              </Button>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Investment Required</p>
-              <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Daily Reward</p>
-              <p className="text-2xl font-bold text-primary">
-                {dailyRewardCPXTB} CPXTB
-                <span className="text-sm text-muted-foreground ml-2">
-                  (≈${currentPlan.rewardUSD})
-                </span>
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Duration</p>
-              <p className="text-2xl font-bold">{currentPlan.duration}</p>
-            </div>
-          </div>
-        </div>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
-            <Input
-              id="withdrawal"
-              placeholder="Enter your Base network address for CPXTB withdrawals"
-              value={withdrawalAddress}
-              onChange={(e) => setWithdrawalAddress(e.target.value)}
-            />
-          </div>
+            <div className="bg-muted rounded-lg p-6 space-y-4">
+              <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
+                <Cpu className="h-5 w-5 text-primary" />
+                {selectedPlan} Mining Plan Details
+              </h3>
+              <div className="grid gap-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Your USDT Balance</p>
+                  <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Investment Required</p>
+                  <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Daily Reward</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {dailyRewardCPXTB} CPXTB
+                    <span className="text-sm text-muted-foreground ml-2">
+                      (≈${currentPlan.rewardUSD})
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Duration</p>
+                  <p className="text-2xl font-bold">{currentPlan.duration}</p>
+                </div>
+              </div>
+            </div>
 
-          {isConnected && (
-            <Button
-              className="w-full mt-4"
-              size="lg"
-              onClick={handleTransfer}
-              disabled={isTransferring || isValidating || isSwitchingNetwork}
-            >
-              <Coins className="mr-2 h-4 w-4" />
-              {isSwitchingNetwork ? "Switching Network..." :
-                isTransferring ? "Transferring USDT..." :
-                  isValidating ? "Validating Transaction..." :
-                    `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
-            </Button>
-          )}
+            <div className="space-y-4 mt-6">
+              <div className="space-y-2">
+                <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
+                <Input
+                  id="withdrawal"
+                  placeholder="Enter your Base network address for CPXTB withdrawals"
+                  value={withdrawalAddress}
+                  onChange={(e) => setWithdrawalAddress(e.target.value)}
+                />
+              </div>
 
-          {transactionHash && (
-            <TransactionStatus
-              hash={transactionHash}
-              isValidating={isValidating}
-              isConfirmed={isConfirmed}
-            />
-          )}
-        </div>
-        <div className="pt-6 border-t border-border">
+              {isConnected && (
+                <Button
+                  className="w-full mt-4"
+                  size="lg"
+                  onClick={handleTransfer}
+                  disabled={isTransferring || isValidating || isSwitchingNetwork}
+                >
+                  <Coins className="mr-2 h-4 w-4" />
+                  {isSwitchingNetwork ? "Switching Network..." :
+                    isTransferring ? "Transferring USDT..." :
+                      isValidating ? "Validating Transaction..." :
+                        `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
+                </Button>
+              )}
+
+              {transactionHash && (
+                <TransactionStatus
+                  hash={transactionHash}
+                  isValidating={isValidating}
+                  isConfirmed={isConfirmed}
+                />
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="active-plans">
+            {hasActivePlan && activePlanDetails ? (
+              <ActivePlanDisplay
+                withdrawalAddress={activePlanDetails.withdrawalAddress}
+                dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
+                activatedAt={activePlanDetails.activatedAt}
+                planType={activePlanDetails.planType}
+                onReset={handleResetPlan}
+              />
+            ) : (
+              <div className="text-center py-8 space-y-4">
+                <Server className="h-12 w-12 mx-auto text-muted-foreground" />
+                <h3 className="text-lg font-semibold">No Active Mining Plans</h3>
+                <p className="text-muted-foreground">
+                  Start mining by selecting a plan from the Mining Plans tab.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveTab("new-plan")}
+                  className="mt-4"
+                >
+                  <Cpu className="mr-2 h-4 w-4" />
+                  View Available Plans
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <div className="pt-6 border-t border-border mt-6">
           <p className="text-sm text-muted-foreground mb-3 text-center">
             Need help? Contact our support team
           </p>

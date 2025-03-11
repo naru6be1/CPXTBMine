@@ -558,7 +558,7 @@ export function MiningPlan() {
                 <Button
                   variant="outline"
                   onClick={() => setActiveTab("new-plan")}
-                  className="mt-4"
+                  className="mt-4 hover:bg-primary/10 transition-colors"
                 >
                   <Cpu className="mr-2 h-4 w-4" />
                   View Available Plans

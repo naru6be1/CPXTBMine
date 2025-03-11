@@ -201,7 +201,7 @@ export function MiningPlan() {
     }
   };
 
-  // Handle transaction submission with direct transfer
+  // Update the handleTransfer function with improved transaction handling
   const handleTransfer = async () => {
     if (!chain || chain.id !== 1) {
       toast({
@@ -244,7 +244,7 @@ export function MiningPlan() {
 
       setIsTransferring(true);
 
-      // Using direct transfer instead of approve + transferFrom
+      // Using direct transfer
       const { request } = await publicClient.simulateContract({
         address: USDT_CONTRACT_ADDRESS as Address,
         abi: USDT_ABI,
@@ -265,31 +265,56 @@ export function MiningPlan() {
 
       toast({
         title: "Transfer Submitted",
-        description: "Transaction sent to network. Waiting for confirmation..."
+        description: "Waiting for transaction confirmation. This may take a few minutes..."
       });
 
-      // Wait for confirmation
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      // Wait for confirmation with retries and timeout
+      let receipt = null;
+      const maxRetries = 5;
+      const retryDelay = 5000; // 5 seconds
+      const timeout = 120000; // 2 minutes
 
-      if (receipt.status === 'success') {
-        setIsConfirmed(true);
-        const activationTime = new Date().toISOString();
-        const planDetails = {
-          withdrawalAddress,
-          dailyRewardCPXTB,
-          activatedAt: activationTime,
-          planType: selectedPlan
-        };
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          receipt = await Promise.race([
+            publicClient.waitForTransactionReceipt({ hash }),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Transaction confirmation timeout')), timeout)
+            )
+          ]);
 
-        localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
-        setHasActivePlan(true);
-        setActivePlanDetails(planDetails);
+          if (receipt && receipt.status === 'success') {
+            break;
+          }
 
-        toast({
-          title: "Plan Activated",
-          description: "Your mining plan has been successfully activated!"
-        });
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        } catch (error) {
+          console.log(`Attempt ${i + 1} failed:`, error);
+          if (i === maxRetries - 1) throw error;
+        }
       }
+
+      if (!receipt || receipt.status !== 'success') {
+        throw new Error('Transaction failed or timed out');
+      }
+
+      setIsConfirmed(true);
+      const activationTime = new Date().toISOString();
+      const planDetails = {
+        withdrawalAddress,
+        dailyRewardCPXTB,
+        activatedAt: activationTime,
+        planType: selectedPlan
+      };
+
+      localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
+      setHasActivePlan(true);
+      setActivePlanDetails(planDetails);
+
+      toast({
+        title: "Plan Activated",
+        description: "Your mining plan has been successfully activated!"
+      });
 
     } catch (error) {
       console.error('Transfer error:', error);
@@ -299,7 +324,9 @@ export function MiningPlan() {
       toast({
         variant: "destructive",
         title: "Transfer Failed",
-        description: error instanceof Error ? error.message : "Failed to transfer USDT"
+        description: error instanceof Error
+          ? `Error: ${error.message}. Please try again.`
+          : "Failed to transfer USDT. Please try again."
       });
     }
   };

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
 
 interface TransactionStatusProps {
   hash: string;
@@ -30,7 +30,9 @@ export function TransactionStatus({ hash, isValidating, isConfirmed }: Transacti
               className="flex items-center gap-2 text-primary"
             >
               <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="text-sm font-medium">Confirming Transaction...</span>
+              <span className="text-sm font-medium">
+                Confirming Transaction... This may take a few minutes.
+              </span>
             </motion.div>
           ) : isConfirmed ? (
             <motion.div
@@ -71,11 +73,12 @@ export function TransactionStatus({ hash, isValidating, isConfirmed }: Transacti
               href={`https://etherscan.io/tx/${hash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline mt-2 inline-block text-sm"
+              className="inline-flex items-center gap-1 text-primary hover:underline mt-2 text-sm"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               View on Etherscan
+              <ExternalLink className="h-4 w-4" />
             </motion.a>
           </motion.div>
 
@@ -87,6 +90,13 @@ export function TransactionStatus({ hash, isValidating, isConfirmed }: Transacti
               className="w-full h-0.5 bg-primary/20 mt-4"
               style={{ transformOrigin: "left" }}
             />
+          )}
+
+          {isValidating && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Please wait while we confirm your transaction on the Ethereum network.
+              This process typically takes 2-5 minutes.
+            </p>
           )}
         </motion.div>
       </motion.div>

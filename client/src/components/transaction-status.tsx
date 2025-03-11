@@ -1,13 +1,16 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, CheckCircle2, AlertCircle, ExternalLink, Server, Cpu } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ExternalLink, Server, Cpu, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TransactionStatusProps {
   hash: string;
   isValidating: boolean;
   isConfirmed?: boolean;
+  onRetry?: () => void;
+  showRetry?: boolean;
 }
 
-export function TransactionStatus({ hash, isValidating, isConfirmed }: TransactionStatusProps) {
+export function TransactionStatus({ hash, isValidating, isConfirmed, onRetry, showRetry }: TransactionStatusProps) {
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -90,6 +93,26 @@ export function TransactionStatus({ hash, isValidating, isConfirmed }: Transacti
               <ExternalLink className="h-4 w-4" />
             </motion.a>
           </motion.div>
+
+          {showRetry && onRetry && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 w-full"
+            >
+              <Button
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={onRetry}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Retry Transaction Validation
+              </Button>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Click to check if your transaction was confirmed and activate your mining plan
+              </p>
+            </motion.div>
+          )}
 
           {isValidating && (
             <motion.div

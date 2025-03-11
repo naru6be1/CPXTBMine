@@ -306,6 +306,25 @@ export function MiningPlan() {
         description: "Waiting for transaction confirmation. This may take a few minutes..."
       });
 
+      await validateTransaction(hash);
+
+    } catch (error) {
+      console.error('Transfer error:', error);
+      setIsTransferring(false);
+      setIsValidating(false);
+
+      toast({
+        variant: "destructive",
+        title: "Transfer Failed",
+        description: error instanceof Error
+          ? `Error: ${error.message}. Please try again.`
+          : "Failed to transfer USDT. Please try again."
+      });
+    }
+  };
+
+  const validateTransaction = async (hash: string) => {
+    try {
       let receipt = null;
       const maxRetries = 5;
       const retryDelay = 5000; // 5 seconds
@@ -336,35 +355,58 @@ export function MiningPlan() {
       }
 
       setIsConfirmed(true);
-      const activationTime = new Date().toISOString();
-      const planDetails = {
-        withdrawalAddress,
-        dailyRewardCPXTB,
-        activatedAt: activationTime,
-        planType: selectedPlan,
-        walletAddress: address // Store the wallet address that activated the plan
-      };
-
-      localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
-      setHasActivePlan(true);
-      setActivePlanDetails(planDetails);
-
-      toast({
-        title: "Plan Activated",
-        description: "Your mining plan has been successfully activated!"
-      });
+      activatePlan();
 
     } catch (error) {
-      console.error('Transfer error:', error);
-      setIsTransferring(false);
+      console.error('Validation error:', error);
       setIsValidating(false);
-
+      // Don't clear transaction hash so user can retry
       toast({
         variant: "destructive",
-        title: "Transfer Failed",
-        description: error instanceof Error
-          ? `Error: ${error.message}. Please try again.`
-          : "Failed to transfer USDT. Please try again."
+        title: "Validation Failed",
+        description: "Transaction validation timed out. You can retry validation to check if your transaction was confirmed."
+      });
+    }
+  };
+
+  const activatePlan = () => {
+    const activationTime = new Date().toISOString();
+    const planDetails = {
+      withdrawalAddress,
+      dailyRewardCPXTB,
+      activatedAt: activationTime,
+      planType: selectedPlan,
+      walletAddress: address // Store the wallet address that activated the plan
+    };
+
+    localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
+    setHasActivePlan(true);
+    setActivePlanDetails(planDetails);
+
+    toast({
+      title: "Plan Activated",
+      description: "Your mining plan has been successfully activated!"
+    });
+  };
+
+  const handleRetryValidation = async () => {
+    if (!transactionHash || !publicClient) return;
+
+    setIsValidating(true);
+    toast({
+      title: "Retrying Validation",
+      description: "Checking transaction status..."
+    });
+
+    try {
+      await validateTransaction(transactionHash);
+    } catch (error) {
+      console.error('Retry validation error:', error);
+      setIsValidating(false);
+      toast({
+        variant: "destructive",
+        title: "Validation Failed",
+        description: "Transaction validation failed. Please try again later or contact support if the issue persists."
       });
     }
   };
@@ -471,6 +513,8 @@ export function MiningPlan() {
                   hash={transactionHash}
                   isValidating={isValidating}
                   isConfirmed={isConfirmed}
+                  onRetry={handleRetryValidation}
+                  showRetry={!isConfirmed && !isValidating}
                 />
               )}
             </div>
@@ -490,7 +534,7 @@ export function MiningPlan() {
                 <Server className="h-12 w-12 mx-auto text-muted-foreground" />
                 <h3 className="text-lg font-semibold">No Active Mining Plans</h3>
                 <p className="text-muted-foreground">
-                  {address ? 
+                  {address ?
                     "Start mining by selecting a plan from the Mining Plans tab." :
                     "Connect your wallet to view your active mining plans."
                   }

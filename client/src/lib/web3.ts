@@ -29,7 +29,19 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
     pollingInterval: 5000,
     retryCount: 5,
     retryDelay: 1000,
-    stallTimeout: 5000
+    stallTimeout: 5000,
+    batch: {
+      multicall: true
+    },
+    // Use alternative RPC endpoints
+    rpcUrls: {
+      1: [
+        'https://eth.llamarpc.com',
+        'https://rpc.ankr.com/eth',
+        'https://ethereum.publicnode.com',
+        'https://1.rpc.rivet.cloud'
+      ]
+    }
   }
 );
 
@@ -81,9 +93,9 @@ const web3Modal = createWeb3Modal({
   themeVariables: {
     '--w3m-font-family': 'Inter, sans-serif',
     '--w3m-accent': 'hsl(var(--primary))',
-    '--w3m-bg-color': 'hsl(var(--background))',
+    '--w3m-background-color': 'hsl(var(--background))',
     '--w3m-color': 'hsl(var(--foreground))',
-    '--w3m-z-index': 1000
+    '--w3m-z-index': '1000'
   }
 });
 

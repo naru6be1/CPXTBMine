@@ -206,15 +206,8 @@ export function MiningPlan() {
     watch: true,
     cacheTime: 5000, // Reduce cache time to 5 seconds
     staleTime: 5000, // Consider data stale after 5 seconds
-    onSuccess: (data) => {
-      console.log('USDT balance read successfully:', {
-        raw: data?.toString(),
-        formatted: data ? formatUnits(data, 6) : '0',
-        chainId: chain?.id,
-        userAddress: address,
-        contractAddress: USDT_CONTRACT_ADDRESS
-      });
-    },
+    retry: 3,
+    retryDelay: 1000,
     onError: (error) => {
       console.error('Error reading USDT balance:', error);
       console.error('Contract parameters:', {
@@ -224,10 +217,29 @@ export function MiningPlan() {
         isEnabled: !!address && chain?.id === 1,
         isConnected: isConnected
       });
-      toast({
-        variant: "destructive",
-        title: "Balance Check Failed",
-        description: "Unable to read your USDT balance. Please ensure you're connected to Ethereum mainnet.",
+
+      // Check if it's an RPC error
+      if (error.message?.includes('Internal error') || error.message?.includes('Cannot fulfill request')) {
+        toast({
+          variant: "destructive",
+          title: "Network Connection Error",
+          description: "Having trouble connecting to Ethereum network. Please try again in a moment.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Balance Check Failed",
+          description: "Unable to read your USDT balance. Please ensure you're connected to Ethereum mainnet.",
+        });
+      }
+    },
+    onSuccess: (data) => {
+      console.log('USDT balance read successfully:', {
+        raw: data?.toString(),
+        formatted: data ? formatUnits(data, 6) : '0',
+        chainId: chain?.id,
+        userAddress: address,
+        contractAddress: USDT_CONTRACT_ADDRESS
       });
     },
   });
@@ -393,7 +405,7 @@ export function MiningPlan() {
     enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
   });
 
-  const { 
+  const {
     write: approveWrite,
     isLoading: isApproveLoading,
     isSuccess: isApproveSuccess,

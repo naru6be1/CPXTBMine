@@ -183,6 +183,15 @@ export function MiningPlan() {
     watch: true,
     cacheTime: 5000, // Reduce cache time to 5 seconds
     staleTime: 5000, // Consider data stale after 5 seconds
+    onSuccess: (data) => {
+      console.log('USDT balance read successfully:', {
+        raw: data?.toString(),
+        formatted: data ? formatUnits(data, 6) : '0',
+        chainId: chain?.id,
+        userAddress: address,
+        contractAddress: USDT_CONTRACT_ADDRESS
+      });
+    },
     onError: (error) => {
       console.error('Error reading USDT balance:', error);
       console.error('Contract parameters:', {
@@ -198,27 +207,23 @@ export function MiningPlan() {
         description: "Unable to read your USDT balance. Please ensure you're connected to Ethereum mainnet.",
       });
     },
-    onSuccess: (data) => {
-      console.log('USDT balance read successfully:', {
-        raw: data?.toString(),
-        formatted: data ? formatUnits(data, 6) : '0',
-        chainId: chain?.id,
-        userAddress: address,
-        contractAddress: USDT_CONTRACT_ADDRESS
-      });
-    },
   });
 
   // Add effect to periodically refetch balance
   useEffect(() => {
-    if (isConnected && chain?.id === 1) {
+    if (isConnected && chain?.id === 1 && address) {
+      console.log('Setting up balance refetch interval');
       const interval = setInterval(() => {
+        console.log('Refetching USDT balance...');
         refetchBalance();
-      }, 10000); // Refetch every 10 seconds
+      }, 5000); // Refetch every 5 seconds
 
-      return () => clearInterval(interval);
+      return () => {
+        console.log('Clearing balance refetch interval');
+        clearInterval(interval);
+      };
     }
-  }, [isConnected, chain?.id, refetchBalance]);
+  }, [isConnected, chain?.id, address, refetchBalance]);
 
   // Add effect to log wallet state changes
   useEffect(() => {
@@ -348,8 +353,14 @@ export function MiningPlan() {
     }
 
     // Check network connection first
-    const isMainnet = await ensureMainnetConnection();
-    if (!isMainnet) return;
+    if (!chain || chain.id !== 1) {
+      toast({
+        variant: "destructive",
+        title: "Wrong Network",
+        description: "Please switch to Ethereum mainnet to continue",
+      });
+      return;
+    }
 
     if (!usdtBalance || usdtBalance.lt(currentPlan.investmentAmount)) {
       const currentBalance = usdtBalance ? formatUnits(usdtBalance, 6) : '0';
@@ -362,16 +373,34 @@ export function MiningPlan() {
     }
 
     try {
+      console.log('Starting plan activation with parameters:', {
+        withdrawalAddress,
+        planType: selectedPlan,
+        investmentAmount: formatUnits(currentPlan.investmentAmount, 6),
+        currentBalance: usdtBalance ? formatUnits(usdtBalance, 6) : '0',
+        chainId: chain.id,
+        userAddress: address
+      });
+
       setIsApproving(true);
+
+      // First approve USDT spending
       const { writeAsync: approveWrite, isLoading: isApproveLoading } = usePrepareContractWrite({
         address: USDT_CONTRACT_ADDRESS as `0x${string}`,
         abi: USDT_ABI,
         functionName: 'approve',
         args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
         enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
+        onError: (error) => {
+          console.error('Approval preparation error:', error);
+          throw new Error(`Failed to prepare approval: ${error.message}`);
+        },
+        onSuccess: (data) => {
+          console.log('Approval prepared successfully:', data);
+        }
       });
       if (!approveWrite) {
-        throw new Error("Approval function not available. Please check your wallet connection.");
+        throw new Error('Failed to prepare approval transaction');
       }
 
       const approveTx = await approveWrite();
@@ -383,6 +412,7 @@ export function MiningPlan() {
       });
 
       await approveTx.wait();
+      console.log('Approve transaction confirmed');
       setIsApproving(false);
 
       setIsTransferring(true);
@@ -392,9 +422,16 @@ export function MiningPlan() {
         functionName: 'transfer',
         args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
         enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
+        onError: (error) => {
+          console.error('Transfer preparation error:', error);
+          throw new Error(`Failed to prepare transfer: ${error.message}`);
+        },
+        onSuccess: (data) => {
+          console.log('Transfer prepared successfully:', data);
+        }
       });
       if (!transferWrite) {
-        throw new Error("Transfer function not available. Please check your wallet connection.");
+        throw new Error('Failed to prepare transfer transaction');
       }
 
       const transferTx = await transferWrite();

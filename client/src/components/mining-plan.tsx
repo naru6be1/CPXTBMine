@@ -405,7 +405,7 @@ export function MiningPlan() {
     abi: USDT_ABI,
     functionName: 'approve',
     args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
-    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
+    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address && chain?.id === 1,
   });
 
   const {
@@ -413,14 +413,27 @@ export function MiningPlan() {
     isLoading: isApproveLoading,
     isSuccess: isApproveSuccess,
     error: approveError
-  } = useContractWrite(approveConfig);
+  } = useContractWrite({
+    ...approveConfig,
+    onError: (error) => {
+      console.error('USDT approval error:', error);
+      toast({
+        variant: "destructive",
+        title: "USDT Approval Failed",
+        description: error instanceof Error ? error.message : "Failed to approve USDT transfer",
+      });
+    },
+    onSuccess: (data) => {
+      console.log('USDT approval successful:', data);
+    }
+  });
 
   const { config: transferConfig, error: transferConfigError } = usePrepareContractWrite({
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'transfer',
     args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
-    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address,
+    enabled: !!USDT_CONTRACT_ADDRESS && !!TREASURY_ADDRESS && !!address && chain?.id === 1,
   });
 
   const {
@@ -428,7 +441,21 @@ export function MiningPlan() {
     isLoading: isTransferLoading,
     isSuccess: isTransferSuccess,
     error: transferError
-  } = useContractWrite(transferConfig);
+  } = useContractWrite({
+    ...transferConfig,
+    onError: (error) => {
+      console.error('USDT transfer error:', error);
+      toast({
+        variant: "destructive",
+        title: "USDT Transfer Failed",
+        description: error instanceof Error ? error.message : "Failed to transfer USDT",
+      });
+    },
+    onSuccess: (data) => {
+      console.log('USDT transfer successful:', data);
+      setTransactionHash(data.hash);
+    }
+  });
 
   useEffect(() => {
     if (approveConfigError || approveError) {
@@ -528,15 +555,12 @@ export function MiningPlan() {
 
       transferWrite();
 
-      // Wait for transfer success and get transaction hash
-      const transferResult = await new Promise<string>((resolve, reject) => {
+      // Wait for transfer success
+      await new Promise<void>((resolve, reject) => {
         const checkTransfer = setInterval(() => {
           if (isTransferSuccess) {
             clearInterval(checkTransfer);
-            // Get transaction hash from event
-            const hash = localStorage.getItem('lastTransactionHash');
-            if (hash) resolve(hash);
-            else reject(new Error('Transaction hash not found'));
+            resolve();
           }
           if (transferError) {
             clearInterval(checkTransfer);
@@ -545,7 +569,6 @@ export function MiningPlan() {
         }, 1000);
       });
 
-      setTransactionHash(transferResult);
       setIsValidating(true);
 
       toast({

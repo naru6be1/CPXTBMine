@@ -99,14 +99,12 @@ function ActivePlanDisplay({
   withdrawalAddress,
   dailyRewardCPXTB,
   activatedAt,
-  planType,
-  onReset
+  planType
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
   planType: PlanType;
-  onReset: () => void;
 }) {
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
@@ -156,15 +154,8 @@ function ActivePlanDisplay({
               <p className="text-lg font-semibold">{formatDate(endDate)}</p>
             </div>
           </div>
-          <div className="space-y-3 pt-4">
+          <div className="pt-4">
             <TelegramSupport />
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={onReset}
-            >
-              Reset Mining Plan
-            </Button>
           </div>
         </div>
       </div>
@@ -360,15 +351,6 @@ export function MiningPlan() {
     }
   };
 
-  const handleResetPlan = () => {
-    localStorage.removeItem('activeMiningPlan');
-    setHasActivePlan(false);
-    setActivePlanDetails(null);
-    toast({
-      title: "Plan Reset",
-      description: "Your mining plan has been reset."
-    });
-  };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -484,7 +466,6 @@ export function MiningPlan() {
                 dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
                 activatedAt={activePlanDetails.activatedAt}
                 planType={activePlanDetails.planType}
-                onReset={handleResetPlan}
               />
             ) : (
               <div className="text-center py-8 space-y-4">

@@ -435,7 +435,7 @@ export function MiningPlan() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="new-plan" className="flex items-center gap-2">
               <Cpu className="h-4 w-4" />
@@ -557,10 +557,12 @@ export function MiningPlan() {
                 </p>
                 <Button
                   variant="outline"
-                  onClick={() => setActiveTab("new-plan")}
-                  className="mt-4 hover:bg-primary/10 transition-colors"
+                  onClick={() => {
+                    setActiveTab("new-plan");
+                  }}
+                  className="mt-4 hover:bg-primary/10 transition-colors flex items-center gap-2"
                 >
-                  <Cpu className="mr-2 h-4 w-4" />
+                  <Cpu className="h-4 w-4" />
                   View Available Plans
                 </Button>
               </div>

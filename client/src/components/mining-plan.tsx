@@ -8,62 +8,65 @@ import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { ethers } from "ethers";
 import { useAccount, useContractWrite, useContractRead, usePrepareContractWrite, useNetwork, useSwitchNetwork } from 'wagmi';
-import { formatUnits } from "ethers";
+import { formatUnits, parseUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Update the USDT ABI
+// USDT Contract Interface
 const USDT_ABI = [
   {
-    constant: true,
-    inputs: [{ name: "_owner", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "balance", type: "uint256" }],
-    type: "function"
+    "constant": true,
+    "inputs": [{"name": "_owner", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "balance", "type": "uint256"}],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    constant: false,
-    inputs: [
-      { name: "_to", type: "address" },
-      { name: "_value", type: "uint256" }
+    "constant": false,
+    "inputs": [
+      {"name": "_to", "type": "address"},
+      {"name": "_value", "type": "uint256"}
     ],
-    name: "transfer",
-    outputs: [{ name: "success", type: "bool" }],
-    type: "function"
+    "name": "transfer",
+    "outputs": [{"name": "", "type": "bool"}],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
   }
 ];
 
-// Update constants with proper addresses
-const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Ethereum Mainnet USDT
-const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27"; // Treasury address
+// Constants
+const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
 const REQUIRED_CONFIRMATIONS = 3;
 const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
 
-// Plan types
-type PlanType = 'daily' | 'weekly';
-
-interface PlanConfig {
-  investmentAmount: bigint;
-  displayAmount: string;
-  rewardUSD: number;
-  duration: string;
-}
-
+// Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
   daily: {
-    investmentAmount: ethers.parseUnits("1", 6), // 1 USDT
+    amount: "1000000", // 1 USDT with 6 decimals
     displayAmount: "1",
-    rewardUSD: 1.5, // 1.5 USD daily reward
+    rewardUSD: 1.5,
     duration: "24 hours"
   },
   weekly: {
-    investmentAmount: ethers.parseUnits("100", 6), // 100 USDT
+    amount: "100000000", // 100 USDT with 6 decimals
     displayAmount: "100",
-    rewardUSD: 15, // 15 USD daily reward
+    rewardUSD: 15,
     duration: "7 days"
   }
 };
 
+type PlanType = 'daily' | 'weekly';
+
+interface PlanConfig {
+  amount: string;
+  displayAmount: string;
+  rewardUSD: number;
+  duration: string;
+}
 
 // Function to check transaction status on Etherscan
 async function checkTransactionStatus(txHash: string): Promise<boolean> {
@@ -161,7 +164,9 @@ function ActivePlanDisplay({
   );
 }
 
+
 export function MiningPlan() {
+  // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [hasActivePlan, setHasActivePlan] = useState(false);
@@ -182,10 +187,10 @@ export function MiningPlan() {
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
 
   const currentPlan = PLANS[selectedPlan];
-  const cpxtbPrice = 0.002529; // Current CPXTB price in USD
+  const cpxtbPrice = 0.002529;
   const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
 
-  // Update the balance reading section
+  // USDT Balance Check
   const { data: usdtBalance, isError: isBalanceError, refetch: refetchBalance } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
@@ -195,39 +200,20 @@ export function MiningPlan() {
     watch: true,
     cacheTime: 5000,
     staleTime: 5000,
-    onSuccess: (data) => {
-      console.log('USDT balance read successfully:', {
-        raw: data?.toString(),
-        formatted: data ? formatUnits(data, 6) : '0',
-        chainId: chain?.id,
-        userAddress: address,
-        contractAddress: USDT_CONTRACT_ADDRESS
-      });
-    },
     onError: (error) => {
       console.error('Error reading USDT balance:', error);
       console.error('Contract parameters:', {
         contractAddress: USDT_CONTRACT_ADDRESS,
         userAddress: address,
         chainId: chain?.id,
-        isEnabled: !!address && chain?.id === 1,
-        isConnected: isConnected
+        isEnabled: !!address && chain?.id === 1
       });
-
-      if (error.message?.includes('Internal error') || error.message?.includes('Cannot fulfill request')) {
-        toast({
-          variant: "destructive",
-          title: "Network Connection Error",
-          description: "Having trouble connecting to Ethereum network. Please try again in a moment.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Balance Check Failed",
-          description: "Unable to read your USDT balance. Please ensure you're connected to Ethereum mainnet.",
-        });
-      }
-    },
+      toast({
+        variant: "destructive",
+        title: "Balance Check Failed",
+        description: "Unable to read your USDT balance. Please ensure you're connected to Ethereum mainnet.",
+      });
+    }
   });
 
   // Add manual balance check function
@@ -272,10 +258,10 @@ export function MiningPlan() {
       isConnected,
       address,
       chainId: chain?.id,
-      usdtBalance: usdtBalance ? formatUnits(usdtBalance, 6) : '0',
-      requiredAmount: formatUnits(currentPlan.investmentAmount, 6)
+      usdtBalance: usdtBalance ? formatUnits(usdtBalance, 6n) : '0',
+      requiredAmount: formatUnits(parseUnits(currentPlan.amount, 6n), 6n)
     });
-  }, [isConnected, address, chain, usdtBalance, currentPlan.investmentAmount]);
+  }, [isConnected, address, chain, usdtBalance, currentPlan.amount]);
 
   // Helper to format balance display with additional error checking
   const getBalanceDisplay = () => {
@@ -284,7 +270,7 @@ export function MiningPlan() {
     if (isBalanceError) return "Error loading balance";
     if (!usdtBalance) return "0 USDT";
     try {
-      return `${formatUnits(usdtBalance, 6)} USDT`;
+      return `${formatUnits(usdtBalance, 6n)} USDT`;
     } catch (error) {
       console.error('Error formatting balance:', error);
       return "Error displaying balance";
@@ -389,22 +375,22 @@ export function MiningPlan() {
     return true;
   };
 
-  // Transfer configuration
-  const { config: transferConfig, error: transferConfigError } = usePrepareContractWrite({
+  // Transfer Transaction Setup
+  const { config: transferConfig } = usePrepareContractWrite({
     address: USDT_CONTRACT_ADDRESS as `0x${string}`,
     abi: USDT_ABI,
     functionName: 'transfer',
-    args: [TREASURY_ADDRESS as `0x${string}`, currentPlan.investmentAmount],
+    args: [
+      TREASURY_ADDRESS as `0x${string}`,
+      BigInt(currentPlan.amount) // Use BigInt for the raw amount
+    ],
     enabled: Boolean(
       USDT_CONTRACT_ADDRESS &&
       TREASURY_ADDRESS &&
       address &&
       chain?.id === 1 &&
       !isTransferring
-    ),
-    onError: (error) => {
-      console.error('Error preparing transfer transaction:', error);
-    }
+    )
   });
 
   const {
@@ -415,43 +401,56 @@ export function MiningPlan() {
   } = useContractWrite({
     ...transferConfig,
     onError: (error) => {
-      console.error('USDT transfer error:', error);
+      console.error('USDT transfer error:', {
+        error,
+        details: {
+          amount: currentPlan.amount,
+          displayAmount: currentPlan.displayAmount,
+          address,
+          chainId: chain?.id
+        }
+      });
       setIsTransferring(false);
       toast({
         variant: "destructive",
-        title: "USDT Transfer Failed",
+        title: "Transfer Failed",
         description: error instanceof Error
           ? `Error: ${error.message}`
-          : "Failed to transfer USDT",
+          : "Failed to transfer USDT. Please check your wallet and try again.",
       });
     },
     onSuccess: (data) => {
-      console.log('USDT transfer successful:', data);
+      console.log('Transfer successful:', {
+        hash: data.hash,
+        amount: currentPlan.amount,
+        displayAmount: currentPlan.displayAmount
+      });
       setTransactionHash(data.hash);
+      setIsValidating(true);
       toast({
         title: "Transfer Submitted",
-        description: "Transaction has been submitted to the network",
+        description: "Transaction submitted to the network. Waiting for confirmation...",
       });
     }
   });
 
   useEffect(() => {
-    if (transferConfigError || transferError) {
-      console.error('Transfer error:', transferConfigError || transferError);
+    if (transferConfig?.error || transferError) {
+      console.error('Transfer error:', transferConfig?.error || transferError);
       toast({
         variant: "destructive",
         title: "Transfer Error",
-        description: (transferConfigError || transferError)?.message || "Failed to transfer USDT",
+        description: (transferConfig?.error || transferError)?.message || "Failed to transfer USDT",
       });
     }
-  }, [transferConfigError, transferError]);
+  }, [transferConfig, transferError]);
 
   const handleActivatePlan = async () => {
     if (!withdrawalAddress) {
       toast({
         variant: "destructive",
-        title: "Missing Withdrawal Address",
-        description: "Please provide your Base network address for CPXTB rewards",
+        title: "Missing Address",
+        description: "Please provide your Base network address for CPXTB rewards"
       });
       return;
     }
@@ -460,66 +459,50 @@ export function MiningPlan() {
       toast({
         variant: "destructive",
         title: "Wrong Network",
-        description: "Please switch to Ethereum mainnet to continue",
-      });
-      return;
-    }
-
-    if (!usdtBalance || usdtBalance < currentPlan.investmentAmount) {
-      const currentBalance = usdtBalance ? formatUnits(usdtBalance, 6) : '0';
-      toast({
-        variant: "destructive",
-        title: "Insufficient USDT Balance",
-        description: `You need ${currentPlan.displayAmount} USDT to activate the ${selectedPlan} plan. Your current balance is ${currentBalance} USDT.`,
+        description: "Please switch to Ethereum mainnet"
       });
       return;
     }
 
     try {
-      console.log('Starting plan activation with parameters:', {
-        withdrawalAddress,
-        planType: selectedPlan,
-        investmentAmount: formatUnits(currentPlan.investmentAmount, 6),
-        currentBalance: usdtBalance ? formatUnits(usdtBalance, 6) : '0',
-        chainId: chain.id,
-        userAddress: address
+      // Check balance with proper decimal handling
+      const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
+      const required = BigInt(currentPlan.amount);
+
+      console.log('Balance check:', {
+        balance: balance.toString(),
+        required: required.toString(),
+        displayBalance: formatUnits(balance, 6n),
+        displayRequired: currentPlan.displayAmount,
+        hasEnough: balance >= required
       });
+
+      if (balance < required) {
+        toast({
+          variant: "destructive",
+          title: "Insufficient Balance",
+          description: `You need ${currentPlan.displayAmount} USDT. Current balance: ${formatUnits(balance, 6n)} USDT`
+        });
+        return;
+      }
 
       setIsTransferring(true);
 
       if (!transferWrite) {
-        throw new Error('Unable to prepare transfer transaction. Please try again.');
+        throw new Error('Transfer not available. Please check your wallet connection and try again.');
       }
 
       transferWrite();
 
-      // Wait for transfer success
-      await new Promise<void>((resolve, reject) => {
-        const checkTransfer = setInterval(() => {
-          if (isTransferSuccess) {
-            clearInterval(checkTransfer);
-            resolve();
-          }
-          if (transferError) {
-            clearInterval(checkTransfer);
-            reject(transferError);
-          }
-        }, 1000);
-      });
-
-      setIsValidating(true);
-
     } catch (error) {
-      console.error('Error during plan activation:', error);
+      console.error('Activation error:', error);
       setIsTransferring(false);
       setIsValidating(false);
 
       toast({
         variant: "destructive",
         title: "Activation Failed",
-        description: error instanceof Error
-          ? `Error: ${error.message}`
-          : "Failed to activate mining plan. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to start mining plan"
       });
     }
   };

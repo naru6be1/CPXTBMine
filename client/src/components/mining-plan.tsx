@@ -555,16 +555,18 @@ export function MiningPlan() {
                     "Connect your wallet to view your active mining plans."
                   }
                 </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setActiveTab("new-plan");
-                  }}
-                  className="mt-4 hover:bg-primary/10 transition-colors flex items-center gap-2"
-                >
-                  <Cpu className="h-4 w-4" />
-                  View Available Plans
-                </Button>
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setActiveTab("new-plan");
+                    }}
+                    className="hover:bg-primary/10 transition-colors flex items-center gap-2"
+                  >
+                    <Cpu className="h-4 w-4" />
+                    View Available Plans
+                  </Button>
+                </div>
               </div>
             )}
           </TabsContent>

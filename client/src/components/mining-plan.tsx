@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Coins, MessageCircle } from "lucide-react";
+import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
@@ -81,7 +81,7 @@ interface PlanConfig {
 // Add Telegram Support Button Component
 function TelegramSupport() {
   return (
-    <a 
+    <a
       href="https://t.me/CPXTBase"
       target="_blank"
       rel="noopener noreferrer"
@@ -121,13 +121,17 @@ function ActivePlanDisplay({
   return (
     <div className="animate-fade-in space-y-4">
       <div className="bg-primary/10 rounded-lg p-6">
-        <h3 className="text-xl font-semibold text-primary mb-2">
-          🎉 Mining Plan Status
+        <h3 className="text-xl font-semibold text-primary mb-2 flex items-center gap-2">
+          <Server className="h-6 w-6 animate-pulse" />
+          Mining Plan Status
         </h3>
         <div className="space-y-3">
           <div>
             <p className="text-sm text-muted-foreground">Status</p>
-            <p className="text-lg font-semibold text-green-500">Active</p>
+            <p className="text-lg font-semibold text-green-500 flex items-center gap-2">
+              <Cpu className="h-5 w-5 animate-pulse" />
+              Active
+            </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Plan Type</p>
@@ -380,7 +384,7 @@ export function MiningPlan() {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Coins className="h-6 w-6 text-primary" />
+          <Server className="h-6 w-6 text-primary animate-pulse" />
           Mining Plans
         </CardTitle>
       </CardHeader>
@@ -391,6 +395,7 @@ export function MiningPlan() {
             onClick={() => setSelectedPlan('daily')}
             className="flex-1"
           >
+            <Cpu className="mr-2 h-4 w-4" />
             Daily Plan
           </Button>
           <Button
@@ -398,12 +403,16 @@ export function MiningPlan() {
             onClick={() => setSelectedPlan('weekly')}
             className="flex-1"
           >
+            <Server className="mr-2 h-4 w-4" />
             Weekly Plan
           </Button>
         </div>
 
         <div className="bg-muted rounded-lg p-6 space-y-4">
-          <h3 className="text-lg font-semibold capitalize">{selectedPlan} Mining Plan Details</h3>
+          <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
+            <Cpu className="h-5 w-5 text-primary" />
+            {selectedPlan} Mining Plan Details
+          </h3>
           <div className="grid gap-3">
             <div>
               <p className="text-sm text-muted-foreground">Your USDT Balance</p>

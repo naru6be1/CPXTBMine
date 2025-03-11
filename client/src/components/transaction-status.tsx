@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ExternalLink, Server, Cpu } from "lucide-react";
 
 interface TransactionStatusProps {
   hash: string;
@@ -29,9 +29,12 @@ export function TransactionStatus({ hash, isValidating, isConfirmed }: Transacti
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
               className="flex items-center gap-2 text-primary"
             >
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <div className="relative">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <Server className="h-4 w-4 absolute -top-1 -right-1 animate-pulse text-primary" />
+              </div>
               <span className="text-sm font-medium">
-                Confirming Transaction... This may take a few minutes.
+                Mining Transaction... This may take a few minutes.
               </span>
             </motion.div>
           ) : isConfirmed ? (
@@ -41,8 +44,11 @@ export function TransactionStatus({ hash, isValidating, isConfirmed }: Transacti
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
               className="flex items-center gap-2 text-green-500"
             >
-              <CheckCircle2 className="h-6 w-6" />
-              <span className="text-sm font-medium">Transaction Confirmed!</span>
+              <div className="relative">
+                <CheckCircle2 className="h-6 w-6" />
+                <Cpu className="h-4 w-4 absolute -top-1 -right-1 text-primary" />
+              </div>
+              <span className="text-sm font-medium">Mining Completed!</span>
             </motion.div>
           ) : (
             <motion.div
@@ -51,8 +57,11 @@ export function TransactionStatus({ hash, isValidating, isConfirmed }: Transacti
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
               className="flex items-center gap-2 text-primary"
             >
-              <AlertCircle className="h-6 w-6" />
-              <span className="text-sm font-medium">Transaction Submitted</span>
+              <div className="relative">
+                <AlertCircle className="h-6 w-6" />
+                <Server className="h-4 w-4 absolute -top-1 -right-1 animate-pulse" />
+              </div>
+              <span className="text-sm font-medium">Mining Started</span>
             </motion.div>
           )}
 

@@ -1,11 +1,10 @@
 import { createWeb3Modal } from '@web3modal/wagmi'
 import { configureChains, createConfig } from 'wagmi'
-import { mainnet, base } from 'viem/chains'
+import { mainnet } from 'viem/chains'
 import { publicProvider } from 'wagmi/providers/public'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect'
 
-// Get WalletConnect Project ID from environment variable
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
 if (!projectId) {
@@ -13,29 +12,28 @@ if (!projectId) {
   throw new Error("Missing VITE_WALLETCONNECT_PROJECT_ID environment variable")
 }
 
-console.log("Initializing Web3Modal with project ID:", projectId.slice(0, 4) + "...")
+console.log("Initializing Web3Modal with enhanced error handling")
 
 const metadata = {
   name: 'CPXTBMining',
   description: 'CPXTB Mining and Investment Platform',
-  url: 'https://web3modal.com', // Will be updated with actual URL
+  url: 'https://web3modal.com',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains & providers with error handling
+// Configure chains with improved error handling
 const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet, base], 
-  [
-    publicProvider(),
-  ],
+  [mainnet],
+  [publicProvider()],
   {
     pollingInterval: 5000,
-    retryCount: 3,
+    retryCount: 5,
     retryDelay: 1000,
+    stallTimeout: 5000
   }
 );
 
-// Create wagmi config with detailed logging
+// Create wagmi config with enhanced logging
 const config = createConfig({
   autoConnect: true,
   connectors: [
@@ -61,7 +59,6 @@ const config = createConfig({
     warn: (message) => console.warn(`[Web3 Warning]: ${message}`),
     error: (error) => {
       console.error(`[Web3 Error]: ${error instanceof Error ? error.message : error}`);
-      // Add detailed error logging
       if (error instanceof Error) {
         console.error('Error stack:', error.stack);
         console.error('Error details:', {
@@ -74,14 +71,7 @@ const config = createConfig({
   }
 });
 
-// Log connection status
-console.log("Web3 Configuration:", {
-  chainIds: chains.map(c => c.id),
-  connectors: config.connectors.map(c => c.name),
-  autoConnect: config.autoConnect
-});
-
-// Create web3Modal instance with enhanced error handling
+// Create web3Modal instance
 const web3Modal = createWeb3Modal({
   wagmiConfig: config,
   projectId,
@@ -95,8 +85,8 @@ const web3Modal = createWeb3Modal({
     '--w3m-color': 'hsl(var(--foreground))',
     '--w3m-z-index': 1000
   }
-})
+});
 
-console.log("Web3Modal initialization completed")
+console.log("Web3 configuration completed with enhanced error handling");
 
 export { web3Modal, config }

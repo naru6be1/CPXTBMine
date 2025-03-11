@@ -12,12 +12,35 @@ import { formatUnits } from "ethers";
 import { TransactionStatus } from "./transaction-status";
 import { motion, AnimatePresence } from "framer-motion";
 
-// USDT Contract ABI (only including necessary functions)
+// Update the USDT ABI to include more detailed function definitions
 const USDT_ABI = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-  "function transfer(address recipient, uint256 amount) external returns (bool)",
-  "function balanceOf(address account) external view returns (uint256)",
-  "function allowance(address owner, address spender) external view returns (uint256)"
+  {
+    constant: true,
+    inputs: [{ name: "_owner", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "balance", type: "uint256" }],
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_spender", type: "address" },
+      { name: "_value", type: "uint256" }
+    ],
+    name: "approve",
+    outputs: [{ name: "success", type: "bool" }],
+    type: "function"
+  },
+  {
+    constant: false,
+    inputs: [
+      { name: "_to", type: "address" },
+      { name: "_value", type: "uint256" }
+    ],
+    name: "transfer",
+    outputs: [{ name: "success", type: "bool" }],
+    type: "function"
+  }
 ];
 
 // Update constants with proper addresses and configuration
@@ -209,21 +232,41 @@ export function MiningPlan() {
     },
   });
 
-  // Add effect to periodically refetch balance
+  // Add manual balance check function
+  const checkBalance = async () => {
+    try {
+      if (!isConnected || !address || chain?.id !== 1) {
+        console.log('Balance check skipped:', {
+          isConnected,
+          address,
+          chainId: chain?.id
+        });
+        return;
+      }
+
+      console.log('Manually checking balance...');
+      await refetchBalance();
+    } catch (error) {
+      console.error('Manual balance check failed:', error);
+    }
+  };
+
+  // Add effect to check balance on network/wallet changes
+  useEffect(() => {
+    checkBalance();
+  }, [isConnected, address, chain?.id]);
+
+  // Update balance refresh interval
   useEffect(() => {
     if (isConnected && chain?.id === 1 && address) {
-      console.log('Setting up balance refetch interval');
-      const interval = setInterval(() => {
-        console.log('Refetching USDT balance...');
-        refetchBalance();
-      }, 5000); // Refetch every 5 seconds
-
+      console.log('Setting up balance refresh interval');
+      const interval = setInterval(checkBalance, 5000);
       return () => {
-        console.log('Clearing balance refetch interval');
+        console.log('Clearing balance refresh interval');
         clearInterval(interval);
       };
     }
-  }, [isConnected, chain?.id, address, refetchBalance]);
+  }, [isConnected, chain?.id, address]);
 
   // Add effect to log wallet state changes
   useEffect(() => {

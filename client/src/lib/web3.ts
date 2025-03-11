@@ -33,7 +33,7 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
     retryCount: 3,
     retryDelay: 1000,
   }
-)
+);
 
 // Create wagmi config with detailed logging
 const config = createConfig({

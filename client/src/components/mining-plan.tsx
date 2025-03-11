@@ -94,17 +94,18 @@ function TelegramSupport() {
   );
 }
 
-// ActivePlanDisplay component with end date and Telegram support
 function ActivePlanDisplay({
   withdrawalAddress,
   dailyRewardCPXTB,
   activatedAt,
-  planType
+  planType,
+  walletAddress
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
   planType: PlanType;
+  walletAddress: string;
 }) {
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
@@ -144,6 +145,10 @@ function ActivePlanDisplay({
             <p className="text-sm text-muted-foreground">Withdrawal Address</p>
             <p className="text-sm font-mono break-all">{withdrawalAddress}</p>
           </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Wallet Address</p>
+            <p className="text-sm font-mono break-all">{walletAddress}</p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Activation Time</p>
@@ -160,8 +165,6 @@ function ActivePlanDisplay({
   );
 }
 
-
-
 export function MiningPlan() {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
@@ -171,6 +174,7 @@ export function MiningPlan() {
     dailyRewardCPXTB: string;
     activatedAt: string;
     planType: PlanType;
+    walletAddress: string;
   } | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
@@ -179,22 +183,28 @@ export function MiningPlan() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [activeTab, setActiveTab] = useState("new-plan");
 
-  // Load active plans from localStorage on component mount
-  useEffect(() => {
-    const savedPlan = localStorage.getItem('activeMiningPlan');
-    if (savedPlan) {
-      const planDetails = JSON.parse(savedPlan);
-      setHasActivePlan(true);
-      setActivePlanDetails(planDetails);
-    }
-  }, []);
-
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
   const { chain } = useNetwork();
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+
+  // Load active plans from localStorage on component mount or when wallet address changes
+  useEffect(() => {
+    const savedPlan = localStorage.getItem('activeMiningPlan');
+    if (savedPlan) {
+      const planDetails = JSON.parse(savedPlan);
+      // Only show active plan if the current wallet matches the one that activated it
+      if (address && planDetails.walletAddress === address) {
+        setHasActivePlan(true);
+        setActivePlanDetails(planDetails);
+      } else {
+        setHasActivePlan(false);
+        setActivePlanDetails(null);
+      }
+    }
+  }, [address]);
 
   const currentPlan = PLANS[selectedPlan];
   const cpxtbPrice = 0.002529;
@@ -225,6 +235,15 @@ export function MiningPlan() {
   };
 
   const handleTransfer = async () => {
+    if (!address) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to activate a mining plan"
+      });
+      return;
+    }
+
     if (!chain || chain.id !== 1) {
       toast({
         variant: "destructive",
@@ -301,7 +320,7 @@ export function MiningPlan() {
             )
           ]);
 
-          if (receipt && receipt.status === 'success') {
+          if (receipt && receipt.status === 1) {
             break;
           }
 
@@ -312,7 +331,7 @@ export function MiningPlan() {
         }
       }
 
-      if (!receipt || receipt.status !== 'success') {
+      if (!receipt || receipt.status !== 1) {
         throw new Error('Transaction failed or timed out');
       }
 
@@ -322,7 +341,8 @@ export function MiningPlan() {
         withdrawalAddress,
         dailyRewardCPXTB,
         activatedAt: activationTime,
-        planType: selectedPlan
+        planType: selectedPlan,
+        walletAddress: address // Store the wallet address that activated the plan
       };
 
       localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
@@ -348,7 +368,6 @@ export function MiningPlan() {
       });
     }
   };
-
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -464,13 +483,17 @@ export function MiningPlan() {
                 dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
                 activatedAt={activePlanDetails.activatedAt}
                 planType={activePlanDetails.planType}
+                walletAddress={activePlanDetails.walletAddress}
               />
             ) : (
               <div className="text-center py-8 space-y-4">
                 <Server className="h-12 w-12 mx-auto text-muted-foreground" />
                 <h3 className="text-lg font-semibold">No Active Mining Plans</h3>
                 <p className="text-muted-foreground">
-                  Start mining by selecting a plan from the Mining Plans tab.
+                  {address ? 
+                    "Start mining by selecting a plan from the Mining Plans tab." :
+                    "Connect your wallet to view your active mining plans."
+                  }
                 </p>
                 <Button
                   variant="outline"

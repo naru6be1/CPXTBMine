@@ -206,8 +206,15 @@ export function MiningPlan() {
     watch: true,
     cacheTime: 5000, // Reduce cache time to 5 seconds
     staleTime: 5000, // Consider data stale after 5 seconds
-    retry: 3,
-    retryDelay: 1000,
+    onSuccess: (data) => {
+      console.log('USDT balance read successfully:', {
+        raw: data?.toString(),
+        formatted: data ? formatUnits(data, 6) : '0',
+        chainId: chain?.id,
+        userAddress: address,
+        contractAddress: USDT_CONTRACT_ADDRESS
+      });
+    },
     onError: (error) => {
       console.error('Error reading USDT balance:', error);
       console.error('Contract parameters:', {
@@ -218,7 +225,6 @@ export function MiningPlan() {
         isConnected: isConnected
       });
 
-      // Check if it's an RPC error and show appropriate message
       if (error.message?.includes('Internal error') || error.message?.includes('Cannot fulfill request')) {
         toast({
           variant: "destructive",
@@ -232,15 +238,6 @@ export function MiningPlan() {
           description: "Unable to read your USDT balance. Please ensure you're connected to Ethereum mainnet.",
         });
       }
-    },
-    onSuccess: (data) => {
-      console.log('USDT balance read successfully:', {
-        raw: data?.toString(),
-        formatted: data ? formatUnits(data, 6) : '0',
-        chainId: chain?.id,
-        userAddress: address,
-        contractAddress: USDT_CONTRACT_ADDRESS
-      });
     },
   });
 
@@ -291,12 +288,18 @@ export function MiningPlan() {
     });
   }, [isConnected, address, chain, usdtBalance, currentPlan.investmentAmount]);
 
-  // Helper to format balance display
+  // Helper to format balance display with additional error checking
   const getBalanceDisplay = () => {
     if (!isConnected) return "Not connected";
     if (chain?.id !== 1) return "Wrong network";
     if (isBalanceError) return "Error loading balance";
-    return `${usdtBalance ? formatUnits(usdtBalance, 6) : '0'} USDT`;
+    if (!usdtBalance) return "0 USDT";
+    try {
+      return `${formatUnits(usdtBalance, 6)} USDT`;
+    } catch (error) {
+      console.error('Error formatting balance:', error);
+      return "Error displaying balance";
+    }
   };
 
   useEffect(() => {

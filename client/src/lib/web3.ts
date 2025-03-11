@@ -28,13 +28,7 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
   [
     jsonRpcProvider({
       rpc: (chain) => ({
-        http: chain.id === 1 ? [
-          'https://eth.llamarpc.com',
-          'https://rpc.ankr.com/eth',
-          'https://ethereum.publicnode.com',
-          'https://eth-mainnet.public.blastapi.io',
-          'https://rpc.mevblocker.io',
-        ] : undefined,
+        http: 'https://eth.llamarpc.com',
       }),
     }),
     publicProvider()
@@ -42,7 +36,7 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
   {
     pollingInterval: 5000,
     retryCount: 5,
-    retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000),
+    retryDelay: 1000,
     stallTimeout: 5000,
     batch: {
       multicall: true

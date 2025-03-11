@@ -3,13 +3,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Coins } from "lucide-react";
+import { Coins, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
+import { SiTelegram } from 'react-icons/si';
 
 // Legacy USDT Contract Interface with exact function signatures
 const USDT_ABI = [
@@ -55,13 +56,13 @@ const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
   daily: {
-    amount: parseUnits("1", 6), // 1 USDT
+    amount: BigInt("1000000"), // 1 USDT
     displayAmount: "1",
     rewardUSD: 1.5,
     duration: "24 hours"
   },
   weekly: {
-    amount: parseUnits("100", 6), // 100 USDT
+    amount: BigInt("100000000"), // 100 USDT
     displayAmount: "100",
     rewardUSD: 15,
     duration: "7 days"
@@ -77,7 +78,22 @@ interface PlanConfig {
   duration: string;
 }
 
-// ActivePlanDisplay component with end date
+// Add Telegram Support Button Component
+function TelegramSupport() {
+  return (
+    <a 
+      href="https://t.me/CPXTBase"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-white bg-[#229ED9] hover:bg-[#1e8bc3] rounded-md transition-colors"
+    >
+      <SiTelegram className="w-5 h-5" />
+      Contact Support on Telegram
+    </a>
+  );
+}
+
+// ActivePlanDisplay component with end date and Telegram support
 function ActivePlanDisplay({
   withdrawalAddress,
   dailyRewardCPXTB,
@@ -135,13 +151,16 @@ function ActivePlanDisplay({
               <p className="text-lg font-semibold">{formatDate(endDate)}</p>
             </div>
           </div>
-          <Button
-            variant="destructive"
-            className="w-full mt-4"
-            onClick={onReset}
-          >
-            Reset Mining Plan
-          </Button>
+          <div className="space-y-3 pt-4">
+            <TelegramSupport />
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={onReset}
+            >
+              Reset Mining Plan
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -187,7 +206,6 @@ export function MiningPlan() {
   });
 
 
-  // Helper to format balance display
   const getBalanceDisplay = () => {
     if (!isConnected) return "Not connected";
     if (chain?.id !== 1) return "Wrong network";
@@ -201,7 +219,6 @@ export function MiningPlan() {
     }
   };
 
-  // Update the handleTransfer function with improved transaction handling
   const handleTransfer = async () => {
     if (!chain || chain.id !== 1) {
       toast({
@@ -231,7 +248,6 @@ export function MiningPlan() {
     }
 
     try {
-      // Check balance
       const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
       if (balance < currentPlan.amount) {
         toast({
@@ -244,7 +260,6 @@ export function MiningPlan() {
 
       setIsTransferring(true);
 
-      // Using direct transfer
       const { request } = await publicClient.simulateContract({
         address: USDT_CONTRACT_ADDRESS as Address,
         abi: USDT_ABI,
@@ -256,7 +271,6 @@ export function MiningPlan() {
         account: address as Address,
       });
 
-      // Send transaction
       const hash = await walletClient.writeContract(request);
       console.log('Transaction submitted:', hash);
 
@@ -268,7 +282,6 @@ export function MiningPlan() {
         description: "Waiting for transaction confirmation. This may take a few minutes..."
       });
 
-      // Wait for confirmation with retries and timeout
       let receipt = null;
       const maxRetries = 5;
       const retryDelay = 5000; // 5 seconds
@@ -341,7 +354,6 @@ export function MiningPlan() {
     });
   };
 
-  // Show active plan if exists
   if (hasActivePlan && activePlanDetails) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
@@ -450,6 +462,12 @@ export function MiningPlan() {
               isConfirmed={isConfirmed}
             />
           )}
+        </div>
+        <div className="pt-6 border-t border-border">
+          <p className="text-sm text-muted-foreground mb-3 text-center">
+            Need help? Contact our support team
+          </p>
+          <TelegramSupport />
         </div>
       </CardContent>
     </Card>

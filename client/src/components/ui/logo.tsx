@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import Image from "@/components/ui/image"
 
 interface LogoProps {
   className?: string;
@@ -7,24 +8,25 @@ interface LogoProps {
 
 export function Logo({ className, size = "md" }: LogoProps) {
   const sizes = {
-    sm: "h-6 w-6",
-    md: "h-8 w-8",
-    lg: "h-12 w-12"
+    sm: "h-8 w-8",
+    md: "h-12 w-12",
+    lg: "h-16 w-16"
   };
 
-  // This is a placeholder that will be replaced with the actual logo
   return (
     <div className={cn(
-      "flex items-center gap-2",
+      "flex items-center gap-3",
       className
     )}>
-      <div className={cn(
-        "rounded bg-primary/10 flex items-center justify-center",
-        sizes[size]
-      )}>
-        <span className="font-bold text-primary">C</span>
-      </div>
-      <span className="font-semibold text-foreground">CPXTBMining</span>
+      <img 
+        src="/assets/logo.png"
+        alt="CPXTB Mining Logo"
+        className={cn(
+          "rounded-full",
+          sizes[size]
+        )}
+      />
+      <span className="font-semibold text-xl text-foreground">CPXTBMining</span>
     </div>
   );
 }

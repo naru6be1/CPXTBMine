@@ -5,17 +5,14 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Ensure DATABASE_URL is set and properly formatted
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Use single database URL for both development and production
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be set. Ensure the database is provisioned');
 }
 
 // Create connection pool with explicit ssl configuration
 export const pool = new Pool({ 
-  connectionString: DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false // Required for some Replit environments
   }
@@ -28,3 +25,6 @@ pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
   process.exit(-1);
 });
+
+// Log database connection (but not the full connection string for security)
+console.log('Connected to database');

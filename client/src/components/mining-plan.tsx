@@ -354,7 +354,17 @@ export function MiningPlan() {
           ]);
 
           if (receipt && receipt.status === 1) {
-            break;
+            console.log('Transaction confirmed:', receipt);
+            setIsConfirmed(true);
+            setIsValidating(false);
+            activatePlan(hash);
+
+            toast({
+              title: "Transaction Confirmed",
+              description: "Your transaction was successful! Activating mining plan..."
+            });
+
+            return;
           }
 
           await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -364,12 +374,7 @@ export function MiningPlan() {
         }
       }
 
-      if (!receipt || receipt.status !== 1) {
-        throw new Error('Transaction failed or timed out');
-      }
-
-      setIsConfirmed(true);
-      activatePlan(hash);
+      throw new Error('Transaction failed or timed out');
 
     } catch (error) {
       console.error('Validation error:', error);

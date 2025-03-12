@@ -12,8 +12,9 @@ console.log(`Database connection attempt starting...`);
 // Use single database URL for both development and production
 if (!process.env.DATABASE_URL) {
   console.error('Critical Error: DATABASE_URL environment variable is not set');
+  console.error('Please add DATABASE_URL to your deployment secrets');
   console.error('Environment variables available:', Object.keys(process.env).join(', '));
-  throw new Error('DATABASE_URL must be set. Ensure the database is provisioned');
+  process.exit(1); // Exit with error code instead of throwing exception for clearer error
 }
 
 // Create connection pool with explicit ssl configuration

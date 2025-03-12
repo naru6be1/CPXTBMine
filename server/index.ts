@@ -9,6 +9,7 @@ log("Starting server initialization with enhanced logging...");
 log(`Database URL status: ${process.env.DATABASE_URL ? 'present' : 'missing'}`);
 if (!process.env.DATABASE_URL) {
   log("WARNING: DATABASE_URL environment variable is not set!");
+  log("Available environment variables:", Object.keys(process.env).join(', '));
 }
 
 const app = express();
@@ -52,7 +53,10 @@ app.use((req, res, next) => {
 
     // Check for required environment variables
     if (!process.env.DATABASE_URL) {
-      throw new Error('Critical: DATABASE_URL environment variable is missing. Please ensure it is set in your deployment environment.');
+      const errorMessage = 'Critical: DATABASE_URL environment variable is missing. Please ensure it is set in your deployment environment.';
+      log(errorMessage);
+      log("Available environment variables:", Object.keys(process.env).join(', '));
+      throw new Error(errorMessage);
     }
 
     // Initialize routes
@@ -103,6 +107,7 @@ app.use((req, res, next) => {
       log(`Application is now available at http://0.0.0.0:${port}`);
       log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       log(`Database connection status: ${process.env.DATABASE_URL ? 'configured' : 'missing'}`);
+      log("Environment variables available:", Object.keys(process.env).join(', '));
     });
   } catch (error) {
     console.error("Failed to start server:", error);

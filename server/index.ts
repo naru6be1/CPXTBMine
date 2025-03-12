@@ -5,6 +5,12 @@ import { setupVite, serveStatic, log } from "./vite";
 // Add more detailed startup logging
 log("Starting server initialization with enhanced logging...");
 
+// Add diagnostic logging for DATABASE_URL
+log(`Database URL status: ${process.env.DATABASE_URL ? 'present' : 'missing'}`);
+if (!process.env.DATABASE_URL) {
+  log("WARNING: DATABASE_URL environment variable is not set!");
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

@@ -27,18 +27,6 @@ const USDT_ABI = [
   {
     "constant": false,
     "inputs": [
-      {"name": "_spender", "type": "address"},
-      {"name": "_value", "type": "uint256"}
-    ],
-    "name": "approve",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
       {"name": "_to", "type": "address"},
       {"name": "_value", "type": "uint256"}
     ],
@@ -214,7 +202,6 @@ export function MiningPlan() {
     activatedAt: string;
     planType: PlanType;
   } | null>(null);
-  const [isApproving, setIsApproving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -232,7 +219,37 @@ export function MiningPlan() {
   const cpxtbPrice = 0.002529;
   const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
 
-  // USDT Balance Check
+  // Load active plan from localStorage on mount and wallet connection changes
+  useEffect(() => {
+    const loadActivePlan = () => {
+      const savedPlan = localStorage.getItem('activeMiningPlan');
+      if (savedPlan) {
+        const planDetails = JSON.parse(savedPlan);
+        const activationDate = new Date(planDetails.activatedAt);
+        const endDate = new Date(activationDate);
+        endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
+
+        const now = new Date();
+        const isCurrentlyExpired = now > endDate;
+
+        setIsExpired(isCurrentlyExpired);
+        setHasActivePlan(true);
+        setActivePlanDetails(planDetails);
+
+        // Log plan loading for debugging
+        console.log('Loaded active plan:', {
+          planDetails,
+          isExpired: isCurrentlyExpired,
+          now: now.toISOString(),
+          endDate: endDate.toISOString()
+        });
+      }
+    };
+
+    loadActivePlan();
+  }, []);
+
+  // USDT Balance Check only when wallet is connected
   const { data: usdtBalance, isError: isBalanceError } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as Address,
     abi: USDT_ABI,
@@ -241,7 +258,6 @@ export function MiningPlan() {
     enabled: !!address && chain?.id === 1,
     watch: true
   });
-
 
   const getBalanceDisplay = () => {
     if (!isConnected) return "Not connected";
@@ -357,9 +373,14 @@ export function MiningPlan() {
         planType: selectedPlan
       };
 
+      // Store plan details in localStorage
       localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
       setHasActivePlan(true);
       setActivePlanDetails(planDetails);
+      setIsExpired(false);
+
+      // Log plan activation for debugging
+      console.log('Plan activated:', planDetails);
 
       toast({
         title: "Plan Activated",
@@ -401,24 +422,6 @@ export function MiningPlan() {
     });
   };
 
-  useEffect(() => {
-    // Check for active plan in localStorage on mount
-    const savedPlan = localStorage.getItem('activeMiningPlan');
-    if (savedPlan) {
-      const planDetails = JSON.parse(savedPlan);
-      const activationDate = new Date(planDetails.activatedAt);
-      const endDate = new Date(activationDate);
-      endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
-
-      const now = new Date();
-      const isCurrentlyExpired = now > endDate;
-
-      setIsExpired(isCurrentlyExpired);
-      setHasActivePlan(true);
-      setActivePlanDetails(planDetails);
-    }
-  }, []);
-
   // Check expiration every minute
   useEffect(() => {
     if (hasActivePlan && activePlanDetails) {
@@ -428,7 +431,15 @@ export function MiningPlan() {
         endDate.setDate(endDate.getDate() + (activePlanDetails.planType === 'weekly' ? 7 : 1));
 
         const now = new Date();
-        setIsExpired(now > endDate);
+        const isCurrentlyExpired = now > endDate;
+        setIsExpired(isCurrentlyExpired);
+
+        // Log expiration check for debugging
+        console.log('Checking plan expiration:', {
+          now: now.toISOString(),
+          endDate: endDate.toISOString(),
+          isExpired: isCurrentlyExpired
+        });
       };
 
       const timer = setInterval(checkExpiration, 60000); // Check every minute

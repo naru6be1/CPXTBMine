@@ -28,3 +28,6 @@ pool.on('error', (err) => {
 
 // Log database connection (but not the full connection string for security)
 console.log('Connected to database');
+
+// Add deployment-specific logging
+console.log(`Database connection initialized in ${process.env.NODE_ENV || 'development'} mode`);

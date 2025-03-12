@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -11,7 +11,6 @@ import { formatUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
 import { SiTelegram } from 'react-icons/si';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Legacy USDT Contract Interface with exact function signatures
 const USDT_ABI = [
@@ -94,20 +93,19 @@ function TelegramSupport() {
   );
 }
 
+// ActivePlanDisplay component with end date and Telegram support
 function ActivePlanDisplay({
   withdrawalAddress,
   dailyRewardCPXTB,
   activatedAt,
   planType,
-  walletAddress,
-  transactionHash
+  onReset
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
   planType: PlanType;
-  walletAddress: string;
-  transactionHash: string;
+  onReset: () => void;
 }) {
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
@@ -147,10 +145,6 @@ function ActivePlanDisplay({
             <p className="text-sm text-muted-foreground">Withdrawal Address</p>
             <p className="text-sm font-mono break-all">{withdrawalAddress}</p>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Wallet Address</p>
-            <p className="text-sm font-mono break-all">{walletAddress}</p>
-          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Activation Time</p>
@@ -161,22 +155,22 @@ function ActivePlanDisplay({
               <p className="text-lg font-semibold">{formatDate(endDate)}</p>
             </div>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Transaction Hash</p>
-            <a
-              href={`https://etherscan.io/tx/${transactionHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-mono break-all text-primary hover:underline"
+          <div className="space-y-3 pt-4">
+            <TelegramSupport />
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={onReset}
             >
-              {transactionHash}
-            </a>
+              Reset Mining Plan
+            </Button>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 export function MiningPlan() {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
@@ -187,15 +181,12 @@ export function MiningPlan() {
     dailyRewardCPXTB: string;
     activatedAt: string;
     planType: PlanType;
-    walletAddress: string;
-    transactionHash: string;
   } | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
-  const [activeTab, setActiveTab] = useState("new-plan");
 
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
@@ -203,22 +194,6 @@ export function MiningPlan() {
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
-
-  // Load active plans from localStorage on component mount or when wallet address changes
-  useEffect(() => {
-    const savedPlan = localStorage.getItem('activeMiningPlan');
-    if (savedPlan) {
-      const planDetails = JSON.parse(savedPlan);
-      // Only show active plan if the current wallet matches the one that activated it
-      if (address && planDetails.walletAddress === address) {
-        setHasActivePlan(true);
-        setActivePlanDetails(planDetails);
-      } else {
-        setHasActivePlan(false);
-        setActivePlanDetails(null);
-      }
-    }
-  }, [address]);
 
   const currentPlan = PLANS[selectedPlan];
   const cpxtbPrice = 0.002529;
@@ -249,15 +224,6 @@ export function MiningPlan() {
   };
 
   const handleTransfer = async () => {
-    if (!address) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to activate a mining plan"
-      });
-      return;
-    }
-
     if (!chain || chain.id !== 1) {
       toast({
         variant: "destructive",
@@ -320,25 +286,6 @@ export function MiningPlan() {
         description: "Waiting for transaction confirmation. This may take a few minutes..."
       });
 
-      await validateTransaction(hash);
-
-    } catch (error) {
-      console.error('Transfer error:', error);
-      setIsTransferring(false);
-      setIsValidating(false);
-
-      toast({
-        variant: "destructive",
-        title: "Transfer Failed",
-        description: error instanceof Error 
-          ? `Error: ${error.message}` 
-          : "Failed to transfer USDT. Please try again."
-      });
-    }
-  };
-
-  const validateTransaction = async (hash: string) => {
-    try {
       let receipt = null;
       const maxRetries = 5;
       const retryDelay = 5000; // 5 seconds
@@ -353,7 +300,7 @@ export function MiningPlan() {
             )
           ]);
 
-          if (receipt && receipt.status === 1) {
+          if (receipt && receipt.status === 'success') {
             break;
           }
 
@@ -364,215 +311,168 @@ export function MiningPlan() {
         }
       }
 
-      if (!receipt || receipt.status !== 1) {
+      if (!receipt || receipt.status !== 'success') {
         throw new Error('Transaction failed or timed out');
       }
 
       setIsConfirmed(true);
-      activatePlan(hash);
+      const activationTime = new Date().toISOString();
+      const planDetails = {
+        withdrawalAddress,
+        dailyRewardCPXTB,
+        activatedAt: activationTime,
+        planType: selectedPlan
+      };
+
+      localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
+      setHasActivePlan(true);
+      setActivePlanDetails(planDetails);
+
+      toast({
+        title: "Plan Activated",
+        description: "Your mining plan has been successfully activated!"
+      });
 
     } catch (error) {
-      console.error('Validation error:', error);
+      console.error('Transfer error:', error);
+      setIsTransferring(false);
       setIsValidating(false);
-      // Don't clear transaction hash so user can retry
+
       toast({
         variant: "destructive",
-        title: "Validation Failed", 
-        description: "Transaction validation timed out. You can retry validation to check if your transaction was confirmed."
+        title: "Transfer Failed",
+        description: error instanceof Error
+          ? `Error: ${error.message}. Please try again.`
+          : "Failed to transfer USDT. Please try again."
       });
     }
   };
 
-  const activatePlan = (hash: string) => {
-    const activationTime = new Date().toISOString();
-    const planDetails = {
-      withdrawalAddress,
-      dailyRewardCPXTB,
-      activatedAt: activationTime,
-      planType: selectedPlan,
-      walletAddress: address, // Store the wallet address that activated the plan
-      transactionHash: hash // Store the transaction hash
-    };
-
-    localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
-    setHasActivePlan(true);
-    setActivePlanDetails(planDetails);
-
+  const handleResetPlan = () => {
+    localStorage.removeItem('activeMiningPlan');
+    setHasActivePlan(false);
+    setActivePlanDetails(null);
     toast({
-      title: "Plan Activated",
-      description: "Your mining plan has been successfully activated!"
+      title: "Plan Reset",
+      description: "Your mining plan has been reset."
     });
   };
 
-  const handleRetryValidation = async () => {
-    if (!transactionHash || !publicClient) return;
-
-    setIsValidating(true);
-    toast({
-      title: "Retrying Validation",
-      description: "Checking transaction status..."
-    });
-
-    try {
-      await validateTransaction(transactionHash);
-    } catch (error) {
-      console.error('Retry validation error:', error);
-      setIsValidating(false);
-      toast({
-        variant: "destructive",
-        title: "Validation Failed",
-        description: "Transaction validation failed. Please try again later or contact support if the issue persists."
-      });
-    }
-  };
+  if (hasActivePlan && activePlanDetails) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Coins className="h-6 w-6 text-primary" />
+            Active Mining Plan
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivePlanDisplay
+            withdrawalAddress={activePlanDetails.withdrawalAddress}
+            dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
+            activatedAt={activePlanDetails.activatedAt}
+            planType={activePlanDetails.planType}
+            onReset={handleResetPlan}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Server className="h-6 w-6 text-primary animate-pulse" />
-          Mining Dashboard
+          Mining Plans
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="new-plan" className="flex items-center gap-2">
-              <Cpu className="h-4 w-4" />
-              Mining Plans
-            </TabsTrigger>
-            <TabsTrigger value="active-plans" className="flex items-center gap-2">
-              <Server className="h-4 w-4" />
-              Active Plans
-            </TabsTrigger>
-          </TabsList>
+      <CardContent className="space-y-6">
+        <div className="flex gap-4 mb-6">
+          <Button
+            variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+            onClick={() => setSelectedPlan('daily')}
+            className="flex-1"
+          >
+            <Cpu className="mr-2 h-4 w-4" />
+            Daily Plan
+          </Button>
+          <Button
+            variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
+            onClick={() => setSelectedPlan('weekly')}
+            className="flex-1"
+          >
+            <Server className="mr-2 h-4 w-4" />
+            Weekly Plan
+          </Button>
+        </div>
 
-          <TabsContent value="new-plan">
-            <div className="flex gap-4 mb-6">
-              <Button
-                variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-                onClick={() => setSelectedPlan('daily')}
-                className="flex-1"
-              >
-                <Cpu className="mr-2 h-4 w-4" />
-                Daily Plan
-              </Button>
-              <Button
-                variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
-                onClick={() => setSelectedPlan('weekly')}
-                className="flex-1"
-              >
-                <Server className="mr-2 h-4 w-4" />
-                Weekly Plan
-              </Button>
+        <div className="bg-muted rounded-lg p-6 space-y-4">
+          <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
+            <Cpu className="h-5 w-5 text-primary" />
+            {selectedPlan} Mining Plan Details
+          </h3>
+          <div className="grid gap-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Your USDT Balance</p>
+              <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
             </div>
-
-            <div className="bg-muted rounded-lg p-6 space-y-4">
-              <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
-                <Cpu className="h-5 w-5 text-primary" />
-                {selectedPlan} Mining Plan Details
-              </h3>
-              <div className="grid gap-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Your USDT Balance</p>
-                  <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Investment Required</p>
-                  <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Daily Reward</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {dailyRewardCPXTB} CPXTB
-                    <span className="text-sm text-muted-foreground ml-2">
-                      (≈${currentPlan.rewardUSD})
-                    </span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Duration</p>
-                  <p className="text-2xl font-bold">{currentPlan.duration}</p>
-                </div>
-              </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Investment Required</p>
+              <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
             </div>
-
-            <div className="space-y-4 mt-6">
-              <div className="space-y-2">
-                <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
-                <Input
-                  id="withdrawal"
-                  placeholder="Enter your Base network address for CPXTB withdrawals"
-                  value={withdrawalAddress}
-                  onChange={(e) => setWithdrawalAddress(e.target.value)}
-                />
-              </div>
-
-              {isConnected && (
-                <Button
-                  className="w-full mt-4"
-                  size="lg"
-                  onClick={handleTransfer}
-                  disabled={isTransferring || isValidating || isSwitchingNetwork}
-                >
-                  <Coins className="mr-2 h-4 w-4" />
-                  {isSwitchingNetwork ? "Switching Network..." :
-                    isTransferring ? "Transferring USDT..." :
-                      isValidating ? "Validating Transaction..." :
-                        `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
-                </Button>
-              )}
-
-              {transactionHash && (
-                <TransactionStatus
-                  hash={transactionHash}
-                  isValidating={isValidating}
-                  isConfirmed={isConfirmed}
-                  onRetry={handleRetryValidation}
-                  showRetry={!isConfirmed && !isValidating}
-                />
-              )}
+            <div>
+              <p className="text-sm text-muted-foreground">Daily Reward</p>
+              <p className="text-2xl font-bold text-primary">
+                {dailyRewardCPXTB} CPXTB
+                <span className="text-sm text-muted-foreground ml-2">
+                  (≈${currentPlan.rewardUSD})
+                </span>
+              </p>
             </div>
-          </TabsContent>
+            <div>
+              <p className="text-sm text-muted-foreground">Duration</p>
+              <p className="text-2xl font-bold">{currentPlan.duration}</p>
+            </div>
+          </div>
+        </div>
 
-          <TabsContent value="active-plans">
-            {hasActivePlan && activePlanDetails ? (
-              <ActivePlanDisplay
-                withdrawalAddress={activePlanDetails.withdrawalAddress}
-                dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
-                activatedAt={activePlanDetails.activatedAt}
-                planType={activePlanDetails.planType}
-                walletAddress={activePlanDetails.walletAddress}
-                transactionHash={activePlanDetails.transactionHash}
-              />
-            ) : (
-              <div className="text-center py-8 space-y-4">
-                <Server className="h-12 w-12 mx-auto text-muted-foreground" />
-                <h3 className="text-lg font-semibold">No Active Mining Plans</h3>
-                <p className="text-muted-foreground">
-                  {address ?
-                    "Start mining by selecting a plan from the Mining Plans tab." :
-                    "Connect your wallet to view your active mining plans."
-                  }
-                </p>
-                <div className="flex justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setActiveTab("new-plan");
-                    }}
-                    className="hover:bg-primary/10 transition-colors flex items-center gap-2"
-                  >
-                    <Cpu className="h-4 w-4" />
-                    View Available Plans
-                  </Button>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
+            <Input
+              id="withdrawal"
+              placeholder="Enter your Base network address for CPXTB withdrawals"
+              value={withdrawalAddress}
+              onChange={(e) => setWithdrawalAddress(e.target.value)}
+            />
+          </div>
 
-        <div className="pt-6 border-t border-border mt-6">
+          {isConnected && (
+            <Button
+              className="w-full mt-4"
+              size="lg"
+              onClick={handleTransfer}
+              disabled={isTransferring || isValidating || isSwitchingNetwork}
+            >
+              <Coins className="mr-2 h-4 w-4" />
+              {isSwitchingNetwork ? "Switching Network..." :
+                isTransferring ? "Transferring USDT..." :
+                  isValidating ? "Validating Transaction..." :
+                    `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
+            </Button>
+          )}
+
+          {transactionHash && (
+            <TransactionStatus
+              hash={transactionHash}
+              isValidating={isValidating}
+              isConfirmed={isConfirmed}
+            />
+          )}
+        </div>
+        <div className="pt-6 border-t border-border">
           <p className="text-sm text-muted-foreground mb-3 text-center">
             Need help? Contact our support team
           </p>

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -11,6 +11,7 @@ import { formatUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
 import { SiTelegram } from 'react-icons/si';
+import { cn } from "@/lib/utils";
 
 // Legacy USDT Contract Interface with exact function signatures
 const USDT_ABI = [
@@ -93,23 +94,47 @@ function TelegramSupport() {
   );
 }
 
-// ActivePlanDisplay component with end date and Telegram support
 function ActivePlanDisplay({
   withdrawalAddress,
   dailyRewardCPXTB,
   activatedAt,
   planType,
-  onReset
+  onReset,
+  isExpired
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
   planType: PlanType;
   onReset: () => void;
+  isExpired: boolean;
 }) {
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
   endDate.setDate(endDate.getDate() + (planType === 'weekly' ? 7 : 1));
+
+  const [timeRemaining, setTimeRemaining] = useState<string>("");
+
+  useEffect(() => {
+    const updateTimeRemaining = () => {
+      const now = new Date();
+      const diff = endDate.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeRemaining("Expired");
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeRemaining(`${hours}h ${minutes}m remaining`);
+    };
+
+    updateTimeRemaining();
+    const timer = setInterval(updateTimeRemaining, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, [endDate]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleString('en-US', {
@@ -128,9 +153,15 @@ function ActivePlanDisplay({
         <div className="space-y-3">
           <div>
             <p className="text-sm text-muted-foreground">Status</p>
-            <p className="text-lg font-semibold text-green-500 flex items-center gap-2">
+            <p className={cn(
+              "text-lg font-semibold flex items-center gap-2",
+              isExpired ? "text-red-500" : "text-green-500"
+            )}>
               <Cpu className="h-5 w-5 animate-pulse" />
-              Active
+              {isExpired ? "Expired" : "Active"}
+              {!isExpired && (
+                <span className="text-sm font-normal ml-2">({timeRemaining})</span>
+              )}
             </p>
           </div>
           <div>
@@ -157,20 +188,21 @@ function ActivePlanDisplay({
           </div>
           <div className="space-y-3 pt-4">
             <TelegramSupport />
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={onReset}
-            >
-              Reset Mining Plan
-            </Button>
+            {isExpired && (
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={onReset}
+              >
+                Reset Expired Plan
+              </Button>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 
 export function MiningPlan() {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
@@ -187,6 +219,7 @@ export function MiningPlan() {
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
 
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
@@ -349,14 +382,61 @@ export function MiningPlan() {
   };
 
   const handleResetPlan = () => {
+    if (!isExpired) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Reset Active Plan",
+        description: "Your mining plan is still active. Please wait until it expires."
+      });
+      return;
+    }
+
     localStorage.removeItem('activeMiningPlan');
     setHasActivePlan(false);
     setActivePlanDetails(null);
+    setIsExpired(false);
     toast({
       title: "Plan Reset",
-      description: "Your mining plan has been reset."
+      description: "Your expired mining plan has been reset."
     });
   };
+
+  useEffect(() => {
+    // Check for active plan in localStorage on mount
+    const savedPlan = localStorage.getItem('activeMiningPlan');
+    if (savedPlan) {
+      const planDetails = JSON.parse(savedPlan);
+      const activationDate = new Date(planDetails.activatedAt);
+      const endDate = new Date(activationDate);
+      endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
+
+      const now = new Date();
+      const isCurrentlyExpired = now > endDate;
+
+      setIsExpired(isCurrentlyExpired);
+      setHasActivePlan(true);
+      setActivePlanDetails(planDetails);
+    }
+  }, []);
+
+  // Check expiration every minute
+  useEffect(() => {
+    if (hasActivePlan && activePlanDetails) {
+      const checkExpiration = () => {
+        const activationDate = new Date(activePlanDetails.activatedAt);
+        const endDate = new Date(activationDate);
+        endDate.setDate(endDate.getDate() + (activePlanDetails.planType === 'weekly' ? 7 : 1));
+
+        const now = new Date();
+        setIsExpired(now > endDate);
+      };
+
+      const timer = setInterval(checkExpiration, 60000); // Check every minute
+      checkExpiration(); // Initial check
+
+      return () => clearInterval(timer);
+    }
+  }, [hasActivePlan, activePlanDetails]);
 
   if (hasActivePlan && activePlanDetails) {
     return (
@@ -374,6 +454,7 @@ export function MiningPlan() {
             activatedAt={activePlanDetails.activatedAt}
             planType={activePlanDetails.planType}
             onReset={handleResetPlan}
+            isExpired={isExpired}
           />
         </CardContent>
       </Card>

@@ -82,24 +82,18 @@ function TelegramSupport() {
   );
 }
 
-// Updated interface to include wallet address
-interface ActivePlanDetails {
-  withdrawalAddress: string;
-  dailyRewardCPXTB: string;
-  activatedAt: string;
-  planType: PlanType;
-  activatingWallet: string; // Add wallet address that activated the plan
-}
-
 function ActivePlanDisplay({
   withdrawalAddress,
   dailyRewardCPXTB,
   activatedAt,
   planType,
   onReset,
-  isExpired,
-  activatingWallet
-}: ActivePlanDetails & {
+  isExpired
+}: {
+  withdrawalAddress: string;
+  dailyRewardCPXTB: string;
+  activatedAt: string;
+  planType: PlanType;
   onReset: () => void;
   isExpired: boolean;
 }) {
@@ -202,7 +196,12 @@ export function MiningPlan() {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [hasActivePlan, setHasActivePlan] = useState(false);
-  const [activePlanDetails, setActivePlanDetails] = useState<ActivePlanDetails | null>(null);
+  const [activePlanDetails, setActivePlanDetails] = useState<{
+    withdrawalAddress: string;
+    dailyRewardCPXTB: string;
+    activatedAt: string;
+    planType: PlanType;
+  } | null>(null);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -225,37 +224,30 @@ export function MiningPlan() {
     const loadActivePlan = () => {
       const savedPlan = localStorage.getItem('activeMiningPlan');
       if (savedPlan) {
-        const planDetails = JSON.parse(savedPlan) as ActivePlanDetails;
+        const planDetails = JSON.parse(savedPlan);
+        const activationDate = new Date(planDetails.activatedAt);
+        const endDate = new Date(activationDate);
+        endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
 
-        // Only show the plan if the connected wallet matches the activating wallet
-        if (address && planDetails.activatingWallet.toLowerCase() === address.toLowerCase()) {
-          const activationDate = new Date(planDetails.activatedAt);
-          const endDate = new Date(activationDate);
-          endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
+        const now = new Date();
+        const isCurrentlyExpired = now > endDate;
 
-          const now = new Date();
-          const isCurrentlyExpired = now > endDate;
+        setIsExpired(isCurrentlyExpired);
+        setHasActivePlan(true);
+        setActivePlanDetails(planDetails);
 
-          setIsExpired(isCurrentlyExpired);
-          setHasActivePlan(true);
-          setActivePlanDetails(planDetails);
-
-          console.log('Loaded active plan for wallet:', {
-            planDetails,
-            isExpired: isCurrentlyExpired,
-            walletAddress: address
-          });
-        } else {
-          // Reset state if wallet doesn't match
-          setHasActivePlan(false);
-          setActivePlanDetails(null);
-          setIsExpired(false);
-        }
+        // Log plan loading for debugging
+        console.log('Loaded active plan:', {
+          planDetails,
+          isExpired: isCurrentlyExpired,
+          now: now.toISOString(),
+          endDate: endDate.toISOString()
+        });
       }
     };
 
     loadActivePlan();
-  }, [address]); // Re-run when wallet address changes
+  }, []);
 
   // USDT Balance Check only when wallet is connected
   const { data: usdtBalance, isError: isBalanceError } = useContractRead({
@@ -374,12 +366,11 @@ export function MiningPlan() {
 
       setIsConfirmed(true);
       const activationTime = new Date().toISOString();
-      const planDetails: ActivePlanDetails = {
+      const planDetails = {
         withdrawalAddress,
         dailyRewardCPXTB,
         activatedAt: activationTime,
-        planType: selectedPlan,
-        activatingWallet: address as string // Store the activating wallet address
+        planType: selectedPlan
       };
 
       // Store plan details in localStorage
@@ -388,10 +379,8 @@ export function MiningPlan() {
       setActivePlanDetails(planDetails);
       setIsExpired(false);
 
-      console.log('Plan activated for wallet:', {
-        planDetails,
-        walletAddress: address
-      });
+      // Log plan activation for debugging
+      console.log('Plan activated:', planDetails);
 
       toast({
         title: "Plan Activated",
@@ -445,11 +434,11 @@ export function MiningPlan() {
         const isCurrentlyExpired = now > endDate;
         setIsExpired(isCurrentlyExpired);
 
-        console.log('Checking plan expiration for wallet:', {
+        // Log expiration check for debugging
+        console.log('Checking plan expiration:', {
           now: now.toISOString(),
           endDate: endDate.toISOString(),
-          isExpired: isCurrentlyExpired,
-          walletAddress: address
+          isExpired: isCurrentlyExpired
         });
       };
 
@@ -458,9 +447,9 @@ export function MiningPlan() {
 
       return () => clearInterval(timer);
     }
-  }, [hasActivePlan, activePlanDetails, address]);
+  }, [hasActivePlan, activePlanDetails]);
 
-  if (hasActivePlan && activePlanDetails && address && address.toLowerCase() === activePlanDetails.activatingWallet.toLowerCase()) {
+  if (hasActivePlan && activePlanDetails) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
@@ -471,7 +460,10 @@ export function MiningPlan() {
         </CardHeader>
         <CardContent>
           <ActivePlanDisplay
-            {...activePlanDetails}
+            withdrawalAddress={activePlanDetails.withdrawalAddress}
+            dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
+            activatedAt={activePlanDetails.activatedAt}
+            planType={activePlanDetails.planType}
             onReset={handleResetPlan}
             isExpired={isExpired}
           />

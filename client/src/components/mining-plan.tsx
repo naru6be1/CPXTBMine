@@ -57,8 +57,8 @@ const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
   daily: {
-    amount: BigInt("100000"), // 0.1 USDT
-    displayAmount: "0.1",
+    amount: BigInt("1000000"), // 1 USDT
+    displayAmount: "1",
     rewardUSD: 1.5,
     duration: "24 hours"
   },
@@ -339,36 +339,46 @@ export function MiningPlan() {
 
   const validateTransaction = async (hash: string) => {
     try {
-      setIsValidating(true);
+      let receipt = null;
+      const maxRetries = 5;
+      const retryDelay = 5000; // 5 seconds
+      const timeout = 120000; // 2 minutes
 
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash: hash as `0x${string}`,
-        timeout: 300000 // 5 minutes
-      });
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          receipt = await Promise.race([
+            publicClient.waitForTransactionReceipt({ hash }),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Transaction confirmation timeout')), timeout)
+            )
+          ]);
 
-      if (receipt && receipt.status === 1) {
-        console.log('Transaction confirmed:', receipt);
-        setIsConfirmed(true);
-        setIsValidating(false);
-        activatePlan(hash);
+          if (receipt && receipt.status === 1) {
+            break;
+          }
 
-        toast({
-          title: "Transaction Confirmed",
-          description: "Your transaction was successful! Mining plan activated."
-        });
-      } else {
-        throw new Error('Transaction failed');
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        } catch (error) {
+          console.log(`Attempt ${i + 1} failed:`, error);
+          if (i === maxRetries - 1) throw error;
+        }
       }
+
+      if (!receipt || receipt.status !== 1) {
+        throw new Error('Transaction failed or timed out');
+      }
+
+      setIsConfirmed(true);
+      activatePlan(hash);
 
     } catch (error) {
       console.error('Validation error:', error);
       setIsValidating(false);
-      setIsConfirmed(false);
-
+      // Don't clear transaction hash so user can retry
       toast({
         variant: "destructive",
         title: "Validation Failed",
-        description: "Transaction validation failed. Please check Etherscan for transaction status."
+        description: "Transaction validation timed out. You can retry validation to check if your transaction was confirmed."
       });
     }
   };
@@ -394,6 +404,27 @@ export function MiningPlan() {
     });
   };
 
+  const handleRetryValidation = async () => {
+    if (!transactionHash || !publicClient) return;
+
+    setIsValidating(true);
+    toast({
+      title: "Retrying Validation",
+      description: "Checking transaction status..."
+    });
+
+    try {
+      await validateTransaction(transactionHash);
+    } catch (error) {
+      console.error('Retry validation error:', error);
+      setIsValidating(false);
+      toast({
+        variant: "destructive",
+        title: "Validation Failed",
+        description: "Transaction validation failed. Please try again later or contact support if the issue persists."
+      });
+    }
+  };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -497,6 +528,8 @@ export function MiningPlan() {
                   hash={transactionHash}
                   isValidating={isValidating}
                   isConfirmed={isConfirmed}
+                  onRetry={handleRetryValidation}
+                  showRetry={!isConfirmed && !isValidating}
                 />
               )}
             </div>

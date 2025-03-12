@@ -330,8 +330,8 @@ export function MiningPlan() {
       toast({
         variant: "destructive",
         title: "Transfer Failed",
-        description: error instanceof Error
-          ? `Error: ${error.message}. Please try again.`
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
           : "Failed to transfer USDT. Please try again."
       });
     }
@@ -377,7 +377,7 @@ export function MiningPlan() {
       // Don't clear transaction hash so user can retry
       toast({
         variant: "destructive",
-        title: "Validation Failed",
+        title: "Validation Failed", 
         description: "Transaction validation timed out. You can retry validation to check if your transaction was confirmed."
       });
     }

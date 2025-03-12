@@ -342,7 +342,7 @@ export function MiningPlan() {
       let receipt = null;
       const maxRetries = 5;
       const retryDelay = 5000; // 5 seconds
-      const timeout = 120000; // 2 minutes
+      const timeout = 300000; // 5 minutes
 
       for (let i = 0; i < maxRetries; i++) {
         try {

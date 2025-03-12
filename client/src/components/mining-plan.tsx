@@ -57,13 +57,13 @@ const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
   daily: {
-    amount: BigInt("1000000"), // 1 USDT
-    displayAmount: "1",
-    rewardUSD: 1.5,
+    amount: BigInt("100000"), // 0.1 USDT (6 decimals)
+    displayAmount: "0.1",
+    rewardUSD: 0.15, // Adjusted reward for 0.1 USDT
     duration: "24 hours"
   },
   weekly: {
-    amount: BigInt("100000000"), // 100 USDT
+    amount: BigInt("100000000"), // 100 USDT (6 decimals)
     displayAmount: "100",
     rewardUSD: 15,
     duration: "7 days"

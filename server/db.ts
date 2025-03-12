@@ -5,8 +5,14 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
+// Log environment and connection details (without exposing sensitive data)
+console.log(`Server environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`Database connection attempt starting...`);
+
 // Use single database URL for both development and production
 if (!process.env.DATABASE_URL) {
+  console.error('Critical Error: DATABASE_URL environment variable is not set');
+  console.error('Environment variables available:', Object.keys(process.env).join(', '));
   throw new Error('DATABASE_URL must be set. Ensure the database is provisioned');
 }
 
@@ -26,8 +32,16 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
-// Log database connection (but not the full connection string for security)
-console.log('Connected to database');
+// Verify database connection
+pool.connect()
+  .then(client => {
+    console.log('Successfully connected to database');
+    client.release();
+  })
+  .catch(err => {
+    console.error('Failed to connect to database:', err.message);
+    throw err;
+  });
 
-// Add deployment-specific logging
-console.log(`Database connection initialized in ${process.env.NODE_ENV || 'development'} mode`);
+// Log initialization completion
+console.log('Database initialization completed');

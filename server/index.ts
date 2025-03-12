@@ -50,6 +50,11 @@ app.use((req, res, next) => {
   try {
     log("Starting server initialization...");
 
+    // Check for required environment variables
+    if (!process.env.DATABASE_URL) {
+      throw new Error('Critical: DATABASE_URL environment variable is missing. Please ensure it is set in your deployment environment.');
+    }
+
     // Initialize routes
     log("Registering routes...");
     const server = await registerRoutes(app);
@@ -96,6 +101,8 @@ app.use((req, res, next) => {
     }, () => {
       log(`Server successfully started and listening on port ${port}`);
       log(`Application is now available at http://0.0.0.0:${port}`);
+      log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      log(`Database connection status: ${process.env.DATABASE_URL ? 'configured' : 'missing'}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

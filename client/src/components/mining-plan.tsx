@@ -202,6 +202,7 @@ export function MiningPlan() {
     activatedAt: string;
     planType: PlanType;
   } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -215,39 +216,68 @@ export function MiningPlan() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  const currentPlan = PLANS[selectedPlan];
-  const cpxtbPrice = 0.002529;
-  const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
-
-  // Load active plan from localStorage on mount and wallet connection changes
+  // Add hook to fetch active plan from backend
   useEffect(() => {
-    const loadActivePlan = () => {
-      const savedPlan = localStorage.getItem('activeMiningPlan');
-      if (savedPlan) {
-        const planDetails = JSON.parse(savedPlan);
-        const activationDate = new Date(planDetails.activatedAt);
-        const endDate = new Date(activationDate);
-        endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
+    const fetchActivePlan = async () => {
+      if (!address) {
+        setIsLoading(false);
+        return;
+      }
 
-        const now = new Date();
-        const isCurrentlyExpired = now > endDate;
+      try {
+        const response = await fetch(`/api/mining-plan/${address}`);
+        const data = await response.json();
 
-        setIsExpired(isCurrentlyExpired);
-        setHasActivePlan(true);
-        setActivePlanDetails(planDetails);
+        if (data.plan) {
+          // Backend plan takes precedence over local storage
+          const planDetails = {
+            withdrawalAddress: data.plan.withdrawalAddress,
+            dailyRewardCPXTB: data.plan.dailyRewardCPXTB,
+            activatedAt: data.plan.activatedAt,
+            planType: data.plan.planType as PlanType
+          };
 
-        // Log plan loading for debugging
-        console.log('Loaded active plan:', {
-          planDetails,
-          isExpired: isCurrentlyExpired,
-          now: now.toISOString(),
-          endDate: endDate.toISOString()
+          setHasActivePlan(true);
+          setActivePlanDetails(planDetails);
+          setIsExpired(new Date() > new Date(data.plan.expiresAt));
+
+          // Update local storage to match backend
+          localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
+        } else {
+          // If no backend plan, check local storage as fallback
+          const savedPlan = localStorage.getItem('activeMiningPlan');
+          if (savedPlan) {
+            const planDetails = JSON.parse(savedPlan);
+            const activationDate = new Date(planDetails.activatedAt);
+            const endDate = new Date(activationDate);
+            endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
+
+            const now = new Date();
+            const isCurrentlyExpired = now > endDate;
+
+            setIsExpired(isCurrentlyExpired);
+            setHasActivePlan(true);
+            setActivePlanDetails(planDetails);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching mining plan:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch mining plan status"
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadActivePlan();
-  }, []);
+    fetchActivePlan();
+  }, [address, toast]);
+
+  const currentPlan = PLANS[selectedPlan];
+  const cpxtbPrice = 0.002529;
+  const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
 
   // USDT Balance Check only when wallet is connected
   const { data: usdtBalance, isError: isBalanceError } = useContractRead({
@@ -367,20 +397,33 @@ export function MiningPlan() {
       setIsConfirmed(true);
       const activationTime = new Date().toISOString();
       const planDetails = {
+        walletAddress: address,
         withdrawalAddress,
         dailyRewardCPXTB,
         activatedAt: activationTime,
-        planType: selectedPlan
+        planType: selectedPlan,
+        transactionHash: hash,
+        expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString()
       };
+
+      // Create plan in backend
+      const response = await fetch('/api/mining-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(planDetails),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save mining plan');
+      }
 
       // Store plan details in localStorage
       localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
       setHasActivePlan(true);
       setActivePlanDetails(planDetails);
       setIsExpired(false);
-
-      // Log plan activation for debugging
-      console.log('Plan activated:', planDetails);
 
       toast({
         title: "Plan Activated",
@@ -449,7 +492,22 @@ export function MiningPlan() {
     }
   }, [hasActivePlan, activePlanDetails]);
 
-  if (hasActivePlan && activePlanDetails) {
+  // Show loading state while checking plan status
+  if (isLoading) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-3">Loading mining plan status...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Only show active plan if wallet is connected and has an active plan
+  if (isConnected && hasActivePlan && activePlanDetails) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>

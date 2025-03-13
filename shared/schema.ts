@@ -19,6 +19,7 @@ export const miningPlans = pgTable("mining_plans", {
   expiresAt: timestamp("expires_at").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   transactionHash: text("transaction_hash").notNull(),
+  hasWithdrawn: boolean("has_withdrawn").notNull().default(false), // New field to track withdrawal status
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -30,7 +31,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)
   .omit({ 
     id: true,
-    isActive: true 
+    isActive: true,
+    hasWithdrawn: true 
   })
   .extend({
     amount: z.string(), // Make sure amount is handled as string

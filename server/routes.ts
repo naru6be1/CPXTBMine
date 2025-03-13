@@ -19,6 +19,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get expired, unwithdraw plan for claiming rewards
+  app.get("/api/mining-plan/:walletAddress/claimable", async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      const plan = await storage.getExpiredUnwithdrawnPlan(walletAddress);
+      res.json({ plan });
+    } catch (error: any) {
+      console.error("Error fetching claimable plan:", error);
+      res.status(500).json({
+        message: "Error fetching claimable plan: " + error.message
+      });
+    }
+  });
+
   // Create new mining plan
   app.post("/api/mining-plan", async (req, res) => {
     try {
@@ -44,6 +58,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(400).json({
         message: "Error creating mining plan: " + error.message
+      });
+    }
+  });
+
+  // Mark plan as withdrawn after successful claim
+  app.post("/api/mining-plan/:planId/withdraw", async (req, res) => {
+    try {
+      const { planId } = req.params;
+      const { transactionHash } = req.body;
+
+      if (!transactionHash) {
+        res.status(400).json({
+          message: "Transaction hash is required"
+        });
+        return;
+      }
+
+      const updatedPlan = await storage.markPlanAsWithdrawn(parseInt(planId));
+      res.json({ plan: updatedPlan });
+    } catch (error: any) {
+      console.error("Error marking plan as withdrawn:", error);
+      res.status(500).json({
+        message: "Error marking plan as withdrawn: " + error.message
       });
     }
   });

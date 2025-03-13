@@ -13,6 +13,8 @@ export interface IStorage {
   getActiveMiningPlan(walletAddress: string): Promise<MiningPlan | undefined>;
   getMiningPlanByHash(transactionHash: string): Promise<MiningPlan | undefined>;
   deactivateExpiredPlans(): Promise<void>;
+  markPlanAsWithdrawn(planId: number): Promise<MiningPlan>;
+  getExpiredUnwithdrawnPlan(walletAddress: string): Promise<MiningPlan | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -70,6 +72,30 @@ export class DatabaseStorage implements IStorage {
           gte(new Date(), miningPlans.expiresAt)
         )
       );
+  }
+
+  // New methods for withdrawals
+  async markPlanAsWithdrawn(planId: number): Promise<MiningPlan> {
+    const [updatedPlan] = await db
+      .update(miningPlans)
+      .set({ hasWithdrawn: true })
+      .where(eq(miningPlans.id, planId))
+      .returning();
+    return updatedPlan;
+  }
+
+  async getExpiredUnwithdrawnPlan(walletAddress: string): Promise<MiningPlan | undefined> {
+    const [plan] = await db
+      .select()
+      .from(miningPlans)
+      .where(
+        and(
+          eq(miningPlans.walletAddress, walletAddress),
+          eq(miningPlans.hasWithdrawn, false),
+          gte(new Date(), miningPlans.expiresAt)
+        )
+      );
+    return plan;
   }
 }
 

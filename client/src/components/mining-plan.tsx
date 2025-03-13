@@ -12,6 +12,8 @@ import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
 import { SiTelegram } from 'react-icons/si';
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 
 // Legacy USDT Contract Interface with exact function signatures
 const USDT_ABI = [
@@ -88,7 +90,9 @@ function ActivePlanDisplay({
   activatedAt,
   planType,
   onReset,
-  isExpired
+  isExpired,
+  onClaim,
+  hasWithdrawn
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
@@ -96,6 +100,8 @@ function ActivePlanDisplay({
   planType: PlanType;
   onReset: () => void;
   isExpired: boolean;
+  onClaim: () => void;
+  hasWithdrawn: boolean;
 }) {
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
@@ -176,6 +182,21 @@ function ActivePlanDisplay({
           </div>
           <div className="space-y-3 pt-4">
             <TelegramSupport />
+            {isExpired && !hasWithdrawn && (
+              <Button
+                variant="default"
+                className="w-full"
+                onClick={onClaim}
+              >
+                <Coins className="mr-2 h-4 w-4" />
+                Claim CPXTB Rewards
+              </Button>
+            )}
+            {isExpired && hasWithdrawn && (
+              <p className="text-sm text-center text-muted-foreground">
+                Rewards have been claimed
+              </p>
+            )}
             {isExpired && (
               <Button
                 variant="destructive"
@@ -193,9 +214,16 @@ function ActivePlanDisplay({
 }
 
 export function MiningPlan() {
+  // Move all useState hooks to the top
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [hasActivePlan, setHasActivePlan] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
   const [activePlanDetails, setActivePlanDetails] = useState<{
     walletAddress: string;
     withdrawalAddress: string;
@@ -204,14 +232,10 @@ export function MiningPlan() {
     planType: PlanType;
     transactionHash?: string;
     expiresAt: string;
+    hasWithdrawn?: boolean;
   } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
-  const [transactionHash, setTransactionHash] = useState<string | null>(null);
-  const [isConfirmed, setIsConfirmed] = useState(false);
-  const [isExpired, setIsExpired] = useState(false);
 
+  // Hook dependencies
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
   const { chain } = useNetwork();
@@ -219,15 +243,40 @@ export function MiningPlan() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  // Add hook to fetch active plan from backend
+  // Calculate derived values
+  const currentPlan = PLANS[selectedPlan];
+  const cpxtbPrice = 0.002529;
+  const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
+
+  // Query for claimable plan
+  const { data: claimablePlan } = useQuery({
+    queryKey: ['claimablePlan', address],
+    queryFn: async () => {
+      if (!address) return null;
+      const response = await fetch(`/api/mining-plan/${address}/claimable`);
+      const data = await response.json();
+      return data.plan;
+    },
+    enabled: isExpired && !!address
+  });
+
+  // USDT Balance Check
+  const { data: usdtBalance, isError: isBalanceError } = useContractRead({
+    address: USDT_CONTRACT_ADDRESS as Address,
+    abi: USDT_ABI,
+    functionName: 'balanceOf',
+    args: [address as Address],
+    enabled: !!address && chain?.id === 1,
+    watch: true
+  });
+
+  // Effect for fetching active plan
   useEffect(() => {
     const fetchActivePlan = async () => {
-      // Reset states when wallet is not connected
       if (!address || !isConnected) {
         setHasActivePlan(false);
         setActivePlanDetails(null);
         setIsLoading(false);
-        // Clear localStorage when disconnecting
         localStorage.removeItem('activeMiningPlan');
         return;
       }
@@ -237,29 +286,24 @@ export function MiningPlan() {
         const data = await response.json();
 
         if (data.plan && data.plan.walletAddress === address) {
-          // Backend plan takes precedence over local storage
           const planDetails = {
             walletAddress: data.plan.walletAddress,
             withdrawalAddress: data.plan.withdrawalAddress,
             dailyRewardCPXTB: data.plan.dailyRewardCPXTB,
             activatedAt: data.plan.activatedAt,
             planType: data.plan.planType as PlanType,
-            expiresAt: data.plan.expiresAt
+            expiresAt: data.plan.expiresAt,
+            hasWithdrawn: data.plan.hasWithdrawn
           };
 
           setHasActivePlan(true);
           setActivePlanDetails(planDetails);
           setIsExpired(new Date() > new Date(data.plan.expiresAt));
-
-          // Update local storage to match backend
           localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
         } else {
-          // If no backend plan, check local storage as fallback
           const savedPlan = localStorage.getItem('activeMiningPlan');
           if (savedPlan) {
             const planDetails = JSON.parse(savedPlan);
-
-            // Only show plan if it matches the connected wallet
             if (planDetails.walletAddress === address) {
               const activationDate = new Date(planDetails.activatedAt);
               const endDate = new Date(activationDate);
@@ -272,7 +316,6 @@ export function MiningPlan() {
               setHasActivePlan(true);
               setActivePlanDetails(planDetails);
             } else {
-              // Clear localStorage if wallet doesn't match
               localStorage.removeItem('activeMiningPlan');
               setHasActivePlan(false);
               setActivePlanDetails(null);
@@ -294,20 +337,27 @@ export function MiningPlan() {
     fetchActivePlan();
   }, [address, isConnected, toast]);
 
-  const currentPlan = PLANS[selectedPlan];
-  const cpxtbPrice = 0.002529;
-  const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
+  // Effect for checking plan expiration
+  useEffect(() => {
+    if (hasActivePlan && activePlanDetails) {
+      const checkExpiration = () => {
+        const activationDate = new Date(activePlanDetails.activatedAt);
+        const endDate = new Date(activationDate);
+        endDate.setDate(endDate.getDate() + (activePlanDetails.planType === 'weekly' ? 7 : 1));
 
-  // USDT Balance Check only when wallet is connected
-  const { data: usdtBalance, isError: isBalanceError } = useContractRead({
-    address: USDT_CONTRACT_ADDRESS as Address,
-    abi: USDT_ABI,
-    functionName: 'balanceOf',
-    args: [address as Address],
-    enabled: !!address && chain?.id === 1,
-    watch: true
-  });
+        const now = new Date();
+        const isCurrentlyExpired = now > endDate;
+        setIsExpired(isCurrentlyExpired);
+      };
 
+      const timer = setInterval(checkExpiration, 60000);
+      checkExpiration();
+
+      return () => clearInterval(timer);
+    }
+  }, [hasActivePlan, activePlanDetails]);
+
+  // Handler functions
   const getBalanceDisplay = () => {
     if (!isConnected) return "Not connected";
     if (chain?.id !== 1) return "Wrong network";
@@ -374,8 +424,6 @@ export function MiningPlan() {
       });
 
       const hash = await walletClient.writeContract(request);
-      console.log('Transaction submitted:', hash);
-
       setTransactionHash(hash);
       setIsValidating(true);
 
@@ -386,8 +434,8 @@ export function MiningPlan() {
 
       let receipt = null;
       const maxRetries = 5;
-      const retryDelay = 5000; // 5 seconds
-      const timeout = 120000; // 2 minutes
+      const retryDelay = 5000;
+      const timeout = 120000;
 
       for (let i = 0; i < maxRetries; i++) {
         try {
@@ -415,7 +463,6 @@ export function MiningPlan() {
 
       setIsConfirmed(true);
       const activationTime = new Date().toISOString();
-      // Create plan details with proper format
       const planDetails = {
         walletAddress: address as string,
         withdrawalAddress,
@@ -425,9 +472,9 @@ export function MiningPlan() {
         activatedAt: activationTime,
         expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
         transactionHash: hash,
+        hasWithdrawn: false
       };
 
-      // Create plan in backend
       const response = await fetch('/api/mining-plan', {
         method: 'POST',
         headers: {
@@ -441,7 +488,6 @@ export function MiningPlan() {
         throw new Error(errorData.message || 'Failed to save mining plan');
       }
 
-      // Store relevant plan details in localStorage
       const localStoragePlanDetails = {
         walletAddress: address,
         withdrawalAddress,
@@ -449,7 +495,8 @@ export function MiningPlan() {
         activatedAt: activationTime,
         planType: selectedPlan,
         transactionHash: hash,
-        expiresAt: planDetails.expiresAt
+        expiresAt: planDetails.expiresAt,
+        hasWithdrawn: false
       };
 
       localStorage.setItem('activeMiningPlan', JSON.stringify(localStoragePlanDetails));
@@ -497,34 +544,65 @@ export function MiningPlan() {
     });
   };
 
-  // Check expiration every minute
-  useEffect(() => {
-    if (hasActivePlan && activePlanDetails) {
-      const checkExpiration = () => {
-        const activationDate = new Date(activePlanDetails.activatedAt);
-        const endDate = new Date(activationDate);
-        endDate.setDate(endDate.getDate() + (activePlanDetails.planType === 'weekly' ? 7 : 1));
-
-        const now = new Date();
-        const isCurrentlyExpired = now > endDate;
-        setIsExpired(isCurrentlyExpired);
-
-        // Log expiration check for debugging
-        console.log('Checking plan expiration:', {
-          now: now.toISOString(),
-          endDate: endDate.toISOString(),
-          isExpired: isCurrentlyExpired
-        });
-      };
-
-      const timer = setInterval(checkExpiration, 60000); // Check every minute
-      checkExpiration(); // Initial check
-
-      return () => clearInterval(timer);
+  const handleClaimRewards = async () => {
+    if (!walletClient || !publicClient || !claimablePlan) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to claim rewards"
+      });
+      return;
     }
-  }, [hasActivePlan, activePlanDetails]);
 
-  // Show loading state while checking plan status
+    try {
+      setIsTransferring(true);
+
+      const hash = await walletClient.writeContract({
+        address: TREASURY_ADDRESS as Address,
+        abi: [{
+          name: "transfer",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "recipient", type: "address" },
+            { name: "amount", type: "uint256" }
+          ],
+          outputs: []
+        }],
+        functionName: "transfer",
+        args: [claimablePlan.withdrawalAddress as Address, BigInt(claimablePlan.dailyRewardCPXTB)]
+      });
+
+      setTransactionHash(hash);
+      setIsValidating(true);
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      if (receipt.status === "success") {
+        await apiRequest("POST", `/api/mining-plan/${claimablePlan.id}/withdraw`, {
+          transactionHash: hash
+        });
+
+        setIsConfirmed(true);
+        toast({
+          title: "Rewards Claimed",
+          description: "Your CPXTB rewards have been sent to your withdrawal address!"
+        });
+      }
+    } catch (error) {
+      console.error('Claim error:', error);
+      toast({
+        variant: "destructive",
+        title: "Claim Failed",
+        description: error instanceof Error ? error.message : "Failed to claim rewards"
+      });
+    } finally {
+      setIsTransferring(false);
+      setIsValidating(false);
+    }
+  };
+
+  // Conditional rendering
   if (isLoading) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
@@ -538,7 +616,6 @@ export function MiningPlan() {
     );
   }
 
-  // Only show active plan if wallet is connected and has an active plan
   if (isConnected && hasActivePlan && activePlanDetails) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
@@ -556,6 +633,8 @@ export function MiningPlan() {
             planType={activePlanDetails.planType}
             onReset={handleResetPlan}
             isExpired={isExpired}
+            onClaim={handleClaimRewards}
+            hasWithdrawn={activePlanDetails.hasWithdrawn || false}
           />
         </CardContent>
       </Card>

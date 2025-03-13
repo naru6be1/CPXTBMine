@@ -5,11 +5,36 @@ import { insertMiningPlanSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Get or create user
+  app.get("/api/users/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      let user = await storage.getUserByUsername(address);
+
+      if (!user) {
+        // Create new user with a referral code
+        user = await storage.createUser({
+          username: address,
+          password: 'not-used', // OAuth-based auth, password not used
+          referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+        });
+      }
+
+      res.json({ user });
+    } catch (error: any) {
+      console.error("Error fetching/creating user:", error);
+      res.status(500).json({
+        message: "Error fetching/creating user: " + error.message
+      });
+    }
+  });
+
   // Get active mining plans
   app.get("/api/mining-plans/:walletAddress", async (req, res) => {
     try {
       const { walletAddress } = req.params;
       const plans = await storage.getActiveMiningPlans(walletAddress);
+      console.log('Active plans:', plans);
       res.json({ plans });
     } catch (error: any) {
       console.error("Error fetching mining plans:", error);
@@ -24,6 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { walletAddress } = req.params;
       const plans = await storage.getExpiredUnwithdrawnPlans(walletAddress);
+      console.log('Claimable plans:', plans);
       res.json({ plans });
     } catch (error: any) {
       console.error("Error fetching claimable plans:", error);

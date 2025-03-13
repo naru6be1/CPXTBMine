@@ -9,12 +9,26 @@ export function ReferralStats() {
   const { isConnected, address } = useWallet();
   const { toast } = useToast();
 
-  const { data: referralStats } = useQuery({
-    queryKey: ['referralStats', address],
+  const { data: user } = useQuery({
+    queryKey: ['user', address],
     queryFn: async () => {
       if (!address) return null;
-      console.log('Fetching referral stats for address:', address);
-      const response = await fetch(`/api/referrals/${address}/stats`);
+      const response = await fetch(`/api/users/${address}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+      const data = await response.json();
+      return data.user;
+    },
+    enabled: !!address
+  });
+
+  const { data: referralStats } = useQuery({
+    queryKey: ['referralStats', user?.referralCode],
+    queryFn: async () => {
+      if (!user?.referralCode) return null;
+      console.log('Fetching referral stats for code:', user.referralCode);
+      const response = await fetch(`/api/referrals/${user.referralCode}/stats`);
       if (!response.ok) {
         throw new Error('Failed to fetch referral stats');
       }
@@ -22,13 +36,13 @@ export function ReferralStats() {
       console.log('Referral stats response:', data);
       return data;
     },
-    enabled: !!address
+    enabled: !!user?.referralCode
   });
 
   const handleCopyReferralLink = () => {
-    if (!address) return;
+    if (!user?.referralCode) return;
 
-    const referralLink = `${window.location.origin}?ref=${address}`;
+    const referralLink = `${window.location.origin}?ref=${user.referralCode}`;
     navigator.clipboard.writeText(referralLink);
 
     toast({
@@ -63,6 +77,7 @@ export function ReferralStats() {
           onClick={handleCopyReferralLink}
           className="w-full"
           variant="outline"
+          disabled={!user?.referralCode}
         >
           <Gift className="mr-2 h-4 w-4" />
           Copy Referral Link

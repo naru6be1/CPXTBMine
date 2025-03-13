@@ -13,21 +13,24 @@ export function ReferralStats() {
     queryKey: ['referralStats', address],
     queryFn: async () => {
       if (!address) return null;
+      console.log('Fetching referral stats for address:', address);
       const response = await fetch(`/api/referrals/${address}/stats`);
       if (!response.ok) {
         throw new Error('Failed to fetch referral stats');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Referral stats response:', data);
+      return data;
     },
     enabled: !!address
   });
 
   const handleCopyReferralLink = () => {
     if (!address) return;
-    
+
     const referralLink = `${window.location.origin}?ref=${address}`;
     navigator.clipboard.writeText(referralLink);
-    
+
     toast({
       title: "Referral Link Copied",
       description: "Share this link with others to earn rewards!"

@@ -40,13 +40,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If referral code is provided, verify it exists
       if (req.body.referralCode) {
+        console.log("Verifying referral code:", req.body.referralCode);
         const referrer = await storage.getUserByReferralCode(req.body.referralCode);
         if (!referrer) {
+          console.log("Invalid referral code:", req.body.referralCode);
           res.status(400).json({
             message: "Invalid referral code"
           });
           return;
         }
+        console.log("Valid referral code found for referrer:", referrer);
       }
 
       // Validate plan data against schema
@@ -114,7 +117,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/referrals/:code/stats", async (req, res) => {
     try {
       const { code } = req.params;
+      console.log("Fetching referral stats for code:", code);
       const stats = await storage.getReferralStats(code);
+      console.log("Referral stats:", stats);
       res.json(stats);
     } catch (error: any) {
       console.error("Error fetching referral stats:", error);
@@ -128,7 +133,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/referrals/:code/plans", async (req, res) => {
     try {
       const { code } = req.params;
+      console.log("Fetching referral plans for code:", code);
       const plans = await storage.getReferralPlans(code);
+      console.log("Found referral plans:", plans);
       res.json({ plans });
     } catch (error: any) {
       console.error("Error fetching referral plans:", error);

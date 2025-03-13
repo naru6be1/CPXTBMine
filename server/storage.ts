@@ -10,11 +10,11 @@ export interface IStorage {
 
   // Mining plan methods
   createMiningPlan(plan: InsertMiningPlan): Promise<MiningPlan>;
-  getActiveMiningPlan(walletAddress: string): Promise<MiningPlan | undefined>;
+  getActiveMiningPlans(walletAddress: string): Promise<MiningPlan[]>;
   getMiningPlanByHash(transactionHash: string): Promise<MiningPlan | undefined>;
   deactivateExpiredPlans(): Promise<void>;
   markPlanAsWithdrawn(planId: number): Promise<MiningPlan>;
-  getExpiredUnwithdrawnPlan(walletAddress: string): Promise<MiningPlan | undefined>;
+  getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -40,8 +40,8 @@ export class DatabaseStorage implements IStorage {
     return newPlan;
   }
 
-  async getActiveMiningPlan(walletAddress: string): Promise<MiningPlan | undefined> {
-    const [plan] = await db
+  async getActiveMiningPlans(walletAddress: string): Promise<MiningPlan[]> {
+    return await db
       .select()
       .from(miningPlans)
       .where(
@@ -51,7 +51,6 @@ export class DatabaseStorage implements IStorage {
           gte(miningPlans.expiresAt, new Date())
         )
       );
-    return plan;
   }
 
   async getMiningPlanByHash(transactionHash: string): Promise<MiningPlan | undefined> {
@@ -74,7 +73,6 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  // New methods for withdrawals
   async markPlanAsWithdrawn(planId: number): Promise<MiningPlan> {
     const [updatedPlan] = await db
       .update(miningPlans)
@@ -84,8 +82,8 @@ export class DatabaseStorage implements IStorage {
     return updatedPlan;
   }
 
-  async getExpiredUnwithdrawnPlan(walletAddress: string): Promise<MiningPlan | undefined> {
-    const [plan] = await db
+  async getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]> {
+    return await db
       .select()
       .from(miningPlans)
       .where(
@@ -95,7 +93,6 @@ export class DatabaseStorage implements IStorage {
           gte(new Date(), miningPlans.expiresAt)
         )
       );
-    return plan;
   }
 }
 

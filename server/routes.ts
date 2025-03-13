@@ -5,36 +5,36 @@ import { insertMiningPlanSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get active mining plan
-  app.get("/api/mining-plan/:walletAddress", async (req, res) => {
+  // Get active mining plans
+  app.get("/api/mining-plans/:walletAddress", async (req, res) => {
     try {
       const { walletAddress } = req.params;
-      const plan = await storage.getActiveMiningPlan(walletAddress);
-      res.json({ plan });
+      const plans = await storage.getActiveMiningPlans(walletAddress);
+      res.json({ plans });
     } catch (error: any) {
-      console.error("Error fetching mining plan:", error);
+      console.error("Error fetching mining plans:", error);
       res.status(500).json({
-        message: "Error fetching mining plan: " + error.message
+        message: "Error fetching mining plans: " + error.message
       });
     }
   });
 
-  // Get expired, unwithdraw plan for claiming rewards
-  app.get("/api/mining-plan/:walletAddress/claimable", async (req, res) => {
+  // Get expired, unwithdraw plans for claiming rewards
+  app.get("/api/mining-plans/:walletAddress/claimable", async (req, res) => {
     try {
       const { walletAddress } = req.params;
-      const plan = await storage.getExpiredUnwithdrawnPlan(walletAddress);
-      res.json({ plan });
+      const plans = await storage.getExpiredUnwithdrawnPlans(walletAddress);
+      res.json({ plans });
     } catch (error: any) {
-      console.error("Error fetching claimable plan:", error);
+      console.error("Error fetching claimable plans:", error);
       res.status(500).json({
-        message: "Error fetching claimable plan: " + error.message
+        message: "Error fetching claimable plans: " + error.message
       });
     }
   });
 
   // Create new mining plan
-  app.post("/api/mining-plan", async (req, res) => {
+  app.post("/api/mining-plans", async (req, res) => {
     try {
       console.log("Received mining plan data:", JSON.stringify(req.body));
 
@@ -63,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Mark plan as withdrawn after successful claim
-  app.post("/api/mining-plan/:planId/withdraw", async (req, res) => {
+  app.post("/api/mining-plans/:planId/withdraw", async (req, res) => {
     try {
       const { planId } = req.params;
       const { transactionHash } = req.body;
@@ -86,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Verify transaction hash
-  app.get("/api/mining-plan/verify/:hash", async (req, res) => {
+  app.get("/api/mining-plans/verify/:hash", async (req, res) => {
     try {
       const { hash } = req.params;
       const plan = await storage.getMiningPlanByHash(hash);

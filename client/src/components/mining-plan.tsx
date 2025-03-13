@@ -89,19 +89,19 @@ function ActivePlanDisplay({
   dailyRewardCPXTB,
   activatedAt,
   planType,
-  onReset,
-  isExpired,
   onClaim,
-  hasWithdrawn
+  isExpired,
+  hasWithdrawn,
+  amount
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
   activatedAt: string;
   planType: PlanType;
-  onReset: () => void;
-  isExpired: boolean;
   onClaim: () => void;
+  isExpired: boolean;
   hasWithdrawn: boolean;
+  amount: string;
 }) {
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
@@ -125,7 +125,7 @@ function ActivePlanDisplay({
     };
 
     updateTimeRemaining();
-    const timer = setInterval(updateTimeRemaining, 60000); // Update every minute
+    const timer = setInterval(updateTimeRemaining, 60000);
 
     return () => clearInterval(timer);
   }, [endDate]);
@@ -138,54 +138,53 @@ function ActivePlanDisplay({
   };
 
   return (
-    <div className="animate-fade-in space-y-4">
-      <div className="bg-primary/10 rounded-lg p-6">
-        <h3 className="text-xl font-semibold text-primary mb-2 flex items-center gap-2">
-          <Server className="h-6 w-6 animate-pulse" />
-          Mining Plan Status
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm text-muted-foreground">Status</p>
-            <p className={cn(
-              "text-lg font-semibold flex items-center gap-2",
-              isExpired ? "text-red-500" : "text-green-500"
-            )}>
-              <Cpu className="h-5 w-5 animate-pulse" />
-              {isExpired ? "Expired" : "Active"}
-              {!isExpired && (
-                <span className="text-sm font-normal ml-2">({timeRemaining})</span>
-              )}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Plan Type</p>
-            <p className="text-lg font-semibold capitalize">{planType} Plan</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Daily Reward</p>
-            <p className="text-lg font-semibold">{dailyRewardCPXTB} CPXTB</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Withdrawal Address</p>
-            <p className="text-sm font-mono break-all">{withdrawalAddress}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Card className="w-full">
+      <CardContent className="pt-6">
+        <div className="bg-primary/10 rounded-lg p-6">
+          <h3 className="text-xl font-semibold text-primary mb-2 flex items-center gap-2">
+            <Server className="h-6 w-6 animate-pulse" />
+            Mining Plan Status
+          </h3>
+          <div className="space-y-3">
             <div>
-              <p className="text-sm text-muted-foreground">Activation Time</p>
-              <p className="text-lg font-semibold">{formatDate(activationDate)}</p>
+              <p className="text-sm text-muted-foreground">Status</p>
+              <p className={cn(
+                "text-lg font-semibold flex items-center gap-2",
+                isExpired ? "text-red-500" : "text-green-500"
+              )}>
+                <Cpu className="h-5 w-5 animate-pulse" />
+                {isExpired ? "Expired" : "Active"}
+                {!isExpired && (
+                  <span className="text-sm font-normal ml-2">({timeRemaining})</span>
+                )}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">End Time</p>
-              <p className="text-lg font-semibold">{formatDate(endDate)}</p>
+              <p className="text-sm text-muted-foreground">Plan Type</p>
+              <p className="text-lg font-semibold capitalize">{planType} Plan ({amount} USDT)</p>
             </div>
-          </div>
-          <div className="space-y-3 pt-4">
-            <TelegramSupport />
+            <div>
+              <p className="text-sm text-muted-foreground">Daily Reward</p>
+              <p className="text-lg font-semibold">{dailyRewardCPXTB} CPXTB</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Withdrawal Address</p>
+              <p className="text-sm font-mono break-all">{withdrawalAddress}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Activation Time</p>
+                <p className="text-lg font-semibold">{formatDate(activationDate)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">End Time</p>
+                <p className="text-lg font-semibold">{formatDate(endDate)}</p>
+              </div>
+            </div>
             {isExpired && !hasWithdrawn && (
               <Button
                 variant="default"
-                className="w-full"
+                className="w-full mt-4"
                 onClick={onClaim}
               >
                 <Coins className="mr-2 h-4 w-4" />
@@ -193,49 +192,28 @@ function ActivePlanDisplay({
               </Button>
             )}
             {isExpired && hasWithdrawn && (
-              <p className="text-sm text-center text-muted-foreground">
+              <p className="text-sm text-center text-muted-foreground mt-4">
                 Rewards have been claimed
               </p>
             )}
-            {isExpired && (
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={onReset}
-              >
-                Reset Expired Plan
-              </Button>
-            )}
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 export function MiningPlan() {
-  // Move all useState hooks to the top
+  // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
-  const [hasActivePlan, setHasActivePlan] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
-  const [isExpired, setIsExpired] = useState(false);
-  const [activePlanDetails, setActivePlanDetails] = useState<{
-    walletAddress: string;
-    withdrawalAddress: string;
-    dailyRewardCPXTB: string;
-    activatedAt: string;
-    planType: PlanType;
-    transactionHash?: string;
-    expiresAt: string;
-    hasWithdrawn?: boolean;
-  } | null>(null);
 
-  // Hook dependencies
+  // Hooks
   const { toast } = useToast();
   const { isConnected, address } = useWallet();
   const { chain } = useNetwork();
@@ -243,22 +221,33 @@ export function MiningPlan() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
 
-  // Calculate derived values
+  // Queries
+  const { data: activePlans = [], refetch: refetchActivePlans } = useQuery({
+    queryKey: ['activePlans', address],
+    queryFn: async () => {
+      if (!address) return [];
+      const response = await fetch(`/api/mining-plans/${address}`);
+      const data = await response.json();
+      return data.plans || [];
+    },
+    enabled: !!address
+  });
+
+  const { data: claimablePlans = [], refetch: refetchClaimablePlans } = useQuery({
+    queryKey: ['claimablePlans', address],
+    queryFn: async () => {
+      if (!address) return [];
+      const response = await fetch(`/api/mining-plans/${address}/claimable`);
+      const data = await response.json();
+      return data.plans || [];
+    },
+    enabled: !!address
+  });
+
+  // Current plan configuration
   const currentPlan = PLANS[selectedPlan];
   const cpxtbPrice = 0.002529;
   const dailyRewardCPXTB = (currentPlan.rewardUSD / cpxtbPrice).toFixed(2);
-
-  // Query for claimable plan
-  const { data: claimablePlan } = useQuery({
-    queryKey: ['claimablePlan', address],
-    queryFn: async () => {
-      if (!address) return null;
-      const response = await fetch(`/api/mining-plan/${address}/claimable`);
-      const data = await response.json();
-      return data.plan;
-    },
-    enabled: isExpired && !!address
-  });
 
   // USDT Balance Check
   const { data: usdtBalance, isError: isBalanceError } = useContractRead({
@@ -270,94 +259,6 @@ export function MiningPlan() {
     watch: true
   });
 
-  // Effect for fetching active plan
-  useEffect(() => {
-    const fetchActivePlan = async () => {
-      if (!address || !isConnected) {
-        setHasActivePlan(false);
-        setActivePlanDetails(null);
-        setIsLoading(false);
-        localStorage.removeItem('activeMiningPlan');
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/mining-plan/${address}`);
-        const data = await response.json();
-
-        if (data.plan && data.plan.walletAddress === address) {
-          const planDetails = {
-            walletAddress: data.plan.walletAddress,
-            withdrawalAddress: data.plan.withdrawalAddress,
-            dailyRewardCPXTB: data.plan.dailyRewardCPXTB,
-            activatedAt: data.plan.activatedAt,
-            planType: data.plan.planType as PlanType,
-            expiresAt: data.plan.expiresAt,
-            hasWithdrawn: data.plan.hasWithdrawn
-          };
-
-          setHasActivePlan(true);
-          setActivePlanDetails(planDetails);
-          setIsExpired(new Date() > new Date(data.plan.expiresAt));
-          localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
-        } else {
-          const savedPlan = localStorage.getItem('activeMiningPlan');
-          if (savedPlan) {
-            const planDetails = JSON.parse(savedPlan);
-            if (planDetails.walletAddress === address) {
-              const activationDate = new Date(planDetails.activatedAt);
-              const endDate = new Date(activationDate);
-              endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
-
-              const now = new Date();
-              const isCurrentlyExpired = now > endDate;
-
-              setIsExpired(isCurrentlyExpired);
-              setHasActivePlan(true);
-              setActivePlanDetails(planDetails);
-            } else {
-              localStorage.removeItem('activeMiningPlan');
-              setHasActivePlan(false);
-              setActivePlanDetails(null);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching mining plan:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to fetch mining plan status"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchActivePlan();
-  }, [address, isConnected, toast]);
-
-  // Effect for checking plan expiration
-  useEffect(() => {
-    if (hasActivePlan && activePlanDetails) {
-      const checkExpiration = () => {
-        const activationDate = new Date(activePlanDetails.activatedAt);
-        const endDate = new Date(activationDate);
-        endDate.setDate(endDate.getDate() + (activePlanDetails.planType === 'weekly' ? 7 : 1));
-
-        const now = new Date();
-        const isCurrentlyExpired = now > endDate;
-        setIsExpired(isCurrentlyExpired);
-      };
-
-      const timer = setInterval(checkExpiration, 60000);
-      checkExpiration();
-
-      return () => clearInterval(timer);
-    }
-  }, [hasActivePlan, activePlanDetails]);
-
-  // Handler functions
   const getBalanceDisplay = () => {
     if (!isConnected) return "Not connected";
     if (chain?.id !== 1) return "Wrong network";
@@ -427,11 +328,6 @@ export function MiningPlan() {
       setTransactionHash(hash);
       setIsValidating(true);
 
-      toast({
-        title: "Transfer Submitted",
-        description: "Waiting for transaction confirmation. This may take a few minutes..."
-      });
-
       let receipt = null;
       const maxRetries = 5;
       const retryDelay = 5000;
@@ -475,7 +371,7 @@ export function MiningPlan() {
         hasWithdrawn: false
       };
 
-      const response = await fetch('/api/mining-plan', {
+      const response = await fetch('/api/mining-plans', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -488,21 +384,7 @@ export function MiningPlan() {
         throw new Error(errorData.message || 'Failed to save mining plan');
       }
 
-      const localStoragePlanDetails = {
-        walletAddress: address,
-        withdrawalAddress,
-        dailyRewardCPXTB,
-        activatedAt: activationTime,
-        planType: selectedPlan,
-        transactionHash: hash,
-        expiresAt: planDetails.expiresAt,
-        hasWithdrawn: false
-      };
-
-      localStorage.setItem('activeMiningPlan', JSON.stringify(localStoragePlanDetails));
-      setHasActivePlan(true);
-      setActivePlanDetails(localStoragePlanDetails);
-      setIsExpired(false);
+      await refetchActivePlans();
 
       toast({
         title: "Plan Activated",
@@ -524,28 +406,8 @@ export function MiningPlan() {
     }
   };
 
-  const handleResetPlan = () => {
-    if (!isExpired) {
-      toast({
-        variant: "destructive",
-        title: "Cannot Reset Active Plan",
-        description: "Your mining plan is still active. Please wait until it expires."
-      });
-      return;
-    }
-
-    localStorage.removeItem('activeMiningPlan');
-    setHasActivePlan(false);
-    setActivePlanDetails(null);
-    setIsExpired(false);
-    toast({
-      title: "Plan Reset",
-      description: "Your expired mining plan has been reset."
-    });
-  };
-
-  const handleClaimRewards = async () => {
-    if (!walletClient || !publicClient || !claimablePlan) {
+  const handleClaimRewards = async (plan: any) => {
+    if (!walletClient || !publicClient) {
       toast({
         variant: "destructive",
         title: "Wallet Not Connected",
@@ -570,7 +432,7 @@ export function MiningPlan() {
           outputs: []
         }],
         functionName: "transfer",
-        args: [claimablePlan.withdrawalAddress as Address, BigInt(claimablePlan.dailyRewardCPXTB)]
+        args: [plan.withdrawalAddress as Address, BigInt(plan.dailyRewardCPXTB)]
       });
 
       setTransactionHash(hash);
@@ -579,11 +441,14 @@ export function MiningPlan() {
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
       if (receipt.status === "success") {
-        await apiRequest("POST", `/api/mining-plan/${claimablePlan.id}/withdraw`, {
+        await apiRequest("POST", `/api/mining-plans/${plan.id}/withdraw`, {
           transactionHash: hash
         });
 
         setIsConfirmed(true);
+        await refetchClaimablePlans();
+        await refetchActivePlans();
+
         toast({
           title: "Rewards Claimed",
           description: "Your CPXTB rewards have been sent to your withdrawal address!"
@@ -602,7 +467,7 @@ export function MiningPlan() {
     }
   };
 
-  // Conditional rendering
+  // Render loading state
   if (isLoading) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
@@ -616,130 +481,150 @@ export function MiningPlan() {
     );
   }
 
-  if (isConnected && hasActivePlan && activePlanDetails) {
-    return (
+  return (
+    <div className="space-y-6">
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Coins className="h-6 w-6 text-primary" />
-            Active Mining Plan
+            <Server className="h-6 w-6 text-primary animate-pulse" />
+            Mining Plans
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ActivePlanDisplay
-            withdrawalAddress={activePlanDetails.withdrawalAddress}
-            dailyRewardCPXTB={activePlanDetails.dailyRewardCPXTB}
-            activatedAt={activePlanDetails.activatedAt}
-            planType={activePlanDetails.planType}
-            onReset={handleResetPlan}
-            isExpired={isExpired}
-            onClaim={handleClaimRewards}
-            hasWithdrawn={activePlanDetails.hasWithdrawn || false}
-          />
+        <CardContent className="space-y-6">
+          <div className="flex gap-4 mb-6">
+            <Button
+              variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('daily')}
+              className="flex-1"
+            >
+              <Cpu className="mr-2 h-4 w-4" />
+              Daily Plan
+            </Button>
+            <Button
+              variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('weekly')}
+              className="flex-1"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Weekly Plan
+            </Button>
+          </div>
+
+          <div className="bg-muted rounded-lg p-6 space-y-4">
+            <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-primary" />
+              {selectedPlan} Mining Plan Details
+            </h3>
+            <div className="grid gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Your USDT Balance</p>
+                <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Investment Required</p>
+                <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Daily Reward</p>
+                <p className="text-2xl font-bold text-primary">
+                  {dailyRewardCPXTB} CPXTB
+                  <span className="text-sm text-muted-foreground ml-2">
+                    (≈${currentPlan.rewardUSD})
+                  </span>
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Duration</p>
+                <p className="text-2xl font-bold">{currentPlan.duration}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
+              <Input
+                id="withdrawal"
+                placeholder="Enter your Base network address for CPXTB withdrawals"
+                value={withdrawalAddress}
+                onChange={(e) => setWithdrawalAddress(e.target.value)}
+              />
+            </div>
+
+            {isConnected && (
+              <Button
+                className="w-full mt-4"
+                size="lg"
+                onClick={handleTransfer}
+                disabled={isTransferring || isValidating || isSwitchingNetwork}
+              >
+                <Coins className="mr-2 h-4 w-4" />
+                {isSwitchingNetwork ? "Switching Network..." :
+                  isTransferring ? "Transferring USDT..." :
+                    isValidating ? "Validating Transaction..." :
+                      `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
+              </Button>
+            )}
+
+            {transactionHash && (
+              <TransactionStatus
+                hash={transactionHash}
+                isValidating={isValidating}
+                isConfirmed={isConfirmed}
+              />
+            )}
+          </div>
         </CardContent>
       </Card>
-    );
-  }
 
-  return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Server className="h-6 w-6 text-primary animate-pulse" />
-          Mining Plans
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex gap-4 mb-6">
-          <Button
-            variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-            onClick={() => setSelectedPlan('daily')}
-            className="flex-1"
-          >
-            <Cpu className="mr-2 h-4 w-4" />
-            Daily Plan
-          </Button>
-          <Button
-            variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
-            onClick={() => setSelectedPlan('weekly')}
-            className="flex-1"
-          >
-            <Server className="mr-2 h-4 w-4" />
-            Weekly Plan
-          </Button>
-        </div>
-
-        <div className="bg-muted rounded-lg p-6 space-y-4">
-          <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
-            <Cpu className="h-5 w-5 text-primary" />
-            {selectedPlan} Mining Plan Details
-          </h3>
-          <div className="grid gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Your USDT Balance</p>
-              <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Investment Required</p>
-              <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Daily Reward</p>
-              <p className="text-2xl font-bold text-primary">
-                {dailyRewardCPXTB} CPXTB
-                <span className="text-sm text-muted-foreground ml-2">
-                  (≈${currentPlan.rewardUSD})
-                </span>
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Duration</p>
-              <p className="text-2xl font-bold">{currentPlan.duration}</p>
-            </div>
-          </div>
-        </div>
-
+      {isConnected && activePlans.length > 0 && (
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
-            <Input
-              id="withdrawal"
-              placeholder="Enter your Base network address for CPXTB withdrawals"
-              value={withdrawalAddress}
-              onChange={(e) => setWithdrawalAddress(e.target.value)}
-            />
+          <h2 className="text-2xl font-bold">Active Mining Plans</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activePlans.map((plan: any) => (
+              <ActivePlanDisplay
+                key={plan.id}
+                withdrawalAddress={plan.withdrawalAddress}
+                dailyRewardCPXTB={plan.dailyRewardCPXTB}
+                activatedAt={plan.activatedAt}
+                planType={plan.planType}
+                onClaim={() => handleClaimRewards(plan)}
+                isExpired={new Date() > new Date(plan.expiresAt)}
+                hasWithdrawn={plan.hasWithdrawn}
+                amount={plan.amount}
+              />
+            ))}
           </div>
-
-          {isConnected && (
-            <Button
-              className="w-full mt-4"
-              size="lg"
-              onClick={handleTransfer}
-              disabled={isTransferring || isValidating || isSwitchingNetwork}
-            >
-              <Coins className="mr-2 h-4 w-4" />
-              {isSwitchingNetwork ? "Switching Network..." :
-                isTransferring ? "Transferring USDT..." :
-                  isValidating ? "Validating Transaction..." :
-                    `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
-            </Button>
-          )}
-
-          {transactionHash && (
-            <TransactionStatus
-              hash={transactionHash}
-              isValidating={isValidating}
-              isConfirmed={isConfirmed}
-            />
-          )}
         </div>
-        <div className="pt-6 border-t border-border">
-          <p className="text-sm text-muted-foreground mb-3 text-center">
-            Need help? Contact our support team
-          </p>
-          <TelegramSupport />
+      )}
+
+      {isConnected && claimablePlans.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">Claimable Plans</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {claimablePlans.map((plan: any) => (
+              <ActivePlanDisplay
+                key={plan.id}
+                withdrawalAddress={plan.withdrawalAddress}
+                dailyRewardCPXTB={plan.dailyRewardCPXTB}
+                activatedAt={plan.activatedAt}
+                planType={plan.planType}
+                onClaim={() => handleClaimRewards(plan)}
+                isExpired={true}
+                hasWithdrawn={plan.hasWithdrawn}
+                amount={plan.amount}
+              />
+            ))}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      <div className="pt-6 border-t border-border">
+        <p className="text-sm text-muted-foreground mb-3 text-center">
+          Need help? Contact our support team
+        </p>
+        <TelegramSupport />
+      </div>
+    </div>
   );
 }

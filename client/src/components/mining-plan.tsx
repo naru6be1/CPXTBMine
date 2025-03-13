@@ -197,10 +197,13 @@ export function MiningPlan() {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [hasActivePlan, setHasActivePlan] = useState(false);
   const [activePlanDetails, setActivePlanDetails] = useState<{
+    walletAddress: string;
     withdrawalAddress: string;
     dailyRewardCPXTB: string;
     activatedAt: string;
     planType: PlanType;
+    transactionHash?: string;
+    expiresAt: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTransferring, setIsTransferring] = useState(false);
@@ -219,8 +222,13 @@ export function MiningPlan() {
   // Add hook to fetch active plan from backend
   useEffect(() => {
     const fetchActivePlan = async () => {
-      if (!address) {
+      // Reset states when wallet is not connected
+      if (!address || !isConnected) {
+        setHasActivePlan(false);
+        setActivePlanDetails(null);
         setIsLoading(false);
+        // Clear localStorage when disconnecting
+        localStorage.removeItem('activeMiningPlan');
         return;
       }
 
@@ -228,13 +236,15 @@ export function MiningPlan() {
         const response = await fetch(`/api/mining-plan/${address}`);
         const data = await response.json();
 
-        if (data.plan) {
+        if (data.plan && data.plan.walletAddress === address) {
           // Backend plan takes precedence over local storage
           const planDetails = {
+            walletAddress: data.plan.walletAddress,
             withdrawalAddress: data.plan.withdrawalAddress,
             dailyRewardCPXTB: data.plan.dailyRewardCPXTB,
             activatedAt: data.plan.activatedAt,
-            planType: data.plan.planType as PlanType
+            planType: data.plan.planType as PlanType,
+            expiresAt: data.plan.expiresAt
           };
 
           setHasActivePlan(true);
@@ -248,16 +258,25 @@ export function MiningPlan() {
           const savedPlan = localStorage.getItem('activeMiningPlan');
           if (savedPlan) {
             const planDetails = JSON.parse(savedPlan);
-            const activationDate = new Date(planDetails.activatedAt);
-            const endDate = new Date(activationDate);
-            endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
 
-            const now = new Date();
-            const isCurrentlyExpired = now > endDate;
+            // Only show plan if it matches the connected wallet
+            if (planDetails.walletAddress === address) {
+              const activationDate = new Date(planDetails.activatedAt);
+              const endDate = new Date(activationDate);
+              endDate.setDate(endDate.getDate() + (planDetails.planType === 'weekly' ? 7 : 1));
 
-            setIsExpired(isCurrentlyExpired);
-            setHasActivePlan(true);
-            setActivePlanDetails(planDetails);
+              const now = new Date();
+              const isCurrentlyExpired = now > endDate;
+
+              setIsExpired(isCurrentlyExpired);
+              setHasActivePlan(true);
+              setActivePlanDetails(planDetails);
+            } else {
+              // Clear localStorage if wallet doesn't match
+              localStorage.removeItem('activeMiningPlan');
+              setHasActivePlan(false);
+              setActivePlanDetails(null);
+            }
           }
         }
       } catch (error) {
@@ -273,7 +292,7 @@ export function MiningPlan() {
     };
 
     fetchActivePlan();
-  }, [address, toast]);
+  }, [address, isConnected, toast]);
 
   const currentPlan = PLANS[selectedPlan];
   const cpxtbPrice = 0.002529;

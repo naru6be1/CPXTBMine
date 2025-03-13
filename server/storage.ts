@@ -7,6 +7,11 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getUserByReferralCode(code: string): Promise<User | undefined>;
+  getReferralStats(referralCode: string): Promise<{
+    totalReferrals: number;
+    totalRewards: string;
+  }>;
 
   // Mining plan methods
   createMiningPlan(plan: InsertMiningPlan): Promise<MiningPlan>;
@@ -15,6 +20,8 @@ export interface IStorage {
   deactivateExpiredPlans(): Promise<void>;
   markPlanAsWithdrawn(planId: number): Promise<MiningPlan>;
   getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]>;
+  markReferralRewardPaid(planId: number): Promise<MiningPlan>;
+  getReferralPlans(referralCode: string): Promise<MiningPlan[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -30,8 +37,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    // Generate unique referral code if not provided
+    if (!insertUser.referralCode) {
+      insertUser.referralCode = `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    }
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async getUserByReferralCode(code: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.referralCode, code));
+    return user;
+  }
+
+  async getReferralStats(referralCode: string): Promise<{ totalReferrals: number; totalRewards: string }> {
+    const plans = await db
+      .select()
+      .from(miningPlans)
+      .where(eq(miningPlans.referralCode, referralCode));
+
+    const totalReferrals = plans.length;
+    const totalRewards = plans.reduce((sum, plan) => {
+      // Calculate 5% of the plan amount as referral reward
+      const planAmount = parseFloat(plan.amount);
+      return sum + (planAmount * 0.05);
+    }, 0);
+
+    return {
+      totalReferrals,
+      totalRewards: totalRewards.toFixed(2)
+    };
   }
 
   // Mining plan methods
@@ -93,6 +128,22 @@ export class DatabaseStorage implements IStorage {
           gte(new Date(), miningPlans.expiresAt)
         )
       );
+  }
+
+  async markReferralRewardPaid(planId: number): Promise<MiningPlan> {
+    const [updatedPlan] = await db
+      .update(miningPlans)
+      .set({ referralRewardPaid: true })
+      .where(eq(miningPlans.id, planId))
+      .returning();
+    return updatedPlan;
+  }
+
+  async getReferralPlans(referralCode: string): Promise<MiningPlan[]> {
+    return await db
+      .select()
+      .from(miningPlans)
+      .where(eq(miningPlans.referralCode, referralCode));
   }
 }
 

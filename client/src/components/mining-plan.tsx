@@ -14,6 +14,8 @@ import { SiTelegram } from 'react-icons/si';
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
+import { ReferralStats } from "./referral-stats";
+import { useLocation } from "wouter";
 
 // Legacy USDT Contract Interface with exact function signatures
 const USDT_ABI = [
@@ -232,6 +234,8 @@ export function MiningPlan() {
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [location] = useLocation();
+  const referralCode = location.split('?')[1] ? new URLSearchParams(location.split('?')[1]).get('ref') : null;
 
   // Hooks
   const { toast } = useToast();
@@ -396,6 +400,7 @@ export function MiningPlan() {
         activatedAt: activationTime,
         expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
         transactionHash: hash,
+        referralCode: referralCode
       };
 
       const response = await fetch('/api/mining-plans', {
@@ -513,6 +518,7 @@ export function MiningPlan() {
 
   return (
     <div className="space-y-6">
+      <ReferralStats />
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

@@ -38,6 +38,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Received mining plan data:", JSON.stringify(req.body));
 
+      // If referral code is provided, verify it exists
+      if (req.body.referralCode) {
+        const referrer = await storage.getUserByReferralCode(req.body.referralCode);
+        if (!referrer) {
+          res.status(400).json({
+            message: "Invalid referral code"
+          });
+          return;
+        }
+      }
+
       // Validate plan data against schema
       const planData = insertMiningPlanSchema.parse(req.body);
       console.log("Validated plan data:", JSON.stringify(planData));
@@ -95,6 +106,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error verifying transaction:", error);
       res.status(500).json({
         message: "Error verifying transaction: " + error.message
+      });
+    }
+  });
+
+  // Get referral stats
+  app.get("/api/referrals/:code/stats", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const stats = await storage.getReferralStats(code);
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching referral stats:", error);
+      res.status(500).json({
+        message: "Error fetching referral stats: " + error.message
+      });
+    }
+  });
+
+  // Get referral plans
+  app.get("/api/referrals/:code/plans", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const plans = await storage.getReferralPlans(code);
+      res.json({ plans });
+    } catch (error: any) {
+      console.error("Error fetching referral plans:", error);
+      res.status(500).json({
+        message: "Error fetching referral plans: " + error.message
       });
     }
   });

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -117,12 +117,39 @@ function ActivePlanDisplay({
   hasWithdrawn: boolean;
   amount: string;
 }) {
+  const [timeRemaining, setTimeRemaining] = useState<string>("");
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
   endDate.setDate(endDate.getDate() + (planType === 'weekly' ? 7 : 1));
 
-  const [timeRemaining, setTimeRemaining] = useState<string>("");
+  // Add useEffect for time remaining calculation
+  useEffect(() => {
+    const updateTimeRemaining = () => {
+      const now = new Date();
+      const diff = endDate.getTime() - now.getTime();
 
+      if (diff <= 0) {
+        setTimeRemaining("Expired");
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m remaining`);
+      } else {
+        setTimeRemaining(`${hours}h ${minutes}m remaining`);
+      }
+    };
+
+    // Update immediately and then every minute
+    updateTimeRemaining();
+    const timer = setInterval(updateTimeRemaining, 60000);
+
+    return () => clearInterval(timer);
+  }, [endDate]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleString('en-US', {

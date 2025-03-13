@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -69,6 +69,20 @@ interface PlanConfig {
   duration: string;
 }
 
+interface MiningPlan {
+  id: number;
+  walletAddress: string;
+  withdrawalAddress: string;
+  planType: PlanType;
+  amount: string;
+  dailyRewardCPXTB: string;
+  activatedAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  transactionHash: string;
+  hasWithdrawn: boolean;
+}
+
 // Add Telegram Support Button Component
 function TelegramSupport() {
   return (
@@ -109,26 +123,6 @@ function ActivePlanDisplay({
 
   const [timeRemaining, setTimeRemaining] = useState<string>("");
 
-  useEffect(() => {
-    const updateTimeRemaining = () => {
-      const now = new Date();
-      const diff = endDate.getTime() - now.getTime();
-
-      if (diff <= 0) {
-        setTimeRemaining("Expired");
-        return;
-      }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      setTimeRemaining(`${hours}h ${minutes}m remaining`);
-    };
-
-    updateTimeRemaining();
-    const timer = setInterval(updateTimeRemaining, 60000);
-
-    return () => clearInterval(timer);
-  }, [endDate]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleString('en-US', {
@@ -207,7 +201,6 @@ export function MiningPlan() {
   // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -222,23 +215,31 @@ export function MiningPlan() {
   const { data: walletClient } = useWalletClient();
 
   // Queries
-  const { data: activePlans = [], refetch: refetchActivePlans } = useQuery({
+  const { data: activePlans = [], refetch: refetchActivePlans, isLoading: isLoadingActive } = useQuery({
     queryKey: ['activePlans', address],
     queryFn: async () => {
       if (!address) return [];
       const response = await fetch(`/api/mining-plans/${address}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch active plans');
+      }
       const data = await response.json();
+      console.log('Active plans:', data.plans);
       return data.plans || [];
     },
     enabled: !!address
   });
 
-  const { data: claimablePlans = [], refetch: refetchClaimablePlans } = useQuery({
+  const { data: claimablePlans = [], refetch: refetchClaimablePlans, isLoading: isLoadingClaimable } = useQuery({
     queryKey: ['claimablePlans', address],
     queryFn: async () => {
       if (!address) return [];
       const response = await fetch(`/api/mining-plans/${address}/claimable`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch claimable plans');
+      }
       const data = await response.json();
+      console.log('Claimable plans:', data.plans);
       return data.plans || [];
     },
     enabled: !!address
@@ -368,7 +369,6 @@ export function MiningPlan() {
         activatedAt: activationTime,
         expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
         transactionHash: hash,
-        hasWithdrawn: false
       };
 
       const response = await fetch('/api/mining-plans', {
@@ -403,10 +403,13 @@ export function MiningPlan() {
           ? `Error: ${error.message}. Please try again.`
           : "Failed to transfer USDT. Please try again."
       });
+    } finally {
+      setIsTransferring(false);
+      setIsValidating(false);
     }
   };
 
-  const handleClaimRewards = async (plan: any) => {
+  const handleClaimRewards = async (plan: MiningPlan) => {
     if (!walletClient || !publicClient) {
       toast({
         variant: "destructive",
@@ -468,7 +471,7 @@ export function MiningPlan() {
   };
 
   // Render loading state
-  if (isLoading) {
+  if (isLoadingActive || isLoadingClaimable) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardContent className="p-6">
@@ -581,7 +584,7 @@ export function MiningPlan() {
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">Active Mining Plans</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {activePlans.map((plan: any) => (
+            {activePlans.map((plan: MiningPlan) => (
               <ActivePlanDisplay
                 key={plan.id}
                 withdrawalAddress={plan.withdrawalAddress}
@@ -602,7 +605,7 @@ export function MiningPlan() {
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">Claimable Plans</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {claimablePlans.map((plan: any) => (
+            {claimablePlans.map((plan: MiningPlan) => (
               <ActivePlanDisplay
                 key={plan.id}
                 withdrawalAddress={plan.withdrawalAddress}

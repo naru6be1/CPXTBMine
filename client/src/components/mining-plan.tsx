@@ -415,14 +415,16 @@ export function MiningPlan() {
 
       setIsConfirmed(true);
       const activationTime = new Date().toISOString();
+      // Create plan details with proper format
       const planDetails = {
-        walletAddress: address,
+        walletAddress: address as string,
         withdrawalAddress,
+        planType: selectedPlan,
+        amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
         activatedAt: activationTime,
-        planType: selectedPlan,
+        expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
         transactionHash: hash,
-        expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString()
       };
 
       // Create plan in backend
@@ -435,13 +437,24 @@ export function MiningPlan() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save mining plan');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save mining plan');
       }
 
-      // Store plan details in localStorage
-      localStorage.setItem('activeMiningPlan', JSON.stringify(planDetails));
+      // Store relevant plan details in localStorage
+      const localStoragePlanDetails = {
+        walletAddress: address,
+        withdrawalAddress,
+        dailyRewardCPXTB,
+        activatedAt: activationTime,
+        planType: selectedPlan,
+        transactionHash: hash,
+        expiresAt: planDetails.expiresAt
+      };
+
+      localStorage.setItem('activeMiningPlan', JSON.stringify(localStoragePlanDetails));
       setHasActivePlan(true);
-      setActivePlanDetails(planDetails);
+      setActivePlanDetails(localStoragePlanDetails);
       setIsExpired(false);
 
       toast({

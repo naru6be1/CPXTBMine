@@ -26,10 +26,16 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
-export const insertMiningPlanSchema = createInsertSchema(miningPlans).omit({
-  id: true,
-  isActive: true,
-});
+// Update the mining plan schema to match the frontend data
+export const insertMiningPlanSchema = createInsertSchema(miningPlans)
+  .omit({ 
+    id: true,
+    isActive: true 
+  })
+  .extend({
+    amount: z.string(), // Make sure amount is handled as string
+    planType: z.enum(['daily', 'weekly']), // Add validation for plan types
+  });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

@@ -108,7 +108,9 @@ function ActivePlanDisplay({
   onClaim,
   isExpired,
   hasWithdrawn,
-  amount
+  amount,
+  isAdmin,
+  walletAddress
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
@@ -118,6 +120,8 @@ function ActivePlanDisplay({
   isExpired: boolean;
   hasWithdrawn: boolean;
   amount: string;
+  isAdmin: boolean;
+  walletAddress: string;
 }) {
   const [timeRemaining, setTimeRemaining] = useState<string>("");
   const activationDate = new Date(activatedAt);
@@ -204,19 +208,34 @@ function ActivePlanDisplay({
                 <p className="text-lg font-semibold">{formatDate(endDate)}</p>
               </div>
             </div>
+            {isAdmin && (
+              <div>
+                <p className="text-sm text-muted-foreground">User Wallet</p>
+                <p className="text-sm font-mono break-all">{walletAddress}</p>
+              </div>
+            )}
+
             {isExpired && !hasWithdrawn && (
-              <Button
-                variant="default"
-                className="w-full mt-4"
-                onClick={onClaim}
-              >
-                <Coins className="mr-2 h-4 w-4" />
-                Claim CPXTB Rewards
-              </Button>
+              <>
+                {isAdmin ? (
+                  <Button
+                    variant="default"
+                    className="w-full mt-4"
+                    onClick={onClaim}
+                  >
+                    <Coins className="mr-2 h-4 w-4" />
+                    Distribute CPXTB Rewards
+                  </Button>
+                ) : (
+                  <p className="text-sm text-center text-muted-foreground mt-4">
+                    Waiting for CPXTB rewards distribution
+                  </p>
+                )}
+              </>
             )}
             {isExpired && hasWithdrawn && (
               <p className="text-sm text-center text-muted-foreground mt-4">
-                Rewards have been claimed
+                Rewards have been distributed
               </p>
             )}
           </div>
@@ -262,20 +281,22 @@ export function MiningPlan() {
     enabled: !!address
   });
 
-  const { data: claimablePlans = [], refetch: refetchClaimablePlans, isLoading: isLoadingClaimable } = useQuery({
+  const { data: claimablePlansData = { plans: [], isAdmin: false }, refetch: refetchClaimablePlans, isLoading: isLoadingClaimable } = useQuery({
     queryKey: ['claimablePlans', address],
     queryFn: async () => {
-      if (!address) return [];
+      if (!address) return { plans: [], isAdmin: false };
       const response = await fetch(`/api/mining-plans/${address}/claimable`);
       if (!response.ok) {
         throw new Error('Failed to fetch claimable plans');
       }
       const data = await response.json();
-      console.log('Claimable plans:', data.plans);
-      return data.plans || [];
+      return data;
     },
     enabled: !!address
   });
+
+  const claimablePlans = claimablePlansData.plans;
+  const isAdmin = address?.toLowerCase() === TREASURY_ADDRESS.toLowerCase();
 
   // Current plan configuration
   const currentPlan = PLANS[selectedPlan];
@@ -645,6 +666,8 @@ export function MiningPlan() {
                 isExpired={new Date() > new Date(plan.expiresAt)}
                 hasWithdrawn={plan.hasWithdrawn}
                 amount={plan.amount}
+                isAdmin={isAdmin}
+                walletAddress={plan.walletAddress}
               />
             ))}
           </div>
@@ -653,7 +676,9 @@ export function MiningPlan() {
 
       {isConnected && claimablePlans.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Claimable Plans</h2>
+          <h2 className="text-2xl font-bold">
+            {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {claimablePlans.map((plan: MiningPlan) => (
               <ActivePlanDisplay
@@ -666,6 +691,8 @@ export function MiningPlan() {
                 isExpired={true}
                 hasWithdrawn={plan.hasWithdrawn}
                 amount={plan.amount}
+                isAdmin={isAdmin}
+                walletAddress={plan.walletAddress}
               />
             ))}
           </div>

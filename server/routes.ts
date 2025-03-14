@@ -1,8 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMiningPlanSchema } from "@shared/schema";
+import { insertMiningPlanSchema, miningPlans } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { eq, gte, and } from 'drizzle-orm';
+import { db } from './db';
+import { TREASURY_ADDRESS } from './constants';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get or create user
@@ -50,8 +53,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/mining-plans/:walletAddress/claimable", async (req, res) => {
     try {
       const { walletAddress } = req.params;
-      const plans = await storage.getExpiredUnwithdrawnPlans(walletAddress);
-      res.json({ plans });
+
+      // Check if it's the admin wallet
+      const isAdmin = walletAddress.toLowerCase() === TREASURY_ADDRESS.toLowerCase();
+
+      let plans;
+      if (isAdmin) {
+        // Admin can see all expired, unwithdrawn plans
+        plans = await db
+          .select()
+          .from(miningPlans)
+          .where(
+            and(
+              eq(miningPlans.hasWithdrawn, false),
+              eq(miningPlans.isActive, true) //This line was added in edited code
+            )
+          );
+      } else {
+        // Regular users can only see their own expired plans
+        plans = await storage.getExpiredUnwithdrawnPlans(walletAddress);
+      }
+
+      res.json({ plans, isAdmin });
     } catch (error: any) {
       console.error("Error fetching claimable plans:", error);
       res.status(500).json({

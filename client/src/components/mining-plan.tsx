@@ -588,78 +588,89 @@ export function MiningPlan() {
     try {
       setIsTransferring(true);
 
-      // First verify the contract exists and is accessible
+      // Pre-check: Verify contract code exists at the address
+      const code = await publicClient.getBytecode({
+        address: CPXTB_CONTRACT_ADDRESS as Address,
+      });
+
+      if (!code) {
+        throw new Error(`No contract found at address ${CPXTB_CONTRACT_ADDRESS}`);
+      }
+
+      console.log('Contract bytecode found at address:', CPXTB_CONTRACT_ADDRESS);
+
+      // Verify contract implements ERC20 interface
       try {
-        const contractName = await publicClient.readContract({
+        const name = await publicClient.readContract({
           address: CPXTB_CONTRACT_ADDRESS as Address,
           abi: ERC20_ABI,
           functionName: 'name'
         });
-        console.log('CPXTB Contract name:', contractName);
+        console.log('CPXTB Contract name:', name);
+
+        const balance = await publicClient.readContract({
+          address: CPXTB_CONTRACT_ADDRESS as Address,
+          abi: ERC20_ABI,
+          functionName: 'balanceOf',
+          args: [address as Address]
+        });
+        console.log('Admin CPXTB balance:', balance.toString());
+
+        // Convert CPXTB amount to proper decimals (18 decimals)
+        const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
+        const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
+
+        if (balance < rewardInWei) {
+          throw new Error(`Insufficient CPXTB balance. Required: ${rewardAmount}, Available: ${formatUnits(balance, 18)}`);
+        }
+
+        // Log transaction details
+        console.log('Preparing CPXTB distribution:', {
+          amount: rewardAmount,
+          amountInWei: rewardInWei.toString(),
+          withdrawalAddress: plan.withdrawalAddress,
+          contractAddress: CPXTB_CONTRACT_ADDRESS,
+          currentChain: chain?.id
+        });
+
+        // Final chain verification
+        if (chain?.id !== BASE_CHAIN_ID) {
+          throw new Error(`Wrong network. Expected Base (${BASE_CHAIN_ID}), got ${chain?.id}`);
+        }
+
+        // Simulate the transaction first
+        const { request } = await publicClient.simulateContract({
+          address: CPXTB_CONTRACT_ADDRESS as Address,
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [plan.withdrawalAddress as Address, rewardInWei],
+          account: address as Address
+        });
+
+        // Execute the transaction if simulation succeeds
+        const hash = await walletClient.writeContract(request);
+        setTransactionHash(hash);
+        setIsValidating(true);
+
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+        if (receipt.status === "success") {
+          await apiRequest("POST", `/api/mining-plans/${plan.id}/withdraw`, {
+            transactionHash: hash
+          });
+
+          setIsConfirmed(true);
+          await refetchClaimablePlans();
+          await refetchActivePlans();
+
+          toast({
+            title: "Rewards Distributed",
+            description: `Successfully sent ${plan.dailyRewardCPXTB} CPXTB to ${plan.withdrawalAddress}`
+          });
+        }
       } catch (error) {
-        console.error('Failed to read contract name:', error);
-        throw new Error('Invalid CPXTB contract address or contract not accessible');
-      }
-
-      // Convert CPXTB amount to proper decimals (18 decimals)
-      const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
-      const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
-
-      // Log transaction details
-      console.log('Preparing CPXTB distribution:', {
-        amount: rewardAmount,
-        amountInWei: rewardInWei.toString(),
-        withdrawalAddress: plan.withdrawalAddress,
-        contractAddress: CPXTB_CONTRACT_ADDRESS,
-        currentChain: chain?.id
-      });
-
-      // Verify chain one more time before transaction
-      if (chain?.id !== BASE_CHAIN_ID) {
-        throw new Error(`Wrong network. Expected Base (${BASE_CHAIN_ID}), got ${chain?.id}`);
-      }
-
-      // Check admin's CPXTB balance
-      const adminBalance = await publicClient.readContract({
-        address: CPXTB_CONTRACT_ADDRESS as Address,
-        abi: ERC20_ABI,
-        functionName: 'balanceOf',
-        args: [address as Address]
-      });
-
-      console.log('Admin CPXTB balance:', adminBalance.toString());
-
-      if (adminBalance < rewardInWei) {
-        throw new Error('Insufficient CPXTB balance for distribution');
-      }
-
-      const { request } = await publicClient.simulateContract({
-        address: CPXTB_CONTRACT_ADDRESS as Address,
-        abi: ERC20_ABI,
-        functionName: 'transfer',
-        args: [plan.withdrawalAddress as Address, rewardInWei],
-        account: address as Address
-      });
-
-      const hash = await walletClient.writeContract(request);
-      setTransactionHash(hash);
-      setIsValidating(true);
-
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-
-      if (receipt.status === "success") {
-        await apiRequest("POST", `/api/mining-plans/${plan.id}/withdraw`, {
-          transactionHash: hash
-        });
-
-        setIsConfirmed(true);
-        await refetchClaimablePlans();
-        await refetchActivePlans();
-
-        toast({
-          title: "Rewards Distributed",
-          description: `Successfully sent ${plan.dailyRewardCPXTB} CPXTB to ${plan.withdrawalAddress}`
-        });
+        console.error('Contract interaction error:', error);
+        throw new Error(`Contract verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Distribution error:', error);

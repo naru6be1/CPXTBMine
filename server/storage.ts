@@ -54,14 +54,29 @@ export class DatabaseStorage implements IStorage {
     const plans = await db
       .select()
       .from(miningPlans)
-      .where(eq(miningPlans.referralCode, referralCode));
+      .where(
+        and(
+          eq(miningPlans.referralCode, referralCode),
+          eq(miningPlans.isActive, true)
+        )
+      );
 
-    const totalReferrals = plans.length;
+    // Count only unique wallet addresses as referrals
+    const uniqueReferrals = new Set(plans.map(plan => plan.walletAddress));
+    const totalReferrals = uniqueReferrals.size;
+
+    // Calculate total rewards from completed referrals
     const totalRewards = plans.reduce((sum, plan) => {
-      // Calculate 5% of the plan amount as referral reward
       const planAmount = parseFloat(plan.amount);
+      // Calculate 5% of the plan amount as referral reward
       return sum + (planAmount * 0.05);
     }, 0);
+
+    console.log(`Referral stats for ${referralCode}:`, {
+      totalReferrals,
+      totalRewards: totalRewards.toFixed(2),
+      uniqueWallets: Array.from(uniqueReferrals)
+    });
 
     return {
       totalReferrals,

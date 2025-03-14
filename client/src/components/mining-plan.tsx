@@ -16,7 +16,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReferralStats } from "./referral-stats";
 import { useLocation } from "wouter";
-import { createPublicClient } from 'viem';
+import { createPublicClient, http } from 'viem';  // Added http import
+
 
 // Standard ERC20 ABI with complete interface
 const ERC20_ABI = [
@@ -606,23 +607,24 @@ export function MiningPlan() {
             public: { http: [BASE_RPC_URL] },
           },
         },
+        transport: http(BASE_RPC_URL)  // Added transport configuration
       });
 
       // Pre-check: Verify contract code exists at the address
       console.log('Verifying contract at address:', CPXTB_CONTRACT_ADDRESS);
-      const code = await baseClient.getBytecode({
-        address: CPXTB_CONTRACT_ADDRESS as Address,
-      });
-
-      if (!code) {
-        console.error('No bytecode found at address:', CPXTB_CONTRACT_ADDRESS);
-        throw new Error(`No contract found at address ${CPXTB_CONTRACT_ADDRESS} on Base network`);
-      }
-
-      console.log('Contract bytecode found at address:', CPXTB_CONTRACT_ADDRESS, 'length:', code.length);
-
-      // Verify contract implements ERC20 interface
       try {
+        const code = await baseClient.getBytecode({
+          address: CPXTB_CONTRACT_ADDRESS as Address,
+        });
+
+        if (!code) {
+          console.error('No bytecode found at address:', CPXTB_CONTRACT_ADDRESS);
+          throw new Error(`No contract found at address ${CPXTB_CONTRACT_ADDRESS} on Base network`);
+        }
+
+        console.log('Contract bytecode found at address:', CPXTB_CONTRACT_ADDRESS, 'length:', code.length);
+
+        // Verify contract implements ERC20 interface
         const name = await baseClient.readContract({
           address: CPXTB_CONTRACT_ADDRESS as Address,
           abi: ERC20_ABI,

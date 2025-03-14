@@ -110,7 +110,8 @@ function ActivePlanDisplay({
   hasWithdrawn,
   amount,
   isAdmin,
-  walletAddress
+  walletAddress,
+  chain
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
@@ -122,6 +123,7 @@ function ActivePlanDisplay({
   amount: string;
   isAdmin: boolean;
   walletAddress: string;
+  chain: any;
 }) {
   const [timeRemaining, setTimeRemaining] = useState<string>("");
   const activationDate = new Date(activatedAt);
@@ -218,14 +220,22 @@ function ActivePlanDisplay({
             {isExpired && !hasWithdrawn && (
               <>
                 {isAdmin ? (
-                  <Button
-                    variant="default"
-                    className="w-full mt-4"
-                    onClick={onClaim}
-                  >
-                    <Coins className="mr-2 h-4 w-4" />
-                    Distribute CPXTB Rewards
-                  </Button>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Withdrawal Address (Base Network)
+                    </p>
+                    <p className="text-sm font-mono break-all mb-4">{withdrawalAddress}</p>
+                    <Button
+                      variant="default"
+                      className="w-full"
+                      onClick={onClaim}
+                    >
+                      <Coins className="mr-2 h-4 w-4" />
+                      {chain?.id !== 8453
+                        ? "Switch to Base Network & Distribute CPXTB"
+                        : "Distribute CPXTB Rewards"}
+                    </Button>
+                  </div>
                 ) : (
                   <p className="text-sm text-center text-muted-foreground mt-4">
                     Waiting for CPXTB rewards distribution
@@ -474,8 +484,30 @@ export function MiningPlan() {
       toast({
         variant: "destructive",
         title: "Wallet Not Connected",
-        description: "Please connect your wallet to claim rewards"
+        description: "Please connect your wallet to distribute rewards"
       });
+      return;
+    }
+
+    // Check if we're on Base network (chainId: 8453)
+    if (chain?.id !== 8453) {
+      toast({
+        title: "Wrong Network",
+        description: "Please switch to Base network to distribute CPXTB rewards"
+      });
+
+      // Attempt to switch to Base network
+      try {
+        await switchNetwork?.(8453);
+      } catch (error) {
+        console.error('Failed to switch network:', error);
+        toast({
+          variant: "destructive",
+          title: "Network Switch Failed",
+          description: "Please manually switch to Base network and try again"
+        });
+        return;
+      }
       return;
     }
 
@@ -486,7 +518,7 @@ export function MiningPlan() {
       const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
       const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
 
-      console.log('Claiming reward:', {
+      console.log('Distributing reward:', {
         amount: rewardAmount,
         amountInWei: rewardInWei.toString(),
         withdrawalAddress: plan.withdrawalAddress
@@ -523,16 +555,16 @@ export function MiningPlan() {
         await refetchActivePlans();
 
         toast({
-          title: "Rewards Claimed",
-          description: "Your CPXTB rewards have been sent to your withdrawal address!"
+          title: "Rewards Distributed",
+          description: `Successfully sent ${plan.dailyRewardCPXTB} CPXTB to ${plan.withdrawalAddress}`
         });
       }
     } catch (error) {
-      console.error('Claim error:', error);
+      console.error('Distribution error:', error);
       toast({
         variant: "destructive",
-        title: "Claim Failed",
-        description: error instanceof Error ? error.message : "Failed to claim rewards"
+        title: "Distribution Failed",
+        description: error instanceof Error ? error.message : "Failed to distribute rewards"
       });
     } finally {
       setIsTransferring(false);
@@ -668,6 +700,7 @@ export function MiningPlan() {
                 amount={plan.amount}
                 isAdmin={isAdmin}
                 walletAddress={plan.walletAddress}
+                chain={chain}
               />
             ))}
           </div>
@@ -693,6 +726,7 @@ export function MiningPlan() {
                 amount={plan.amount}
                 isAdmin={isAdmin}
                 walletAddress={plan.walletAddress}
+                chain={chain}
               />
             ))}
           </div>

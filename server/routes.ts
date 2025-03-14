@@ -9,15 +9,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:address", async (req, res) => {
     try {
       const { address } = req.params;
+      const referredBy = req.query.ref as string; // Get referral code from query param
+      console.log(`Fetching/creating user for address: ${address}, referred by: ${referredBy}`);
+
       let user = await storage.getUserByUsername(address);
 
       if (!user) {
         // Create new user with a referral code
-        user = await storage.createUser({
+        const newUserData = {
           username: address,
           password: 'not-used', // OAuth-based auth, password not used
-          referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-        });
+          referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+          referredBy: referredBy // Store the referrer's code if provided
+        };
+        console.log('Creating new user with data:', newUserData);
+        user = await storage.createUser(newUserData);
+        console.log('Created new user:', user);
+      } else {
+        console.log('Found existing user:', user);
       }
 
       res.json({ user });
@@ -62,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new mining plan
   app.post("/api/mining-plans", async (req, res) => {
     try {
-      console.log("Received mining plan data:", JSON.stringify(req.body));
+      console.log("Received mining plan data:", JSON.stringify(req.body, null, 2));
 
       // If referral code is provided, verify it exists
       if (req.body.referralCode) {
@@ -80,9 +89,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate plan data against schema
       const planData = insertMiningPlanSchema.parse(req.body);
-      console.log("Validated plan data:", JSON.stringify(planData));
+      console.log("Validated plan data:", JSON.stringify(planData, null, 2));
 
       const plan = await storage.createMiningPlan(planData);
+      console.log("Created mining plan:", JSON.stringify(plan, null, 2));
+
       res.status(201).json({ plan });
     } catch (error: any) {
       console.error("Error creating mining plan:", error);
@@ -144,8 +155,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code } = req.params;
       console.log("Fetching referral stats for code:", code);
+
+      // Verify the referral code exists
+      const referrer = await storage.getUserByReferralCode(code);
+      if (!referrer) {
+        console.log("Invalid referral code for stats:", code);
+        res.status(404).json({
+          message: "Invalid referral code"
+        });
+        return;
+      }
+      console.log("Found referrer for stats:", referrer);
+
       const stats = await storage.getReferralStats(code);
-      console.log("Referral stats:", stats);
+      console.log("Calculated referral stats:", stats);
       res.json(stats);
     } catch (error: any) {
       console.error("Error fetching referral stats:", error);

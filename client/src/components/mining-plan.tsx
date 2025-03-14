@@ -13,7 +13,7 @@ import { type Address } from 'viem';
 import { SiTelegram } from 'react-icons/si';
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReferralStats } from "./referral-stats";
 import { useLocation } from "wouter";
 
@@ -239,11 +239,12 @@ export function MiningPlan() {
 
   // Hooks
   const { toast } = useToast();
-  const { isConnected, address } = useWallet();
+  const { isConnected, address, user } = useWallet();
   const { chain } = useNetwork();
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
+  const queryClient = useQueryClient();
 
   // Queries
   const { data: activePlans = [], refetch: refetchActivePlans, isLoading: isLoadingActive } = useQuery({
@@ -400,8 +401,10 @@ export function MiningPlan() {
         activatedAt: activationTime,
         expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
         transactionHash: hash,
-        referralCode: referralCode
+        referralCode: referralCode // Make sure referral code is included
       };
+
+      console.log('Creating mining plan with details:', planDetails);
 
       const response = await fetch('/api/mining-plans', {
         method: 'POST',
@@ -416,7 +419,11 @@ export function MiningPlan() {
         throw new Error(errorData.message || 'Failed to save mining plan');
       }
 
+      // Refetch active plans and referral stats
       await refetchActivePlans();
+      if (user?.referralCode) {
+        await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
+      }
 
       toast({
         title: "Plan Activated",

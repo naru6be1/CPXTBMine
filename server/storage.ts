@@ -51,32 +51,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReferralStats(referralCode: string): Promise<{ totalReferrals: number; totalRewards: string }> {
+    console.log('Getting referral stats for code:', referralCode);
+
+    // Get all plans with this referral code
     const plans = await db
       .select()
       .from(miningPlans)
-      .where(
-        and(
-          eq(miningPlans.referralCode, referralCode),
-          eq(miningPlans.isActive, true)
-        )
-      );
+      .where(eq(miningPlans.referralCode, referralCode));
 
-    // Count only unique wallet addresses as referrals
-    const uniqueReferrals = new Set(plans.map(plan => plan.walletAddress));
-    const totalReferrals = uniqueReferrals.size;
+    console.log('Found plans:', plans);
 
-    // Calculate total rewards from completed referrals
+    // Count unique referrals (by wallet address)
+    const uniqueWallets = new Set(plans.map(plan => plan.walletAddress));
+    const totalReferrals = uniqueWallets.size;
+
+    console.log('Unique wallets:', Array.from(uniqueWallets));
+    console.log('Total referrals:', totalReferrals);
+
+    // Calculate total rewards (5% of each plan amount)
     const totalRewards = plans.reduce((sum, plan) => {
       const planAmount = parseFloat(plan.amount);
-      // Calculate 5% of the plan amount as referral reward
-      return sum + (planAmount * 0.05);
+      const reward = planAmount * 0.05;
+      console.log(`Plan amount: ${planAmount}, Reward: ${reward}`);
+      return sum + reward;
     }, 0);
 
-    console.log(`Referral stats for ${referralCode}:`, {
-      totalReferrals,
-      totalRewards: totalRewards.toFixed(2),
-      uniqueWallets: Array.from(uniqueReferrals)
-    });
+    console.log('Total rewards:', totalRewards);
 
     return {
       totalReferrals,

@@ -567,6 +567,17 @@ export function MiningPlan() {
       try {
         await switchNetwork?.(BASE_CHAIN_ID);
 
+        // Wait for the network switch to complete
+        let attempts = 0;
+        const maxAttempts = 10;
+        while (attempts < maxAttempts) {
+          if (chain?.id === BASE_CHAIN_ID) {
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          attempts++;
+        }
+
         // Verify the switch was successful
         if (chain?.id !== BASE_CHAIN_ID) {
           toast({
@@ -585,7 +596,6 @@ export function MiningPlan() {
         });
         return;
       }
-      return;
     }
 
     try {
@@ -662,6 +672,12 @@ export function MiningPlan() {
           throw new Error(`Wrong network. Expected Base (${BASE_CHAIN_ID}), got ${chain?.id}`);
         }
 
+        // Create a wallet client specifically for Base
+        const baseWalletClient = await walletClient.extend((config) => ({
+          chain: baseClient.chain,
+          transport: config.transport
+        }));
+
         // Simulate the transaction first
         const { request } = await baseClient.simulateContract({
           address: CPXTB_CONTRACT_ADDRESS as Address,
@@ -671,12 +687,12 @@ export function MiningPlan() {
           account: address as Address
         });
 
-        // Execute the transaction if simulation succeeds
-        const hash = await walletClient.writeContract(request);
+        // Execute the transaction using the Base-specific wallet client
+        const hash = await baseWalletClient.writeContract(request);
         setTransactionHash(hash);
         setIsValidating(true);
 
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await baseClient.waitForTransactionReceipt({ hash });
 
         if (receipt.status === "success") {
           await apiRequest("POST", `/api/mining-plans/${plan.id}/withdraw`, {

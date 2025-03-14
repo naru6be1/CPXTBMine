@@ -17,32 +17,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReferralStats } from "./referral-stats";
 import { useLocation } from "wouter";
 
-// Legacy USDT Contract Interface with exact function signatures
-const USDT_ABI = [
-  {
-    "constant": true,
-    "inputs": [{"name": "_owner", "type": "address"}],
-    "name": "balanceOf",
-    "outputs": [{"name": "", "type": "uint256"}],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {"name": "_to", "type": "address"},
-      {"name": "_value", "type": "uint256"}
-    ],
-    "name": "transfer",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-];
-
-// Standard ERC20 ABI with common functions
+// Standard ERC20 ABI with complete interface
 const ERC20_ABI = [
   {
     "constant": true,
@@ -79,7 +54,7 @@ const ERC20_ABI = [
 // Constants
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
-const CPXTB_CONTRACT_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b"; // Updated CPXTB token on Base
+const CPXTB_CONTRACT_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b"; // CPXTB token on Base
 const BASE_CHAIN_ID = 8453;
 
 
@@ -353,7 +328,29 @@ export function MiningPlan() {
   // USDT Balance Check
   const { data: usdtBalance, isError: isBalanceError } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as Address,
-    abi: USDT_ABI,
+    abi: [
+      {
+        "constant": true,
+        "inputs": [{"name": "_owner", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {"name": "_to", "type": "address"},
+          {"name": "_value", "type": "uint256"}
+        ],
+        "name": "transfer",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ],
     functionName: 'balanceOf',
     args: [address as Address],
     enabled: !!address && chain?.id === 1,
@@ -416,7 +413,29 @@ export function MiningPlan() {
 
       const { request } = await publicClient.simulateContract({
         address: USDT_CONTRACT_ADDRESS as Address,
-        abi: USDT_ABI,
+        abi: [
+          {
+            "constant": true,
+            "inputs": [{"name": "_owner", "type": "address"}],
+            "name": "balanceOf",
+            "outputs": [{"name": "", "type": "uint256"}],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "constant": false,
+            "inputs": [
+              {"name": "_to", "type": "address"},
+              {"name": "_value", "type": "uint256"}
+            ],
+            "name": "transfer",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+          }
+        ],
         functionName: 'transfer',
         args: [
           TREASURY_ADDRESS as Address,

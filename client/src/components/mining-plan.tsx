@@ -16,6 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReferralStats } from "./referral-stats";
 import { useLocation } from "wouter";
+import { createPublicClient } from 'viem';
 
 // Standard ERC20 ABI with complete interface
 const ERC20_ABI = [
@@ -54,8 +55,9 @@ const ERC20_ABI = [
 // Constants
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
-const CPXTB_CONTRACT_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b"; // CPXTB token on Base
+const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b"; // Updated with checksum format
 const BASE_CHAIN_ID = 8453;
+const BASE_RPC_URL = "https://mainnet.base.org";
 
 
 // Plan configurations
@@ -588,27 +590,47 @@ export function MiningPlan() {
     try {
       setIsTransferring(true);
 
+      // Configure public client with specific Base network settings
+      const baseClient = createPublicClient({
+        chain: {
+          id: BASE_CHAIN_ID,
+          name: 'Base',
+          network: 'base',
+          nativeCurrency: {
+            decimals: 18,
+            name: 'Ethereum',
+            symbol: 'ETH',
+          },
+          rpcUrls: {
+            default: { http: [BASE_RPC_URL] },
+            public: { http: [BASE_RPC_URL] },
+          },
+        },
+      });
+
       // Pre-check: Verify contract code exists at the address
-      const code = await publicClient.getBytecode({
+      console.log('Verifying contract at address:', CPXTB_CONTRACT_ADDRESS);
+      const code = await baseClient.getBytecode({
         address: CPXTB_CONTRACT_ADDRESS as Address,
       });
 
       if (!code) {
-        throw new Error(`No contract found at address ${CPXTB_CONTRACT_ADDRESS}`);
+        console.error('No bytecode found at address:', CPXTB_CONTRACT_ADDRESS);
+        throw new Error(`No contract found at address ${CPXTB_CONTRACT_ADDRESS} on Base network`);
       }
 
-      console.log('Contract bytecode found at address:', CPXTB_CONTRACT_ADDRESS);
+      console.log('Contract bytecode found at address:', CPXTB_CONTRACT_ADDRESS, 'length:', code.length);
 
       // Verify contract implements ERC20 interface
       try {
-        const name = await publicClient.readContract({
+        const name = await baseClient.readContract({
           address: CPXTB_CONTRACT_ADDRESS as Address,
           abi: ERC20_ABI,
           functionName: 'name'
         });
         console.log('CPXTB Contract name:', name);
 
-        const balance = await publicClient.readContract({
+        const balance = await baseClient.readContract({
           address: CPXTB_CONTRACT_ADDRESS as Address,
           abi: ERC20_ABI,
           functionName: 'balanceOf',
@@ -639,7 +661,7 @@ export function MiningPlan() {
         }
 
         // Simulate the transaction first
-        const { request } = await publicClient.simulateContract({
+        const { request } = await baseClient.simulateContract({
           address: CPXTB_CONTRACT_ADDRESS as Address,
           abi: ERC20_ABI,
           functionName: 'transfer',

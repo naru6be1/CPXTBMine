@@ -42,9 +42,46 @@ const USDT_ABI = [
   }
 ];
 
+// Standard ERC20 ABI with common functions
+const ERC20_ABI = [
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "name",
+    "outputs": [{"name": "", "type": "string"}],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {"name": "_to", "type": "address"},
+      {"name": "_value", "type": "uint256"}
+    ],
+    "name": "transfer",
+    "outputs": [{"name": "success", "type": "bool"}],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [{"name": "_owner", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "balance", "type": "uint256"}],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
 // Constants
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
+const CPXTB_CONTRACT_ADDRESS = "0x8dB4d1616E1Ce1ec4AC36fD1aE95605936c2D1A6"; // CPXTB token on Base
+const BASE_CHAIN_ID = 8453;
+
 
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
@@ -432,7 +469,7 @@ export function MiningPlan() {
         activatedAt: activationTime,
         expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
         transactionHash: hash,
-        referralCode: referralCode // Make sure referral code is included
+        referralCode: referralCode
       };
 
       console.log('Creating mining plan with details:', planDetails);
@@ -489,22 +526,40 @@ export function MiningPlan() {
       return;
     }
 
-    // Check if we're on Base network (chainId: 8453)
-    if (chain?.id !== 8453) {
+    // Log current chain information
+    console.log('Current chain information:', {
+      currentChainId: chain?.id,
+      requiredChainId: BASE_CHAIN_ID,
+      walletAddress: address,
+      cpxtbContract: CPXTB_CONTRACT_ADDRESS,
+      withdrawalAddress: plan.withdrawalAddress
+    });
+
+    // Check if we're on Base network
+    if (chain?.id !== BASE_CHAIN_ID) {
       toast({
         title: "Wrong Network",
         description: "Please switch to Base network to distribute CPXTB rewards"
       });
 
-      // Attempt to switch to Base network
       try {
-        await switchNetwork?.(8453);
+        await switchNetwork?.(BASE_CHAIN_ID);
+
+        // Verify the switch was successful
+        if (chain?.id !== BASE_CHAIN_ID) {
+          toast({
+            variant: "destructive",
+            title: "Network Switch Required",
+            description: "Please manually switch to Base network in your wallet and try again"
+          });
+          return;
+        }
       } catch (error) {
         console.error('Failed to switch network:', error);
         toast({
           variant: "destructive",
           title: "Network Switch Failed",
-          description: "Please manually switch to Base network and try again"
+          description: "Please manually switch to Base network in your wallet and try again"
         });
         return;
       }
@@ -514,32 +569,60 @@ export function MiningPlan() {
     try {
       setIsTransferring(true);
 
+      // First verify the contract exists and is accessible
+      try {
+        const contractName = await publicClient.readContract({
+          address: CPXTB_CONTRACT_ADDRESS as Address,
+          abi: ERC20_ABI,
+          functionName: 'name'
+        });
+        console.log('CPXTB Contract name:', contractName);
+      } catch (error) {
+        console.error('Failed to read contract name:', error);
+        throw new Error('Invalid CPXTB contract address or contract not accessible');
+      }
+
       // Convert CPXTB amount to proper decimals (18 decimals)
       const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
       const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
 
-      console.log('Distributing reward:', {
+      // Log transaction details
+      console.log('Preparing CPXTB distribution:', {
         amount: rewardAmount,
         amountInWei: rewardInWei.toString(),
-        withdrawalAddress: plan.withdrawalAddress
+        withdrawalAddress: plan.withdrawalAddress,
+        contractAddress: CPXTB_CONTRACT_ADDRESS,
+        currentChain: chain?.id
       });
 
-      const hash = await walletClient.writeContract({
-        address: TREASURY_ADDRESS as Address,
-        abi: [{
-          name: "transfer",
-          type: "function",
-          stateMutability: "nonpayable",
-          inputs: [
-            { name: "recipient", type: "address" },
-            { name: "amount", type: "uint256" }
-          ],
-          outputs: []
-        }],
-        functionName: "transfer",
-        args: [plan.withdrawalAddress as Address, rewardInWei]
+      // Verify chain one more time before transaction
+      if (chain?.id !== BASE_CHAIN_ID) {
+        throw new Error(`Wrong network. Expected Base (${BASE_CHAIN_ID}), got ${chain?.id}`);
+      }
+
+      // Check admin's CPXTB balance
+      const adminBalance = await publicClient.readContract({
+        address: CPXTB_CONTRACT_ADDRESS as Address,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [address as Address]
       });
 
+      console.log('Admin CPXTB balance:', adminBalance.toString());
+
+      if (adminBalance < rewardInWei) {
+        throw new Error('Insufficient CPXTB balance for distribution');
+      }
+
+      const { request } = await publicClient.simulateContract({
+        address: CPXTB_CONTRACT_ADDRESS as Address,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [plan.withdrawalAddress as Address, rewardInWei],
+        account: address as Address
+      });
+
+      const hash = await walletClient.writeContract(request);
       setTransactionHash(hash);
       setIsValidating(true);
 
@@ -561,10 +644,17 @@ export function MiningPlan() {
       }
     } catch (error) {
       console.error('Distribution error:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to distribute rewards";
+      console.error('Detailed error:', {
+        error,
+        chainId: chain?.id,
+        contractAddress: CPXTB_CONTRACT_ADDRESS,
+        withdrawalAddress: plan.withdrawalAddress
+      });
       toast({
         variant: "destructive",
         title: "Distribution Failed",
-        description: error instanceof Error ? error.message : "Failed to distribute rewards"
+        description: errorMessage
       });
     } finally {
       setIsTransferring(false);

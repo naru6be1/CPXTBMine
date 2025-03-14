@@ -461,6 +461,16 @@ export function MiningPlan() {
     try {
       setIsTransferring(true);
 
+      // Convert CPXTB amount to proper decimals (18 decimals)
+      const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
+      const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
+
+      console.log('Claiming reward:', {
+        amount: rewardAmount,
+        amountInWei: rewardInWei.toString(),
+        withdrawalAddress: plan.withdrawalAddress
+      });
+
       const hash = await walletClient.writeContract({
         address: TREASURY_ADDRESS as Address,
         abi: [{
@@ -474,7 +484,7 @@ export function MiningPlan() {
           outputs: []
         }],
         functionName: "transfer",
-        args: [plan.withdrawalAddress as Address, BigInt(plan.dailyRewardCPXTB)]
+        args: [plan.withdrawalAddress as Address, rewardInWei]
       });
 
       setTransactionHash(hash);

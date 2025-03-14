@@ -66,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(
             and(
               eq(miningPlans.hasWithdrawn, false),
-              eq(miningPlans.isActive, true) //This line was added in edited code
+              eq(miningPlans.isActive, true)
             )
           );
       } else {
@@ -96,6 +96,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
       }
+
+      // Log the incoming request
+      console.log('Creating mining plan with referral:', {
+        referralCode: req.body.referralCode,
+        walletAddress: req.body.walletAddress
+      });
 
       // Validate plan data against schema
       const planData = insertMiningPlanSchema.parse(req.body);
@@ -161,7 +167,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/referrals/:code/stats", async (req, res) => {
     try {
       const { code } = req.params;
+      console.log('Fetching referral stats for code:', code);
       const stats = await storage.getReferralStats(code);
+      console.log('Referral stats result:', stats);
       res.json(stats);
     } catch (error: any) {
       console.error("Error fetching referral stats:", error);

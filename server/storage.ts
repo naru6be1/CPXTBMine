@@ -51,32 +51,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReferralStats(referralCode: string): Promise<{ totalReferrals: number; totalRewards: string }> {
-    console.log('Getting referral stats for code:', referralCode);
-
     // Get all plans with this referral code
     const plans = await db
       .select()
       .from(miningPlans)
       .where(eq(miningPlans.referralCode, referralCode));
 
-    console.log('Found plans:', plans);
-
-    // Count unique referrals (by wallet address)
     const uniqueWallets = new Set(plans.map(plan => plan.walletAddress));
     const totalReferrals = uniqueWallets.size;
-
-    console.log('Unique wallets:', Array.from(uniqueWallets));
-    console.log('Total referrals:', totalReferrals);
 
     // Calculate total rewards (5% of each plan amount)
     const totalRewards = plans.reduce((sum, plan) => {
       const planAmount = parseFloat(plan.amount);
-      const reward = planAmount * 0.05;
-      console.log(`Plan amount: ${planAmount}, Reward: ${reward}`);
-      return sum + reward;
+      return sum + (planAmount * 0.05);
     }, 0);
-
-    console.log('Total rewards:', totalRewards);
 
     return {
       totalReferrals,

@@ -10,8 +10,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { address } = req.params;
       const referredBy = req.query.ref as string; // Get referral code from query param
-      console.log(`Fetching/creating user for address: ${address}, referred by: ${referredBy}`);
-
       let user = await storage.getUserByUsername(address);
 
       if (!user) {
@@ -22,11 +20,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           referredBy: referredBy // Store the referrer's code if provided
         };
-        console.log('Creating new user with data:', newUserData);
         user = await storage.createUser(newUserData);
-        console.log('Created new user:', user);
-      } else {
-        console.log('Found existing user:', user);
       }
 
       res.json({ user });
@@ -43,7 +37,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { walletAddress } = req.params;
       const plans = await storage.getActiveMiningPlans(walletAddress);
-      console.log('Active plans:', plans);
       res.json({ plans });
     } catch (error: any) {
       console.error("Error fetching mining plans:", error);
@@ -58,7 +51,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { walletAddress } = req.params;
       const plans = await storage.getExpiredUnwithdrawnPlans(walletAddress);
-      console.log('Claimable plans:', plans);
       res.json({ plans });
     } catch (error: any) {
       console.error("Error fetching claimable plans:", error);
@@ -71,29 +63,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new mining plan
   app.post("/api/mining-plans", async (req, res) => {
     try {
-      console.log("Received mining plan data:", JSON.stringify(req.body, null, 2));
-
       // If referral code is provided, verify it exists
       if (req.body.referralCode) {
-        console.log("Verifying referral code:", req.body.referralCode);
         const referrer = await storage.getUserByReferralCode(req.body.referralCode);
         if (!referrer) {
-          console.log("Invalid referral code:", req.body.referralCode);
           res.status(400).json({
             message: "Invalid referral code"
           });
           return;
         }
-        console.log("Valid referral code found for referrer:", referrer);
       }
 
       // Validate plan data against schema
       const planData = insertMiningPlanSchema.parse(req.body);
-      console.log("Validated plan data:", JSON.stringify(planData, null, 2));
 
       const plan = await storage.createMiningPlan(planData);
-      console.log("Created mining plan:", JSON.stringify(plan, null, 2));
-
       res.status(201).json({ plan });
     } catch (error: any) {
       console.error("Error creating mining plan:", error);
@@ -154,21 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/referrals/:code/stats", async (req, res) => {
     try {
       const { code } = req.params;
-      console.log("Fetching referral stats for code:", code);
-
-      // Verify the referral code exists
-      const referrer = await storage.getUserByReferralCode(code);
-      if (!referrer) {
-        console.log("Invalid referral code for stats:", code);
-        res.status(404).json({
-          message: "Invalid referral code"
-        });
-        return;
-      }
-      console.log("Found referrer for stats:", referrer);
-
       const stats = await storage.getReferralStats(code);
-      console.log("Calculated referral stats:", stats);
       res.json(stats);
     } catch (error: any) {
       console.error("Error fetching referral stats:", error);
@@ -182,9 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/referrals/:code/plans", async (req, res) => {
     try {
       const { code } = req.params;
-      console.log("Fetching referral plans for code:", code);
       const plans = await storage.getReferralPlans(code);
-      console.log("Found referral plans:", plans);
       res.json({ plans });
     } catch (error: any) {
       console.error("Error fetching referral plans:", error);

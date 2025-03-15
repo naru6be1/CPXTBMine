@@ -27,10 +27,11 @@ const { chains } = configureChains(
   [publicProvider()]
 );
 
-// Constants remain unchanged except for comments
+// Constants
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // Ethereum Mainnet USDT
 const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b"; // Base network CPXTB
+const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004"; // Base network WETH
 const BASE_CHAIN_ID = 8453;
 const BASE_RPC_URL = "https://mainnet.base.org";
 
@@ -591,7 +592,7 @@ export function MiningPlan() {
         throw new Error('Wallet not connected');
       }
 
-      // Create Base-specific clients
+      // Create Base-specific client
       const baseClient = createPublicClient({
         chain: baseChain,
         transport: http(BASE_RPC_URL)
@@ -608,9 +609,17 @@ export function MiningPlan() {
 
       console.log('Contract verification successful');
 
-      // Convert reward amount
+      // Convert reward amount to proper decimals (18 decimals for CPXTB)
       const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
       const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
+
+      console.log('Distribution details:', {
+        amount: rewardAmount,
+        amountInWei: rewardInWei.toString(),
+        recipient: plan.withdrawalAddress,
+        contract: CPXTB_CONTRACT_ADDRESS,
+        chainId: chain?.id
+      });
 
       // Use the wallet client directly with the Base chain
       const { request } = await baseClient.simulateContract({
@@ -619,13 +628,13 @@ export function MiningPlan() {
         functionName: 'transfer',
         args: [plan.withdrawalAddress as Address, rewardInWei],
         account: address as Address,
-        chain: baseChain // Explicitly specify the chain
+        chain: baseChain
       });
 
       // Execute the transaction
       const hash = await walletClient.writeContract({
         ...request,
-        chain: baseChain // Ensure chain is explicitly set
+        chain: baseChain
       });
 
       setTransactionHash(hash);

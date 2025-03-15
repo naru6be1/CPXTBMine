@@ -16,7 +16,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReferralStats } from "./referral-stats";
 import { useLocation } from "wouter";
-import { createPublicClient, http } from 'viem';  // Added http import
+import { createPublicClient, http } from 'viem';
+import { configureChains } from 'wagmi';
+import { base } from 'wagmi/chains';
 
 
 // Standard ERC20 ABI with complete interface
@@ -56,10 +58,18 @@ const ERC20_ABI = [
 // Constants
 const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
-const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b"; // Updated with checksum format
+const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 const BASE_CHAIN_ID = 8453;
 const BASE_RPC_URL = "https://mainnet.base.org";
 
+// Configure Base chain
+const baseChain = {
+  ...base,
+  rpcUrls: {
+    default: { http: [BASE_RPC_URL] },
+    public: { http: [BASE_RPC_URL] },
+  }
+};
 
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
@@ -603,21 +613,8 @@ export function MiningPlan() {
 
       // Configure public client with specific Base network settings
       const baseClient = createPublicClient({
-        chain: {
-          id: BASE_CHAIN_ID,
-          name: 'Base',
-          network: 'base',
-          nativeCurrency: {
-            decimals: 18,
-            name: 'Ethereum',
-            symbol: 'ETH',
-          },
-          rpcUrls: {
-            default: { http: [BASE_RPC_URL] },
-            public: { http: [BASE_RPC_URL] },
-          },
-        },
-        transport: http(BASE_RPC_URL)  // Added transport configuration
+        chain: baseChain,
+        transport: http(BASE_RPC_URL)
       });
 
       // Pre-check: Verify contract code exists at the address
@@ -674,7 +671,7 @@ export function MiningPlan() {
 
         // Create a wallet client specifically for Base
         const baseWalletClient = await walletClient.extend((config) => ({
-          chain: baseClient.chain,
+          chain: baseChain,
           transport: config.transport
         }));
 

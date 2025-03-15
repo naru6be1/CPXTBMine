@@ -290,7 +290,16 @@ export function MiningPlan() {
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [location] = useLocation();
-  const referralCode = location.split('?')[1] ? new URLSearchParams(location.split('?')[1]).get('ref') : null;
+  // Extract referral code more reliably
+  const referralCode = new URLSearchParams(location.includes('?') ? location.split('?')[1] : '').get('ref');
+
+  // Log referral code for debugging
+  useEffect(() => {
+    if (referralCode) {
+      console.log('Referral code detected:', referralCode);
+    }
+  }, [referralCode]);
+
 
   // Hooks
   const { toast } = useToast();
@@ -467,6 +476,8 @@ export function MiningPlan() {
       if (receipt.status === 'success') {
         setIsConfirmed(true);
         const activationTime = new Date().toISOString();
+
+        // Log plan details before creation
         const planDetails = {
           walletAddress: address as string,
           withdrawalAddress,
@@ -476,7 +487,7 @@ export function MiningPlan() {
           activatedAt: activationTime,
           expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
-          referralCode // Make sure referralCode is included even if null
+          referralCode: referralCode || null // Explicitly handle null case
         };
 
         console.log('Creating mining plan with details:', planDetails);
@@ -494,10 +505,14 @@ export function MiningPlan() {
           throw new Error(errorData.message || 'Failed to save mining plan');
         }
 
+        const data = await response.json();
+        console.log('Mining plan created:', data);
+
         // Refetch active plans and referral stats
         await refetchActivePlans();
-        if (user?.referralCode) {
-          await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
+        if (referralCode) {
+          // Invalidate referral stats for the referrer
+          await queryClient.invalidateQueries({ queryKey: ['referralStats', referralCode] });
         }
 
         toast({

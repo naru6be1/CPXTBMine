@@ -86,38 +86,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new mining plan
   app.post("/api/mining-plans", async (req, res) => {
     try {
+      // Log incoming request
+      console.log('Creating mining plan with data:', req.body);
+
       // If referral code is provided and not null, verify it exists
       if (req.body.referralCode) {
+        console.log('Verifying referral code:', req.body.referralCode);
         const referrer = await storage.getUserByReferralCode(req.body.referralCode);
         if (!referrer) {
+          console.log('Invalid referral code:', req.body.referralCode);
           res.status(400).json({
             message: "Invalid referral code"
           });
           return;
         }
+        console.log('Valid referral code, referrer found:', referrer.username);
       }
 
-      // Log the incoming request
-      console.log('Creating mining plan with data:', {
-        ...req.body,
-        referralCode: req.body.referralCode || 'none'
-      });
-
-      // Set referralCode to null if not provided
+      // Prepare plan data with referral code
       const planData = {
         ...req.body,
         referralCode: req.body.referralCode || null
       };
 
-      // Validate plan data against schema
-      const validatedPlanData = insertMiningPlanSchema.parse(planData);
+      console.log('Prepared plan data:', planData);
 
+      // Validate and create plan
+      const validatedPlanData = insertMiningPlanSchema.parse(planData);
       const plan = await storage.createMiningPlan(validatedPlanData);
+
+      console.log('Plan created successfully:', plan);
       res.status(201).json({ plan });
     } catch (error: any) {
       console.error("Error creating mining plan:", error);
 
-      // Enhanced error handling for validation errors
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
         res.status(400).json({

@@ -58,10 +58,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(miningPlans)
       .where(
-        and(
-          eq(miningPlans.referralCode, referralCode),
-          // Don't filter by isActive to count all referrals
-        )
+        eq(miningPlans.referralCode, referralCode)
       );
 
     console.log('Found plans for referral:', plans);

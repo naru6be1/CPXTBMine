@@ -13,19 +13,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { address } = req.params;
       const referredBy = req.query.ref as string; // Get referral code from query param
+      console.log('Getting/creating user with address:', address, 'referredBy:', referredBy);
+
       let user = await storage.getUserByUsername(address);
 
       if (!user) {
+        // Verify referral code if provided
+        if (referredBy) {
+          const referrer = await storage.getUserByReferralCode(referredBy);
+          if (!referrer) {
+            console.log('Invalid referral code:', referredBy);
+            res.status(400).json({
+              message: "Invalid referral code"
+            });
+            return;
+          }
+          console.log('Valid referrer found:', referrer.username);
+        }
+
         // Create new user with a referral code
         const newUserData = {
           username: address,
           password: 'not-used', // OAuth-based auth, password not used
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-          referredBy: referredBy // Store the referrer's code if provided
+          referredBy // Store the referrer's code if provided
         };
+        console.log('Creating new user:', newUserData);
         user = await storage.createUser(newUserData);
       }
 
+      console.log('User data:', user);
       res.json({ user });
     } catch (error: any) {
       console.error("Error fetching/creating user:", error);
@@ -106,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Prepare plan data
       const planData = {
         ...req.body,
-        // Explicitly set referralCode, keeping it as is if provided, null if not
+        // Explicitly set referralCode
         referralCode: req.body.referralCode
       };
 

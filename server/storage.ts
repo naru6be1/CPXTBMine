@@ -54,25 +54,27 @@ export class DatabaseStorage implements IStorage {
     console.log('Getting referral stats for code:', referralCode);
 
     try {
-      // Get all plans with this referral code, ensuring proper condition
+      // Get all plans with this referral code
       const plans = await db
-        .select()
+        .select({
+          id: miningPlans.id,
+          amount: miningPlans.amount,
+          referralCode: miningPlans.referralCode,
+          walletAddress: miningPlans.walletAddress
+        })
         .from(miningPlans)
-        .where(
-          eq(miningPlans.referralCode, referralCode)
-        );
+        .where(eq(miningPlans.referralCode, referralCode));
 
-      console.log('Found plans for referral:', JSON.stringify(plans, null, 2));
+      console.log('Found plans for referral:', plans);
 
-      // Count total referrals (all plans that used this referral code)
+      // Count total referrals
       const totalReferrals = plans.length;
 
       // Calculate total rewards (5% of each plan amount)
       const totalRewards = plans.reduce((sum, plan) => {
         const planAmount = parseFloat(plan.amount);
-        const reward = planAmount * 0.05;
-        console.log(`Calculating reward for plan amount ${planAmount}: ${reward}`);
-        return sum + reward;
+        console.log(`Processing plan ${plan.id} with amount ${planAmount}`);
+        return sum + (planAmount * 0.05);
       }, 0);
 
       const stats = {
@@ -90,7 +92,9 @@ export class DatabaseStorage implements IStorage {
 
   // Mining plan methods
   async createMiningPlan(plan: InsertMiningPlan): Promise<MiningPlan> {
+    console.log('Creating mining plan:', plan);
     const [newPlan] = await db.insert(miningPlans).values(plan).returning();
+    console.log('Created mining plan:', newPlan);
     return newPlan;
   }
 

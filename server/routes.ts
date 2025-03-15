@@ -89,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log incoming request
       console.log('Creating mining plan with data:', req.body);
 
-      // If referral code is provided and not null, verify it exists
+      // If referral code is provided, verify it exists
       if (req.body.referralCode) {
         console.log('Verifying referral code:', req.body.referralCode);
         const referrer = await storage.getUserByReferralCode(req.body.referralCode);
@@ -103,9 +103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Valid referral code, referrer found:', referrer.username);
       }
 
-      // Prepare plan data with referral code
+      // Prepare plan data
       const planData = {
         ...req.body,
+        // Ensure referralCode is explicitly set to null if not provided
         referralCode: req.body.referralCode || null
       };
 

@@ -53,32 +53,39 @@ export class DatabaseStorage implements IStorage {
   async getReferralStats(referralCode: string): Promise<{ totalReferrals: number; totalRewards: string }> {
     console.log('Getting referral stats for code:', referralCode);
 
-    // Get all plans with this referral code, ensuring code is not null
-    const plans = await db
-      .select()
-      .from(miningPlans)
-      .where(
-        eq(miningPlans.referralCode, referralCode)
-      );
+    try {
+      // Get all plans with this referral code, ensuring proper condition
+      const plans = await db
+        .select()
+        .from(miningPlans)
+        .where(
+          eq(miningPlans.referralCode, referralCode)
+        );
 
-    console.log('Found plans for referral:', plans);
+      console.log('Found plans for referral:', JSON.stringify(plans, null, 2));
 
-    // Count total referrals (all plans that used this referral code)
-    const totalReferrals = plans.length;
+      // Count total referrals (all plans that used this referral code)
+      const totalReferrals = plans.length;
 
-    // Calculate total rewards (5% of each plan amount)
-    const totalRewards = plans.reduce((sum, plan) => {
-      const planAmount = parseFloat(plan.amount);
-      return sum + (planAmount * 0.05);
-    }, 0);
+      // Calculate total rewards (5% of each plan amount)
+      const totalRewards = plans.reduce((sum, plan) => {
+        const planAmount = parseFloat(plan.amount);
+        const reward = planAmount * 0.05;
+        console.log(`Calculating reward for plan amount ${planAmount}: ${reward}`);
+        return sum + reward;
+      }, 0);
 
-    const stats = {
-      totalReferrals,
-      totalRewards: totalRewards.toFixed(2)
-    };
+      const stats = {
+        totalReferrals,
+        totalRewards: totalRewards.toFixed(2)
+      };
 
-    console.log('Calculated referral stats:', stats);
-    return stats;
+      console.log('Calculated referral stats:', stats);
+      return stats;
+    } catch (error) {
+      console.error('Error calculating referral stats:', error);
+      throw error;
+    }
   }
 
   // Mining plan methods

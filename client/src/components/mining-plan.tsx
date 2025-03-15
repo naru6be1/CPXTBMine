@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -289,14 +289,22 @@ export function MiningPlan() {
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  // Current URL location handling
   const [location] = useLocation();
-  // Extract referral code more reliably
-  const referralCode = new URLSearchParams(location.includes('?') ? location.split('?')[1] : '').get('ref');
 
-  // Log referral code for debugging
+  // Extract referral code more reliably using URL search params
+  const referralCode = useMemo(() => {
+    if (!location.includes('?')) return null;
+    const searchParams = new URLSearchParams(location.split('?')[1]);
+    const code = searchParams.get('ref');
+    console.log('Extracted referral code from URL:', code);
+    return code;
+  }, [location]);
+
+  // Log referral code whenever it changes
   useEffect(() => {
     if (referralCode) {
-      console.log('Referral code detected:', referralCode);
+      console.log('Active referral code:', referralCode);
     }
   }, [referralCode]);
 
@@ -487,7 +495,7 @@ export function MiningPlan() {
           activatedAt: activationTime,
           expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
-          referralCode: referralCode || null // Explicitly handle null case
+          referralCode: referralCode // Use the referral code from URL
         };
 
         console.log('Creating mining plan with details:', planDetails);

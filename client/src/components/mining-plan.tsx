@@ -591,21 +591,6 @@ export function MiningPlan() {
         throw new Error('Wallet not connected');
       }
 
-      // Log current chain information
-      console.log('Chain verification:', {
-        currentChainId: chain?.id,
-        requiredChainId: BASE_CHAIN_ID,
-        walletAddress: address,
-        cpxtbContract: CPXTB_CONTRACT_ADDRESS,
-        isCorrectNetwork: chain?.id === BASE_CHAIN_ID
-      });
-
-      if (chain?.id !== BASE_CHAIN_ID) {
-        throw new Error(`Wrong network after switch. Expected Base (${BASE_CHAIN_ID}), got ${chain?.id}`);
-      }
-
-      setIsTransferring(true);
-
       // Create Base-specific clients
       const baseClient = createPublicClient({
         chain: baseChain,
@@ -623,26 +608,26 @@ export function MiningPlan() {
 
       console.log('Contract verification successful');
 
-      // Create Base-specific wallet client
-      const baseWalletClient = await walletClient.extend((config) => ({
-        chain: baseChain,
-        transport: http(BASE_RPC_URL)
-      }));
-
       // Convert reward amount
       const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
       const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
 
-      // Prepare and execute transaction
+      // Use the wallet client directly with the Base chain
       const { request } = await baseClient.simulateContract({
         address: CPXTB_CONTRACT_ADDRESS as Address,
         abi: ERC20_ABI,
         functionName: 'transfer',
         args: [plan.withdrawalAddress as Address, rewardInWei],
-        account: address as Address
+        account: address as Address,
+        chain: baseChain // Explicitly specify the chain
       });
 
-      const hash = await baseWalletClient.writeContract(request);
+      // Execute the transaction
+      const hash = await walletClient.writeContract({
+        ...request,
+        chain: baseChain // Ensure chain is explicitly set
+      });
+
       setTransactionHash(hash);
       setIsValidating(true);
 

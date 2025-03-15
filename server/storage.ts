@@ -51,18 +51,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReferralStats(referralCode: string): Promise<{ totalReferrals: number; totalRewards: string }> {
-    // Get all plans with this referral code that have been activated
+    // Get all plans with this referral code, regardless of active status
     const plans = await db
       .select()
       .from(miningPlans)
       .where(
-        and(
-          eq(miningPlans.referralCode, referralCode),
-          eq(miningPlans.isActive, true) // Consider only activated plans
-        )
+        eq(miningPlans.referralCode, referralCode)
       );
 
-    // Count successful referrals (completed plans)
+    // Count total referrals (all plans that used this referral code)
     const totalReferrals = plans.length;
 
     // Calculate total rewards (5% of each plan amount)

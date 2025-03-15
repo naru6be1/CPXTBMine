@@ -292,7 +292,7 @@ export function MiningPlan() {
   // Current URL location handling
   const [location] = useLocation();
 
-  // Extract referral code more reliably using URL search params
+  // Extract referral code from URL using useMemo
   const referralCode = useMemo(() => {
     if (!location.includes('?')) return null;
     const searchParams = new URLSearchParams(location.split('?')[1]);
@@ -301,7 +301,7 @@ export function MiningPlan() {
     return code;
   }, [location]);
 
-  // Log referral code whenever it changes
+  // Log referral code for debugging
   useEffect(() => {
     if (referralCode) {
       console.log('Active referral code:', referralCode);
@@ -485,7 +485,7 @@ export function MiningPlan() {
         setIsConfirmed(true);
         const activationTime = new Date().toISOString();
 
-        // Log plan details before creation
+        // Create plan details with explicit referral code
         const planDetails = {
           walletAddress: address as string,
           withdrawalAddress,
@@ -518,8 +518,10 @@ export function MiningPlan() {
 
         // Refetch active plans and referral stats
         await refetchActivePlans();
+
+        // Always invalidate the referrer's stats if there's a referral code
         if (referralCode) {
-          // Invalidate referral stats for the referrer
+          console.log('Invalidating referral stats for code:', referralCode);
           await queryClient.invalidateQueries({ queryKey: ['referralStats', referralCode] });
         }
 

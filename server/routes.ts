@@ -106,8 +106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Prepare plan data
       const planData = {
         ...req.body,
-        // Ensure referralCode is explicitly set to null if not provided
-        referralCode: req.body.referralCode || null
+        // Explicitly set referralCode, keeping it as is if provided, null if not
+        referralCode: req.body.referralCode
       };
 
       console.log('Prepared plan data:', planData);

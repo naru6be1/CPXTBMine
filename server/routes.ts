@@ -86,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new mining plan
   app.post("/api/mining-plans", async (req, res) => {
     try {
-      // If referral code is provided, verify it exists
+      // If referral code is provided and not null, verify it exists
       if (req.body.referralCode) {
         const referrer = await storage.getUserByReferralCode(req.body.referralCode);
         if (!referrer) {
@@ -98,15 +98,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Log the incoming request
-      console.log('Creating mining plan with referral:', {
-        referralCode: req.body.referralCode,
-        walletAddress: req.body.walletAddress
+      console.log('Creating mining plan with data:', {
+        ...req.body,
+        referralCode: req.body.referralCode || 'none'
       });
 
-      // Validate plan data against schema
-      const planData = insertMiningPlanSchema.parse(req.body);
+      // Set referralCode to null if not provided
+      const planData = {
+        ...req.body,
+        referralCode: req.body.referralCode || null
+      };
 
-      const plan = await storage.createMiningPlan(planData);
+      // Validate plan data against schema
+      const validatedPlanData = insertMiningPlanSchema.parse(planData);
+
+      const plan = await storage.createMiningPlan(validatedPlanData);
       res.status(201).json({ plan });
     } catch (error: any) {
       console.error("Error creating mining plan:", error);

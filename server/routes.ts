@@ -174,6 +174,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code } = req.params;
       console.log('Fetching referral stats for code:', code);
+
+      // Verify the referral code exists
+      const referrer = await storage.getUserByReferralCode(code);
+      if (!referrer) {
+        console.log('Invalid referral code:', code);
+        res.status(404).json({
+          message: "Invalid referral code",
+          totalReferrals: 0,
+          totalRewards: "0.00"
+        });
+        return;
+      }
+
       const stats = await storage.getReferralStats(code);
       console.log('Referral stats result:', stats);
       res.json(stats);

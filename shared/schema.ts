@@ -34,7 +34,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   referredBy: z.string().optional(), // Used when being referred
 });
 
-// Update the mining plan schema to match the frontend data
+// Update the mining plan schema to be more strict about referral codes
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)
   .omit({ 
     id: true,
@@ -47,7 +47,7 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
     planType: z.enum(['daily', 'weekly']), // Add validation for plan types
     activatedAt: z.string().transform((str) => new Date(str)), // Transform ISO string to Date
     expiresAt: z.string().transform((str) => new Date(str)), // Transform ISO string to Date
-    referralCode: z.string().nullable(), // Allow null but validate string format when provided
+    referralCode: z.string().nullable(), // Must be explicitly null or a valid string
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

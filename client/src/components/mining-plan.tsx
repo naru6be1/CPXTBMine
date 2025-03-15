@@ -297,7 +297,9 @@ export function MiningPlan() {
     if (!location.includes('?')) return null;
     const searchParams = new URLSearchParams(location.split('?')[1]);
     const code = searchParams.get('ref');
-    console.log('Extracted referral code from URL:', code);
+    if (code) {
+      console.log('Extracted referral code from URL:', code);
+    }
     return code;
   }, [location]);
 
@@ -420,15 +422,6 @@ export function MiningPlan() {
       return;
     }
 
-    if (!walletClient || !publicClient) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet and try again"
-      });
-      return;
-    }
-
     try {
       const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
       if (balance < currentPlan.amount) {
@@ -495,7 +488,7 @@ export function MiningPlan() {
           activatedAt: activationTime,
           expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
-          referralCode: referralCode // Use the referral code from URL
+          referralCode
         };
 
         console.log('Creating mining plan with details:', planDetails);

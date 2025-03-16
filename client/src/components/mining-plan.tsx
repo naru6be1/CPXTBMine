@@ -33,6 +33,7 @@ const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b"; // 
 const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004"; // Base network WETH
 const BASE_CHAIN_ID = 8453;
 const BASE_RPC_URL = "https://mainnet.base.org";
+const AUTHORIZED_DAILY_PLAN_WALLET = "0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77";
 
 // Configure Base chain with correct settings
 const baseChain = base;
@@ -329,6 +330,9 @@ export function MiningPlan() {
 
   const claimablePlans = claimablePlansData.plans;
   const isAdmin = address?.toLowerCase() === TREASURY_ADDRESS.toLowerCase();
+
+  // Add check for daily plan access
+  const canAccessDailyPlan = address?.toLowerCase() === AUTHORIZED_DAILY_PLAN_WALLET.toLowerCase();
 
   // Current plan configuration
   const currentPlan = PLANS[selectedPlan];
@@ -656,14 +660,16 @@ export function MiningPlan() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex gap-4 mb-6">
-            <Button
-              variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-              onClick={() => setSelectedPlan('daily')}
-              className="flex-1"
-            >
-              <Cpu className="mr-2 h-4 w-4" />
-              Daily Plan
-            </Button>
+            {canAccessDailyPlan && (
+              <Button
+                variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+                onClick={() => setSelectedPlan('daily')}
+                className="flex-1"
+              >
+                <Cpu className="mr-2 h-4 w-4" />
+                Daily Plan
+              </Button>
+            )}
             <Button
               variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
               onClick={() => setSelectedPlan('weekly')}

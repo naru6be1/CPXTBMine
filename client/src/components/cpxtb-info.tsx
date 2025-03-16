@@ -9,7 +9,7 @@ const CPXTB_INFO = {
   contract: "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b",
   links: {
     website: "https://coinpredictiontool.com/",
-    cmc: "https://coinmarketcap.com/currencies/coin-prediction-tool-on-base/#Markets",
+    cmc: "https://coinmarketcap.com/currencies/coin-prediction-tool-on-base/",
     dextools: "https://www.dextools.io/app/en/base/pair-explorer/0x18fec483ad7f68df0f9cca34d82792376b8d18d0",
     twitter: "https://x.com/cpxtbofficial",
     telegram: "https://t.me/+Eqb7pL3a-ww0OTRh",

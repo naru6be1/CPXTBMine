@@ -5,7 +5,7 @@ import { PiShareFat } from "react-icons/pi";
 import { useToast } from "@/hooks/use-toast";
 
 const SHARE_TEXT = "Join CPXTB Mining - Earn rewards in CPXTB tokens through our mining plans! 🚀";
-const WEBSITE_URL = "https://coinpredictiontool.com";
+const WEBSITE_URL = "https://cpxtbmining.com";
 
 export function SocialShare() {
   const { toast } = useToast();

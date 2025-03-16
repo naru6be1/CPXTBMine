@@ -19,6 +19,7 @@ import { createPublicClient, http } from 'viem';
 import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
+import { CPXTBInfo } from "./cpxtb-info";
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -796,6 +797,8 @@ export function MiningPlan() {
           </div>
         </div>
       )}
+
+      <CPXTBInfo />
 
       <div className="pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground mb-3 text-center">

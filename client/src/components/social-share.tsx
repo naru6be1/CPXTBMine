@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { BsTwitterX } from "react-icons/bs";
+import { BsTwitterX, BsWhatsapp } from "react-icons/bs";
 import { FaTelegramPlane } from "react-icons/fa";
 import { PiShareFat } from "react-icons/pi";
 import { useToast } from "@/hooks/use-toast";
@@ -36,14 +36,19 @@ export function SocialShare() {
     window.open(telegramUrl, '_blank');
   };
 
+  const shareOnWhatsApp = () => {
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${SHARE_TEXT}\n${WEBSITE_URL}`)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <div className="flex flex-col items-center space-y-4 w-full max-w-2xl mx-auto bg-card rounded-lg p-6">
       <h3 className="text-lg font-semibold flex items-center gap-2">
         <PiShareFat className="h-5 w-5" />
         Share CPXTB Mining
       </h3>
-      
-      <div className="grid grid-cols-3 gap-4 w-full">
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
         <Button
           variant="outline"
           onClick={shareOnTwitter}
@@ -60,6 +65,15 @@ export function SocialShare() {
         >
           <FaTelegramPlane className="mr-2 h-4 w-4" />
           Telegram
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={shareOnWhatsApp}
+          className="w-full"
+        >
+          <BsWhatsapp className="mr-2 h-4 w-4" />
+          WhatsApp
         </Button>
 
         <Button

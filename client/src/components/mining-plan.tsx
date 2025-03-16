@@ -20,6 +20,8 @@ import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
 import { CPXTBInfo } from "./cpxtb-info";
+import { SocialShare } from './social-share';  // Updated to use named import
+
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -799,7 +801,7 @@ export function MiningPlan() {
       )}
 
       <CPXTBInfo />
-
+      <SocialShare />
       <div className="pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground mb-3 text-center">
           Need help? Contact our support team

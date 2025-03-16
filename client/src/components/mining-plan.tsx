@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -14,7 +14,6 @@ import { SiTelegram } from 'react-icons/si';
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ReferralStats } from "./referral-stats";
 import { useLocation } from "wouter";
 import { createPublicClient, http } from 'viem';
 import { configureChains } from 'wagmi';
@@ -289,31 +288,10 @@ export function MiningPlan() {
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
-  // Current URL location handling
-  const [location] = useLocation();
-
-  // Extract referral code from URL using useMemo
-  const referralCode = useMemo(() => {
-    if (!location.includes('?')) return null;
-    const searchParams = new URLSearchParams(location.split('?')[1]);
-    const code = searchParams.get('ref');
-    if (code) {
-      console.log('Extracted referral code from URL:', code);
-    }
-    return code;
-  }, [location]);
-
-  // Log referral code for debugging
-  useEffect(() => {
-    if (referralCode) {
-      console.log('Active referral code:', referralCode);
-    }
-  }, [referralCode]);
-
 
   // Hooks
   const { toast } = useToast();
-  const { isConnected, address, user } = useWallet();
+  const { isConnected, address } = useWallet();
   const { chain } = useNetwork();
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
   const publicClient = usePublicClient();
@@ -330,7 +308,6 @@ export function MiningPlan() {
         throw new Error('Failed to fetch active plans');
       }
       const data = await response.json();
-      console.log('Active plans:', data.plans);
       return data.plans || [];
     },
     enabled: !!address
@@ -478,7 +455,6 @@ export function MiningPlan() {
         setIsConfirmed(true);
         const activationTime = new Date().toISOString();
 
-        // Create plan details with explicit referral code
         const planDetails = {
           walletAddress: address as string,
           withdrawalAddress,
@@ -488,10 +464,8 @@ export function MiningPlan() {
           activatedAt: activationTime,
           expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
-          referralCode
         };
 
-        console.log('Creating mining plan with details:', planDetails);
 
         const response = await fetch('/api/mining-plans', {
           method: 'POST',
@@ -507,16 +481,8 @@ export function MiningPlan() {
         }
 
         const data = await response.json();
-        console.log('Mining plan created:', data);
 
-        // Refetch active plans and referral stats
         await refetchActivePlans();
-
-        // Always invalidate the referrer's stats if there's a referral code
-        if (referralCode) {
-          console.log('Invalidating referral stats for code:', referralCode);
-          await queryClient.invalidateQueries({ queryKey: ['referralStats', referralCode] });
-        }
 
         toast({
           title: "Plan Activated",
@@ -681,7 +647,6 @@ export function MiningPlan() {
 
   return (
     <div className="space-y-6">
-      <ReferralStats />
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

@@ -75,6 +75,9 @@ const ERC20_ABI = [
   }
 ];
 
+// Update the PlanType and PLANS configuration
+type PlanType = 'daily' | 'weekly' | 'monthly';
+
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
   daily: {
@@ -88,10 +91,14 @@ const PLANS: Record<PlanType, PlanConfig> = {
     displayAmount: "100",
     rewardUSD: 15,
     duration: "7 days"
+  },
+  monthly: {
+    amount: BigInt("200000000"), // 200 USDT (6 decimals)
+    displayAmount: "200",
+    rewardUSD: 7.5, // Daily reward in USD
+    duration: "30 days"
   }
 };
-
-type PlanType = 'daily' | 'weekly';
 
 interface PlanConfig {
   amount: bigint;
@@ -157,7 +164,7 @@ function ActivePlanDisplay({
   const [timeRemaining, setTimeRemaining] = useState<string>("");
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
-  endDate.setDate(endDate.getDate() + (planType === 'weekly' ? 7 : 1));
+  endDate.setDate(endDate.getDate() + (planType === 'weekly' ? 7 : planType === 'monthly' ? 30 : 1));
 
   // Add useEffect for time remaining calculation
   useEffect(() => {
@@ -469,7 +476,7 @@ export function MiningPlan() {
           amount: currentPlan.displayAmount,
           dailyRewardCPXTB,
           activatedAt: activationTime,
-          expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : selectedPlan === 'monthly' ? 30 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
         };
 
@@ -680,6 +687,14 @@ export function MiningPlan() {
             >
               <Server className="mr-2 h-4 w-4" />
               Weekly Plan
+            </Button>
+            <Button
+              variant={selectedPlan === 'monthly' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('monthly')}
+              className="flex-1"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Monthly Plan
             </Button>
           </div>
 

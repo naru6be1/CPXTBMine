@@ -76,7 +76,7 @@ const ERC20_ABI = [
 ];
 
 // Update the PlanType and PLANS configuration
-type PlanType = 'daily' | 'weekly' | 'monthly';
+type PlanType = 'daily' | 'weekly' | 'monthly' | 'quarterly';
 
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
@@ -97,6 +97,12 @@ const PLANS: Record<PlanType, PlanConfig> = {
     displayAmount: "200",
     rewardUSD: 7.5, // Daily reward in USD
     duration: "30 days"
+  },
+  quarterly: {
+    amount: BigInt("600000000"), // 600 USDT (6 decimals)
+    displayAmount: "600",
+    rewardUSD: 8, // Daily reward in USD
+    duration: "90 days"
   }
 };
 
@@ -164,7 +170,11 @@ function ActivePlanDisplay({
   const [timeRemaining, setTimeRemaining] = useState<string>("");
   const activationDate = new Date(activatedAt);
   const endDate = new Date(activationDate);
-  endDate.setDate(endDate.getDate() + (planType === 'weekly' ? 7 : planType === 'monthly' ? 30 : 1));
+  endDate.setDate(endDate.getDate() + (
+    planType === 'weekly' ? 7 :
+    planType === 'monthly' ? 30 :
+    planType === 'quarterly' ? 90 : 1
+  ));
 
   // Add useEffect for time remaining calculation
   useEffect(() => {
@@ -476,7 +486,7 @@ export function MiningPlan() {
           amount: currentPlan.displayAmount,
           dailyRewardCPXTB,
           activatedAt: activationTime,
-          expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : selectedPlan === 'monthly' ? 30 : 1) * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : selectedPlan === 'monthly' ? 30 : selectedPlan === 'quarterly' ? 90 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
         };
 
@@ -695,6 +705,14 @@ export function MiningPlan() {
             >
               <Server className="mr-2 h-4 w-4" />
               Monthly Plan
+            </Button>
+            <Button
+              variant={selectedPlan === 'quarterly' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('quarterly')}
+              className="flex-1"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Quarterly Plan
             </Button>
           </div>
 

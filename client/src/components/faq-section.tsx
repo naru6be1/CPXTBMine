@@ -21,11 +21,12 @@ export function FAQSection() {
           <AccordionItem value="item-1">
             <AccordionTrigger>What are CPXTB Mining Plans?</AccordionTrigger>
             <AccordionContent>
-              CPXTB Mining Plans are investment opportunities that allow you to earn CPXTB tokens. We offer three types of plans:
+              CPXTB Mining Plans are investment opportunities that allow you to earn CPXTB tokens. We offer four types of plans:
               <ul className="list-disc pl-6 mt-2 space-y-1">
                 <li>Daily Plan: 0.1 USDT investment with rewards in 24 hours</li>
                 <li>Weekly Plan: 100 USDT investment with rewards over 7 days</li>
                 <li>Monthly Plan: 200 USDT investment with rewards over 30 days</li>
+                <li>Quarterly Plan: 600 USDT investment with rewards over 90 days</li>
               </ul>
             </AccordionContent>
           </AccordionItem>
@@ -33,7 +34,7 @@ export function FAQSection() {
           <AccordionItem value="item-2">
             <AccordionTrigger>How do I receive my CPXTB rewards?</AccordionTrigger>
             <AccordionContent>
-              After your mining plan period ends (24 hours for daily, 7 days for weekly, 30 days for monthly), your CPXTB rewards will be automatically distributed to your provided Base network wallet address. Make sure you've provided the correct withdrawal address during plan activation.
+              After your mining plan period ends (24 hours for daily, 7 days for weekly, 30 days for monthly, 90 days for quarterly), your CPXTB rewards will be automatically distributed to your provided Base network wallet address. Make sure you've provided the correct withdrawal address during plan activation.
             </AccordionContent>
           </AccordionItem>
 
@@ -57,6 +58,7 @@ export function FAQSection() {
                 <li>Daily Plan: Earn CPXTB worth $0.15 per day</li>
                 <li>Weekly Plan: Earn CPXTB worth $15 per week</li>
                 <li>Monthly Plan: Earn CPXTB worth $7.5 per day for 30 days</li>
+                <li>Quarterly Plan: Earn CPXTB worth $8 per day for 90 days</li>
               </ul>
               The exact amount of CPXTB tokens depends on the current CPXTB/USDT price.
             </AccordionContent>

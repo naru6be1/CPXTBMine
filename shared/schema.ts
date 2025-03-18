@@ -12,8 +12,8 @@ export const miningPlans = pgTable("mining_plans", {
   id: serial("id").primaryKey(),
   walletAddress: text("wallet_address").notNull(),
   withdrawalAddress: text("withdrawal_address").notNull(),
-  planType: text("plan_type").notNull(),
-  amount: text("amount").notNull(),
+  planType: text("plan_type").notNull(), // 'daily' or 'weekly'
+  amount: text("amount").notNull(), // USDT amount in string format
   dailyRewardCPXTB: text("daily_reward_cpxtb").notNull(),
   activatedAt: timestamp("activated_at").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -31,10 +31,10 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
     hasWithdrawn: true,
   })
   .extend({
-    amount: z.string(),
-    planType: z.enum(['hourly', 'daily', 'weekly', 'monthly', 'quarterly', 'halfyearly']), 
-    activatedAt: z.string().transform((str) => new Date(str)),
-    expiresAt: z.string().transform((str) => new Date(str)),
+    amount: z.string(), // Make sure amount is handled as string
+    planType: z.enum(['daily', 'weekly']), // Add validation for plan types
+    activatedAt: z.string().transform((str) => new Date(str)), // Transform ISO string to Date
+    expiresAt: z.string().transform((str) => new Date(str)), // Transform ISO string to Date
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

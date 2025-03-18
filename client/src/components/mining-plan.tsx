@@ -825,27 +825,56 @@ export function MiningPlan() {
 
       {isConnected && claimablePlans.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">
-            {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {claimablePlans.map((plan: MiningPlan) => (
-              <ActivePlanDisplay
-                key={plan.id}
-                withdrawalAddress={plan.withdrawalAddress}
-                dailyRewardCPXTB={plan.dailyRewardCPXTB}
-                activatedAt={plan.activatedAt}
-                planType={plan.planType}
-                onClaim={() => handleClaimRewards(plan)}
-                isExpired={true}
-                hasWithdrawn={plan.hasWithdrawn}
-                amount={plan.amount}
-                isAdmin={isAdmin}
-                walletAddress={plan.walletAddress}
-                chain={chain}
-              />
-            ))}
-          </div>
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-6 w-6 text-primary" />
+                {isAdmin ? "Pending CPXTB Distributions" : "Your Claimable Plans"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {claimablePlans.map((plan: MiningPlan) => (
+                  <div key={plan.id} className="bg-muted rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium capitalize">{plan.planType} Plan</span>
+                      <span className="text-sm text-muted-foreground">{plan.amount} USDT</span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Daily Reward</p>
+                      <p className="font-semibold">{plan.dailyRewardCPXTB} CPXTB</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Base Network Address</p>
+                      <p className="text-xs font-mono break-all">{plan.withdrawalAddress}</p>
+                    </div>
+                    {isAdmin && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">User Wallet</p>
+                        <p className="text-xs font-mono break-all">{plan.walletAddress}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-muted-foreground">Plan Period</p>
+                      <p className="text-sm">
+                        {new Date(plan.activatedAt).toLocaleDateString()} - {new Date(plan.expiresAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button
+                      variant="default"
+                      className="w-full"
+                      onClick={() => handleClaimRewards(plan)}
+                      disabled={chain?.id !== 8453}
+                    >
+                      <Coins className="mr-2 h-4 w-4" />
+                      {chain?.id !== 8453
+                        ? "Switch to Base Network"
+                        : "Distribute CPXTB"}
+                    </Button>
+                  </div>                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 

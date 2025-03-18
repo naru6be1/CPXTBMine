@@ -86,8 +86,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new mining plan
   app.post("/api/mining-plans", async (req, res) => {
     try {
-      // Log incoming request
-      console.log('Creating mining plan with data:', req.body);
+      // Enhanced logging for request payload
+      console.log('Creating mining plan - Full request data:', {
+        ...req.body,
+        referralCode: req.body.referralCode || 'none'
+      });
 
       // If referral code is provided and not null, verify it exists
       if (req.body.referralCode) {
@@ -100,22 +103,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           return;
         }
-        console.log('Valid referral code, referrer found:', referrer.username);
+        console.log('Valid referral code found, referrer:', referrer.username);
       }
 
       // Prepare plan data with referral code
       const planData = {
         ...req.body,
-        referralCode: req.body.referralCode || null
+        referralCode: req.body.referralCode || null // Explicitly handle null case
       };
 
-      console.log('Prepared plan data:', planData);
+      console.log('Prepared plan data for validation:', planData);
 
       // Validate and create plan
       const validatedPlanData = insertMiningPlanSchema.parse(planData);
-      const plan = await storage.createMiningPlan(validatedPlanData);
+      console.log('Validation passed, creating plan with data:', validatedPlanData);
 
+      const plan = await storage.createMiningPlan(validatedPlanData);
       console.log('Plan created successfully:', plan);
+
       res.status(201).json({ plan });
     } catch (error: any) {
       console.error("Error creating mining plan:", error);

@@ -36,6 +36,7 @@ app.use((req, res, next) => {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
+      // Truncate long log lines
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }

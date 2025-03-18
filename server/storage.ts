@@ -83,7 +83,9 @@ export class DatabaseStorage implements IStorage {
 
   // Mining plan methods
   async createMiningPlan(plan: InsertMiningPlan): Promise<MiningPlan> {
+    console.log('Creating mining plan in storage with data:', plan);
     const [newPlan] = await db.insert(miningPlans).values(plan).returning();
+    console.log('New plan created in database:', newPlan);
     return newPlan;
   }
 

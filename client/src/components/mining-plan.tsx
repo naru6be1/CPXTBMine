@@ -188,7 +188,7 @@ function ActivePlanDisplay({
     planType === 'monthly' ? 30 :
     planType === 'quarterly' ? 90 :
     planType === 'halfyearly' ? 180 :
-    planType === 'hourly' ? 1/24 : 1
+    planType === 'hourly' ? 1 / 24 : 1
   ));
 
   // Add useEffect for time remaining calculation
@@ -422,6 +422,7 @@ export function MiningPlan() {
     }
   };
 
+  // Update the handleTransfer function to include better error handling
   const handleTransfer = async () => {
     if (!chain || chain.id !== 1) {
       toast({
@@ -487,13 +488,37 @@ export function MiningPlan() {
         account: address as Address,
       });
 
-      const hash = await walletClient.writeContract(request);
+      const hash = await walletClient?.writeContract(request);
+      if (!hash) {
+        throw new Error('Failed to get transaction hash');
+      }
       setTransactionHash(hash);
       setIsValidating(true);
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      // Add retry mechanism for transaction verification
+      let retryCount = 0;
+      const maxRetries = 3;
+      let receipt;
 
-      if (receipt.status === 'success') {
+      while (retryCount < maxRetries) {
+        try {
+          receipt = await publicClient.waitForTransactionReceipt({
+            hash,
+            timeout: 30_000 // 30 seconds timeout
+          });
+          break;
+        } catch (error) {
+          console.error(`Attempt ${retryCount + 1} failed:`, error);
+          retryCount++;
+          if (retryCount === maxRetries) {
+            throw new Error('Transaction verification failed after multiple attempts. Please check your wallet for the transaction status.');
+          }
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      }
+
+      if (receipt?.status === 'success') {
         setIsConfirmed(true);
         const activationTime = new Date().toISOString();
 
@@ -515,7 +540,6 @@ export function MiningPlan() {
           transactionHash: hash,
         };
 
-
         const response = await fetch('/api/mining-plans', {
           method: 'POST',
           headers: {
@@ -529,14 +553,14 @@ export function MiningPlan() {
           throw new Error(errorData.message || 'Failed to save mining plan');
         }
 
-        const data = await response.json();
-
         await refetchActivePlans();
 
         toast({
           title: "Plan Activated",
           description: "Your mining plan has been successfully activated!"
         });
+      } else {
+        throw new Error('Transaction failed to confirm');
       }
     } catch (error) {
       console.error('Transfer error:', error);
@@ -547,8 +571,8 @@ export function MiningPlan() {
         variant: "destructive",
         title: "Transfer Failed",
         description: error instanceof Error
-          ? `Error: ${error.message}. Please try again.`
-          : "Failed to transfer USDT. Please try again."
+          ? `Error: ${error.message}. Please check your wallet for transaction status.`
+          : "Failed to transfer USDT. Please check your wallet for transaction status."
       });
     } finally {
       setIsTransferring(false);

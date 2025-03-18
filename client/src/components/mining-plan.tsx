@@ -82,8 +82,8 @@ type PlanType = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'halfy
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
   hourly: {
-    amount: BigInt("100000"), // 0.1 USDT (6 decimals)
-    displayAmount: "0.1",
+    amount: BigInt("10000"), // 0.01 USDT (6 decimals)
+    displayAmount: "0.01",
     rewardUSD: 1, // 1 USD worth of CPXTB
     duration: "1 hour"
   },

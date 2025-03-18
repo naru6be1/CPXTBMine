@@ -679,12 +679,13 @@ export function MiningPlan() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex gap-4 mb-6">
+          {/* Updated button layout section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             {canAccessDailyPlan && (
               <Button
                 variant={selectedPlan === 'daily' ? 'default' : 'outline'}
                 onClick={() => setSelectedPlan('daily')}
-                className="flex-1"
+                className="w-full"
               >
                 <Cpu className="mr-2 h-4 w-4" />
                 Daily Plan
@@ -693,7 +694,7 @@ export function MiningPlan() {
             <Button
               variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
               onClick={() => setSelectedPlan('weekly')}
-              className="flex-1"
+              className="w-full"
             >
               <Server className="mr-2 h-4 w-4" />
               Weekly Plan
@@ -701,7 +702,7 @@ export function MiningPlan() {
             <Button
               variant={selectedPlan === 'monthly' ? 'default' : 'outline'}
               onClick={() => setSelectedPlan('monthly')}
-              className="flex-1"
+              className="w-full"
             >
               <Server className="mr-2 h-4 w-4" />
               Monthly Plan
@@ -709,7 +710,7 @@ export function MiningPlan() {
             <Button
               variant={selectedPlan === 'quarterly' ? 'default' : 'outline'}
               onClick={() => setSelectedPlan('quarterly')}
-              className="flex-1"
+              className="w-full"
             >
               <Server className="mr-2 h-4 w-4" />
               Quarterly Plan

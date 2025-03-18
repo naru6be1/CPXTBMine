@@ -86,45 +86,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new mining plan
   app.post("/api/mining-plans", async (req, res) => {
     try {
-      // Enhanced logging for request payload
-      console.log('Creating mining plan - Full request data:', {
-        ...req.body,
-        referralCode: req.body.referralCode || 'none'
-      });
-
-      // If referral code is provided and not null, verify it exists
+      // If referral code is provided, verify it exists
       if (req.body.referralCode) {
-        console.log('Verifying referral code:', req.body.referralCode);
         const referrer = await storage.getUserByReferralCode(req.body.referralCode);
         if (!referrer) {
-          console.log('Invalid referral code:', req.body.referralCode);
           res.status(400).json({
             message: "Invalid referral code"
           });
           return;
         }
-        console.log('Valid referral code found, referrer:', referrer.username);
       }
 
-      // Prepare plan data with referral code
-      const planData = {
-        ...req.body,
-        referralCode: req.body.referralCode || null // Explicitly handle null case
-      };
+      // Log the incoming request
+      console.log('Creating mining plan with referral:', {
+        referralCode: req.body.referralCode,
+        walletAddress: req.body.walletAddress
+      });
 
-      console.log('Prepared plan data for validation:', planData);
+      // Validate plan data against schema
+      const planData = insertMiningPlanSchema.parse(req.body);
 
-      // Validate and create plan
-      const validatedPlanData = insertMiningPlanSchema.parse(planData);
-      console.log('Validation passed, creating plan with data:', validatedPlanData);
-
-      const plan = await storage.createMiningPlan(validatedPlanData);
-      console.log('Plan created successfully:', plan);
-
+      const plan = await storage.createMiningPlan(planData);
       res.status(201).json({ plan });
     } catch (error: any) {
       console.error("Error creating mining plan:", error);
 
+      // Enhanced error handling for validation errors
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
         res.status(400).json({
@@ -181,19 +168,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code } = req.params;
       console.log('Fetching referral stats for code:', code);
-
-      // Verify the referral code exists
-      const referrer = await storage.getUserByReferralCode(code);
-      if (!referrer) {
-        console.log('Invalid referral code:', code);
-        res.status(404).json({
-          message: "Invalid referral code",
-          totalReferrals: 0,
-          totalRewards: "0.00"
-        });
-        return;
-      }
-
       const stats = await storage.getReferralStats(code);
       console.log('Referral stats result:', stats);
       res.json(stats);

@@ -290,16 +290,7 @@ export function MiningPlan() {
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [location] = useLocation();
-  // Extract referral code more reliably
-  const referralCode = new URLSearchParams(location.includes('?') ? location.split('?')[1] : '').get('ref');
-
-  // Log referral code for debugging
-  useEffect(() => {
-    if (referralCode) {
-      console.log('Referral code detected:', referralCode);
-    }
-  }, [referralCode]);
-
+  const referralCode = location.split('?')[1] ? new URLSearchParams(location.split('?')[1]).get('ref') : null;
 
   // Hooks
   const { toast } = useToast();
@@ -471,55 +462,75 @@ export function MiningPlan() {
       setTransactionHash(hash);
       setIsValidating(true);
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      let receipt = null;
+      const maxRetries = 5;
+      const retryDelay = 5000;
+      const timeout = 120000;
 
-      if (receipt.status === 'success') {
-        setIsConfirmed(true);
-        const activationTime = new Date().toISOString();
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          receipt = await Promise.race([
+            publicClient.waitForTransactionReceipt({ hash }),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Transaction confirmation timeout')), timeout)
+            )
+          ]);
 
-        // Log plan details before creation
-        const planDetails = {
-          walletAddress: address as string,
-          withdrawalAddress,
-          planType: selectedPlan,
-          amount: currentPlan.displayAmount,
-          dailyRewardCPXTB,
-          activatedAt: activationTime,
-          expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
-          transactionHash: hash,
-          referralCode: referralCode || null // Explicitly handle null case
-        };
+          if (receipt && receipt.status === 'success') {
+            break;
+          }
 
-        console.log('Creating mining plan with details:', planDetails);
-
-        const response = await fetch('/api/mining-plans', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(planDetails),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to save mining plan');
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        } catch (error) {
+          console.log(`Attempt ${i + 1} failed:`, error);
+          if (i === maxRetries - 1) throw error;
         }
-
-        const data = await response.json();
-        console.log('Mining plan created:', data);
-
-        // Refetch active plans and referral stats
-        await refetchActivePlans();
-        if (referralCode) {
-          // Invalidate referral stats for the referrer
-          await queryClient.invalidateQueries({ queryKey: ['referralStats', referralCode] });
-        }
-
-        toast({
-          title: "Plan Activated",
-          description: "Your mining plan has been successfully activated!"
-        });
       }
+
+      if (!receipt || receipt.status !== 'success') {
+        throw new Error('Transaction failed or timed out');
+      }
+
+      setIsConfirmed(true);
+      const activationTime = new Date().toISOString();
+      const planDetails = {
+        walletAddress: address as string,
+        withdrawalAddress,
+        planType: selectedPlan,
+        amount: currentPlan.displayAmount,
+        dailyRewardCPXTB,
+        activatedAt: activationTime,
+        expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
+        transactionHash: hash,
+        referralCode: referralCode
+      };
+
+      console.log('Creating mining plan with details:', planDetails);
+
+      const response = await fetch('/api/mining-plans', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(planDetails),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save mining plan');
+      }
+
+      // Refetch active plans and referral stats
+      await refetchActivePlans();
+      if (user?.referralCode) {
+        await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
+      }
+
+      toast({
+        title: "Plan Activated",
+        description: "Your mining plan has been successfully activated!"
+      });
+
     } catch (error) {
       console.error('Transfer error:', error);
       setIsTransferring(false);

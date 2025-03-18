@@ -51,19 +51,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getReferralStats(referralCode: string): Promise<{ totalReferrals: number; totalRewards: string }> {
-    console.log('Getting referral stats for code:', referralCode);
-
-    // Get all plans with this referral code, ensuring code is not null
+    // Get all plans with this referral code that have been activated
     const plans = await db
       .select()
       .from(miningPlans)
       .where(
-        eq(miningPlans.referralCode, referralCode)
+        and(
+          eq(miningPlans.referralCode, referralCode),
+          eq(miningPlans.isActive, true) // Consider only activated plans
+        )
       );
 
-    console.log('Found plans for referral:', plans);
-
-    // Count total referrals (all plans that used this referral code)
+    // Count successful referrals (completed plans)
     const totalReferrals = plans.length;
 
     // Calculate total rewards (5% of each plan amount)
@@ -72,20 +71,15 @@ export class DatabaseStorage implements IStorage {
       return sum + (planAmount * 0.05);
     }, 0);
 
-    const stats = {
+    return {
       totalReferrals,
       totalRewards: totalRewards.toFixed(2)
     };
-
-    console.log('Calculated referral stats:', stats);
-    return stats;
   }
 
   // Mining plan methods
   async createMiningPlan(plan: InsertMiningPlan): Promise<MiningPlan> {
-    console.log('Creating mining plan in storage with data:', plan);
     const [newPlan] = await db.insert(miningPlans).values(plan).returning();
-    console.log('New plan created in database:', newPlan);
     return newPlan;
   }
 

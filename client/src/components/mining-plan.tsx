@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
+import { Coins, MessageCircle, Server, Cpu, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
@@ -316,6 +316,7 @@ export function MiningPlan() {
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [dismissedPlans, setDismissedPlans] = useState<number[]>([]); // Added state for dismissed plans
 
   // Hooks
   const { toast } = useToast();
@@ -662,6 +663,15 @@ export function MiningPlan() {
     }
   };
 
+  // Add function to handle plan dismissal
+  const handleDismissPlan = (planId: number) => {
+    setDismissedPlans([...dismissedPlans, planId]);
+    toast({
+      title: "Plan Dismissed",
+      description: "The plan has been removed from your distribution list"
+    });
+  };
+
   // Render loading state
   if (isLoadingActive || isLoadingClaimable) {
     return (
@@ -834,44 +844,57 @@ export function MiningPlan() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {claimablePlans.map((plan: MiningPlan) => (
-                  <div key={plan.id} className="bg-muted rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium capitalize">{plan.planType} Plan</span>
-                      <span className="text-sm text-muted-foreground">{plan.amount} USDT</span>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Daily Reward</p>
-                      <p className="font-semibold">{plan.dailyRewardCPXTB} CPXTB</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Base Network Address</p>
-                      <p className="text-xs font-mono break-all">{plan.withdrawalAddress}</p>
-                    </div>
-                    {isAdmin && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">User Wallet</p>
-                        <p className="text-xs font-mono break-all">{plan.walletAddress}</p>
+                {claimablePlans
+                  .filter(plan => !dismissedPlans.includes(plan.id))
+                  .map((plan: MiningPlan) => (
+                    <div key={plan.id} className="bg-muted rounded-lg p-4 space-y-3 relative">
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6"
+                          onClick={() => handleDismissPlan(plan.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium capitalize">{plan.planType} Plan</span>
+                        <span className="text-sm text-muted-foreground">{plan.amount} USDT</span>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-sm text-muted-foreground">Plan Period</p>
-                      <p className="text-sm">
-                        {new Date(plan.activatedAt).toLocaleDateString()} - {new Date(plan.expiresAt).toLocaleDateString()}
-                      </p>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Daily Reward</p>
+                        <p className="font-semibold">{plan.dailyRewardCPXTB} CPXTB</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Base Network Address</p>
+                        <p className="text-xs font-mono break-all">{plan.withdrawalAddress}</p>
+                      </div>
+                      {isAdmin && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">User Wallet</p>
+                          <p className="text-xs font-mono break-all">{plan.walletAddress}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm text-muted-foreground">Plan Period</p>
+                        <p className="text-sm">
+                          {new Date(plan.activatedAt).toLocaleDateString()} - {new Date(plan.expiresAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="default"
+                        className="w-full"
+                        onClick={() => handleClaimRewards(plan)}
+                        disabled={chain?.id !== 8453}
+                      >
+                        <Coins className="mr-2 h-4 w-4" />
+                        {chain?.id !== 8453
+                          ? "Switch to Base Network"
+                          : "Distribute CPXTB"}
+                      </Button>
                     </div>
-                    <Button
-                      variant="default"
-                      className="w-full"
-                      onClick={() => handleClaimRewards(plan)}
-                      disabled={chain?.id !== 8453}
-                    >
-                      <Coins className="mr-2 h-4 w-4" />
-                      {chain?.id !== 8453
-                        ? "Switch to Base Network"
-                        : "Distribute CPXTB"}
-                    </Button>
-                  </div>                ))}
+                  ))}
               </div>
             </CardContent>
           </Card>

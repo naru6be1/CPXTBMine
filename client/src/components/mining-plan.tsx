@@ -37,6 +37,7 @@ const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004"; // B
 const BASE_CHAIN_ID = 8453;
 const BASE_RPC_URL = "https://mainnet.base.org";
 const AUTHORIZED_DAILY_PLAN_WALLET = "0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77";
+const AUTHORIZED_HOURLY_PLAN_WALLET = "0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77";
 
 // Configure Base chain with correct settings
 const baseChain = base;
@@ -76,14 +77,20 @@ const ERC20_ABI = [
 ];
 
 // Update the PlanType and PLANS configuration
-type PlanType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'halfyearly';
+type PlanType = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'halfyearly';
 
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
+  hourly: {
+    amount: BigInt("100000"), // 0.1 USDT (6 decimals)
+    displayAmount: "0.1",
+    rewardUSD: 1, // 1 USD worth of CPXTB
+    duration: "1 hour"
+  },
   daily: {
     amount: BigInt("100000"), // 0.1 USDT (6 decimals)
     displayAmount: "0.1",
-    rewardUSD: 0.15, // Adjusted reward for 0.1 USDT
+    rewardUSD: 0.15,
     duration: "24 hours"
   },
   weekly: {
@@ -180,7 +187,8 @@ function ActivePlanDisplay({
     planType === 'weekly' ? 7 :
     planType === 'monthly' ? 30 :
     planType === 'quarterly' ? 90 :
-    planType === 'halfyearly' ? 180 : 1
+    planType === 'halfyearly' ? 180 :
+    planType === 'hourly' ? 1/24 : 1
   ));
 
   // Add useEffect for time remaining calculation
@@ -361,6 +369,8 @@ export function MiningPlan() {
 
   // Add check for daily plan access
   const canAccessDailyPlan = address?.toLowerCase() === AUTHORIZED_DAILY_PLAN_WALLET.toLowerCase();
+  // Add check for hourly plan access
+  const canAccessHourlyPlan = address?.toLowerCase() === AUTHORIZED_HOURLY_PLAN_WALLET.toLowerCase();
 
   // Current plan configuration
   const currentPlan = PLANS[selectedPlan];
@@ -494,7 +504,14 @@ export function MiningPlan() {
           amount: currentPlan.displayAmount,
           dailyRewardCPXTB,
           activatedAt: activationTime,
-          expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : selectedPlan === 'monthly' ? 30 : selectedPlan === 'quarterly' ? 90 : selectedPlan === 'halfyearly' ? 180 : 1) * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(new Date(activationTime).getTime() + (
+            selectedPlan === 'hourly' ? 1 * 60 * 60 * 1000 : // 1 hour in milliseconds
+            selectedPlan === 'daily' ? 24 * 60 * 60 * 1000 : // 1 day in milliseconds
+            selectedPlan === 'weekly' ? 7 * 24 * 60 * 60 * 1000 : // 7 days in milliseconds
+            selectedPlan === 'monthly' ? 30 * 24 * 60 * 60 * 1000 : // 30 days in milliseconds
+            selectedPlan === 'quarterly' ? 90 * 24 * 60 * 60 * 1000 : // 90 days in milliseconds
+            180 * 24 * 60 * 60 * 1000 // 180 days in milliseconds for half-yearly
+          )).toISOString(),
           transactionHash: hash,
         };
 
@@ -698,6 +715,16 @@ export function MiningPlan() {
         <CardContent className="space-y-6">
           {/* Updated button layout section */}
           <div className="grid grid-cols-2 gap-3">
+            {canAccessHourlyPlan && (
+              <Button
+                variant={selectedPlan === 'hourly' ? 'default' : 'outline'}
+                onClick={() => setSelectedPlan('hourly')}
+                className="w-full h-14"
+              >
+                <Cpu className="mr-2 h-4 w-4" />
+                1 Hour Plan
+              </Button>
+            )}
             {canAccessDailyPlan && (
               <Button
                 variant={selectedPlan === 'daily' ? 'default' : 'outline'}

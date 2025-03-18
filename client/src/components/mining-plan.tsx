@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -289,24 +289,14 @@ export function MiningPlan() {
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
-  // Current URL location handling
   const [location] = useLocation();
-
-  // Extract referral code from URL using useMemo
-  const referralCode = useMemo(() => {
-    if (!location.includes('?')) return null;
-    const searchParams = new URLSearchParams(location.split('?')[1]);
-    const code = searchParams.get('ref');
-    if (code) {
-      console.log('Extracted referral code from URL:', code);
-    }
-    return code;
-  }, [location]);
+  // Extract referral code more reliably
+  const referralCode = new URLSearchParams(location.includes('?') ? location.split('?')[1] : '').get('ref');
 
   // Log referral code for debugging
   useEffect(() => {
     if (referralCode) {
-      console.log('Active referral code:', referralCode);
+      console.log('Referral code detected:', referralCode);
     }
   }, [referralCode]);
 
@@ -422,6 +412,15 @@ export function MiningPlan() {
       return;
     }
 
+    if (!walletClient || !publicClient) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet and try again"
+      });
+      return;
+    }
+
     try {
       const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
       if (balance < currentPlan.amount) {
@@ -478,7 +477,7 @@ export function MiningPlan() {
         setIsConfirmed(true);
         const activationTime = new Date().toISOString();
 
-        // Create plan details with explicit referral code
+        // Log plan details before creation
         const planDetails = {
           walletAddress: address as string,
           withdrawalAddress,
@@ -488,7 +487,7 @@ export function MiningPlan() {
           activatedAt: activationTime,
           expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
-          referralCode
+          referralCode: referralCode || null // Explicitly handle null case
         };
 
         console.log('Creating mining plan with details:', planDetails);
@@ -511,10 +510,8 @@ export function MiningPlan() {
 
         // Refetch active plans and referral stats
         await refetchActivePlans();
-
-        // Always invalidate the referrer's stats if there's a referral code
         if (referralCode) {
-          console.log('Invalidating referral stats for code:', referralCode);
+          // Invalidate referral stats for the referrer
           await queryClient.invalidateQueries({ queryKey: ['referralStats', referralCode] });
         }
 

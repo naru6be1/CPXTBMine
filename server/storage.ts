@@ -53,48 +53,37 @@ export class DatabaseStorage implements IStorage {
   async getReferralStats(referralCode: string): Promise<{ totalReferrals: number; totalRewards: string }> {
     console.log('Getting referral stats for code:', referralCode);
 
-    try {
-      // Get all plans with this referral code
-      const plans = await db
-        .select({
-          id: miningPlans.id,
-          amount: miningPlans.amount,
-          referralCode: miningPlans.referralCode,
-          walletAddress: miningPlans.walletAddress
-        })
-        .from(miningPlans)
-        .where(eq(miningPlans.referralCode, referralCode));
+    // Get all plans with this referral code, ensuring code is not null
+    const plans = await db
+      .select()
+      .from(miningPlans)
+      .where(
+        eq(miningPlans.referralCode, referralCode)
+      );
 
-      console.log('Found plans for referral:', plans);
+    console.log('Found plans for referral:', plans);
 
-      // Count total referrals
-      const totalReferrals = plans.length;
+    // Count total referrals (all plans that used this referral code)
+    const totalReferrals = plans.length;
 
-      // Calculate total rewards (5% of each plan amount)
-      const totalRewards = plans.reduce((sum, plan) => {
-        const planAmount = parseFloat(plan.amount);
-        console.log(`Processing plan ${plan.id} with amount ${planAmount}`);
-        return sum + (planAmount * 0.05);
-      }, 0);
+    // Calculate total rewards (5% of each plan amount)
+    const totalRewards = plans.reduce((sum, plan) => {
+      const planAmount = parseFloat(plan.amount);
+      return sum + (planAmount * 0.05);
+    }, 0);
 
-      const stats = {
-        totalReferrals,
-        totalRewards: totalRewards.toFixed(2)
-      };
+    const stats = {
+      totalReferrals,
+      totalRewards: totalRewards.toFixed(2)
+    };
 
-      console.log('Calculated referral stats:', stats);
-      return stats;
-    } catch (error) {
-      console.error('Error calculating referral stats:', error);
-      throw error;
-    }
+    console.log('Calculated referral stats:', stats);
+    return stats;
   }
 
   // Mining plan methods
   async createMiningPlan(plan: InsertMiningPlan): Promise<MiningPlan> {
-    console.log('Creating mining plan:', plan);
     const [newPlan] = await db.insert(miningPlans).values(plan).returning();
-    console.log('Created mining plan:', newPlan);
     return newPlan;
   }
 

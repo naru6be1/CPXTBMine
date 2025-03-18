@@ -76,7 +76,7 @@ const ERC20_ABI = [
 ];
 
 // Update the PlanType and PLANS configuration
-type PlanType = 'daily' | 'weekly' | 'monthly' | 'quarterly';
+type PlanType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'halfyearly';
 
 // Plan configurations
 const PLANS: Record<PlanType, PlanConfig> = {
@@ -103,6 +103,12 @@ const PLANS: Record<PlanType, PlanConfig> = {
     displayAmount: "600",
     rewardUSD: 8, // Daily reward in USD
     duration: "90 days"
+  },
+  halfyearly: {
+    amount: BigInt("1200000000"), // 1200 USDT (6 decimals)
+    displayAmount: "1200",
+    rewardUSD: 8.5, // Daily reward in USD
+    duration: "180 days"
   }
 };
 
@@ -173,7 +179,8 @@ function ActivePlanDisplay({
   endDate.setDate(endDate.getDate() + (
     planType === 'weekly' ? 7 :
     planType === 'monthly' ? 30 :
-    planType === 'quarterly' ? 90 : 1
+    planType === 'quarterly' ? 90 :
+    planType === 'halfyearly' ? 180 : 1
   ));
 
   // Add useEffect for time remaining calculation
@@ -486,7 +493,7 @@ export function MiningPlan() {
           amount: currentPlan.displayAmount,
           dailyRewardCPXTB,
           activatedAt: activationTime,
-          expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : selectedPlan === 'monthly' ? 30 : selectedPlan === 'quarterly' ? 90 : 1) * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : selectedPlan === 'monthly' ? 30 : selectedPlan === 'quarterly' ? 90 : selectedPlan === 'halfyearly' ? 180 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
         };
 
@@ -714,6 +721,14 @@ export function MiningPlan() {
             >
               <Server className="mr-2 h-4 w-4" />
               Quarterly Plan
+            </Button>
+            <Button
+              variant={selectedPlan === 'halfyearly' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('halfyearly')}
+              className="w-full h-14"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Half-Yearly Plan
             </Button>
           </div>
 

@@ -27,6 +27,7 @@ export function FAQSection() {
                 <li>Weekly Plan: 100 USDT investment with rewards over 7 days</li>
                 <li>Monthly Plan: 200 USDT investment with rewards over 30 days</li>
                 <li>Quarterly Plan: 600 USDT investment with rewards over 90 days</li>
+                <li>Half-Yearly Plan: 1200 USDT investment with rewards over 180 days</li>
               </ul>
             </AccordionContent>
           </AccordionItem>
@@ -34,7 +35,7 @@ export function FAQSection() {
           <AccordionItem value="item-2">
             <AccordionTrigger>How do I receive my CPXTB rewards?</AccordionTrigger>
             <AccordionContent>
-              After your mining plan period ends (24 hours for daily, 7 days for weekly, 30 days for monthly, 90 days for quarterly), your CPXTB rewards will be automatically distributed to your provided Base network wallet address. Make sure you've provided the correct withdrawal address during plan activation.
+              After your mining plan period ends (24 hours for daily, 7 days for weekly, 30 days for monthly, 90 days for quarterly, 180 days for half-yearly), your CPXTB rewards will be automatically distributed to your provided Base network wallet address. Make sure you've provided the correct withdrawal address during plan activation.
             </AccordionContent>
           </AccordionItem>
 
@@ -59,6 +60,7 @@ export function FAQSection() {
                 <li>Weekly Plan: Earn CPXTB worth $15 per week</li>
                 <li>Monthly Plan: Earn CPXTB worth $7.5 per day for 30 days</li>
                 <li>Quarterly Plan: Earn CPXTB worth $8 per day for 90 days</li>
+                <li>Half-Yearly Plan: Earn CPXTB worth $8.5 per day for 180 days</li>
               </ul>
               The exact amount of CPXTB tokens depends on the current CPXTB/USDT price.
             </AccordionContent>

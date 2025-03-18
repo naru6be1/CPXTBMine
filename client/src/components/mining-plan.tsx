@@ -686,184 +686,50 @@ export function MiningPlan() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Updated visual hierarchy for plans */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Updated button layout section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {canAccessDailyPlan && (
-              <Card className={cn(
-                "relative overflow-hidden transition-all duration-200",
-                selectedPlan === 'daily' ? "border-primary shadow-lg" : "hover:border-primary/50"
-              )}>
-                <CardHeader className="space-y-1">
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <Cpu className="h-5 w-5 text-primary" />
-                      Daily Plan
-                    </span>
-                    <span className="text-2xl font-bold">0.1 USDT</span>
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">24 hours mining period</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Daily Reward</span>
-                      <span className="font-semibold text-primary">$0.15</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">CPXTB Reward</span>
-                      <span className="font-semibold">{(0.15 / cpxtbPrice).toFixed(2)} CPXTB</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-                    onClick={() => setSelectedPlan('daily')}
-                    className="w-full"
-                  >
-                    Select Plan
-                  </Button>
-                </CardContent>
-              </Card>
+              <Button
+                variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+                onClick={() => setSelectedPlan('daily')}
+                className="w-full h-14"
+              >
+                <Cpu className="mr-2 h-4 w-4" />
+                Daily Plan
+              </Button>
             )}
-
-            <Card className={cn(
-              "relative overflow-hidden transition-all duration-200",
-              selectedPlan === 'weekly' ? "border-primary shadow-lg" : "hover:border-primary/50"
-            )}>
-              <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Server className="h-5 w-5 text-primary" />
-                    Weekly Plan
-                  </span>
-                  <span className="text-2xl font-bold">100 USDT</span>
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">7 days mining period</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Total Reward</span>
-                    <span className="font-semibold text-primary">$15</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">CPXTB Reward</span>
-                    <span className="font-semibold">{(15 / cpxtbPrice).toFixed(2)} CPXTB</span>
-                  </div>
-                </div>
-                <Button
-                  variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
-                  onClick={() => setSelectedPlan('weekly')}
-                  className="w-full"
-                >
-                  Select Plan
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className={cn(
-              "relative overflow-hidden transition-all duration-200",
-              selectedPlan === 'monthly' ? "border-primary shadow-lg" : "hover:border-primary/50"
-            )}>
-              <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Server className="h-5 w-5 text-primary" />
-                    Monthly Plan
-                  </span>
-                  <span className="text-2xl font-bold">200 USDT</span>
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">30 days mining period</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Daily Reward</span>
-                    <span className="font-semibold text-primary">$7.5</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Total CPXTB</span>
-                    <span className="font-semibold">{(7.5 * 30 / cpxtbPrice).toFixed(2)} CPXTB</span>
-                  </div>
-                </div>
-                <Button
-                  variant={selectedPlan === 'monthly' ? 'default' : 'outline'}
-                  onClick={() => setSelectedPlan('monthly')}
-                  className="w-full"
-                >
-                  Select Plan
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className={cn(
-              "relative overflow-hidden transition-all duration-200",
-              selectedPlan === 'quarterly' ? "border-primary shadow-lg" : "hover:border-primary/50"
-            )}>
-              <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Server className="h-5 w-5 text-primary" />
-                    Quarterly Plan
-                  </span>
-                  <span className="text-2xl font-bold">600 USDT</span>
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">90 days mining period</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Daily Reward</span>
-                    <span className="font-semibold text-primary">$8</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Total CPXTB</span>
-                    <span className="font-semibold">{(8 * 90 / cpxtbPrice).toFixed(2)} CPXTB</span>
-                  </div>
-                </div>
-                <Button
-                  variant={selectedPlan === 'quarterly' ? 'default' : 'outline'}
-                  onClick={() => setSelectedPlan('quarterly')}
-                  className="w-full"
-                >
-                  Select Plan
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className={cn(
-              "relative overflow-hidden transition-all duration-200",
-              selectedPlan === 'halfyearly' ? "border-primary shadow-lg" : "hover:border-primary/50"
-            )}>
-              <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Server className="h-5 w-5 text-primary" />
-                    Half-Yearly Plan
-                  </span>
-                  <span className="text-2xl font-bold">1200 USDT</span>
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">180 days mining period</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Daily Reward</span>
-                    <span className="font-semibold text-primary">$8.5</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Total CPXTB</span>
-                      <span className="font-semibold">{(8.5 * 180 / cpxtbPrice).toFixed(2)} CPXTB</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant={selectedPlan === 'halfyearly' ? 'default' : 'outline'}
-                    onClick={() => setSelectedPlan('halfyearly')}
-                    className="w-full"
-                  >
-                    Select Plan
-                  </Button>
-                </CardContent>
-              </Card>
+            <Button
+              variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('weekly')}
+              className="w-full h-14"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Weekly Plan
+            </Button>
+            <Button
+              variant={selectedPlan === 'monthly' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('monthly')}
+              className="w-full h-14"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Monthly Plan
+            </Button>
+            <Button
+              variant={selectedPlan === 'quarterly' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('quarterly')}
+              className="w-full h-14"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Quarterly Plan
+            </Button>
+            <Button
+              variant={selectedPlan === 'halfyearly' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('halfyearly')}
+              className="w-full h-14"
+            >
+              <Server className="mr-2 h-4 w-4" />
+              Half-Yearly Plan
+            </Button>
           </div>
 
           <div className="bg-muted rounded-lg p-6 space-y-4">

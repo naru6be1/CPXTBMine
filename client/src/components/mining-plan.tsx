@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
@@ -14,14 +14,12 @@ import { SiTelegram } from 'react-icons/si';
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ReferralStats } from "./referral-stats";
 import { useLocation } from "wouter";
 import { createPublicClient, http } from 'viem';
 import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
-import { CPXTBInfo } from "./cpxtb-info";
-import { SocialShare } from './social-share';  // Updated to use named import
-
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -36,7 +34,6 @@ const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b"; // 
 const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004"; // Base network WETH
 const BASE_CHAIN_ID = 8453;
 const BASE_RPC_URL = "https://mainnet.base.org";
-const AUTHORIZED_DAILY_PLAN_WALLET = "0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77";
 
 // Configure Base chain with correct settings
 const baseChain = base;
@@ -292,10 +289,31 @@ export function MiningPlan() {
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  // Current URL location handling
+  const [location] = useLocation();
+
+  // Extract referral code from URL using useMemo
+  const referralCode = useMemo(() => {
+    if (!location.includes('?')) return null;
+    const searchParams = new URLSearchParams(location.split('?')[1]);
+    const code = searchParams.get('ref');
+    if (code) {
+      console.log('Extracted referral code from URL:', code);
+    }
+    return code;
+  }, [location]);
+
+  // Log referral code for debugging
+  useEffect(() => {
+    if (referralCode) {
+      console.log('Active referral code:', referralCode);
+    }
+  }, [referralCode]);
+
 
   // Hooks
   const { toast } = useToast();
-  const { isConnected, address } = useWallet();
+  const { isConnected, address, user } = useWallet();
   const { chain } = useNetwork();
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
   const publicClient = usePublicClient();
@@ -312,6 +330,7 @@ export function MiningPlan() {
         throw new Error('Failed to fetch active plans');
       }
       const data = await response.json();
+      console.log('Active plans:', data.plans);
       return data.plans || [];
     },
     enabled: !!address
@@ -333,9 +352,6 @@ export function MiningPlan() {
 
   const claimablePlans = claimablePlansData.plans;
   const isAdmin = address?.toLowerCase() === TREASURY_ADDRESS.toLowerCase();
-
-  // Add check for daily plan access
-  const canAccessDailyPlan = address?.toLowerCase() === AUTHORIZED_DAILY_PLAN_WALLET.toLowerCase();
 
   // Current plan configuration
   const currentPlan = PLANS[selectedPlan];
@@ -462,6 +478,7 @@ export function MiningPlan() {
         setIsConfirmed(true);
         const activationTime = new Date().toISOString();
 
+        // Create plan details with explicit referral code
         const planDetails = {
           walletAddress: address as string,
           withdrawalAddress,
@@ -471,8 +488,10 @@ export function MiningPlan() {
           activatedAt: activationTime,
           expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           transactionHash: hash,
+          referralCode
         };
 
+        console.log('Creating mining plan with details:', planDetails);
 
         const response = await fetch('/api/mining-plans', {
           method: 'POST',
@@ -488,8 +507,16 @@ export function MiningPlan() {
         }
 
         const data = await response.json();
+        console.log('Mining plan created:', data);
 
+        // Refetch active plans and referral stats
         await refetchActivePlans();
+
+        // Always invalidate the referrer's stats if there's a referral code
+        if (referralCode) {
+          console.log('Invalidating referral stats for code:', referralCode);
+          await queryClient.invalidateQueries({ queryKey: ['referralStats', referralCode] });
+        }
 
         toast({
           title: "Plan Activated",
@@ -654,6 +681,7 @@ export function MiningPlan() {
 
   return (
     <div className="space-y-6">
+      <ReferralStats />
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -663,16 +691,14 @@ export function MiningPlan() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex gap-4 mb-6">
-            {canAccessDailyPlan && (
-              <Button
-                variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-                onClick={() => setSelectedPlan('daily')}
-                className="flex-1"
-              >
-                <Cpu className="mr-2 h-4 w-4" />
-                Daily Plan
-              </Button>
-            )}
+            <Button
+              variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('daily')}
+              className="flex-1"
+            >
+              <Cpu className="mr-2 h-4 w-4" />
+              Daily Plan
+            </Button>
             <Button
               variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
               onClick={() => setSelectedPlan('weekly')}
@@ -800,8 +826,6 @@ export function MiningPlan() {
         </div>
       )}
 
-      <CPXTBInfo />
-      <SocialShare />
       <div className="pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground mb-3 text-center">
           Need help? Contact our support team

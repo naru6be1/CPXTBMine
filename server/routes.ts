@@ -27,6 +27,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             return;
           }
+
+          console.log('Valid referrer found:', {
+            referrerCode: referredBy,
+            newUser: address
+          });
         }
 
         // Create new user with referral info
@@ -34,16 +39,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: address,
           password: 'not-used', // OAuth-based auth, password not used
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-          referredBy: referredBy || null // Store the referrer's code
+          referredBy: referredBy || null // Use null for database compatibility
         };
 
-        console.log('Creating new user with data:', {
-          username: newUserData.username,
-          referralCode: newUserData.referralCode,
-          referredBy: newUserData.referredBy
-        });
+        console.log('Creating new user with data:', newUserData);
 
         user = await storage.createUser(newUserData);
+
+        console.log('User created with referral data:', {
+          username: user.username,
+          referralCode: user.referralCode,
+          referredBy: user.referredBy
+        });
       }
 
       res.json({ user });

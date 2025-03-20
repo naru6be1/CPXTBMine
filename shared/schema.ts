@@ -6,35 +6,35 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  referralCode: text("referral_code").notNull().unique(), // Unique referral code for each user
-  referredBy: text("referred_by"), // Referral code of the user who referred this user
+  referralCode: text("referral_code").notNull().unique(),
+  referredBy: text("referred_by"),
 });
 
 export const miningPlans = pgTable("mining_plans", {
   id: serial("id").primaryKey(),
   walletAddress: text("wallet_address").notNull(),
   withdrawalAddress: text("withdrawal_address").notNull(),
-  planType: text("plan_type").notNull(), // 'daily' or 'weekly'
-  amount: text("amount").notNull(), // USDT amount in string format
+  planType: text("plan_type").notNull(),
+  amount: text("amount").notNull(),
   dailyRewardCPXTB: text("daily_reward_cpxtb").notNull(),
   activatedAt: timestamp("activated_at").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   transactionHash: text("transaction_hash").notNull(),
   hasWithdrawn: boolean("has_withdrawn").notNull().default(false),
-  referralCode: text("referral_code"), // Track which referral code was used
-  referralRewardPaid: boolean("referral_reward_paid").default(false), // Track if referral reward has been paid
+  referralCode: text("referral_code"),
+  referralRewardPaid: boolean("referral_reward_paid").default(false),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-}).extend({
-  referralCode: z.string().optional(), // Used when referring others
-  referredBy: z.string().optional(), // Used when being referred
-});
+// Update user schema to properly handle referrals
+export const insertUserSchema = createInsertSchema(users)
+  .extend({
+    username: z.string(),
+    password: z.string(),
+    referralCode: z.string(),
+    referredBy: z.string().nullable(), // Explicitly allow null for referredBy
+  });
 
-// Update the mining plan schema to match the frontend data
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)
   .omit({ 
     id: true,
@@ -43,11 +43,11 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
     referralRewardPaid: true
   })
   .extend({
-    amount: z.string(), // Make sure amount is handled as string
-    planType: z.enum(['daily', 'weekly']), // Add validation for plan types
-    activatedAt: z.string().transform((str) => new Date(str)), // Transform ISO string to Date
-    expiresAt: z.string().transform((str) => new Date(str)), // Transform ISO string to Date
-    referralCode: z.string().nullable().optional(), // Allow null or undefined values
+    amount: z.string(),
+    planType: z.enum(['daily', 'weekly']),
+    activatedAt: z.string().transform((str) => new Date(str)),
+    expiresAt: z.string().transform((str) => new Date(str)),
+    referralCode: z.string().nullable().optional(),
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Coins, MessageCircle, Server, Cpu } from "lucide-react";
+import { Coins, MessageCircle, Server, Cpu, Gift } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
@@ -281,6 +281,47 @@ function ActivePlanDisplay({
   );
 }
 
+// Add this at the top of the component
+function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => void }) {
+  const [withdrawalAddress, setWithdrawalAddress] = useState("");
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Gift className="h-6 w-6 text-primary" />
+          Free CPXTB Claim
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="bg-primary/10 rounded-lg p-4">
+          <p className="text-lg font-semibold">Get 10 CPXTB for Free!</p>
+          <p className="text-sm text-muted-foreground">
+            New users can claim 10 CPXTB tokens once. Enter your Base network address to receive your tokens.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="withdrawal-free">Base Network Address</Label>
+          <Input
+            id="withdrawal-free"
+            placeholder="Enter your Base network address"
+            value={withdrawalAddress}
+            onChange={(e) => setWithdrawalAddress(e.target.value)}
+          />
+        </div>
+        <Button 
+          className="w-full"
+          onClick={() => onClaim(withdrawalAddress)}
+          disabled={!withdrawalAddress}
+        >
+          <Gift className="mr-2 h-4 w-4" />
+          Claim Free CPXTB
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function MiningPlan() {
   // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
@@ -331,7 +372,7 @@ export function MiningPlan() {
     enabled: !!address
   });
 
-  const { data: user } = useQuery({
+  const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['user', address],
     queryFn: async () => {
       if (!address) return null;
@@ -691,6 +732,38 @@ export function MiningPlan() {
     }
   };
 
+  // Add this new function in the MiningPlan component
+  const handleClaimFreeCPXTB = async (withdrawalAddress: string) => {
+    try {
+      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ withdrawalAddress }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+
+      await refetchUser();
+      await refetchActivePlans();
+
+      toast({
+        title: "Success!",
+        description: "Your free 10 CPXTB tokens have been claimed successfully!"
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to claim",
+        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
+      });
+    }
+  };
+
   // Render loading state
   if (isLoadingActive || isLoadingClaimable) {
     return (
@@ -708,6 +781,9 @@ export function MiningPlan() {
   return (
     <div className="space-y-6">
       <ReferralStats />
+      {isConnected && user && !user.hasClaimedFreeCPXTB && (
+        <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
+      )}
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -829,7 +905,7 @@ export function MiningPlan() {
       {isConnected && claimablePlans.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">
-            {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
+                        {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {claimablePlans.map((plan: MiningPlan) => (

@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   referralCode: text("referral_code").notNull().unique(),
   referredBy: text("referred_by"),
+  hasClaimedFreeCPXTB: boolean("has_claimed_free_cpxtb").default(false),
 });
 
 export const miningPlans = pgTable("mining_plans", {
@@ -26,13 +27,14 @@ export const miningPlans = pgTable("mining_plans", {
   referralRewardPaid: boolean("referral_reward_paid").default(false),
 });
 
-// Update user schema to properly handle referrals
+// Update user schema to properly handle referrals and free CPXTB claim
 export const insertUserSchema = createInsertSchema(users)
   .extend({
     username: z.string(),
     password: z.string(),
     referralCode: z.string(),
-    referredBy: z.string().optional(), // Make it optional instead of nullable
+    referredBy: z.string().optional(),
+    hasClaimedFreeCPXTB: z.boolean().optional(),
   });
 
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)

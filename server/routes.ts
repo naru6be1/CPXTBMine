@@ -220,6 +220,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add this new endpoint in the registerRoutes function
+  app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
+    try {
+      const { address } = req.params;
+      const { withdrawalAddress } = req.body;
+
+      if (!withdrawalAddress) {
+        res.status(400).json({
+          message: "Withdrawal address is required"
+        });
+        return;
+      }
+
+      // Get user and check if they've already claimed
+      const user = await storage.getUserByUsername(address);
+      if (!user) {
+        res.status(404).json({
+          message: "User not found"
+        });
+        return;
+      }
+
+      if (user.hasClaimedFreeCPXTB) {
+        res.status(400).json({
+          message: "Free CPXTB has already been claimed"
+        });
+        return;
+      }
+
+      // Update user to mark as claimed
+      const updatedUser = await storage.claimFreeCPXTB(address);
+
+      // Create a special mining plan for the free CPXTB
+      const now = new Date();
+      const plan = await storage.createMiningPlan({
+        walletAddress: address,
+        withdrawalAddress,
+        planType: 'daily',
+        amount: '0', // Free plan
+        dailyRewardCPXTB: '10', // 10 CPXTB
+        activatedAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        transactionHash: 'FREE_CPXTB_CLAIM',
+        referralCode: null
+      });
+
+      res.json({ user: updatedUser, plan });
+    } catch (error: any) {
+      console.error("Error claiming free CPXTB:", error);
+      res.status(500).json({
+        message: "Error claiming free CPXTB: " + error.message
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

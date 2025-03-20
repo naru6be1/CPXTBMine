@@ -309,7 +309,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
             onChange={(e) => setWithdrawalAddress(e.target.value)}
           />
         </div>
-        <Button 
+        <Button
           className="w-full"
           onClick={() => onClaim(withdrawalAddress)}
           disabled={!withdrawalAddress}
@@ -376,8 +376,8 @@ export function MiningPlan() {
     queryKey: ['user', address],
     queryFn: async () => {
       if (!address) return null;
-      // Add referral code to the API call if present
-      const apiUrl = referralCode 
+      console.log('Fetching user data for address:', address);
+      const apiUrl = referralCode
         ? `/api/users/${address}?ref=${referralCode}`
         : `/api/users/${address}`;
       const response = await fetch(apiUrl);
@@ -385,6 +385,7 @@ export function MiningPlan() {
         throw new Error('Failed to fetch user');
       }
       const data = await response.json();
+      console.log('Received user data:', data);
       return data.user;
     },
     enabled: !!address
@@ -778,11 +779,27 @@ export function MiningPlan() {
     );
   }
 
+  // Add console.log to debug user data and rendering condition
+  console.log('User data in component:', {
+    isConnected,
+    address,
+    user,
+    hasClaimedFreeCPXTB: user?.hasClaimedFreeCPXTB
+  });
+
   return (
     <div className="space-y-6">
       <ReferralStats />
-      {isConnected && user && !user.hasClaimedFreeCPXTB && (
-        <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
+      {isConnected && user && (
+        <div>
+          {!user.hasClaimedFreeCPXTB ? (
+            <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center">
+              You have already claimed your free CPXTB.
+            </p>
+          )}
+        </div>
       )}
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
@@ -905,7 +922,7 @@ export function MiningPlan() {
       {isConnected && claimablePlans.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">
-                        {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
+            {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {claimablePlans.map((plan: MiningPlan) => (

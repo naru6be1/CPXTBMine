@@ -76,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get expired, unwithdraw plans for claiming rewards
+  // Update the claimable plans endpoint to include free CPXTB claims
   app.get("/api/mining-plans/:walletAddress/claimable", async (req, res) => {
     try {
       const { walletAddress } = req.params;
@@ -86,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let plans;
       if (isAdmin) {
-        // Admin can see all expired, unwithdrawn plans
+        // Admin can see all expired, unwithdrawn plans including free CPXTB claims
         plans = await db
           .select()
           .from(miningPlans)

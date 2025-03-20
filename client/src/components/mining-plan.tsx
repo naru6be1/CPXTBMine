@@ -126,6 +126,7 @@ function TelegramSupport() {
   );
 }
 
+// Update the ActivePlanDisplay component to handle free CPXTB claims
 function ActivePlanDisplay({
   withdrawalAddress,
   dailyRewardCPXTB,
@@ -137,7 +138,8 @@ function ActivePlanDisplay({
   amount,
   isAdmin,
   walletAddress,
-  chain
+  chain,
+  transactionHash
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
@@ -150,55 +152,26 @@ function ActivePlanDisplay({
   isAdmin: boolean;
   walletAddress: string;
   chain: any;
+  transactionHash: string;
 }) {
-  const [timeRemaining, setTimeRemaining] = useState<string>("");
-  const activationDate = new Date(activatedAt);
-  const endDate = new Date(activationDate);
-  endDate.setDate(endDate.getDate() + (planType === 'weekly' ? 7 : 1));
-
-  // Add useEffect for time remaining calculation
-  useEffect(() => {
-    const updateTimeRemaining = () => {
-      const now = new Date();
-      const diff = endDate.getTime() - now.getTime();
-
-      if (diff <= 0) {
-        setTimeRemaining("Expired");
-        return;
-      }
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-      if (days > 0) {
-        setTimeRemaining(`${days}d ${hours}h ${minutes}m remaining`);
-      } else {
-        setTimeRemaining(`${hours}h ${minutes}m remaining`);
-      }
-    };
-
-    // Update immediately and then every minute
-    updateTimeRemaining();
-    const timer = setInterval(updateTimeRemaining, 60000);
-
-    return () => clearInterval(timer);
-  }, [endDate]);
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleString('en-US', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    });
-  };
+  const isFreeClaimPlan = transactionHash === 'FREE_CPXTB_CLAIM';
 
   return (
     <Card className="w-full">
       <CardContent className="pt-6">
         <div className="bg-primary/10 rounded-lg p-6">
           <h3 className="text-xl font-semibold text-primary mb-2 flex items-center gap-2">
-            <Server className="h-6 w-6 animate-pulse" />
-            Mining Plan Status
+            {isFreeClaimPlan ? (
+              <>
+                <Gift className="h-6 w-6" />
+                Free CPXTB Claim
+              </>
+            ) : (
+              <>
+                <Server className="h-6 w-6 animate-pulse" />
+                Mining Plan Status
+              </>
+            )}
           </h3>
           <div className="space-y-3">
             <div>
@@ -207,35 +180,39 @@ function ActivePlanDisplay({
                 "text-lg font-semibold flex items-center gap-2",
                 isExpired ? "text-red-500" : "text-green-500"
               )}>
-                <Cpu className="h-5 w-5 animate-pulse" />
-                {isExpired ? "Expired" : "Active"}
-                {!isExpired && (
-                  <span className="text-sm font-normal ml-2">({timeRemaining})</span>
+                {isFreeClaimPlan ? (
+                  <>
+                    <Gift className="h-5 w-5" />
+                    {hasWithdrawn ? "Claimed" : "Ready to Claim"}
+                  </>
+                ) : (
+                  <>
+                    <Cpu className="h-5 w-5 animate-pulse" />
+                    {isExpired ? "Expired" : "Active"}
+                  </>
                 )}
               </p>
             </div>
+
+            {!isFreeClaimPlan && (
+              <>
+                <div>
+                  <p className="text-sm text-muted-foreground">Plan Type</p>
+                  <p className="text-lg font-semibold capitalize">{planType} Plan ({amount} USDT)</p>
+                </div>
+              </>
+            )}
+
             <div>
-              <p className="text-sm text-muted-foreground">Plan Type</p>
-              <p className="text-lg font-semibold capitalize">{planType} Plan ({amount} USDT)</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Daily Reward</p>
+              <p className="text-sm text-muted-foreground">CPXTB Reward</p>
               <p className="text-lg font-semibold">{dailyRewardCPXTB} CPXTB</p>
             </div>
+
             <div>
               <p className="text-sm text-muted-foreground">Withdrawal Address</p>
               <p className="text-sm font-mono break-all">{withdrawalAddress}</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Activation Time</p>
-                <p className="text-lg font-semibold">{formatDate(activationDate)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">End Time</p>
-                <p className="text-lg font-semibold">{formatDate(endDate)}</p>
-              </div>
-            </div>
+
             {isAdmin && (
               <div>
                 <p className="text-sm text-muted-foreground">User Wallet</p>
@@ -243,7 +220,7 @@ function ActivePlanDisplay({
               </div>
             )}
 
-            {isExpired && !hasWithdrawn && (
+            {!hasWithdrawn && (
               <>
                 {isAdmin ? (
                   <div className="space-y-2">
@@ -259,19 +236,19 @@ function ActivePlanDisplay({
                       <Coins className="mr-2 h-4 w-4" />
                       {chain?.id !== 8453
                         ? "Switch to Base Network & Distribute CPXTB"
-                        : "Distribute CPXTB Rewards"}
+                        : `Distribute ${dailyRewardCPXTB} CPXTB`}
                     </Button>
                   </div>
                 ) : (
                   <p className="text-sm text-center text-muted-foreground mt-4">
-                    Waiting for CPXTB rewards distribution
+                    Waiting for CPXTB distribution from admin
                   </p>
                 )}
               </>
             )}
-            {isExpired && hasWithdrawn && (
+            {hasWithdrawn && (
               <p className="text-sm text-center text-muted-foreground mt-4">
-                Rewards have been distributed
+                CPXTB has been distributed
               </p>
             )}
           </div>
@@ -915,6 +892,7 @@ export function MiningPlan() {
                 isAdmin={isAdmin}
                 walletAddress={plan.walletAddress}
                 chain={chain}
+                transactionHash={plan.transactionHash}
               />
             ))}
           </div>
@@ -941,6 +919,7 @@ export function MiningPlan() {
                 isAdmin={isAdmin}
                 walletAddress={plan.walletAddress}
                 chain={chain}
+                transactionHash={plan.transactionHash}
               />
             ))}
           </div>

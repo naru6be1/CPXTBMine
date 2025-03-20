@@ -790,13 +790,15 @@ export function MiningPlan() {
   return (
     <div className="space-y-6">
       <ReferralStats />
-      {isConnected && user && (
+      {isConnected && (
         <div>
-          {!user.hasClaimedFreeCPXTB ? (
+          {user && !user.hasClaimedFreeCPXTB ? (
             <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
           ) : (
             <p className="text-sm text-muted-foreground text-center">
-              You have already claimed your free CPXTB.
+              {user?.hasClaimedFreeCPXTB ?
+                "You have already claimed your free CPXTB." :
+                "Connect your wallet to claim free CPXTB."}
             </p>
           )}
         </div>
@@ -903,7 +905,7 @@ export function MiningPlan() {
               <ActivePlanDisplay
                 key={plan.id}
                 withdrawalAddress={plan.withdrawalAddress}
-                dailyRewardCPXTB={plan.dailyRewardCPXTB}
+                                dailyRewardCPXTB={plan.dailyRewardCPXTB}
                 activatedAt={plan.activatedAt}
                 planType={plan.planType}
                 onClaim={() => handleClaimRewards(plan)}

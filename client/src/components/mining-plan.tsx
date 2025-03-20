@@ -258,9 +258,39 @@ function ActivePlanDisplay({
   );
 }
 
-// Add this at the top of the component
+// Update the FreeCPXTBClaim component to show time until next claim
 function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => void }) {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
+  const { address } = useWallet();
+  const { data: user } = useQuery({
+    queryKey: ['user', address],
+    queryFn: async () => {
+      if (!address) return null;
+      const response = await fetch(`/api/users/${address}`);
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json().then(data => data.user);
+    },
+    enabled: !!address
+  });
+
+  const canClaim = !user?.lastFreeClaim || 
+    (new Date().getTime() - new Date(user.lastFreeClaim).getTime()) >= 24 * 60 * 60 * 1000;
+
+  const getTimeUntilNextClaim = () => {
+    if (!user?.lastFreeClaim) return null;
+    const nextClaimTime = new Date(user.lastFreeClaim);
+    nextClaimTime.setHours(nextClaimTime.getHours() + 24);
+    const now = new Date();
+    const diff = nextClaimTime.getTime() - now.getTime();
+
+    if (diff <= 0) return null;
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  };
+
+  const timeUntilNextClaim = getTimeUntilNextClaim();
 
   return (
     <Card className="w-full max-w-2xl mx-auto mb-6">
@@ -274,7 +304,10 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
         <div className="bg-primary/10 rounded-lg p-4">
           <p className="text-lg font-semibold">Get 10 CPXTB for Free!</p>
           <p className="text-sm text-muted-foreground">
-            New users can claim 10 CPXTB tokens once. Enter your Base network address to receive your tokens.
+            Claim 10 CPXTB tokens once every 24 hours. Enter your Base network address to receive your tokens.
+            {timeUntilNextClaim && (
+              <span className="block mt-2">Next claim available in: {timeUntilNextClaim}</span>
+            )}
           </p>
         </div>
         <div className="space-y-2">
@@ -289,10 +322,10 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
         <Button
           className="w-full"
           onClick={() => onClaim(withdrawalAddress)}
-          disabled={!withdrawalAddress}
+          disabled={!withdrawalAddress || !canClaim}
         >
           <Gift className="mr-2 h-4 w-4" />
-          Claim Free CPXTB
+          {canClaim ? "Claim Free CPXTB" : "Wait for next claim period"}
         </Button>
       </CardContent>
     </Card>

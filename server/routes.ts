@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Get user and check if they've already claimed
+      // Get user and check if they can claim
       const user = await storage.getUserByUsername(address);
       if (!user) {
         res.status(404).json({
@@ -242,9 +242,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      if (user.hasClaimedFreeCPXTB) {
+      const canClaim = await storage.canClaimFreeCPXTB(address);
+      if (!canClaim) {
         res.status(400).json({
-          message: "Free CPXTB has already been claimed"
+          message: "You can only claim free CPXTB once every 24 hours"
         });
         return;
       }

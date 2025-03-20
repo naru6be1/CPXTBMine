@@ -39,7 +39,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: address,
           password: 'not-used', // OAuth-based auth, password not used
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-          referredBy: referredBy || null // Use null for database compatibility
+          referredBy: referredBy // Store the exact referral code
         };
 
         console.log('Creating new user with data:', newUserData);

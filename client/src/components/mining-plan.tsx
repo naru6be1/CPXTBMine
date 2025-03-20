@@ -294,7 +294,7 @@ export function MiningPlan() {
 
   // Hooks
   const { toast } = useToast();
-  const { isConnected, address, user } = useWallet();
+  const { isConnected, address } = useWallet();
   const { chain } = useNetwork();
   const { switchNetwork, isLoading: isSwitchingNetwork } = useSwitchNetwork();
   const publicClient = usePublicClient();
@@ -327,6 +327,24 @@ export function MiningPlan() {
       }
       const data = await response.json();
       return data;
+    },
+    enabled: !!address
+  });
+
+  const { data: user } = useQuery({
+    queryKey: ['user', address],
+    queryFn: async () => {
+      if (!address) return null;
+      // Add referral code to the API call if present
+      const apiUrl = referralCode 
+        ? `/api/users/${address}?ref=${referralCode}`
+        : `/api/users/${address}`;
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+      const data = await response.json();
+      return data.user;
     },
     enabled: !!address
   });

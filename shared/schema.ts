@@ -32,7 +32,7 @@ export const insertUserSchema = createInsertSchema(users)
     username: z.string(),
     password: z.string(),
     referralCode: z.string(),
-    referredBy: z.string().nullable(), // Explicitly allow null for referredBy
+    referredBy: z.string().optional(), // Make it optional instead of nullable
   });
 
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)

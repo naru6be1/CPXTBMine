@@ -1,0 +1,36 @@
+{
+  "mining": {
+    "title": "挖矿计划",
+    "dailyPlan": "日计划",
+    "weeklyPlan": "周计划",
+    "usdtBalance": "您的USDT余额",
+    "investment": "所需投资",
+    "dailyReward": "每日奖励",
+    "duration": "持续时间",
+    "withdrawalAddress": "CPXTB提现地址（Base网络）",
+    "enterAddress": "输入您的Base网络地址以提现CPXTB"
+  },
+  "freeClaim": {
+    "title": "免费CPXTB领取",
+    "get": "免费获得10个CPXTB！",
+    "description": "每24小时可领取一次10个CPXTB代币。输入您的Base网络地址以接收代币。",
+    "nextClaim": "下次领取时间：",
+    "button": {
+      "claim": "领取免费CPXTB",
+      "wait": "等待下次领取期"
+    }
+  },
+  "referral": {
+    "title": "您的推荐统计",
+    "totalReferrals": "总推荐人数",
+    "totalRewards": "总奖励",
+    "copyLink": "复制推荐链接",
+    "linkCopied": "推荐链接已复制",
+    "shareMessage": "分享链接给他人以赚取奖励！"
+  },
+  "social": {
+    "shareTitle": "与朋友分享，帮助他们领取免费CPXTB！",
+    "twitter": "分享到推特",
+    "telegram": "分享到电报"
+  }
+}

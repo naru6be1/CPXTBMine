@@ -254,14 +254,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create a special mining plan for the free CPXTB
       const now = new Date();
+      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+
       const plan = await storage.createMiningPlan({
         walletAddress: address,
         withdrawalAddress,
         planType: 'daily',
         amount: '0', // Free plan
         dailyRewardCPXTB: '10', // 10 CPXTB
-        activatedAt: now.toISOString(),
-        expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        activatedAt: now, // Pass Date object directly
+        expiresAt: expiresAt, // Pass Date object directly
         transactionHash: 'FREE_CPXTB_CLAIM',
         referralCode: null
       });

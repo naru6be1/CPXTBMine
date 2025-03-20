@@ -905,7 +905,7 @@ export function MiningPlan() {
               <ActivePlanDisplay
                 key={plan.id}
                 withdrawalAddress={plan.withdrawalAddress}
-                                dailyRewardCPXTB={plan.dailyRewardCPXTB}
+                dailyRewardCPXTB={plan.dailyRewardCPXTB}
                 activatedAt={plan.activatedAt}
                 planType={plan.planType}
                 onClaim={() => handleClaimRewards(plan)}

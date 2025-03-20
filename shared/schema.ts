@@ -47,7 +47,7 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
     planType: z.enum(['daily', 'weekly']), // Add validation for plan types
     activatedAt: z.string().transform((str) => new Date(str)), // Transform ISO string to Date
     expiresAt: z.string().transform((str) => new Date(str)), // Transform ISO string to Date
-    referralCode: z.string().optional(), // Optional referral code when activating a plan
+    referralCode: z.string().nullable().optional(), // Allow null or undefined values
   });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

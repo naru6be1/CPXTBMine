@@ -13,16 +13,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { address } = req.params;
       const referredBy = req.query.ref as string; // Get referral code from query param
+
+      // First check if user exists
       let user = await storage.getUserByUsername(address);
 
       if (!user) {
-        // Create new user with a referral code
+        // If referral code provided, verify it exists
+        if (referredBy) {
+          const referrer = await storage.getUserByReferralCode(referredBy);
+          if (!referrer) {
+            res.status(400).json({
+              message: "Invalid referral code"
+            });
+            return;
+          }
+        }
+
+        // Create new user with referral info
         const newUserData = {
           username: address,
           password: 'not-used', // OAuth-based auth, password not used
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-          referredBy: referredBy // Store the referrer's code if provided
+          referredBy: referredBy || null // Store the referrer's code
         };
+
+        console.log('Creating new user with data:', {
+          username: newUserData.username,
+          referralCode: newUserData.referralCode,
+          referredBy: newUserData.referredBy
+        });
+
         user = await storage.createUser(newUserData);
       }
 

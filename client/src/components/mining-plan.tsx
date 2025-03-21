@@ -331,7 +331,6 @@ const handleClaimFreeCPXTB = async () => {
 export function MiningPlan() {
   // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
-  const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -460,11 +459,11 @@ export function MiningPlan() {
       return;
     }
 
-    if (!withdrawalAddress) {
+    if (!address) {
       toast({
         variant: "destructive",
-        title: "Missing Address",
-        description: "Please provide your Base network address for CPXTB rewards"
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to continue"
       });
       return;
     }
@@ -528,40 +527,17 @@ export function MiningPlan() {
       setTransactionHash(hash);
       setIsValidating(true);
 
-      let receipt = null;
-      const maxRetries = 5;
-      const retryDelay = 5000;
-      const timeout = 120000;
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      for (let i = 0; i < maxRetries; i++) {
-        try {
-          receipt = await Promise.race([
-            publicClient.waitForTransactionReceipt({ hash }),
-            new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Transaction confirmation timeout')), timeout)
-            )
-          ]);
-
-          if (receipt && receipt.status === 'success') {
-            break;
-          }
-
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-        } catch (error) {
-          console.log(`Attempt ${i + 1} failed:`, error);
-          if (i === maxRetries - 1) throw error;
-        }
-      }
-
-      if (!receipt || receipt.status !== 'success') {
-        throw new Error('Transaction failed or timed out');
+      if (receipt.status !== 'success') {
+        throw new Error('Transaction failed');
       }
 
       setIsConfirmed(true);
       const activationTime = new Date().toISOString();
       const planDetails = {
-        walletAddress: address as string,
-        withdrawalAddress,
+        walletAddress: address,
+        withdrawalAddress: address, // Use connected address for withdrawals
         planType: selectedPlan,
         amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
@@ -753,7 +729,6 @@ export function MiningPlan() {
     );
   }
 
-  // Add console.log to debug user data and rendering condition
   console.log('User data in component:', {
     isConnected,
     address,
@@ -835,15 +810,9 @@ export function MiningPlan() {
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
-              <Input
-                id="withdrawal"
-                placeholder="Enter your Base network address for CPXTB withdrawals"
-                value={withdrawalAddress}
-                onChange={(e) => setWithdrawalAddress(e.target.value)}
-              />
-            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              Your connected wallet address will be used to receive CPXTB rewards.
+            </p>
 
             {isConnected && (
               <Button

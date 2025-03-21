@@ -2,18 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
 import { SiTelegram } from "react-icons/si";
 import { FaTwitter } from "react-icons/fa";
-import { useTranslation } from "react-i18next";
 
 interface SocialShareProps {
   referralCode: string;
 }
 
 export function SocialShare({ referralCode }: SocialShareProps) {
-  const { t } = useTranslation();
   const shareMessage = `🎉 Claim your FREE CPXTB tokens! Use my referral code: ${referralCode}\n\nJoin now and start earning rewards! 💰`;
   const shareUrl = `${window.location.origin}?ref=${referralCode}`;
-
-  console.log('SocialShare component rendering with:', { referralCode, shareUrl });
 
   const handleTwitterShare = () => {
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage)}&url=${encodeURIComponent(shareUrl)}`;
@@ -26,9 +22,9 @@ export function SocialShare({ referralCode }: SocialShareProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 border-2 border-primary/20 rounded-lg">
+    <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground text-center">
-        {t('social.shareTitle')}
+        Share with friends to help them claim free CPXTB!
       </p>
       <div className="flex gap-2 justify-center">
         <Button
@@ -37,7 +33,7 @@ export function SocialShare({ referralCode }: SocialShareProps) {
           onClick={handleTwitterShare}
         >
           <FaTwitter className="mr-2 h-4 w-4" />
-          {t('social.twitter')}
+          Share on Twitter
         </Button>
         <Button
           variant="outline"
@@ -45,7 +41,7 @@ export function SocialShare({ referralCode }: SocialShareProps) {
           onClick={handleTelegramShare}
         >
           <SiTelegram className="mr-2 h-4 w-4" />
-          {t('social.telegram')}
+          Share on Telegram
         </Button>
       </div>
     </div>

@@ -507,15 +507,17 @@ export function MiningPlan() {
       }
 
       setIsConfirmed(true);
-      const activationTime = new Date().toISOString();
+      const activationTime = new Date();
+      const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000);
+
       const planDetails = {
         walletAddress: address,
         withdrawalAddress: address, // Use connected address for withdrawals
         planType: selectedPlan,
         amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
-        activatedAt: activationTime,
-        expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
+        activatedAt: activationTime, // Pass Date object directly
+        expiresAt: expiresAt, // Pass Date object directly
         transactionHash: hash,
         referralCode: referralCode
       };

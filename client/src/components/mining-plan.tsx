@@ -260,6 +260,20 @@ function ActivePlanDisplay({
 
 // Update the FreeCPXTBClaim component to remove withdrawal address input
 function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
+  const { isConnected, address } = useWallet();
+
+  if (!isConnected || !address) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto mb-6">
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground text-center">
+            Please connect your wallet to claim free CPXTB.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-2xl mx-auto mb-6">
       <CardHeader>
@@ -272,7 +286,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         <div className="bg-primary/10 rounded-lg p-4">
           <p className="text-lg font-semibold">Get 10 CPXTB for Free!</p>
           <p className="text-sm text-muted-foreground">
-            New users can claim 10 CPXTB tokens once. Your connected wallet address will be used to receive the tokens.
+            New users can claim 10 CPXTB tokens once. Your connected wallet address ({address}) will be used to receive the tokens.
           </p>
         </div>
         <Button
@@ -287,9 +301,11 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   );
 }
 
-// Update the handleClaimFreeCPXTB function to use connected address
+// Update the handleClaimFreeCPXTB function to properly handle address
 const handleClaimFreeCPXTB = async () => {
-  if (!address) {
+  const { address, isConnected } = useWallet();
+
+  if (!address || !isConnected) {
     toast({
       variant: "destructive",
       title: "Wallet Not Connected",

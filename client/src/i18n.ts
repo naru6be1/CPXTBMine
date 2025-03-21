@@ -19,6 +19,18 @@ i18n
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false
+    },
+    // Add React specific configuration
+    react: {
+      useSuspense: false,
+      bindI18n: 'languageChanged loaded',
+      bindI18nStore: 'added removed',
+      transEmptyNodeValue: '',
+    },
+    // Add detection configuration
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage']
     }
   });
 

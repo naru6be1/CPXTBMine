@@ -34,6 +34,7 @@ const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b"; // 
 const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004"; // Base network WETH
 const BASE_CHAIN_ID = 8453;
 const BASE_RPC_URL = "https://mainnet.base.org";
+const DAILY_PLAN_ALLOWED_ADDRESS = "0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77";
 
 // Configure Base chain with correct settings
 const baseChain = base;
@@ -273,7 +274,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
     enabled: !!address
   });
 
-  const canClaim = !user?.lastFreeClaim || 
+  const canClaim = !user?.lastFreeClaim ||
     (new Date().getTime() - new Date(user.lastFreeClaim).getTime()) >= 24 * 60 * 60 * 1000;
 
   const getTimeUntilNextClaim = () => {
@@ -460,6 +461,16 @@ export function MiningPlan() {
         variant: "destructive",
         title: "Wrong Network",
         description: "Please switch to Ethereum mainnet"
+      });
+      return;
+    }
+
+    if (selectedPlan === 'daily' &&
+      address?.toLowerCase() !== DAILY_PLAN_ALLOWED_ADDRESS.toLowerCase()) {
+      toast({
+        variant: "destructive",
+        title: "Unauthorized",
+        description: "You are not authorized to use the daily plan"
       });
       return;
     }
@@ -802,11 +813,11 @@ export function MiningPlan() {
       <ReferralStats />
       {isConnected && (
         <div>
-          {user && !user.hasClaimedFreeCPXTB ? (
+          {!user?.lastFreeClaim ? (
             <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
           ) : (
             <p className="text-sm text-muted-foreground text-center">
-              {user?.hasClaimedFreeCPXTB ?
+              {user?.lastFreeClaim ?
                 "You have already claimed your free CPXTB." :
                 "Connect your wallet to claim free CPXTB."}
             </p>
@@ -822,14 +833,16 @@ export function MiningPlan() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex gap-4 mb-6">
-            <Button
-              variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-              onClick={() => setSelectedPlan('daily')}
-              className="flex-1"
-            >
-              <Cpu className="mr-2 h-4 w-4" />
-              Daily Plan
-            </Button>
+            {address?.toLowerCase() === DAILY_PLAN_ALLOWED_ADDRESS.toLowerCase() && (
+              <Button
+                variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+                onClick={() => setSelectedPlan('daily')}
+                className="flex-1"
+              >
+                <Cpu className="mr-2 h-4 w-4" />
+                Daily Plan
+              </Button>
+            )}
             <Button
               variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
               onClick={() => setSelectedPlan('weekly')}
@@ -888,7 +901,7 @@ export function MiningPlan() {
                 onClick={handleTransfer}
                 disabled={isTransferring || isValidating || isSwitchingNetwork}
               >
-                <Coins className="mr-2 h-4 w-4" />
+                <Coins className="mr-2 h-4 w4" />
                 {isSwitchingNetwork ? "Switching Network..." :
                   isTransferring ? "Transferring USDT..." :
                     isValidating ? "Validating Transaction..." :

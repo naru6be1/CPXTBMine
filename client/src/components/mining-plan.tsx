@@ -301,49 +301,6 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   );
 }
 
-// Update the handleClaimFreeCPXTB function to properly handle address
-const handleClaimFreeCPXTB = async () => {
-  const { address, isConnected } = useWallet();
-
-  if (!address || !isConnected) {
-    toast({
-      variant: "destructive",
-      title: "Wallet Not Connected",
-      description: "Please connect your wallet to claim free CPXTB"
-    });
-    return;
-  }
-
-  try {
-    const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ withdrawalAddress: address }), // Use connected address
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message);
-    }
-
-    await refetchUser();
-    await refetchActivePlans();
-
-    toast({
-      title: "Success!",
-      description: "Your free 10 CPXTB tokens have been claimed successfully!"
-    });
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Failed to claim",
-      description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
-    });
-  }
-};
-
 export function MiningPlan() {
   // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
@@ -730,6 +687,48 @@ export function MiningPlan() {
       setIsValidating(false);
     }
   };
+
+  // Handle free CPXTB claim
+  const handleClaimFreeCPXTB = async () => {
+    if (!address || !isConnected) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to claim free CPXTB"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ withdrawalAddress: address }), // Use connected address
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+
+      await refetchUser();
+      await refetchActivePlans();
+
+      toast({
+        title: "Success!",
+        description: "Your free 10 CPXTB tokens have been claimed successfully!"
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to claim",
+        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
+      });
+    }
+  };
+
 
   // Render loading state
   if (isLoadingActive || isLoadingClaimable) {

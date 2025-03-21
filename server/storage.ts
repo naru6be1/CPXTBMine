@@ -93,7 +93,7 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(miningPlans.walletAddress, walletAddress),
           eq(miningPlans.isActive, true),
-          gte(miningPlans.expiresAt, new Date())
+          gte(miningPlans.expiresAt, new Date())  // Only return plans that haven't expired yet
         )
       );
   }
@@ -135,7 +135,8 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(miningPlans.walletAddress, walletAddress),
           eq(miningPlans.hasWithdrawn, false),
-          gte(new Date(), miningPlans.expiresAt)
+          eq(miningPlans.isActive, true),
+          gte(new Date(), miningPlans.expiresAt)  // Only return truly expired plans
         )
       );
   }

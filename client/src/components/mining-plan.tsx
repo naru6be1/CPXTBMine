@@ -139,7 +139,8 @@ function ActivePlanDisplay({
   isAdmin,
   walletAddress,
   chain,
-  transactionHash
+  transactionHash,
+  expiresAt
 }: {
   withdrawalAddress: string;
   dailyRewardCPXTB: string;
@@ -153,8 +154,40 @@ function ActivePlanDisplay({
   walletAddress: string;
   chain: any;
   transactionHash: string;
+  expiresAt: string;
 }) {
   const isFreeClaimPlan = transactionHash === 'FREE_CPXTB_CLAIM';
+  const [timeRemaining, setTimeRemaining] = useState<string>("");
+
+  // Add useEffect for time remaining calculation
+  useEffect(() => {
+    const updateTimeRemaining = () => {
+      const now = new Date();
+      const expiry = new Date(expiresAt);
+      const diff = expiry.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeRemaining("Expired");
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m remaining`);
+      } else {
+        setTimeRemaining(`${hours}h ${minutes}m remaining`);
+      }
+    };
+
+    // Update immediately and then every minute
+    updateTimeRemaining();
+    const timer = setInterval(updateTimeRemaining, 60000);
+
+    return () => clearInterval(timer);
+  }, [expiresAt]);
 
   return (
     <Card className="w-full">
@@ -189,6 +222,9 @@ function ActivePlanDisplay({
                   <>
                     <Cpu className="h-5 w-5 animate-pulse" />
                     {isExpired ? "Expired" : "Active"}
+                    {!isExpired && (
+                      <span className="text-sm font-normal ml-2">({timeRemaining})</span>
+                    )}
                   </>
                 )}
               </p>
@@ -220,7 +256,7 @@ function ActivePlanDisplay({
               </div>
             )}
 
-            {!hasWithdrawn && (
+            {isExpired && !hasWithdrawn && (
               <>
                 {isAdmin ? (
                   <div className="space-y-2">
@@ -245,6 +281,11 @@ function ActivePlanDisplay({
                   </p>
                 )}
               </>
+            )}
+            {!isExpired && (
+              <p className="text-sm text-center text-muted-foreground mt-4">
+                Plan will mature in {timeRemaining}
+              </p>
             )}
             {hasWithdrawn && (
               <p className="text-sm text-center text-muted-foreground mt-4">
@@ -516,8 +557,8 @@ export function MiningPlan() {
         planType: selectedPlan,
         amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
-        activatedAt: activationTime, // Pass Date object directly
-        expiresAt: expiresAt, // Pass Date object directly
+        activatedAt: activationTime.toISOString(), // Pass Date object directly
+        expiresAt: expiresAt.toISOString(), // Pass Date object directly
         transactionHash: hash,
         referralCode: referralCode
       };
@@ -874,6 +915,7 @@ export function MiningPlan() {
                 walletAddress={plan.walletAddress}
                 chain={chain}
                 transactionHash={plan.transactionHash}
+                expiresAt={plan.expiresAt}
               />
             ))}
           </div>
@@ -885,7 +927,7 @@ export function MiningPlan() {
           <h2 className="text-2xl font-bold">
             {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gridcols-1 md:grid-cols-2 gap-4">
             {claimablePlans.map((plan: MiningPlan) => (
               <ActivePlanDisplay
                 key={plan.id}
@@ -901,6 +943,7 @@ export function MiningPlan() {
                 walletAddress={plan.walletAddress}
                 chain={chain}
                 transactionHash={plan.transactionHash}
+                expiresAt={plan.expiresAt}
               />
             ))}
           </div>

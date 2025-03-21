@@ -5,9 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import { config } from "./lib/web3";
-import { WagmiConfig } from 'wagmi';
-import { LanguageToggle } from "@/components/language-toggle";
-import "./i18n"; // Import i18n configuration
+import { WagmiConfig } from 'wagmi'
 
 function Router() {
   return (
@@ -23,7 +21,6 @@ function App() {
     <WagmiConfig config={config}>
       <QueryClientProvider client={queryClient}>
         <Router />
-        <LanguageToggle />
         <Toaster />
       </QueryClientProvider>
     </WagmiConfig>

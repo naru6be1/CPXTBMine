@@ -258,10 +258,8 @@ function ActivePlanDisplay({
   );
 }
 
-// Add this at the top of the component
-function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => void }) {
-  const [withdrawalAddress, setWithdrawalAddress] = useState("");
-
+// Update the FreeCPXTBClaim component to remove withdrawal address input
+function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   return (
     <Card className="w-full max-w-2xl mx-auto mb-6">
       <CardHeader>
@@ -274,22 +272,12 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
         <div className="bg-primary/10 rounded-lg p-4">
           <p className="text-lg font-semibold">Get 10 CPXTB for Free!</p>
           <p className="text-sm text-muted-foreground">
-            New users can claim 10 CPXTB tokens once. Enter your Base network address to receive your tokens.
+            New users can claim 10 CPXTB tokens once. Your connected wallet address will be used to receive the tokens.
           </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="withdrawal-free">Base Network Address</Label>
-          <Input
-            id="withdrawal-free"
-            placeholder="Enter your Base network address"
-            value={withdrawalAddress}
-            onChange={(e) => setWithdrawalAddress(e.target.value)}
-          />
         </div>
         <Button
           className="w-full"
-          onClick={() => onClaim(withdrawalAddress)}
-          disabled={!withdrawalAddress}
+          onClick={onClaim}
         >
           <Gift className="mr-2 h-4 w-4" />
           Claim Free CPXTB
@@ -298,6 +286,47 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
     </Card>
   );
 }
+
+// Update the handleClaimFreeCPXTB function to use connected address
+const handleClaimFreeCPXTB = async () => {
+  if (!address) {
+    toast({
+      variant: "destructive",
+      title: "Wallet Not Connected",
+      description: "Please connect your wallet to claim free CPXTB"
+    });
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ withdrawalAddress: address }), // Use connected address
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+
+    await refetchUser();
+    await refetchActivePlans();
+
+    toast({
+      title: "Success!",
+      description: "Your free 10 CPXTB tokens have been claimed successfully!"
+    });
+  } catch (error) {
+    toast({
+      variant: "destructive",
+      title: "Failed to claim",
+      description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
+    });
+  }
+};
 
 export function MiningPlan() {
   // State management
@@ -707,38 +736,6 @@ export function MiningPlan() {
     } finally {
       setIsTransferring(false);
       setIsValidating(false);
-    }
-  };
-
-  // Add this new function in the MiningPlan component
-  const handleClaimFreeCPXTB = async (withdrawalAddress: string) => {
-    try {
-      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ withdrawalAddress }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      await refetchUser();
-      await refetchActivePlans();
-
-      toast({
-        title: "Success!",
-        description: "Your free 10 CPXTB tokens have been claimed successfully!"
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to claim",
-        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
-      });
     }
   };
 

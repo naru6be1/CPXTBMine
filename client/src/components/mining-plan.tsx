@@ -21,6 +21,7 @@ import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
 import { useTranslation } from "react-i18next";
+import { SocialShare } from "./social-share"; 
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -259,7 +260,7 @@ function ActivePlanDisplay({
   );
 }
 
-// Update the FreeCPXTBClaim component to show time until next claim
+// Update the FreeCPXTBClaim component to properly display social share
 function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => void }) {
   const { t } = useTranslation();
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
@@ -273,6 +274,12 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
       return response.json().then(data => data.user);
     },
     enabled: !!address
+  });
+
+  console.log('FreeCPXTBClaim rendering:', {
+    address,
+    user,
+    referralCode: user?.referralCode
   });
 
   const canClaim = !user?.lastFreeClaim ||
@@ -332,9 +339,10 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
           {canClaim ? t('freeClaim.button.claim') : t('freeClaim.button.wait')}
         </Button>
 
-        {/* Add social share section */}
+        {/* Social share section with improved visibility */}
         {user?.referralCode && (
           <div className="mt-6 pt-6 border-t border-border">
+            <h3 className="text-lg font-semibold mb-4 text-center">{t('social.shareTitle')}</h3>
             <SocialShare referralCode={user.referralCode} />
           </div>
         )}
@@ -343,19 +351,6 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
   );
 }
 
-
-// Update the social share component with translations
-//This component remains as it was in the original file. No changes are needed here.
-function SocialShare({ referralCode }: { referralCode: string }) {
-  const { t } = useTranslation();
-  return (
-    <div>
-      <p>{t('socialShare.share')}</p>
-      <p>{t('socialShare.referralCode', { referralCode })}</p>
-      {/* Add your social share buttons here */}
-    </div>
-  );
-}
 
 export function MiningPlan() {
   const { t } = useTranslation();

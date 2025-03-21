@@ -20,7 +20,6 @@ import { createPublicClient, http } from 'viem';
 import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
-import { SocialShare } from "./social-share"; // Added import
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -328,13 +327,6 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
           <Gift className="mr-2 h-4 w-4" />
           {canClaim ? "Claim Free CPXTB" : "Wait for next claim period"}
         </Button>
-
-        {/* Add social share section */}
-        {user?.referralCode && (
-          <div className="mt-6 pt-6 border-t border-border">
-            <SocialShare referralCode={user.referralCode} />
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -916,7 +908,8 @@ export function MiningPlan() {
       </Card>
 
       {isConnected && activePlans.length > 0 && (
-        <div className="space-y-4">        <h2 className="text-2xl font-bold">Active Mining Plans</h2>
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">Active Mining Plans</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activePlans.map((plan: MiningPlan) => (
               <ActivePlanDisplay

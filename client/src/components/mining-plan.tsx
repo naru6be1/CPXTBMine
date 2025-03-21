@@ -20,7 +20,7 @@ import { createPublicClient, http } from 'viem';
 import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
-import { useTranslation } from "react-i18next";
+import { SocialShare } from "./social-share"; // Added import
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -261,7 +261,6 @@ function ActivePlanDisplay({
 
 // Update the FreeCPXTBClaim component to show time until next claim
 function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => void }) {
-  const { t } = useTranslation();
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
   const { address } = useWallet();
   const { data: user } = useQuery({
@@ -275,7 +274,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
     enabled: !!address
   });
 
-  const canClaim = !user?.lastFreeClaim ||
+  const canClaim = !user?.lastFreeClaim || 
     (new Date().getTime() - new Date(user.lastFreeClaim).getTime()) >= 24 * 60 * 60 * 1000;
 
   const getTimeUntilNextClaim = () => {
@@ -299,26 +298,24 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Gift className="h-6 w-6 text-primary" />
-          {t('freeClaim.title')}
+          Free CPXTB Claim
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="bg-primary/10 rounded-lg p-4">
-          <p className="text-lg font-semibold">{t('freeClaim.get')}</p>
+          <p className="text-lg font-semibold">Get 10 CPXTB for Free!</p>
           <p className="text-sm text-muted-foreground">
-            {t('freeClaim.description')}
+            Claim 10 CPXTB tokens once every 24 hours. Enter your Base network address to receive your tokens.
             {timeUntilNextClaim && (
-              <span className="block mt-2">
-                {t('freeClaim.nextClaim')} {timeUntilNextClaim}
-              </span>
+              <span className="block mt-2">Next claim available in: {timeUntilNextClaim}</span>
             )}
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="withdrawal-free">{t('mining.withdrawalAddress')}</Label>
+          <Label htmlFor="withdrawal-free">Base Network Address</Label>
           <Input
             id="withdrawal-free"
-            placeholder={t('mining.enterAddress')}
+            placeholder="Enter your Base network address"
             value={withdrawalAddress}
             onChange={(e) => setWithdrawalAddress(e.target.value)}
           />
@@ -329,7 +326,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
           disabled={!withdrawalAddress || !canClaim}
         >
           <Gift className="mr-2 h-4 w-4" />
-          {canClaim ? t('freeClaim.button.claim') : t('freeClaim.button.wait')}
+          {canClaim ? "Claim Free CPXTB" : "Wait for next claim period"}
         </Button>
 
         {/* Add social share section */}
@@ -343,22 +340,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
   );
 }
 
-
-// Update the social share component with translations
-//This component remains as it was in the original file. No changes are needed here.
-function SocialShare({ referralCode }: { referralCode: string }) {
-  const { t } = useTranslation();
-  return (
-    <div>
-      <p>{t('socialShare.share')}</p>
-      <p>{t('socialShare.referralCode', { referralCode })}</p>
-      {/* Add your social share buttons here */}
-    </div>
-  );
-}
-
 export function MiningPlan() {
-  const { t } = useTranslation();
   // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
@@ -843,7 +825,7 @@ export function MiningPlan() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Server className="h-6 w-6 text-primary animate-pulse" />
-            {t('mining.miningPlans')}
+            Mining Plans
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -854,7 +836,7 @@ export function MiningPlan() {
               className="flex-1"
             >
               <Cpu className="mr-2 h-4 w-4" />
-              {t('mining.dailyPlan')}
+              Daily Plan
             </Button>
             <Button
               variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
@@ -862,26 +844,26 @@ export function MiningPlan() {
               className="flex-1"
             >
               <Server className="mr-2 h-4 w-4" />
-              {t('mining.weeklyPlan')}
+              Weekly Plan
             </Button>
           </div>
 
           <div className="bg-muted rounded-lg p-6 space-y-4">
             <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
               <Cpu className="h-5 w-5 text-primary" />
-              {t('mining.planDetails', { plan: selectedPlan })}
+              {selectedPlan} Mining Plan Details
             </h3>
             <div className="grid gap-3">
               <div>
-                <p className="text-sm text-muted-foreground">{t('mining.usdtBalance')}</p>
+                <p className="text-sm text-muted-foreground">Your USDT Balance</p>
                 <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t('mining.investment')}</p>
+                <p className="text-sm text-muted-foreground">Investment Required</p>
                 <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t('mining.dailyReward')}</p>
+                <p className="text-sm text-muted-foreground">Daily Reward</p>
                 <p className="text-2xl font-bold text-primary">
                   {dailyRewardCPXTB} CPXTB
                   <span className="text-sm text-muted-foreground ml-2">
@@ -890,7 +872,7 @@ export function MiningPlan() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{t('mining.duration')}</p>
+                <p className="text-sm text-muted-foreground">Duration</p>
                 <p className="text-2xl font-bold">{currentPlan.duration}</p>
               </div>
             </div>
@@ -898,10 +880,10 @@ export function MiningPlan() {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="withdrawal">{t('mining.withdrawalAddressBase')}</Label>
+              <Label htmlFor="withdrawal">CPXTB Withdrawal Address (Base Network)</Label>
               <Input
                 id="withdrawal"
-                placeholder={t('mining.enterAddressBase')}
+                placeholder="Enter your Base network address for CPXTB withdrawals"
                 value={withdrawalAddress}
                 onChange={(e) => setWithdrawalAddress(e.target.value)}
               />
@@ -915,10 +897,10 @@ export function MiningPlan() {
                 disabled={isTransferring || isValidating || isSwitchingNetwork}
               >
                 <Coins className="mr-2 h-4 w-4" />
-                {isSwitchingNetwork ? t('mining.switching') :
-                  isTransferring ? t('mining.transferring') :
-                    isValidating ? t('mining.validating') :
-                      t('mining.activatePlan', { amount: currentPlan.displayAmount, plan: selectedPlan })}
+                {isSwitchingNetwork ? "Switching Network..." :
+                  isTransferring ? "Transferring USDT..." :
+                    isValidating ? "Validating Transaction..." :
+                      `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
               </Button>
             )}
 
@@ -934,7 +916,7 @@ export function MiningPlan() {
       </Card>
 
       {isConnected && activePlans.length > 0 && (
-        <div className="space-y-4">        <h2 className="text-2xl font-bold">{t('mining.activePlans')}</h2>
+        <div className="space-y-4">        <h2 className="text-2xl font-bold">Active Mining Plans</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activePlans.map((plan: MiningPlan) => (
               <ActivePlanDisplay
@@ -960,7 +942,7 @@ export function MiningPlan() {
       {isConnected && claimablePlans.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">
-            {isAdmin ? t('mining.allClaimable') : t('mining.yourClaimable')}
+            {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {claimablePlans.map((plan: MiningPlan) => (
@@ -986,7 +968,7 @@ export function MiningPlan() {
 
       <div className="pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground mb-3 text-center">
-          {t('mining.needHelp')}
+          Need help? Contact our support team
         </p>
         <TelegramSupport />
       </div>

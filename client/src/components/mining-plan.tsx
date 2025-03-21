@@ -256,7 +256,7 @@ function ActivePlanDisplay({
               </div>
             )}
 
-            {isExpired && !hasWithdrawn && (
+            {!hasWithdrawn && (
               <>
                 {isAdmin ? (
                   <div className="space-y-2">
@@ -277,19 +277,23 @@ function ActivePlanDisplay({
                   </div>
                 ) : (
                   <p className="text-sm text-center text-muted-foreground mt-4">
-                    Waiting for CPXTB distribution from admin
+                    {isFreeClaimPlan 
+                      ? "Waiting for admin to distribute your welcome bonus" 
+                      : "Waiting for CPXTB distribution from admin"}
                   </p>
                 )}
               </>
             )}
-            {!isExpired && (
+            {!isExpired && !isFreeClaimPlan && (
               <p className="text-sm text-center text-muted-foreground mt-4">
                 Plan will mature in {timeRemaining}
               </p>
             )}
             {hasWithdrawn && (
               <p className="text-sm text-center text-muted-foreground mt-4">
-                CPXTB has been distributed
+                {isFreeClaimPlan 
+                  ? "Welcome bonus has been distributed"
+                  : "CPXTB has been distributed"}
               </p>
             )}
           </div>

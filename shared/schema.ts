@@ -47,8 +47,13 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
   .extend({
     amount: z.string(),
     planType: z.enum(['daily', 'weekly']),
-    activatedAt: z.date(), // Change to accept Date object directly
-    expiresAt: z.date(), // Change to accept Date object directly
+    // Accept either Date object or ISO string for dates
+    activatedAt: z.union([z.date(), z.string()]).transform(val => 
+      val instanceof Date ? val : new Date(val)
+    ),
+    expiresAt: z.union([z.date(), z.string()]).transform(val => 
+      val instanceof Date ? val : new Date(val)
+    ),
     referralCode: z.string().nullable().optional(),
   });
 

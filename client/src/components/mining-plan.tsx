@@ -34,7 +34,6 @@ const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b"; // 
 const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004"; // Base network WETH
 const BASE_CHAIN_ID = 8453;
 const BASE_RPC_URL = "https://mainnet.base.org";
-const DAILY_PLAN_ALLOWED_ADDRESS = "0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77";
 
 // Configure Base chain with correct settings
 const baseChain = base;
@@ -259,39 +258,9 @@ function ActivePlanDisplay({
   );
 }
 
-// Update the FreeCPXTBClaim component to show time until next claim
+// Add this at the top of the component
 function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => void }) {
   const [withdrawalAddress, setWithdrawalAddress] = useState("");
-  const { address } = useWallet();
-  const { data: user } = useQuery({
-    queryKey: ['user', address],
-    queryFn: async () => {
-      if (!address) return null;
-      const response = await fetch(`/api/users/${address}`);
-      if (!response.ok) throw new Error('Failed to fetch user');
-      return response.json().then(data => data.user);
-    },
-    enabled: !!address
-  });
-
-  const canClaim = !user?.lastFreeClaim ||
-    (new Date().getTime() - new Date(user.lastFreeClaim).getTime()) >= 24 * 60 * 60 * 1000;
-
-  const getTimeUntilNextClaim = () => {
-    if (!user?.lastFreeClaim) return null;
-    const nextClaimTime = new Date(user.lastFreeClaim);
-    nextClaimTime.setHours(nextClaimTime.getHours() + 24);
-    const now = new Date();
-    const diff = nextClaimTime.getTime() - now.getTime();
-
-    if (diff <= 0) return null;
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
-  };
-
-  const timeUntilNextClaim = getTimeUntilNextClaim();
 
   return (
     <Card className="w-full max-w-2xl mx-auto mb-6">
@@ -305,10 +274,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
         <div className="bg-primary/10 rounded-lg p-4">
           <p className="text-lg font-semibold">Get 10 CPXTB for Free!</p>
           <p className="text-sm text-muted-foreground">
-            Claim 10 CPXTB tokens once every 24 hours. Enter your Base network address to receive your tokens.
-            {timeUntilNextClaim && (
-              <span className="block mt-2">Next claim available in: {timeUntilNextClaim}</span>
-            )}
+            New users can claim 10 CPXTB tokens once. Enter your Base network address to receive your tokens.
           </p>
         </div>
         <div className="space-y-2">
@@ -323,10 +289,10 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: (withdrawalAddress: string) => v
         <Button
           className="w-full"
           onClick={() => onClaim(withdrawalAddress)}
-          disabled={!withdrawalAddress || !canClaim}
+          disabled={!withdrawalAddress}
         >
           <Gift className="mr-2 h-4 w-4" />
-          {canClaim ? "Claim Free CPXTB" : "Wait for next claim period"}
+          Claim Free CPXTB
         </Button>
       </CardContent>
     </Card>
@@ -465,16 +431,6 @@ export function MiningPlan() {
       return;
     }
 
-    if (selectedPlan === 'daily' &&
-      address?.toLowerCase() !== DAILY_PLAN_ALLOWED_ADDRESS.toLowerCase()) {
-      toast({
-        variant: "destructive",
-        title: "Unauthorized",
-        description: "You are not authorized to use the daily plan"
-      });
-      return;
-    }
-
     if (!withdrawalAddress) {
       toast({
         variant: "destructive",
@@ -573,25 +529,20 @@ export function MiningPlan() {
       }
 
       setIsConfirmed(true);
-      const activationTime = new Date();
-      const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000);
-
+      const activationTime = new Date().toISOString();
       const planDetails = {
         walletAddress: address as string,
         withdrawalAddress,
         planType: selectedPlan,
         amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
-        activatedAt: activationTime.toISOString(), // Pass Date object directly
-        expiresAt: expiresAt.toISOString(), // Pass Date object directly
+        activatedAt: activationTime,
+        expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
         transactionHash: hash,
         referralCode: referralCode
       };
 
-      console.log('Creating mining plan with referral:', {
-        referralCode: planDetails.referralCode,
-        walletAddress: planDetails.walletAddress
-      });
+      console.log('Creating mining plan with details:', planDetails);
 
       const response = await fetch('/api/mining-plans', {
         method: 'POST',
@@ -818,13 +769,11 @@ export function MiningPlan() {
       <ReferralStats />
       {isConnected && (
         <div>
-          {/* This is where the edited code's conditional rendering is integrated */}
-          {!user?.lastFreeClaim && (
+          {user && !user.hasClaimedFreeCPXTB ? (
             <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
-          )}
-          {user?.lastFreeClaim && (
+          ) : (
             <p className="text-sm text-muted-foreground text-center">
-              {user?.lastFreeClaim ?
+              {user?.hasClaimedFreeCPXTB ?
                 "You have already claimed your free CPXTB." :
                 "Connect your wallet to claim free CPXTB."}
             </p>
@@ -840,16 +789,14 @@ export function MiningPlan() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex gap-4 mb-6">
-            {address?.toLowerCase() === DAILY_PLAN_ALLOWED_ADDRESS.toLowerCase() && (
-              <Button
-                variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-                onClick={() => setSelectedPlan('daily')}
-                className="flex-1"
-              >
-                <Cpu className="mr-2 h-4 w-4" />
-                Daily Plan
-              </Button>
-            )}
+            <Button
+              variant={selectedPlan === 'daily' ? 'default' : 'outline'}
+              onClick={() => setSelectedPlan('daily')}
+              className="flex-1"
+            >
+              <Cpu className="mr-2 h-4 w-4" />
+              Daily Plan
+            </Button>
             <Button
               variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
               onClick={() => setSelectedPlan('weekly')}

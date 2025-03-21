@@ -22,10 +22,8 @@ export interface IStorage {
   getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]>;
   markReferralRewardPaid(planId: number): Promise<MiningPlan>;
   getReferralPlans(referralCode: string): Promise<MiningPlan[]>;
-
-  // Free CPXTB claim methods
+  // Add new method for free CPXTB
   claimFreeCPXTB(username: string): Promise<User>;
-  canClaimFreeCPXTB(username: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -161,26 +159,10 @@ export class DatabaseStorage implements IStorage {
   async claimFreeCPXTB(username: string): Promise<User> {
     const [user] = await db
       .update(users)
-      .set({ lastFreeClaim: new Date() })
+      .set({ hasClaimedFreeCPXTB: true })
       .where(eq(users.username, username))
       .returning();
     return user;
-  }
-
-  async canClaimFreeCPXTB(username: string): Promise<boolean> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
-
-    if (!user) return false;
-    if (!user.lastFreeClaim) return true;
-
-    const lastClaim = new Date(user.lastFreeClaim);
-    const now = new Date();
-    const hoursSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60);
-
-    return hoursSinceLastClaim >= 24;
   }
 }
 

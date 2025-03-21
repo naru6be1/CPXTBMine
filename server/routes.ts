@@ -8,14 +8,18 @@ import { db } from './db';
 import { TREASURY_ADDRESS } from './constants';
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get or create user
+  // Update user endpoint with debug logging
   app.get("/api/users/:address", async (req, res) => {
     try {
       const { address } = req.params;
-      const referredBy = req.query.ref as string; // Get referral code from query param
+      const referredBy = req.query.ref as string;
+
+      console.log('Fetching user data:', { address, referredBy });
 
       // First check if user exists
       let user = await storage.getUserByUsername(address);
+
+      console.log('Existing user data:', user);
 
       if (!user) {
         // If referral code provided, verify it exists
@@ -27,11 +31,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             return;
           }
-
-          console.log('Valid referrer found:', {
-            referrerCode: referredBy,
-            newUser: address
-          });
         }
 
         // Create new user with referral info
@@ -39,20 +38,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: address,
           password: 'not-used', // OAuth-based auth, password not used
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-          referredBy: referredBy // Store the exact referral code
+          referredBy: referredBy,
+          hasClaimedFreeCPXTB: false // Set initial value
         };
 
         console.log('Creating new user with data:', newUserData);
-
         user = await storage.createUser(newUserData);
-
-        console.log('User created with referral data:', {
-          username: user.username,
-          referralCode: user.referralCode,
-          referredBy: user.referredBy
-        });
       }
 
+      console.log('Returning user data:', user);
       res.json({ user });
     } catch (error: any) {
       console.error("Error fetching/creating user:", error);

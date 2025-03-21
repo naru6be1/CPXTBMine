@@ -741,13 +741,11 @@ export function MiningPlan() {
       <ReferralStats />
       {isConnected && (
         <div>
-          {user && !user.hasClaimedFreeCPXTB ? (
+          {!user?.hasClaimedFreeCPXTB ? (
             <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
           ) : (
             <p className="text-sm text-muted-foreground text-center">
-              {user?.hasClaimedFreeCPXTB ?
-                "You have already claimed your free CPXTB." :
-                "Connect your wallet to claim free CPXTB."}
+              You have already claimed your free CPXTB.
             </p>
           )}
         </div>

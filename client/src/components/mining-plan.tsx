@@ -582,8 +582,8 @@ export function MiningPlan() {
         planType: selectedPlan,
         amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
-        activatedAt: activationTime, // Pass Date object directly
-        expiresAt: expiresAt, // Pass Date object directly
+        activatedAt: activationTime.toISOString(), // Pass Date object directly
+        expiresAt: expiresAt.toISOString(), // Pass Date object directly
         transactionHash: hash,
         referralCode: referralCode
       };
@@ -818,9 +818,11 @@ export function MiningPlan() {
       <ReferralStats />
       {isConnected && (
         <div>
-          {!user?.lastFreeClaim ? (
+          {/* This is where the edited code's conditional rendering is integrated */}
+          {!user?.lastFreeClaim && (
             <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
-          ) : (
+          )}
+          {user?.lastFreeClaim && (
             <p className="text-sm text-muted-foreground text-center">
               {user?.lastFreeClaim ?
                 "You have already claimed your free CPXTB." :
@@ -906,7 +908,7 @@ export function MiningPlan() {
                 onClick={handleTransfer}
                 disabled={isTransferring || isValidating || isSwitchingNetwork}
               >
-                <Coins className="mr-2 h-4 w4" />
+                <Coins className="mr-2 h-4 w-4" />
                 {isSwitchingNetwork ? "Switching Network..." :
                   isTransferring ? "Transferring USDT..." :
                     isValidating ? "Validating Transaction..." :

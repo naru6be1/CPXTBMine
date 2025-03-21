@@ -573,20 +573,25 @@ export function MiningPlan() {
       }
 
       setIsConfirmed(true);
-      const activationTime = new Date().toISOString();
+      const activationTime = new Date();
+      const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000);
+
       const planDetails = {
         walletAddress: address as string,
         withdrawalAddress,
         planType: selectedPlan,
         amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
-        activatedAt: activationTime,
-        expiresAt: new Date(new Date(activationTime).getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000).toISOString(),
+        activatedAt: activationTime, // Pass Date object directly
+        expiresAt: expiresAt, // Pass Date object directly
         transactionHash: hash,
         referralCode: referralCode
       };
 
-      console.log('Creating mining plan with details:', planDetails);
+      console.log('Creating mining plan with referral:', {
+        referralCode: planDetails.referralCode,
+        walletAddress: planDetails.walletAddress
+      });
 
       const response = await fetch('/api/mining-plans', {
         method: 'POST',

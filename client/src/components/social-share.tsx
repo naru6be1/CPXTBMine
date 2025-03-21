@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Share2, BrandTwitter } from "lucide-react";
+import { Share2 } from "lucide-react";
 import { SiTelegram } from "react-icons/si";
 import { FaTwitter } from "react-icons/fa";
 
@@ -10,7 +10,7 @@ interface SocialShareProps {
 export function SocialShare({ referralCode }: SocialShareProps) {
   const shareMessage = `🎉 Claim your FREE CPXTB tokens! Use my referral code: ${referralCode}\n\nJoin now and start earning rewards! 💰`;
   const shareUrl = `${window.location.origin}?ref=${referralCode}`;
-  
+
   const handleTwitterShare = () => {
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMessage)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(twitterUrl, '_blank');

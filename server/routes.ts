@@ -13,7 +13,7 @@ import { createWalletClient, custom } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
-const BASE_RPC_URL = "https://mainnet.base.org";
+const BASE_RPC_URL = "https://base-mainnet.g.alchemy.com/v2/demo"; // Using Alchemy's public endpoint for testing
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
 // Standard ERC20 ABI for token transfers
@@ -42,7 +42,7 @@ async function distributeRewards(plan: any) {
 
     if (!ADMIN_PRIVATE_KEY) {
       console.error('Admin private key not configured');
-      return;
+      return false;
     }
 
     // Ensure private key is properly formatted with 0x prefix
@@ -70,29 +70,37 @@ async function distributeRewards(plan: any) {
       contract: CPXTB_CONTRACT_ADDRESS
     });
 
-    // Simulate the transaction
-    const { request } = await baseClient.simulateContract({
-      address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
-      abi: ERC20_ABI,
-      functionName: 'transfer',
-      args: [plan.withdrawalAddress as `0x${string}`, rewardInWei],
-      account: account.address as `0x${string}`
-    });
+    try {
+      // Simulate the transaction
+      const { request } = await baseClient.simulateContract({
+        address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [plan.withdrawalAddress as `0x${string}`, rewardInWei],
+        account: account.address as `0x${string}`
+      });
 
-    // Execute the transaction
-    const hash = await walletClient.writeContract(request);
-    console.log('Distribution transaction hash:', hash);
+      // Execute the transaction
+      const hash = await walletClient.writeContract(request);
+      console.log('Distribution transaction hash:', hash);
 
-    // Wait for confirmation
-    const receipt = await baseClient.waitForTransactionReceipt({ hash });
+      // Wait for confirmation
+      const receipt = await baseClient.waitForTransactionReceipt({ hash });
 
-    if (receipt.status === 'success') {
-      // Update plan status
-      await storage.markPlanAsWithdrawn(plan.id);
-      console.log('Successfully distributed rewards for plan:', plan.id);
-      return true;
-    } else {
-      throw new Error('Transaction failed');
+      if (receipt.status === 'success') {
+        // Update plan status
+        await storage.markPlanAsWithdrawn(plan.id);
+        console.log('Successfully distributed rewards for plan:', plan.id);
+        return true;
+      } else {
+        throw new Error('Transaction failed');
+      }
+    } catch (error: any) {
+      console.error('Transaction error:', error);
+      if (error.message.includes('403')) {
+        console.error('Base network access denied. Please check RPC endpoint configuration.');
+      }
+      return false;
     }
   } catch (error) {
     console.error('Error in automated distribution:', error);
@@ -102,6 +110,9 @@ async function distributeRewards(plan: any) {
 
 async function checkAndDistributeMaturedPlans() {
   try {
+    const now = new Date();
+    console.log('Current time for automated check:', now.toISOString());
+
     // Get all matured plans that haven't been withdrawn
     const maturedPlans = await db
       .select()
@@ -110,13 +121,19 @@ async function checkAndDistributeMaturedPlans() {
         and(
           eq(miningPlans.hasWithdrawn, false),
           eq(miningPlans.isActive, true),
-          lte(miningPlans.expiresAt, new Date())  // Only return truly expired plans
+          gte(new Date(), miningPlans.expiresAt)  // Changed lte to gte to fix comparison
         )
       );
 
     console.log('Found matured plans:', maturedPlans.length);
-
     if (maturedPlans.length > 0) {
+      console.log('Plans to process:', maturedPlans.map(plan => ({
+        id: plan.id,
+        expiresAt: plan.expiresAt,
+        amount: plan.dailyRewardCPXTB,
+        recipient: plan.withdrawalAddress
+      })));
+
       for (const plan of maturedPlans) {
         console.log('Processing distribution for plan:', plan.id);
         await distributeRewards(plan);
@@ -413,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           and(
             eq(miningPlans.hasWithdrawn, false),
             eq(miningPlans.isActive, true),
-            lte(miningPlans.expiresAt, new Date())
+            gte(new Date(), miningPlans.expiresAt)  // Changed lte to gte to fix comparison
           )
         );
 
@@ -422,7 +439,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: plan.id,
         expiresAt: plan.expiresAt,
         hasWithdrawn: plan.hasWithdrawn,
-        isActive: plan.isActive
+        isActive: plan.isActive,
+        dailyRewardCPXTB: plan.dailyRewardCPXTB,
+        withdrawalAddress: plan.withdrawalAddress
       })));
 
       const results = [];

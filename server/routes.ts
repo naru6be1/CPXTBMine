@@ -13,7 +13,7 @@ import { createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
-const BASE_RPC_URL = "https://base-mainnet.g.alchemy.com/v2/rFm04GHXrjGJ0MH18PK-caMfHe_7L0MD"; // Using Alchemy's endpoint
+const BASE_RPC_URL = "https://base.meowrpc.com"; // Using MeowRPC's public endpoint for Base
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
 // Standard ERC20 ABI with complete interface
@@ -25,6 +25,13 @@ const ERC20_ABI = parseAbi([
 
 async function distributeRewards(plan: any) {
   try {
+    console.log('Starting distribution with configuration:', {
+      rpcUrl: BASE_RPC_URL,
+      contractAddress: CPXTB_CONTRACT_ADDRESS,
+      chain: 'Base Mainnet',
+      hasPrivateKey: !!ADMIN_PRIVATE_KEY
+    });
+
     // Create Base network client
     const baseClient = createPublicClient({
       chain: base,

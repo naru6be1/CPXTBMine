@@ -45,7 +45,14 @@ async function distributeRewards(plan: any) {
       return;
     }
 
-    const account = privateKeyToAccount(ADMIN_PRIVATE_KEY as `0x${string}`);
+    // Ensure private key is properly formatted with 0x prefix
+    const formattedPrivateKey = ADMIN_PRIVATE_KEY.startsWith('0x') 
+      ? ADMIN_PRIVATE_KEY 
+      : `0x${ADMIN_PRIVATE_KEY}`;
+
+    // Create account from private key
+    const account = privateKeyToAccount(formattedPrivateKey as `0x${string}`);
+
     const walletClient = createWalletClient({
       account,
       chain: base,

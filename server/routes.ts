@@ -110,7 +110,7 @@ async function checkAndDistributeMaturedPlans() {
         and(
           eq(miningPlans.hasWithdrawn, false),
           eq(miningPlans.isActive, true),
-          lte(miningPlans.expiresAt, new Date())
+          lte(miningPlans.expiresAt, new Date())  // Only return truly expired plans
         )
       );
 
@@ -402,6 +402,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add this new endpoint after other routes, before httpServer creation
   app.post("/api/mining-plans/distribute-all", async (req, res) => {
     try {
+      const now = new Date();
+      console.log('Current time for distribution check:', now.toISOString());
+
       // Get all matured plans that haven't been withdrawn
       const maturedPlans = await db
         .select()
@@ -415,6 +418,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
 
       console.log('Found matured plans for distribution:', maturedPlans.length);
+      console.log('Plans details:', maturedPlans.map(plan => ({
+        id: plan.id,
+        expiresAt: plan.expiresAt,
+        hasWithdrawn: plan.hasWithdrawn,
+        isActive: plan.isActive
+      })));
 
       const results = [];
       for (const plan of maturedPlans) {

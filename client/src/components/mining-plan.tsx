@@ -808,9 +808,11 @@ export function MiningPlan() {
   };
 
 
-  // Add this function inside the MiningPlan component before the return statement
+  // Update the handleDistributeAll function
   const handleDistributeAll = async () => {
     try {
+      setIsTransferring(true);
+
       // First, verify and enforce Base network
       await verifyBaseNetwork();
 
@@ -841,6 +843,8 @@ export function MiningPlan() {
         title: "Distribution Failed",
         description: error instanceof Error ? error.message : "Failed to process distributions"
       });
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -925,7 +929,7 @@ export function MiningPlan() {
                 <p className="text-2xl font-bold text-primary">
                   {dailyRewardCPXTB} CPXTB
                   <span className="text-sm text-muted-foreground ml-2">
-                    (≈${currentPlan.rewardUSD})
+                                        (≈${currentPlan.rewardUSD})
                   </span>
                 </p>
               </div>
@@ -1020,6 +1024,7 @@ export function MiningPlan() {
         </div>
       )}
 
+      {/* Update the admin actions card */}
       {isAdmin && (
         <Card className="w-full max-w-2xl mx-auto mb-6">
           <CardHeader>
@@ -1035,14 +1040,16 @@ export function MiningPlan() {
               variant="default"
               disabled={isTransferring}
             >
-              <Coins className="mr-2 h-4 w-4" />
               {isTransferring ? (
                 <>
                   <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                   Processing Distributions...
                 </>
               ) : (
-                "Distribute All Matured Plans"
+                <>
+                  <Coins className="mr-2 h-4 w-4" />
+                  Distribute All Matured Plans
+                </>
               )}
             </Button>
           </CardContent>

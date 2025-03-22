@@ -16,7 +16,7 @@ const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = "https://mainnet.base.org"; // Using Base mainnet
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
-// Standard ERC20 ABI for token transfers
+// Standard ERC20 ABI with complete interface
 const ERC20_ABI = [
   {
     "constant": true,
@@ -37,6 +37,15 @@ const ERC20_ABI = [
     "outputs": [{"name": "success", "type": "bool"}],
     "payable": false,
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [{"name": "_owner", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "balance", "type": "uint256"}],
+    "payable": false,
+    "stateMutability": "view",
     "type": "function"
   }
 ];
@@ -62,6 +71,7 @@ async function distributeRewards(plan: any) {
     // Create account from private key
     const account = privateKeyToAccount(formattedPrivateKey as `0x${string}`);
 
+    // Create wallet client
     const walletClient = createWalletClient({
       account,
       chain: base,
@@ -129,7 +139,7 @@ async function checkAndDistributeMaturedPlans() {
         and(
           eq(miningPlans.hasWithdrawn, false),
           eq(miningPlans.isActive, true),
-          gte(new Date(), miningPlans.expiresAt)  // Changed lte to gte to fix comparison
+          gte(new Date(), miningPlans.expiresAt)
         )
       );
 
@@ -438,7 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           and(
             eq(miningPlans.hasWithdrawn, false),
             eq(miningPlans.isActive, true),
-            gte(new Date(), miningPlans.expiresAt)  // Changed lte to gte to fix comparison
+            gte(new Date(), miningPlans.expiresAt)
           )
         );
 

@@ -333,18 +333,24 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         const lastClaimTime = new Date(lastDeviceClaim);
         const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+        const now = new Date();
 
-        if (nextAvailableTime > new Date()) {
-          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
-          setDeviceCooldownMessage(`Next claim available in ${timeRemaining} hours (device cooldown)`);
+        if (nextAvailableTime > now) {
+          const diffMs = nextAvailableTime.getTime() - now.getTime();
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          setDeviceCooldownMessage(
+            `Next claim available in ${hours}h ${minutes}m (device cooldown)`
+          );
         } else {
           setDeviceCooldownMessage("");
         }
       }
     };
 
+    // Check immediately and then update every second
     checkDeviceCooldown();
-    const interval = setInterval(checkDeviceCooldown, 60000); // Update every minute
+    const interval = setInterval(checkDeviceCooldown, 1000); // Update every second
     return () => clearInterval(interval);
   }, []);
 
@@ -376,10 +382,13 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
     const lastClaimTime = new Date(user.lastCPXTBClaimTime);
     const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
     const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+    const now = new Date();
 
-    if (nextAvailableTime > new Date()) {
-      const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
-      walletCooldownMessage = `Next claim available in ${timeRemaining} hours (wallet cooldown)`;
+    if (nextAvailableTime > now) {
+      const diffMs = nextAvailableTime.getTime() - now.getTime();
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      walletCooldownMessage = `Next claim available in ${hours}h ${minutes}m (wallet cooldown)`;
     }
   }
 
@@ -413,6 +422,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
     </Card>
   );
 }
+
 
 
 export function MiningPlan() {
@@ -821,13 +831,16 @@ export function MiningPlan() {
       const lastClaimTime = new Date(lastDeviceClaim);
       const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+      const now = new Date();
 
-      if (nextAvailableTime > new Date()) {
-        const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
+      if (nextAvailableTime > now) {
+        const diffMs = nextAvailableTime.getTime() - now.getTime();
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
         toast({
           variant: "destructive",
           title: "Device Cooldown Active",
-          description: `Please wait ${timeRemaining} hours before claiming from this device`
+          description: `Please wait ${hours}h ${minutes}m before claiming from this device`
         });
         return;
       }
@@ -897,7 +910,7 @@ export function MiningPlan() {
       toast({
         variant: successCount > 0 ? "default" : "destructive",
         title: "Distribution Status",
-        description: `${data.message}${failedCount > 0 ? 
+        description: `${data.message}${failedCount > 0 ?
           `\nFailed distributions: ${failedCount}. Check Base network connection or try again.` : ''}`
       });
 
@@ -906,8 +919,7 @@ export function MiningPlan() {
       await refetchActivePlans();
     } catch (error) {
       console.error('Distribution error:', error);
-      toast({
-        variant: "destructive",
+      toast({        variant: "destructive",
         title: "Distribution Failed",
         description: error instanceof Error ? error.message : "Failed to process distributions"
       });

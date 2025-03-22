@@ -122,7 +122,10 @@ export class DatabaseStorage implements IStorage {
   async markPlanAsWithdrawn(planId: number): Promise<MiningPlan> {
     const [updatedPlan] = await db
       .update(miningPlans)
-      .set({ hasWithdrawn: true })
+      .set({ 
+        hasWithdrawn: true,
+        isActive: false  // Also mark the plan as inactive after withdrawal
+      })
       .where(eq(miningPlans.id, planId))
       .returning();
     return updatedPlan;

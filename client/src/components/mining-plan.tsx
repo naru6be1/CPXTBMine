@@ -829,6 +829,7 @@ export function MiningPlan() {
       console.log('Distribution results:', data);
 
       toast({
+        variant: data.results.some(r => r.success) ? "default" : "destructive",
         title: "Distribution Status",
         description: data.message
       });

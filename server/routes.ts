@@ -3,14 +3,14 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertMiningPlanSchema, miningPlans } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { eq, gte, and } from 'drizzle-orm';
-import { db } from './db';
-import { TREASURY_ADDRESS } from './constants';
-import { WebSocketServer } from 'ws';
-import { createPublicClient, http, parseAbi } from 'viem';
-import { base } from 'wagmi/chains';
-import { createWalletClient } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
+import { eq, gte, and, sql } from "drizzle-orm";
+import { db } from "./db";
+import { TREASURY_ADDRESS } from "./constants";
+import { WebSocketServer } from "ws";
+import { createPublicClient, http, parseAbi } from "viem";
+import { base } from "wagmi/chains";
+import { createWalletClient } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
@@ -141,41 +141,47 @@ async function distributeRewards(plan: any) {
 }
 
 async function checkAndDistributeMaturedPlans() {
-    try {
-      const now = new Date();
-      console.log('Current time for automated check:', now.toISOString());
+  try {
+    const now = new Date();
+    console.log('Current time for automated check:', now.toISOString());
 
-      // Get all matured plans that haven't been withdrawn, including free CPXTB claims
-      const maturedPlans = await db
-        .select()
-        .from(miningPlans)
-        .where(
-          and(
-            eq(miningPlans.hasWithdrawn, false),
-            eq(miningPlans.isActive, true),
-            gte(new Date(), miningPlans.expiresAt)  // Only return truly expired plans
-          )
-        );
+    // Get all matured plans that haven't been withdrawn, including free CPXTB claims
+    const maturedPlans = await db
+      .select()
+      .from(miningPlans)
+      .where(
+        and(
+          eq(miningPlans.hasWithdrawn, false),
+          eq(miningPlans.isActive, true),
+          // Using SQL.raw for proper date comparison
+          sql`${miningPlans.expiresAt} <= ${now}`
+        )
+      );
 
-      console.log('Found matured plans:', maturedPlans.length);
-      if (maturedPlans.length > 0) {
-        console.log('Plans to process:', maturedPlans.map(plan => ({
+    console.log('Found matured plans:', maturedPlans.length);
+    if (maturedPlans.length > 0) {
+      console.log('Plans to process:', maturedPlans.map(plan => ({
+        id: plan.id,
+        expiresAt: plan.expiresAt,
+        amount: plan.dailyRewardCPXTB,
+        recipient: plan.withdrawalAddress,
+        isFreeClaimPlan: plan.transactionHash === 'FREE_CPXTB_CLAIM'
+      })));
+
+      for (const plan of maturedPlans) {
+        console.log('Processing distribution for plan:', {
           id: plan.id,
-          expiresAt: plan.expiresAt,
-          amount: plan.dailyRewardCPXTB,
-          recipient: plan.withdrawalAddress,
-          isFreeClaimPlan: plan.transactionHash === 'FREE_CPXTB_CLAIM'
-        })));
-
-        for (const plan of maturedPlans) {
-          console.log('Processing distribution for plan:', plan.id);
-          await distributeRewards(plan);
-        }
+          type: plan.transactionHash === 'FREE_CPXTB_CLAIM' ? 'Free CPXTB Claim' : 'Mining Plan',
+          expiryTime: plan.expiresAt,
+          currentTime: now.toISOString()
+        });
+        await distributeRewards(plan);
       }
-    } catch (error) {
-      console.error('Error checking matured plans:', error);
     }
+  } catch (error) {
+    console.error('Error checking matured plans:', error);
   }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Update user endpoint with debug logging
@@ -433,7 +439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create a special mining plan for the free CPXTB
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+      // Set expiration to 1 minute from now for testing
+      const expiresAt = new Date(now.getTime() + 60 * 1000); // 1 minute for testing
 
       const plan = await storage.createMiningPlan({
         walletAddress: address,
@@ -451,7 +458,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         planId: plan.id,
         walletAddress: address,
         expiresAt: expiresAt.toISOString(),
-        now: now.toISOString()
+        now: now.toISOString(),
+        maturityCheckInterval: '15 seconds'
       });
 
       res.json({ user: updatedUser, plan });
@@ -527,8 +535,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
-  // Run the check every minute
-  setInterval(checkAndDistributeMaturedPlans, 60000);
+  // Run the check every 15 seconds
+  setInterval(checkAndDistributeMaturedPlans, 15000);
 
   return httpServer;
 }

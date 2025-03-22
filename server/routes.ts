@@ -13,7 +13,7 @@ import { createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
-const BASE_RPC_URL = "https://base.meowrpc.com"; // Using MeowRPC's public endpoint for Base
+const BASE_RPC_URL = "https://mainnet.base.org"; // Updated to match price display config
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
 // Standard ERC20 ABI with complete interface

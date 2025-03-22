@@ -13,7 +13,7 @@ import { createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
-const BASE_RPC_URL = "https://mainnet.base.org"; // Updated to match price display config
+const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
 // Standard ERC20 ABI with complete interface
@@ -23,6 +23,7 @@ const ERC20_ABI = parseAbi([
   'function balanceOf(address owner) view returns (uint256)'
 ]);
 
+// Add better error logging
 async function distributeRewards(plan: any) {
   try {
     console.log('Starting distribution with configuration:', {
@@ -35,7 +36,11 @@ async function distributeRewards(plan: any) {
     // Create Base network client
     const baseClient = createPublicClient({
       chain: base,
-      transport: http(BASE_RPC_URL)
+      transport: http(BASE_RPC_URL, {
+        timeout: 30000,
+        retryCount: 3,
+        retryDelay: 1000,
+      })
     });
 
     if (!ADMIN_PRIVATE_KEY) {
@@ -50,54 +55,61 @@ async function distributeRewards(plan: any) {
 
     // Create account from private key
     const account = privateKeyToAccount(formattedPrivateKey as `0x${string}`);
-
-    // Check CPXTB balance before attempting distribution
-    const balance = await baseClient.readContract({
-      address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
-      abi: ERC20_ABI,
-      functionName: 'balanceOf',
-      args: [account.address]
-    });
-
-    // Convert reward amount to proper decimals (18 decimals for CPXTB)
-    const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
-    const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
-
-    console.log('Distribution attempt details:', {
-      amount: rewardAmount,
-      amountInWei: rewardInWei.toString(),
-      recipient: plan.withdrawalAddress,
-      adminBalance: balance.toString(),
-      contract: CPXTB_CONTRACT_ADDRESS
-    });
-
-    // Check if admin has enough balance
-    if (balance < rewardInWei) {
-      console.error('Insufficient CPXTB balance for distribution');
-      return false;
-    }
+    console.log('Admin account address:', account.address);
 
     try {
-      // Create wallet client for Base network
+      // Check network status first
+      const blockNumber = await baseClient.getBlockNumber();
+      console.log('Successfully connected to Base network, current block:', blockNumber.toString());
+
+      // Check CPXTB balance before attempting distribution
+      const balance = await baseClient.readContract({
+        address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [account.address]
+      });
+
+      // Convert reward amount to proper decimals (18 decimals for CPXTB)
+      const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
+      const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
+
+      console.log('Distribution attempt details:', {
+        amount: rewardAmount,
+        amountInWei: rewardInWei.toString(),
+        recipient: plan.withdrawalAddress,
+        adminBalance: balance.toString(),
+        contract: CPXTB_CONTRACT_ADDRESS
+      });
+
+      // Check if admin has enough balance
+      if (balance < rewardInWei) {
+        console.error('Insufficient CPXTB balance for distribution');
+        return false;
+      }
+
+      // Create wallet client with exact same configuration as baseClient
       const walletClient = createWalletClient({
         account,
         chain: base,
-        transport: http(BASE_RPC_URL)
-      });
-
-      // Simulate before sending
-      const { request } = await baseClient.simulateContract({
-        address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'transfer',
-        args: [plan.withdrawalAddress as `0x${string}`, rewardInWei],
-        account: account.address as `0x${string}`
+        transport: http(BASE_RPC_URL, {
+          timeout: 30000,
+          retryCount: 3,
+          retryDelay: 1000,
+        })
       });
 
       console.log('Contract simulation successful, proceeding with transaction');
 
       // Execute the transaction
-      const hash = await walletClient.writeContract(request);
+      const hash = await walletClient.writeContract({
+        address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [plan.withdrawalAddress as `0x${string}`, rewardInWei],
+        chain: base
+      });
+
       console.log('Distribution transaction hash:', hash);
 
       // Wait for confirmation with timeout

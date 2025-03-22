@@ -59,6 +59,12 @@ async function distributeRewards(plan: any) {
     console.log('Admin account address:', account.address);
 
     try {
+      // First, mark the plan as in progress to prevent duplicate distributions
+      await db
+        .update(miningPlans)
+        .set({ isActive: false })
+        .where(eq(miningPlans.id, plan.id));
+
       // Check network status first
       const blockNumber = await baseClient.getBlockNumber();
       console.log('Successfully connected to Base network, current block:', blockNumber.toString());
@@ -132,6 +138,13 @@ async function distributeRewards(plan: any) {
       if (error.message.includes('403')) {
         console.error('Base network access denied. Please check RPC endpoint configuration.');
       }
+
+      // If distribution fails, reactivate the plan
+      await db
+        .update(miningPlans)
+        .set({ isActive: true })
+        .where(eq(miningPlans.id, plan.id));
+
       return false;
     }
   } catch (error) {
@@ -439,8 +452,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create a special mining plan for the free CPXTB
       const now = new Date();
-      // Set expiration to 1 minute from now for testing
-      const expiresAt = new Date(now.getTime() + 60 * 1000); // 1 minute for testing
+      // Set expiration to 2 minutes from now to provide enough time for distribution
+      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes
 
       const plan = await storage.createMiningPlan({
         walletAddress: address,

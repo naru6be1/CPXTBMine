@@ -113,7 +113,7 @@ async function distributeRewards(plan: any) {
       console.log('Distribution transaction hash:', hash);
 
       // Wait for confirmation with timeout
-      const receipt = await baseClient.waitForTransactionReceipt({ 
+      const receipt = await baseClient.waitForTransactionReceipt({
         hash,
         timeout: 30_000 // 30 seconds timeout
       });
@@ -238,24 +238,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update the claimable plans endpoint to include free CPXTB claims
+  // Update the claimable plans endpoint to ensure proper filtering
   app.get("/api/mining-plans/:walletAddress/claimable", async (req, res) => {
     try {
       const { walletAddress } = req.params;
 
       // Check if it's the admin wallet
       const isAdmin = walletAddress.toLowerCase() === TREASURY_ADDRESS.toLowerCase();
+      console.log('Fetching claimable plans:', {
+        walletAddress,
+        isAdmin,
+        currentTime: new Date().toISOString()
+      });
 
       let plans;
       if (isAdmin) {
-        // Admin can see all expired, unwithdrawn plans including free CPXTB claims
+        // Admin can see all expired, unwithdrawn plans
         plans = await db
           .select()
           .from(miningPlans)
           .where(
             and(
               eq(miningPlans.hasWithdrawn, false),
-              eq(miningPlans.isActive, true)
+              eq(miningPlans.isActive, true),
+              gte(new Date(), miningPlans.expiresAt)  // Only return truly expired plans
             )
           );
       } else {
@@ -263,6 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         plans = await storage.getExpiredUnwithdrawnPlans(walletAddress);
       }
 
+      console.log('Found claimable plans:', plans.length);
       res.json({ plans, isAdmin });
     } catch (error: any) {
       console.error("Error fetching claimable plans:", error);

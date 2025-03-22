@@ -132,7 +132,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]> {
-    return await db
+    const currentTime = new Date();
+    console.log('Fetching expired plans for wallet:', {
+      walletAddress,
+      currentTime: currentTime.toISOString()
+    });
+
+    const plans = await db
       .select()
       .from(miningPlans)
       .where(
@@ -140,9 +146,12 @@ export class DatabaseStorage implements IStorage {
           eq(miningPlans.walletAddress, walletAddress),
           eq(miningPlans.hasWithdrawn, false),
           eq(miningPlans.isActive, true),
-          gte(new Date(), miningPlans.expiresAt)  // Only return truly expired plans
+          gte(currentTime, miningPlans.expiresAt)  // Only return truly expired plans
         )
       );
+
+    console.log('Found expired plans:', plans.length);
+    return plans;
   }
 
   async markReferralRewardPaid(planId: number): Promise<MiningPlan> {

@@ -312,6 +312,7 @@ function ActivePlanDisplay({
 // Update the FreeCPXTBClaim component
 function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   const { isConnected, address } = useWallet();
+  const [deviceCooldownMessage, setDeviceCooldownMessage] = useState<string>("");
   const { data: user } = useQuery({
     queryKey: ['user', address],
     queryFn: async () => {
@@ -323,6 +324,39 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
     },
     enabled: !!address
   });
+
+  useEffect(() => {
+    // Check device-wide cooldown
+    const checkDeviceCooldown = () => {
+      const lastDeviceClaim = localStorage.getItem('lastCPXTBClaimTime');
+      if (lastDeviceClaim) {
+        const lastClaimTime = new Date(lastDeviceClaim);
+        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+
+        if (nextAvailableTime > new Date()) {
+          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
+          setDeviceCooldownMessage(`Next claim available in ${timeRemaining} hours (device cooldown)`);
+        } else {
+          setDeviceCooldownMessage("");
+        }
+      }
+    };
+
+    checkDeviceCooldown();
+    const interval = setInterval(checkDeviceCooldown, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleClaim = async () => {
+    try {
+      await onClaim();
+      // Store the claim time for device-wide tracking
+      localStorage.setItem('lastCPXTBClaimTime', new Date().toISOString());
+    } catch (error) {
+      console.error('Claim error:', error);
+    }
+  };
 
   if (!isConnected || !address) {
     return (
@@ -337,7 +371,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   }
 
   // Calculate cooldown status if user has claimed before
-  let cooldownMessage = "";
+  let walletCooldownMessage = "";
   if (user?.lastCPXTBClaimTime) {
     const lastClaimTime = new Date(user.lastCPXTBClaimTime);
     const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -345,9 +379,12 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
 
     if (nextAvailableTime > new Date()) {
       const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
-      cooldownMessage = `Next claim available in ${timeRemaining} hours`;
+      walletCooldownMessage = `Next claim available in ${timeRemaining} hours (wallet cooldown)`;
     }
   }
+
+  // Use the more restrictive cooldown message
+  const cooldownMessage = deviceCooldownMessage || walletCooldownMessage;
 
   return (
     <Card className="w-full max-w-2xl mx-auto mb-6">
@@ -366,7 +403,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         </div>
         <Button
           className="w-full"
-          onClick={onClaim}
+          onClick={handleClaim}
           disabled={!!cooldownMessage}
         >
           <Gift className="mr-2 h-4 w-4" />
@@ -376,6 +413,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
     </Card>
   );
 }
+
 
 export function MiningPlan() {
   // State management
@@ -777,6 +815,24 @@ export function MiningPlan() {
       return;
     }
 
+    // Check device cooldown
+    const lastDeviceClaim = localStorage.getItem('lastCPXTBClaimTime');
+    if (lastDeviceClaim) {
+      const lastClaimTime = new Date(lastDeviceClaim);
+      const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+
+      if (nextAvailableTime > new Date()) {
+        const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
+        toast({
+          variant: "destructive",
+          title: "Device Cooldown Active",
+          description: `Please wait ${timeRemaining} hours before claiming from this device`
+        });
+        return;
+      }
+    }
+
     try {
       const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
         method: 'POST',
@@ -790,6 +846,9 @@ export function MiningPlan() {
         const error = await response.json();
         throw new Error(error.message);
       }
+
+      // Store the claim time in localStorage
+      localStorage.setItem('lastCPXTBClaimTime', new Date().toISOString());
 
       await refetchUser();
       await refetchActivePlans();
@@ -806,7 +865,6 @@ export function MiningPlan() {
       });
     }
   };
-
 
   // Update the handleDistributeAll function
   const handleDistributeAll = async () => {

@@ -829,8 +829,8 @@ export function MiningPlan() {
       console.log('Distribution results:', data);
 
       toast({
-        title: "Distribution Complete",
-        description: `Successfully processed ${data.results.filter(r => r.success).length} distributions`
+        title: "Distribution Status",
+        description: data.message
       });
 
       // Refresh the plans

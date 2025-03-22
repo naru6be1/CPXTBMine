@@ -448,7 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           and(
             eq(miningPlans.hasWithdrawn, false),
             eq(miningPlans.isActive, true),
-            gte(new Date(), miningPlans.expiresAt)
+            gte(now, miningPlans.expiresAt)  // Use 'now' consistently
           )
         );
 
@@ -474,8 +474,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      const successfulDistributions = results.filter(r => r.success).length;
+      console.log('Distribution results:', {
+        total: maturedPlans.length,
+        successful: successfulDistributions,
+        results
+      });
+
       res.json({
-        message: `Processed ${maturedPlans.length} matured plans`,
+        message: `Processed ${maturedPlans.length} matured plans (${successfulDistributions} successful)`,
         results
       });
     } catch (error: any) {

@@ -141,41 +141,41 @@ async function distributeRewards(plan: any) {
 }
 
 async function checkAndDistributeMaturedPlans() {
-  try {
-    const now = new Date();
-    console.log('Current time for automated check:', now.toISOString());
+    try {
+      const now = new Date();
+      console.log('Current time for automated check:', now.toISOString());
 
-    // Get all matured plans that haven't been withdrawn, including free CPXTB claims
-    const maturedPlans = await db
-      .select()
-      .from(miningPlans)
-      .where(
-        and(
-          eq(miningPlans.hasWithdrawn, false),
-          eq(miningPlans.isActive, true),
-          gte(new Date(), miningPlans.expiresAt)  // Only return truly expired plans
-        )
-      );
+      // Get all matured plans that haven't been withdrawn, including free CPXTB claims
+      const maturedPlans = await db
+        .select()
+        .from(miningPlans)
+        .where(
+          and(
+            eq(miningPlans.hasWithdrawn, false),
+            eq(miningPlans.isActive, true),
+            gte(new Date(), miningPlans.expiresAt)  // Only return truly expired plans
+          )
+        );
 
-    console.log('Found matured plans:', maturedPlans.length);
-    if (maturedPlans.length > 0) {
-      console.log('Plans to process:', maturedPlans.map(plan => ({
-        id: plan.id,
-        expiresAt: plan.expiresAt,
-        amount: plan.dailyRewardCPXTB,
-        recipient: plan.withdrawalAddress,
-        isFreeClaimPlan: plan.transactionHash === 'FREE_CPXTB_CLAIM'
-      })));
+      console.log('Found matured plans:', maturedPlans.length);
+      if (maturedPlans.length > 0) {
+        console.log('Plans to process:', maturedPlans.map(plan => ({
+          id: plan.id,
+          expiresAt: plan.expiresAt,
+          amount: plan.dailyRewardCPXTB,
+          recipient: plan.withdrawalAddress,
+          isFreeClaimPlan: plan.transactionHash === 'FREE_CPXTB_CLAIM'
+        })));
 
-      for (const plan of maturedPlans) {
-        console.log('Processing distribution for plan:', plan.id);
-        await distributeRewards(plan);
+        for (const plan of maturedPlans) {
+          console.log('Processing distribution for plan:', plan.id);
+          await distributeRewards(plan);
+        }
       }
+    } catch (error) {
+      console.error('Error checking matured plans:', error);
     }
-  } catch (error) {
-    console.error('Error checking matured plans:', error);
   }
-}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Update user endpoint with debug logging
@@ -445,6 +445,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt: expiresAt,
         transactionHash: 'FREE_CPXTB_CLAIM',
         referralCode: null
+      });
+
+      console.log('Created free CPXTB claim plan:', {
+        planId: plan.id,
+        walletAddress: address,
+        expiresAt: expiresAt.toISOString(),
+        now: now.toISOString()
       });
 
       res.json({ user: updatedUser, plan });

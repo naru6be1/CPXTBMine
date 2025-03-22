@@ -387,25 +387,6 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
     );
   }
 
-  // Calculate cooldown status if user has claimed before
-  let walletCooldownMessage = "";
-  if (user?.lastCPXTBClaimTime) {
-    const lastClaimTime = new Date(user.lastCPXTBClaimTime);
-    const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-    const now = new Date();
-
-    if (nextAvailableTime > now) {
-      const diffMs = nextAvailableTime.getTime() - now.getTime();
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      walletCooldownMessage = `Next claim available in ${hours}h ${minutes}m (wallet cooldown)`;
-    }
-  }
-
-  // Use the more restrictive cooldown message
-  const cooldownMessage = deviceCooldownMessage || walletCooldownMessage;
-
   const isDeviceCoolingDown = !!deviceCooldownMessage;
 
   if (isDeviceCoolingDown) {
@@ -428,6 +409,25 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
       </Card>
     );
   }
+
+  // Calculate cooldown status if user has claimed before
+  let walletCooldownMessage = "";
+  if (user?.lastCPXTBClaimTime) {
+    const lastClaimTime = new Date(user.lastCPXTBClaimTime);
+    const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+    const now = new Date();
+
+    if (nextAvailableTime > now) {
+      const diffMs = nextAvailableTime.getTime() - now.getTime();
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      walletCooldownMessage = `Next claim available in ${hours}h ${minutes}m (wallet cooldown)`;
+    }
+  }
+
+  // Use the more restrictive cooldown message
+  const cooldownMessage = deviceCooldownMessage || walletCooldownMessage;
 
   return (
     <Card className="w-full max-w-2xl mx-auto mb-6">
@@ -902,7 +902,7 @@ export function MiningPlan() {
 
       toast({
         title: "Success!",
-        description: "Your free 10 CPXTB tokens have been claimed successfully!"
+        description: "Your free10 CPXTB tokens have been claimed successfully!"
       });
     } catch (error) {
       toast({

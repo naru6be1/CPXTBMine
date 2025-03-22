@@ -3,9 +3,122 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertMiningPlanSchema, miningPlans } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { eq, gte, and } from 'drizzle-orm';
+import { eq, gte, and, lte } from 'drizzle-orm';
 import { db } from './db';
 import { TREASURY_ADDRESS } from './constants';
+import { WebSocketServer } from 'ws';
+import { createPublicClient, http } from 'viem';
+import { base } from 'wagmi/chains';
+import { createWalletClient, custom } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
+const BASE_RPC_URL = "https://mainnet.base.org";
+const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
+
+// Standard ERC20 ABI for token transfers
+const ERC20_ABI = [
+  {
+    "constant": false,
+    "inputs": [
+      {"name": "_to", "type": "address"},
+      {"name": "_value", "type": "uint256"}
+    ],
+    "name": "transfer",
+    "outputs": [{"name": "success", "type": "bool"}],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
+
+async function distributeRewards(plan: any) {
+  try {
+    // Create Base network client
+    const baseClient = createPublicClient({
+      chain: base,
+      transport: http(BASE_RPC_URL)
+    });
+
+    if (!ADMIN_PRIVATE_KEY) {
+      console.error('Admin private key not configured');
+      return;
+    }
+
+    const account = privateKeyToAccount(ADMIN_PRIVATE_KEY as `0x${string}`);
+    const walletClient = createWalletClient({
+      account,
+      chain: base,
+      transport: http(BASE_RPC_URL)
+    });
+
+    // Convert reward amount to proper decimals (18 decimals for CPXTB)
+    const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
+    const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
+
+    console.log('Automated distribution details:', {
+      amount: rewardAmount,
+      amountInWei: rewardInWei.toString(),
+      recipient: plan.withdrawalAddress,
+      contract: CPXTB_CONTRACT_ADDRESS
+    });
+
+    // Simulate the transaction
+    const { request } = await baseClient.simulateContract({
+      address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+      abi: ERC20_ABI,
+      functionName: 'transfer',
+      args: [plan.withdrawalAddress as `0x${string}`, rewardInWei],
+      account: account.address as `0x${string}`
+    });
+
+    // Execute the transaction
+    const hash = await walletClient.writeContract(request);
+    console.log('Distribution transaction hash:', hash);
+
+    // Wait for confirmation
+    const receipt = await baseClient.waitForTransactionReceipt({ hash });
+
+    if (receipt.status === 'success') {
+      // Update plan status
+      await storage.markPlanAsWithdrawn(plan.id);
+      console.log('Successfully distributed rewards for plan:', plan.id);
+      return true;
+    } else {
+      throw new Error('Transaction failed');
+    }
+  } catch (error) {
+    console.error('Error in automated distribution:', error);
+    return false;
+  }
+}
+
+async function checkAndDistributeMaturedPlans() {
+  try {
+    // Get all matured plans that haven't been withdrawn
+    const maturedPlans = await db
+      .select()
+      .from(miningPlans)
+      .where(
+        and(
+          eq(miningPlans.hasWithdrawn, false),
+          eq(miningPlans.isActive, true),
+          lte(miningPlans.expiresAt, new Date())
+        )
+      );
+
+    console.log('Found matured plans:', maturedPlans.length);
+
+    if (maturedPlans.length > 0) {
+      for (const plan of maturedPlans) {
+        console.log('Processing distribution for plan:', plan.id);
+        await distributeRewards(plan);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking matured plans:', error);
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Update user endpoint with debug logging
@@ -280,5 +393,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Setup WebSocket server for real-time updates
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  // Run the check every minute
+  setInterval(checkAndDistributeMaturedPlans, 60000);
+
   return httpServer;
 }

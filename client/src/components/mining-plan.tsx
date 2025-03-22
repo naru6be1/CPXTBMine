@@ -277,8 +277,8 @@ function ActivePlanDisplay({
                   </div>
                 ) : (
                   <p className="text-sm text-center text-muted-foreground mt-4">
-                    {isFreeClaimPlan 
-                      ? "Waiting for admin to distribute your welcome bonus" 
+                    {isFreeClaimPlan
+                      ? "Waiting for admin to distribute your CPXTB claim"
                       : "Waiting for CPXTB distribution from admin"}
                   </p>
                 )}
@@ -291,8 +291,8 @@ function ActivePlanDisplay({
             )}
             {hasWithdrawn && (
               <p className="text-sm text-center text-muted-foreground mt-4">
-                {isFreeClaimPlan 
-                  ? "Welcome bonus has been distributed"
+                {isFreeClaimPlan
+                  ? "CPXTB claim has been distributed"
                   : "CPXTB has been distributed"}
               </p>
             )}
@@ -303,9 +303,20 @@ function ActivePlanDisplay({
   );
 }
 
-// Update the FreeCPXTBClaim component to remove withdrawal address input
+// Update the FreeCPXTBClaim component
 function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   const { isConnected, address } = useWallet();
+  const { data: user } = useQuery({
+    queryKey: ['user', address],
+    queryFn: async () => {
+      if (!address) return null;
+      const response = await fetch(`/api/users/${address}`);
+      if (!response.ok) throw new Error('Failed to fetch user');
+      const data = await response.json();
+      return data.user;
+    },
+    enabled: !!address
+  });
 
   if (!isConnected || !address) {
     return (
@@ -319,27 +330,41 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
     );
   }
 
+  // Calculate cooldown status if user has claimed before
+  let cooldownMessage = "";
+  if (user?.lastCPXTBClaimTime) {
+    const lastClaimTime = new Date(user.lastCPXTBClaimTime);
+    const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+
+    if (nextAvailableTime > new Date()) {
+      const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
+      cooldownMessage = `Next claim available in ${timeRemaining} hours`;
+    }
+  }
+
   return (
     <Card className="w-full max-w-2xl mx-auto mb-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Gift className="h-6 w-6 text-primary" />
-          Free CPXTB Claim
+          Daily Free CPXTB Claim
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="bg-primary/10 rounded-lg p-4">
-          <p className="text-lg font-semibold">Get 10 CPXTB for Free!</p>
+          <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
           <p className="text-sm text-muted-foreground">
-            New users can claim 10 CPXTB tokens once. Your connected wallet address ({address}) will be used to receive the tokens.
+            Claim 10 CPXTB tokens every 24 hours. Your connected wallet address ({address}) will be used to receive the tokens.
           </p>
         </div>
         <Button
           className="w-full"
           onClick={onClaim}
+          disabled={!!cooldownMessage}
         >
           <Gift className="mr-2 h-4 w-4" />
-          Claim Free CPXTB
+          {cooldownMessage || "Claim Free CPXTB"}
         </Button>
       </CardContent>
     </Card>

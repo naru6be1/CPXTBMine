@@ -22,7 +22,8 @@ export interface IStorage {
   getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]>;
   markReferralRewardPaid(planId: number): Promise<MiningPlan>;
   getReferralPlans(referralCode: string): Promise<MiningPlan[]>;
-  // Add new method for free CPXTB
+  // Update for CPXTB claims
+  updateLastCPXTBClaimTime(username: string): Promise<User>;
   claimFreeCPXTB(username: string): Promise<User>;
 }
 
@@ -161,6 +162,15 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({ hasClaimedFreeCPXTB: true })
+      .where(eq(users.username, username))
+      .returning();
+    return user;
+  }
+
+  async updateLastCPXTBClaimTime(username: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ lastCPXTBClaimTime: new Date() })
       .where(eq(users.username, username))
       .returning();
     return user;

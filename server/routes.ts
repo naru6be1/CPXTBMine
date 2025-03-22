@@ -227,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Get user and check if they've already claimed
+      // Get user and check cooldown period
       const user = await storage.getUserByUsername(address);
       if (!user) {
         res.status(404).json({
@@ -236,15 +236,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      if (user.hasClaimedFreeCPXTB) {
-        res.status(400).json({
-          message: "Free CPXTB has already been claimed"
-        });
-        return;
+      // Check if 24 hours have passed since last claim
+      if (user.lastCPXTBClaimTime) {
+        const lastClaimTime = new Date(user.lastCPXTBClaimTime);
+        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+
+        if (nextAvailableTime > new Date()) {
+          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
+          res.status(400).json({
+            message: `Please wait ${timeRemaining} hours before claiming again`
+          });
+          return;
+        }
       }
 
-      // Update user to mark as claimed
-      const updatedUser = await storage.claimFreeCPXTB(address);
+      // Update user's last claim time
+      const updatedUser = await storage.updateLastCPXTBClaimTime(address);
 
       // Create a special mining plan for the free CPXTB
       const now = new Date();
@@ -256,8 +264,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         planType: 'daily',
         amount: '0', // Free plan
         dailyRewardCPXTB: '10', // 10 CPXTB
-        activatedAt: now, // Pass Date object directly
-        expiresAt: expiresAt, // Pass Date object directly
+        activatedAt: now,
+        expiresAt: expiresAt,
         transactionHash: 'FREE_CPXTB_CLAIM',
         referralCode: null
       });

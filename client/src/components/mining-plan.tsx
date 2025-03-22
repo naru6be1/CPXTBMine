@@ -1033,9 +1033,17 @@ export function MiningPlan() {
               onClick={handleDistributeAll}
               className="w-full"
               variant="default"
+              disabled={isTransferring}
             >
               <Coins className="mr-2 h-4 w-4" />
-              Distribute All Matured Plans
+              {isTransferring ? (
+                <>
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Processing Distributions...
+                </>
+              ) : (
+                "Distribute All Matured Plans"
+              )}
             </Button>
           </CardContent>
         </Card>

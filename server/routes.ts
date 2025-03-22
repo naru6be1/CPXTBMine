@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertMiningPlanSchema, miningPlans } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { eq, gte, and, lte } from 'drizzle-orm';
+import { eq, gte, and } from 'drizzle-orm';
 import { db } from './db';
 import { TREASURY_ADDRESS } from './constants';
 import { WebSocketServer } from 'ws';
@@ -13,11 +13,20 @@ import { createWalletClient, custom } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
-const BASE_RPC_URL = "https://base-mainnet.g.alchemy.com/v2/demo"; // Using Alchemy's public endpoint for testing
+const BASE_RPC_URL = "https://mainnet.base.org"; // Using Base mainnet
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
 // Standard ERC20 ABI for token transfers
 const ERC20_ABI = [
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "name",
+    "outputs": [{"name": "", "type": "string"}],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
   {
     "constant": false,
     "inputs": [
@@ -71,7 +80,6 @@ async function distributeRewards(plan: any) {
     });
 
     try {
-      // Simulate the transaction
       const { request } = await baseClient.simulateContract({
         address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
         abi: ERC20_ABI,

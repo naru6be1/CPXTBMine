@@ -309,7 +309,7 @@ function ActivePlanDisplay({
   );
 }
 
-// Update the FreeCPXTBClaim component with universal device cooldown
+// Update the FreeCPXTBClaim component with stronger device cooldown enforcement
 function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   const { isConnected, address } = useWallet();
   const [deviceCooldownMessage, setDeviceCooldownMessage] = useState<string>("");
@@ -405,6 +405,29 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
 
   // Use the more restrictive cooldown message
   const cooldownMessage = deviceCooldownMessage || walletCooldownMessage;
+
+  const isDeviceCoolingDown = !!deviceCooldownMessage;
+
+  if (isDeviceCoolingDown) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="h-6 w-6 text-primary" />
+            Daily Free CPXTB Claim
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-destructive/10 rounded-lg p-4">
+            <p className="text-lg font-semibold text-destructive">Device Cooldown Active</p>
+            <p className="text-sm text-muted-foreground">
+              This device has already claimed CPXTB today. {deviceCooldownMessage}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto mb-6">

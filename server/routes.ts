@@ -7,9 +7,9 @@ import { eq, gte, and } from 'drizzle-orm';
 import { db } from './db';
 import { TREASURY_ADDRESS } from './constants';
 import { WebSocketServer } from 'ws';
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, http, parseAbi } from 'viem';
 import { base } from 'wagmi/chains';
-import { createWalletClient, custom } from 'viem';
+import { createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
@@ -17,38 +17,11 @@ const BASE_RPC_URL = "https://mainnet.base.org";
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
 // Standard ERC20 ABI with complete interface
-const ERC20_ABI = [
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "name",
-    "outputs": [{"name": "", "type": "string"}],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {"name": "_to", "type": "address"},
-      {"name": "_value", "type": "uint256"}
-    ],
-    "name": "transfer",
-    "outputs": [{"name": "success", "type": "bool"}],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [{"name": "_owner", "type": "address"}],
-    "name": "balanceOf",
-    "outputs": [{"name": "balance", "type": "uint256"}],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
+const ERC20_ABI = parseAbi([
+  'function name() view returns (string)',
+  'function transfer(address to, uint256 value) returns (bool)',
+  'function balanceOf(address owner) view returns (uint256)'
+]);
 
 async function distributeRewards(plan: any) {
   try {
@@ -97,13 +70,6 @@ async function distributeRewards(plan: any) {
       return false;
     }
 
-    // Create wallet client
-    const walletClient = createWalletClient({
-      account,
-      chain: base,
-      transport: http(BASE_RPC_URL)
-    });
-
     try {
       const { request } = await baseClient.simulateContract({
         address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
@@ -111,6 +77,13 @@ async function distributeRewards(plan: any) {
         functionName: 'transfer',
         args: [plan.withdrawalAddress as `0x${string}`, rewardInWei],
         account: account.address as `0x${string}`
+      });
+
+      // Create wallet client
+      const walletClient = createWalletClient({
+        account,
+        chain: base,
+        transport: http(BASE_RPC_URL)
       });
 
       // Execute the transaction
@@ -157,7 +130,7 @@ async function checkAndDistributeMaturedPlans() {
         and(
           eq(miningPlans.hasWithdrawn, false),
           eq(miningPlans.isActive, true),
-          gte(new Date(), miningPlans.expiresAt)
+          gte(new Date(), miningPlans.expiresAt)  // Only return truly expired plans
         )
       );
 

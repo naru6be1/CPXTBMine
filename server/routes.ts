@@ -46,8 +46,8 @@ async function distributeRewards(plan: any) {
     }
 
     // Ensure private key is properly formatted with 0x prefix
-    const formattedPrivateKey = ADMIN_PRIVATE_KEY.startsWith('0x') 
-      ? ADMIN_PRIVATE_KEY 
+    const formattedPrivateKey = ADMIN_PRIVATE_KEY.startsWith('0x')
+      ? ADMIN_PRIVATE_KEY
       : `0x${ADMIN_PRIVATE_KEY}`;
 
     // Create account from private key
@@ -395,6 +395,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error claiming free CPXTB:", error);
       res.status(500).json({
         message: "Error claiming free CPXTB: " + error.message
+      });
+    }
+  });
+
+  // Add this new endpoint after other routes, before httpServer creation
+  app.post("/api/mining-plans/distribute-all", async (req, res) => {
+    try {
+      // Get all matured plans that haven't been withdrawn
+      const maturedPlans = await db
+        .select()
+        .from(miningPlans)
+        .where(
+          and(
+            eq(miningPlans.hasWithdrawn, false),
+            eq(miningPlans.isActive, true),
+            lte(miningPlans.expiresAt, new Date())
+          )
+        );
+
+      console.log('Found matured plans for distribution:', maturedPlans.length);
+
+      const results = [];
+      for (const plan of maturedPlans) {
+        console.log('Processing distribution for plan:', plan.id);
+        const success = await distributeRewards(plan);
+        results.push({
+          planId: plan.id,
+          success,
+          amount: plan.dailyRewardCPXTB,
+          recipient: plan.withdrawalAddress
+        });
+      }
+
+      res.json({
+        message: `Processed ${maturedPlans.length} matured plans`,
+        results
+      });
+    } catch (error: any) {
+      console.error("Error in bulk distribution:", error);
+      res.status(500).json({
+        message: "Error processing distributions: " + error.message
       });
     }
   });

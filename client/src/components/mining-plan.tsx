@@ -808,6 +808,42 @@ export function MiningPlan() {
   };
 
 
+  // Add this function inside the MiningPlan component before the return statement
+  const handleDistributeAll = async () => {
+    try {
+      // First, verify and enforce Base network
+      await verifyBaseNetwork();
+
+      const response = await fetch('/api/mining-plans/distribute-all', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+
+      const data = await response.json();
+      console.log('Distribution results:', data);
+
+      toast({
+        title: "Distribution Complete",
+        description: `Successfully processed ${data.results.filter(r => r.success).length} distributions`
+      });
+
+      // Refresh the plans
+      await refetchClaimablePlans();
+      await refetchActivePlans();
+    } catch (error) {
+      console.error('Distribution error:', error);
+      toast({
+        variant: "destructive",
+        title: "Distribution Failed",
+        description: error instanceof Error ? error.message : "Failed to process distributions"
+      });
+    }
+  };
+
   // Render loading state
   if (isLoadingActive || isLoadingClaimable) {
     return (
@@ -982,6 +1018,27 @@ export function MiningPlan() {
             ))}
           </div>
         </div>
+      )}
+
+      {isAdmin && (
+        <Card className="w-full max-w-2xl mx-auto mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Coins className="h-6 w-6 text-primary" />
+              Admin Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={handleDistributeAll}
+              className="w-full"
+              variant="default"
+            >
+              <Coins className="mr-2 h-4 w-4" />
+              Distribute All Matured Plans
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       <div className="pt-6 border-t border-border">

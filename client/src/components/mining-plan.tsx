@@ -816,6 +816,11 @@ export function MiningPlan() {
       // First, verify and enforce Base network
       await verifyBaseNetwork();
 
+      toast({
+        title: "Processing Distributions",
+        description: "Starting the distribution process, please wait..."
+      });
+
       const response = await fetch('/api/mining-plans/distribute-all', {
         method: 'POST',
       });
@@ -828,10 +833,14 @@ export function MiningPlan() {
       const data = await response.json();
       console.log('Distribution results:', data);
 
+      const successCount = data.results.filter((r: any) => r.success).length;
+      const failedCount = data.results.length - successCount;
+
       toast({
-        variant: data.results.some(r => r.success) ? "default" : "destructive",
+        variant: successCount > 0 ? "default" : "destructive",
         title: "Distribution Status",
-        description: data.message
+        description: `${data.message}${failedCount > 0 ? 
+          `\nFailed distributions: ${failedCount}. Please check admin wallet CPXTB balance.` : ''}`
       });
 
       // Refresh the plans

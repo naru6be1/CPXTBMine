@@ -13,7 +13,7 @@ import { createWalletClient, custom } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
-const BASE_RPC_URL = "https://mainnet.base.org"; // Using Base mainnet
+const BASE_RPC_URL = "https://mainnet.base.org";
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
 // Standard ERC20 ABI with complete interface
@@ -71,22 +71,37 @@ async function distributeRewards(plan: any) {
     // Create account from private key
     const account = privateKeyToAccount(formattedPrivateKey as `0x${string}`);
 
-    // Create wallet client
-    const walletClient = createWalletClient({
-      account,
-      chain: base,
-      transport: http(BASE_RPC_URL)
+    // Check CPXTB balance before attempting distribution
+    const balance = await baseClient.readContract({
+      address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [account.address]
     });
 
     // Convert reward amount to proper decimals (18 decimals for CPXTB)
     const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
     const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
 
-    console.log('Automated distribution details:', {
+    console.log('Distribution attempt details:', {
       amount: rewardAmount,
       amountInWei: rewardInWei.toString(),
       recipient: plan.withdrawalAddress,
+      adminBalance: balance.toString(),
       contract: CPXTB_CONTRACT_ADDRESS
+    });
+
+    // Check if admin has enough balance
+    if (balance < rewardInWei) {
+      console.error('Insufficient CPXTB balance for distribution');
+      return false;
+    }
+
+    // Create wallet client
+    const walletClient = createWalletClient({
+      account,
+      chain: base,
+      transport: http(BASE_RPC_URL)
     });
 
     try {
@@ -102,8 +117,11 @@ async function distributeRewards(plan: any) {
       const hash = await walletClient.writeContract(request);
       console.log('Distribution transaction hash:', hash);
 
-      // Wait for confirmation
-      const receipt = await baseClient.waitForTransactionReceipt({ hash });
+      // Wait for confirmation with timeout
+      const receipt = await baseClient.waitForTransactionReceipt({ 
+        hash,
+        timeout: 30_000 // 30 seconds timeout
+      });
 
       if (receipt.status === 'success') {
         // Update plan status

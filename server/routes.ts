@@ -13,7 +13,7 @@ import { createWalletClient } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
-const BASE_RPC_URL = "https://mainnet.base.org";
+const BASE_RPC_URL = "https://developer-access-mainnet.base.org"; // Using Base's developer access endpoint
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b";
 
 // Standard ERC20 ABI with complete interface
@@ -71,6 +71,14 @@ async function distributeRewards(plan: any) {
     }
 
     try {
+      // Create wallet client
+      const walletClient = createWalletClient({
+        account,
+        chain: base,
+        transport: http(BASE_RPC_URL)
+      });
+
+      // Simulate before sending
       const { request } = await baseClient.simulateContract({
         address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
         abi: ERC20_ABI,
@@ -79,12 +87,7 @@ async function distributeRewards(plan: any) {
         account: account.address as `0x${string}`
       });
 
-      // Create wallet client
-      const walletClient = createWalletClient({
-        account,
-        chain: base,
-        transport: http(BASE_RPC_URL)
-      });
+      console.log('Contract simulation successful, proceeding with transaction');
 
       // Execute the transaction
       const hash = await walletClient.writeContract(request);

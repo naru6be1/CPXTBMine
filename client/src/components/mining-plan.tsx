@@ -840,7 +840,7 @@ export function MiningPlan() {
         variant: successCount > 0 ? "default" : "destructive",
         title: "Distribution Status",
         description: `${data.message}${failedCount > 0 ? 
-          `\nFailed distributions: ${failedCount}. Please check admin wallet CPXTB balance.` : ''}`
+          `\nFailed distributions: ${failedCount}. Check Base network connection or try again.` : ''}`
       });
 
       // Refresh the plans

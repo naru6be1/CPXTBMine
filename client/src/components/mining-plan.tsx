@@ -462,9 +462,10 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   );
 }
 
-// Fix error handling in handleClaimFreeCPXTB
+// Add enhanced error logging to handleClaimFreeCPXTB
 const handleClaimFreeCPXTB = async () => {
   if (!address || !isConnected) {
+    console.log('Claim attempt failed: Wallet not connected');
     toast({
       variant: "destructive",
       title: "Wallet Not Connected",
@@ -485,6 +486,12 @@ const handleClaimFreeCPXTB = async () => {
       const diffMs = nextAvailableTime.getTime() - now.getTime();
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      console.log('Claim blocked by device cooldown:', {
+        deviceId: localStorage.getItem('global_device_id'),
+        lastClaim: lastDeviceClaim,
+        nextAvailable: nextAvailableTime.toISOString(),
+        currentTime: now.toISOString()
+      });
       toast({
         variant: "destructive",
         title: "Device Cooldown Active",
@@ -495,6 +502,8 @@ const handleClaimFreeCPXTB = async () => {
   }
 
   try {
+    console.log('Initiating CPXTB claim for address:', address);
+
     const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
       method: 'POST',
       headers: {
@@ -503,13 +512,20 @@ const handleClaimFreeCPXTB = async () => {
       body: JSON.stringify({ withdrawalAddress: address }),
     });
 
+    console.log('Claim response status:', response.status);
+
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message);
+      console.error('Claim error response:', error);
+      throw new Error(error.message || 'Failed to claim free CPXTB');
     }
+
+    const result = await response.json();
+    console.log('Claim success:', result);
 
     // Store the claim time in localStorage for global device tracking
     localStorage.setItem('global_lastCPXTBClaimTime', new Date().toISOString());
+    console.log('Updated device cooldown timestamp');
 
     await refetchUser();
     await refetchActivePlans();
@@ -519,13 +535,14 @@ const handleClaimFreeCPXTB = async () => {
       description: "Your free 10 CPXTB tokens have been claimed successfully!"
     });
   } catch (error) {
+    console.error('Error claiming CPXTB:', error);
     toast({
       variant: "destructive",
       title: "Failed to claim",
       description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
     });
   }
-}
+};
 
 
 // ... (rest of the file remains unchanged)
@@ -885,10 +902,10 @@ export function MiningPlan() {
       setTransactionHash(hash);
       setIsValidating(true);
 
-      const receipt = await baseClient.waitForTransactionReceipt({ hash });
+      const receipt = await baseClient.waitForTransactionReceipt({hash });
 
       if (receipt.status !== 'success') {
-        throw new Error('Transaction failed');
+        throw newError('Transaction failed');
       }
 
       // Update backend

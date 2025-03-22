@@ -410,13 +410,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add this new endpoint in the registerRoutes function
+  // Add this updated endpoint in the registerRoutes function
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
       const { withdrawalAddress } = req.body;
 
+      console.log('Processing free CPXTB claim:', {
+        userAddress: address,
+        withdrawalAddress,
+        timestamp: new Date().toISOString()
+      });
+
       if (!withdrawalAddress) {
+        console.error('Claim failed: Missing withdrawal address');
         res.status(400).json({
           message: "Withdrawal address is required"
         });
@@ -426,6 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user and check cooldown period
       const user = await storage.getUserByUsername(address);
       if (!user) {
+        console.error('Claim failed: User not found', { address });
         res.status(404).json({
           message: "User not found"
         });
@@ -440,6 +448,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (nextAvailableTime > new Date()) {
           const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
+          console.error('Claim failed: Cooldown period active', {
+            lastClaim: lastClaimTime,
+            nextAvailable: nextAvailableTime,
+            hoursRemaining: timeRemaining
+          });
           res.status(400).json({
             message: `Please wait ${timeRemaining} hours before claiming again`
           });
@@ -449,6 +462,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update user's last claim time
       const updatedUser = await storage.updateLastCPXTBClaimTime(address);
+      console.log('Updated user claim time:', {
+        address,
+        newClaimTime: updatedUser.lastCPXTBClaimTime
+      });
 
       // Create a special mining plan for the free CPXTB
       const now = new Date();

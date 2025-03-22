@@ -268,6 +268,7 @@ function ActivePlanDisplay({
                       variant="default"
                       className="w-full"
                       onClick={onClaim}
+                      disabled={!isExpired}
                     >
                       <Coins className="mr-2 h-4 w-4" />
                       {chain?.id !== 8453
@@ -276,18 +277,23 @@ function ActivePlanDisplay({
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-sm text-center text-muted-foreground mt-4">
-                    {isFreeClaimPlan
-                      ? "Waiting for admin to distribute your CPXTB claim"
-                      : "Waiting for CPXTB distribution from admin"}
-                  </p>
+                  <>
+                    {isExpired ? (
+                      <p className="text-sm text-center text-muted-foreground mt-4">
+                        {isFreeClaimPlan
+                          ? "Waiting for admin to distribute your CPXTB claim"
+                          : "Waiting for CPXTB distribution from admin"}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-center text-muted-foreground mt-4">
+                        {isFreeClaimPlan
+                          ? "Your CPXTB claim is being processed"
+                          : `Plan will mature in ${timeRemaining}`}
+                      </p>
+                    )}
+                  </>
                 )}
               </>
-            )}
-            {!isExpired && !isFreeClaimPlan && (
-              <p className="text-sm text-center text-muted-foreground mt-4">
-                Plan will mature in {timeRemaining}
-              </p>
             )}
             {hasWithdrawn && (
               <p className="text-sm text-center text-muted-foreground mt-4">
@@ -910,8 +916,7 @@ export function MiningPlan() {
                 {isSwitchingNetwork ? "Switching Network..." :
                   isTransferring ? "Transferring USDT..." :
                     isValidating ? "Validating Transaction..." :
-                      `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}
-              </Button>
+                      `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}              </Button>
             )}
 
             {transactionHash && (

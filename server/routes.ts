@@ -30,7 +30,8 @@ async function distributeRewards(plan: any) {
       rpcUrl: BASE_RPC_URL,
       contractAddress: CPXTB_CONTRACT_ADDRESS,
       chain: 'Base Mainnet',
-      hasPrivateKey: !!ADMIN_PRIVATE_KEY
+      hasPrivateKey: !!ADMIN_PRIVATE_KEY,
+      isFreeClaimPlan: plan.transactionHash === 'FREE_CPXTB_CLAIM'
     });
 
     // Create Base network client
@@ -144,7 +145,7 @@ async function checkAndDistributeMaturedPlans() {
     const now = new Date();
     console.log('Current time for automated check:', now.toISOString());
 
-    // Get all matured plans that haven't been withdrawn
+    // Get all matured plans that haven't been withdrawn, including free CPXTB claims
     const maturedPlans = await db
       .select()
       .from(miningPlans)
@@ -162,7 +163,8 @@ async function checkAndDistributeMaturedPlans() {
         id: plan.id,
         expiresAt: plan.expiresAt,
         amount: plan.dailyRewardCPXTB,
-        recipient: plan.withdrawalAddress
+        recipient: plan.withdrawalAddress,
+        isFreeClaimPlan: plan.transactionHash === 'FREE_CPXTB_CLAIM'
       })));
 
       for (const plan of maturedPlans) {

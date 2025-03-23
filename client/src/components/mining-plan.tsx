@@ -100,10 +100,10 @@ const PLANS: Record<PlanType, PlanConfig> = {
   silver: {
     amount: BigInt("10000000"), // 10 USDT (6 decimals)
     displayAmount: "10",
-    rewardUSD: 5, // Increased from 2 to 5 USD
+    rewardUSD: 12, // Updated to 6 USD per day (12 USD for 48 hours)
     duration: "48 hours",
     name: "Silver Plan",
-    description: "Enhanced mining power with better rewards",
+    description: "Enhanced mining power with better rewards (6 USD/day)",
     color: "silver"
   },
   gold: {

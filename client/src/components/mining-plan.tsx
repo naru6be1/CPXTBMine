@@ -180,7 +180,9 @@ function ActivePlanDisplay({
 }) {
   const isFreeClaimPlan = transactionHash === 'FREE_CPXTB_CLAIM';
   const [timeRemaining, setTimeRemaining] = useState<string>("");
-  const plan = PLANS[planType];
+
+  // Ensure plan exists, default to bronze if not found
+  const plan = PLANS[planType] || PLANS.bronze;
 
   // Add useEffect for time remaining calculation
   useEffect(() => {

@@ -61,6 +61,18 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        bronze: {
+          DEFAULT: "hsl(30, 36%, 72%)",
+          foreground: "hsl(30, 36%, 20%)",
+        },
+        silver: {
+          DEFAULT: "hsl(0, 0%, 75%)",
+          foreground: "hsl(0, 0%, 20%)",
+        },
+        gold: {
+          DEFAULT: "hsl(45, 100%, 60%)",
+          foreground: "hsl(45, 100%, 20%)",
+        },
       },
       keyframes: {
         "accordion-down": {

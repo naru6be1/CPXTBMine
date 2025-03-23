@@ -72,30 +72,49 @@ const ERC20_ABI = [
   }
 ];
 
-// Plan configurations
-const PLANS: Record<PlanType, PlanConfig> = {
-  daily: {
-    amount: BigInt("100000"), // 0.1 USDT (6 decimals)
-    displayAmount: "0.1",
-    rewardUSD: 0.15, // Adjusted reward for 0.1 USDT
-    duration: "24 hours"
-  },
-  weekly: {
-    amount: BigInt("100000000"), // 100 USDT (6 decimals)
-    displayAmount: "100",
-    rewardUSD: 15,
-    duration: "7 days"
-  }
-};
-
-type PlanType = 'daily' | 'weekly';
+// Update PlanType and PLANS configuration
+type PlanType = 'bronze' | 'silver' | 'gold';
 
 interface PlanConfig {
   amount: bigint;
   displayAmount: string;
   rewardUSD: number;
   duration: string;
+  name: string;
+  description: string;
+  color: string;
 }
+
+// Plan configurations with enhanced tiers
+const PLANS: Record<PlanType, PlanConfig> = {
+  bronze: {
+    amount: BigInt("100000"), // 0.1 USDT (6 decimals)
+    displayAmount: "0.1",
+    rewardUSD: 0.15,
+    duration: "24 hours",
+    name: "Bronze Plan",
+    description: "Start mining with minimal investment",
+    color: "bronze"
+  },
+  silver: {
+    amount: BigInt("10000000"), // 10 USDT (6 decimals)
+    displayAmount: "10",
+    rewardUSD: 2,
+    duration: "48 hours",
+    name: "Silver Plan",
+    description: "Enhanced mining power with better rewards",
+    color: "silver"
+  },
+  gold: {
+    amount: BigInt("100000000"), // 100 USDT (6 decimals)
+    displayAmount: "100",
+    rewardUSD: 20,
+    duration: "7 days",
+    name: "Gold Plan",
+    description: "Maximum mining power with highest rewards",
+    color: "gold"
+  }
+};
 
 interface MiningPlan {
   id: number;
@@ -158,6 +177,7 @@ function ActivePlanDisplay({
 }) {
   const isFreeClaimPlan = transactionHash === 'FREE_CPXTB_CLAIM';
   const [timeRemaining, setTimeRemaining] = useState<string>("");
+  const plan = PLANS[planType];
 
   // Add useEffect for time remaining calculation
   useEffect(() => {
@@ -190,9 +210,9 @@ function ActivePlanDisplay({
   }, [expiresAt]);
 
   return (
-    <Card className="w-full">
+    <Card className={`w-full border-${plan.color}`}>
       <CardContent className="pt-6">
-        <div className="bg-primary/10 rounded-lg p-6">
+        <div className={`bg-${plan.color}/10 rounded-lg p-6`}>
           <h3 className="text-xl font-semibold text-primary mb-2 flex items-center gap-2">
             {isFreeClaimPlan ? (
               <>
@@ -202,7 +222,7 @@ function ActivePlanDisplay({
             ) : (
               <>
                 <Server className="h-6 w-6 animate-pulse" />
-                Mining Plan Status
+                {plan.name} Status
               </>
             )}
           </h3>
@@ -210,7 +230,7 @@ function ActivePlanDisplay({
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
               <p className={cn(
-                "text-lg font-semibold flex items-center gap-2",
+                "text-lg font-semibold",
                 isExpired ? "text-red-500" : "text-green-500"
               )}>
                 {isFreeClaimPlan ? (
@@ -230,14 +250,16 @@ function ActivePlanDisplay({
               </p>
             </div>
 
-            {!isFreeClaimPlan && (
-              <>
-                <div>
-                  <p className="text-sm text-muted-foreground">Plan Type</p>
-                  <p className="text-lg font-semibold capitalize">{planType} Plan ({amount} USDT)</p>
-                </div>
-              </>
-            )}
+            <div>
+              <p className="text-sm text-muted-foreground">Plan Details</p>
+              <p className="text-lg font-semibold">{plan.name} ({amount} USDT)</p>
+              <p className="text-sm text-muted-foreground">{plan.description}</p>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground">Duration</p>
+              <p className="text-lg font-semibold">{plan.duration}</p>
+            </div>
 
             <div>
               <p className="text-sm text-muted-foreground">CPXTB Reward</p>
@@ -545,10 +567,90 @@ const handleClaimFreeCPXTB = async () => {
 };
 
 
-// ... (rest of the file remains unchanged)
+// Update the handleDistributeAll function
+const handleDistributeAll = async () => {
+  try {
+    setIsTransferring(true);
+
+    // First, verify and enforce Base network
+    await verifyBaseNetwork();
+
+    toast({
+      title: "Processing Distributions",
+      description: "Starting the distribution process, please wait..."
+    });
+
+    const response = await fetch('/api/mining-plans/distribute-all', {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+
+    const data = await response.json();
+    console.log('Distribution results:', data);
+
+    const successCount = data.results.filter((r: any) => r.success).length;
+    const failedCount = data.results.length - successCount;
+
+    toast({
+      variant: successCount > 0 ? "default" : "destructive",
+      title: "Distribution Status",
+      description: `${data.message}${failedCount > 0 ?
+        `\nFailed distributions: ${failedCount}. Check Base network connection or try again.` : ''}`
+    });
+
+    // Refresh the plans
+    await refetchClaimablePlans();
+    await refetchActivePlans();
+  } catch (error) {
+    console.error('Distribution error:', error);
+    toast({        variant: "destructive",
+      title: "Distribution Failed",
+      description: error instanceof Error ? error.message : "Failed to process distributions"
+    });
+  } finally {
+    setIsTransferring(false);
+  }
+};
+
+// Update mining plan selection UI
+function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {(Object.entries(PLANS) as [PlanType, PlanConfig][]).map(([type, plan]) => (
+        <Card 
+          key={type} 
+          className={`cursor-pointer hover:border-${plan.color} transition-colors`}
+          onClick={() => onSelect(type)}
+        >
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className={`h-6 w-6 text-${plan.color}`} />
+              {plan.name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <p className="text-2xl font-bold">{plan.displayAmount} USDT</p>
+              <p className="text-sm text-muted-foreground">{plan.description}</p>
+              <div className="space-y-1">
+                <p className="text-sm">✓ {plan.duration} duration</p>
+                <p className="text-sm">✓ {(plan.rewardUSD / 0.002529).toFixed(2)} CPXTB reward</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export function MiningPlan() {
   // State management
-  const [selectedPlan, setSelectedPlan] = useState<PlanType>('weekly');
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>('bronze');
   const [isTransferring, setIsTransferring] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
@@ -753,7 +855,7 @@ export function MiningPlan() {
 
       setIsConfirmed(true);
       const activationTime = new Date();
-      const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'weekly' ? 7 : 1) * 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'gold' ? 7 : (selectedPlan === 'silver' ? 2 : 1)) * 24 * 60 * 60 * 1000);
 
       const planDetails = {
         walletAddress: address,
@@ -905,7 +1007,7 @@ export function MiningPlan() {
       const receipt = await baseClient.waitForTransactionReceipt({hash });
 
       if (receipt.status !== 'success') {
-        throw newError('Transaction failed');
+        throw new Error('Transaction failed');
       }
 
       // Update backend
@@ -1092,29 +1194,11 @@ export function MiningPlan() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex gap-4 mb-6">
-            <Button
-              variant={selectedPlan === 'daily' ? 'default' : 'outline'}
-              onClick={() => setSelectedPlan('daily')}
-              className="flex-1"
-            >
-              <Cpu className="mr-2 h-4 w-4" />
-              Daily Plan
-            </Button>
-            <Button
-              variant={selectedPlan === 'weekly' ? 'default' : 'outline'}
-              onClick={() => setSelectedPlan('weekly')}
-              className="flex-1"
-            >
-              <Server className="mr-2 h-4 w-4" />
-              Weekly Plan
-            </Button>
-          </div>
-
+          <MiningPlanSelection onSelect={setSelectedPlan} />
           <div className="bg-muted rounded-lg p-6 space-y-4">
             <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
               <Cpu className="h-5 w-5 text-primary" />
-              {selectedPlan} Mining Plan Details
+              {currentPlan.name} Details
             </h3>
             <div className="grid gap-3">
               <div>
@@ -1157,7 +1241,8 @@ export function MiningPlan() {
                 {isSwitchingNetwork ? "Switching Network..." :
                   isTransferring ? "Transferring USDT..." :
                     isValidating ? "Validating Transaction..." :
-                      `Activate ${selectedPlan} Plan (${currentPlan.displayAmount} USDT)`}              </Button>
+                      `Activate ${currentPlan.name} (${currentPlan.displayAmount} USDT)`}
+              </Button>
             )}
 
             {transactionHash && (

@@ -22,29 +22,43 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains with improved error handling
+// Configure chains with improved error handling and retry logic
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [mainnet],
   [
+    // Add fallback RPC endpoints with retry logic
     jsonRpcProvider({
-      rpc: (chain) => ({
+      rpc: () => ({
         http: 'https://eth.llamarpc.com',
+        webSocket: 'wss://eth.llamarpc.com/ws',
       }),
+      priority: 1,
+      stallTimeout: 3000,
+      pollingInterval: 4000,
     }),
-    publicProvider()
+    jsonRpcProvider({
+      rpc: () => ({
+        http: 'https://cloudflare-eth.com',
+      }),
+      priority: 2,
+      stallTimeout: 3000,
+    }),
+    publicProvider(),
   ],
   {
-    pollingInterval: 5000,
+    pollingInterval: 4000,
     retryCount: 5,
     retryDelay: 1000,
     stallTimeout: 5000,
     batch: {
-      multicall: true
+      multicall: true,
+      batchSize: 1024,
+      wait: 16,
     }
   }
 );
 
-// Create wagmi config with enhanced logging
+// Create wagmi config with enhanced logging and error handling
 const config = createConfig({
   autoConnect: true,
   connectors: [
@@ -53,7 +67,10 @@ const config = createConfig({
       options: {
         projectId,
         metadata,
-        showQrModal: false
+        showQrModal: false,
+        relayUrl: 'wss://relay.walletconnect.org',
+        retryCount: 3,
+        timeout: 10000,
       }
     }),
     new InjectedConnector({
@@ -68,10 +85,17 @@ const config = createConfig({
   webSocketPublicClient,
   logger: {
     warn: (message) => console.warn(`[Web3 Warning]: ${message}`),
+    error: (error) => {
+      console.error('[Web3 Error]:', {
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+    }
   }
 });
 
-// Create web3Modal instance
+// Create web3Modal instance with enhanced error handling
 const web3Modal = createWeb3Modal({
   wagmiConfig: config,
   projectId,

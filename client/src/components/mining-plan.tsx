@@ -109,10 +109,10 @@ const PLANS: Record<PlanType, PlanConfig> = {
   gold: {
     amount: BigInt("100000000"), // 100 USDT (6 decimals)
     displayAmount: "100",
-    rewardUSD: 20,
+    rewardUSD: 140, // Updated to 20 USD per day (140 USD for 7 days)
     duration: "7 days",
     name: "Gold Plan",
-    description: "Maximum mining power with highest rewards",
+    description: "Maximum mining power with highest rewards (20 USD/day)",
     color: "gold"
   }
 };
@@ -880,7 +880,7 @@ export function MiningPlan() {
   // Function to verify and enforce Base network
   const verifyBaseNetwork = async () => {
     if (chain?.id !== BASE_CHAIN_ID) {
-      console.log('Current chain:', chain?.id, 'Switching to Base:', BASE_CHAIN_ID);
+      console.log('Current chain:', chain?.id, 'Switchingto Base:', BASE_CHAIN_ID);
 
       try {
         if (!switchNetwork) {

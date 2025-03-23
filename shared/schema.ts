@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   referralCode: text("referral_code").notNull().unique(),
   referredBy: text("referred_by"),
-  lastCPXTBClaimTime: timestamp("last_cpxtb_claim_time"), // Changed from hasClaimedFreeCPXTB to lastCPXTBClaimTime
+  lastCPXTBClaimTime: timestamp("last_cpxtb_claim_time"),
 });
 
 export const miningPlans = pgTable("mining_plans", {
@@ -46,8 +46,7 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
   })
   .extend({
     amount: z.string(),
-    planType: z.enum(['daily', 'weekly']),
-    // Accept either Date object or ISO string for dates
+    planType: z.enum(['bronze', 'silver', 'gold']), 
     activatedAt: z.union([z.date(), z.string()]).transform(val => 
       val instanceof Date ? val : new Date(val)
     ),

@@ -371,7 +371,7 @@ function ActivePlanDisplay({
   );
 }
 
-// Update the FreeCPXTBClaim component with stronger device-level restriction
+// Update the FreeCPXTBClaim component to use server time
 function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   const { isConnected, address } = useWallet();
   const [deviceCooldownMessage, setDeviceCooldownMessage] = useState<string>("");
@@ -388,28 +388,45 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   });
 
   useEffect(() => {
-    if (!address) return;
+    if (!user?.lastCPXTBClaimTime) return;
 
-    const walletAddress = address.toLowerCase();
-    // Generate a wallet-specific device ID if not exists
-    const deviceIdKey = `global_device_id_${walletAddress}`;
-    if (!localStorage.getItem(deviceIdKey)) {
-      localStorage.setItem(deviceIdKey, `device_${Math.random().toString(36).substring(2)}`);
-    }
+    const checkCooldown = () => {
+      const lastClaimTime = new Date(user.lastCPXTBClaimTime);
+      const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+      const now = new Date();
 
-    // Check device-wide cooldown with wallet-specific keys
-    const checkDeviceCooldown = () => {
-      const lastDeviceClaim = localStorage.getItem(`global_lastCPXTBClaimTime_${walletAddress}`);
-      console.log('Device cooldown check:', {
-        deviceId: localStorage.getItem(deviceIdKey),
-        lastClaim: lastDeviceClaim,
-        currentTime: new Date().toISOString(),
-        walletAddress
+      if (nextAvailableTime > now) {
+        const diffMs = nextAvailableTime.getTime() - now.getTime();
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        setDeviceCooldownMessage(
+          `Next claim available in ${hours}h ${minutes}m`
+        );
+      } else {
+        setDeviceCooldownMessage("");
+      }
+    };
+
+    // Check immediately and then update every second
+    checkCooldown();
+    const interval = setInterval(checkCooldown, 1000);
+    return () => clearInterval(interval);
+  }, [user?.lastCPXTBClaimTime]);
+
+  const handleClaim = async () => {
+    if (!address || !isConnected) return;
+
+    try {
+      console.log('Processing free CPXTB claim:', {
+        walletAddress: address,
+        timestamp: new Date().toISOString()
       });
 
-      if (lastDeviceClaim) {
-        const lastClaimTime = new Date(lastDeviceClaim);
-        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      // Check server-side cooldown
+      if (user?.lastCPXTBClaimTime) {
+        const lastClaimTime = new Date(user.lastCPXTBClaimTime);
+        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours
         const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
         const now = new Date();
 
@@ -417,57 +434,19 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
           const diffMs = nextAvailableTime.getTime() - now.getTime();
           const hours = Math.floor(diffMs / (1000 * 60 * 60));
           const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-          setDeviceCooldownMessage(
-            `Next claim available in ${hours}h ${minutes}m`
-          );
-        } else {
-          setDeviceCooldownMessage("");
-        }
-      }
-    };
-
-    // Check immediately and then update every second
-    checkDeviceCooldown();
-    const interval = setInterval(checkDeviceCooldown, 1000);
-    return () => clearInterval(interval);
-  }, [address]);
-
-  const handleClaim = async () => {
-    if (!address) return;
-
-    const walletAddress = address.toLowerCase();
-    try {
-      // Check device cooldown before proceeding
-      const lastDeviceClaim = localStorage.getItem(`global_lastCPXTBClaimTime_${walletAddress}`);
-      if (lastDeviceClaim) {
-        const lastClaimTime = new Date(lastDeviceClaim);
-        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-        const now = new Date();
-
-        if (nextAvailableTime > now) {
-          console.log('Claim blocked by device cooldown:', {
-            deviceId: localStorage.getItem(`global_device_id_${walletAddress}`),
-            lastClaim: lastDeviceClaim,
-            nextAvailable: nextAvailableTime.toISOString(),
-            currentTime: new Date().toISOString(),
-            walletAddress
-          });
-          return; // Don't proceed if device is in cooldown
+          throw new Error(`Please wait ${hours}h ${minutes}m before claiming again`);
         }
       }
 
       await onClaim();
 
-      // Store wallet-specific device ID and claim time
-      localStorage.setItem(`global_lastCPXTBClaimTime_${walletAddress}`, new Date().toISOString());
-      console.log('Claim successful, updated device cooldown:', {
-        deviceId: localStorage.getItem(`global_device_id_${walletAddress}`),
-        claimTime: new Date().toISOString(),
-        walletAddress
-      });
     } catch (error) {
       console.error('Claim error:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to Claim",
+        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
+      });
     }
   };
 
@@ -496,7 +475,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-destructive/10 rounded-lg p-4">
-            <p className="text-lg font-semibold text-destructive">Device Cooldown Active</p>
+            <p className="text-lg font-semibold text-destructive">Cooldown Active</p>
             <p className="text-sm text-muted-foreground">
               {deviceCooldownMessage}
             </p>
@@ -518,7 +497,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         <div className="bg-primary/10 rounded-lg p-4">
           <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
           <p className="text-sm text-muted-foreground">
-            Claim 10 CPXTB tokens every 24 hours. Your connected wallet address ({address}) will be used to receive the tokens.
+            Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
           </p>
         </div>
         <Button
@@ -844,7 +823,7 @@ export function MiningPlan() {
 
         // Calculate expiry
         const activationTime = new Date();
-                const durationDays = selectedPlan === 'gold' ? 7 : selectedPlan === 'silver' ? 2 : 1;
+        const durationDays = selectedPlan === 'gold' ? 7 : selectedPlan === 'silver' ? 2 : 1;
         const expiresAt = new Date(activationTime.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
         // Create mining plan

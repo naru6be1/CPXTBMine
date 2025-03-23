@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMiningPlanSchema, miningPlans } from "@shared/schema";
+import { insertMiningPlanSchema, miningPlans, users } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { eq, gte, and, sql } from "drizzle-orm";
 import { db } from "./db";
@@ -462,14 +462,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add this updated endpoint in the registerRoutes function
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
       const { withdrawalAddress } = req.body;
+      const normalizedAddress = address.toLowerCase();
 
       console.log('Processing free CPXTB claim:', {
-        userAddress: address,
+        userAddress: normalizedAddress,
         withdrawalAddress,
         timestamp: new Date().toISOString()
       });
@@ -483,9 +483,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get user and check cooldown period
-      const user = await storage.getUserByUsername(address);
+      const user = await storage.getUserByUsername(normalizedAddress);
       if (!user) {
-        console.error('Claim failed: User not found', { address });
+        console.error('Claim failed: User not found', { address: normalizedAddress });
         res.status(404).json({
           message: "User not found"
         });
@@ -497,13 +497,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const lastClaimTime = new Date(user.lastCPXTBClaimTime);
         const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+        const now = new Date();
 
-        if (nextAvailableTime > new Date()) {
-          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - new Date().getTime()) / (1000 * 60 * 60));
+        if (nextAvailableTime > now) {
+          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
           console.error('Claim failed: Cooldown period active', {
             lastClaim: lastClaimTime,
             nextAvailable: nextAvailableTime,
-            hoursRemaining: timeRemaining
+            hoursRemaining: timeRemaining,
+            walletAddress: normalizedAddress
           });
           res.status(400).json({
             message: `Please wait ${timeRemaining} hours before claiming again`
@@ -513,23 +515,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update user's last claim time
-      const updatedUser = await storage.updateLastCPXTBClaimTime(address);
-      console.log('Updated user claim time:', {
-        address,
-        newClaimTime: updatedUser.lastCPXTBClaimTime
-      });
+      await db
+        .update(users)
+        .set({ lastCPXTBClaimTime: new Date() })
+        .where(eq(users.username, normalizedAddress));
 
       // Create a special mining plan for the free CPXTB
       const now = new Date();
-      // Set expiration to 2 minutes from now to provide enough time for distribution
       const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes
 
       const plan = await storage.createMiningPlan({
-        walletAddress: address,
-        withdrawalAddress,
-        planType: 'daily',
-        amount: '0', // Free plan
-        dailyRewardCPXTB: '10', // 10 CPXTB
+        walletAddress: normalizedAddress,
+        withdrawalAddress: withdrawalAddress.toLowerCase(),
+        planType: "bronze", // Use bronze as the base plan type
+        amount: "0", // Free plan
+        dailyRewardCPXTB: "10", // 10 CPXTB
         activatedAt: now,
         expiresAt: expiresAt,
         transactionHash: 'FREE_CPXTB_CLAIM',
@@ -538,13 +538,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Created free CPXTB claim plan:', {
         planId: plan.id,
-        walletAddress: address,
+        walletAddress: normalizedAddress,
         expiresAt: expiresAt.toISOString(),
-        now: now.toISOString(),
-        maturityCheckInterval: '15 seconds'
+        now: now.toISOString()
       });
 
-      res.json({ user: updatedUser, plan });
+      res.json({
+        user: await storage.getUserByUsername(normalizedAddress),
+        plan
+      });
     } catch (error: any) {
       console.error("Error claiming free CPXTB:", error);
       res.status(500).json({
@@ -553,7 +555,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add this new endpoint after other routes, before httpServer creation
   app.post("/api/mining-plans/distribute-all", async (req, res) => {
     try {
       const now = new Date();

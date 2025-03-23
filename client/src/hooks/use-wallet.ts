@@ -66,6 +66,12 @@ export function useWallet() {
         title: "Wallet Disconnected",
         description: "Your wallet has been successfully disconnected",
       })
+
+      // Clear local storage for this wallet address
+      if (address) {
+        localStorage.removeItem(`global_device_id_${address.toLowerCase()}`);
+        localStorage.removeItem(`global_lastCPXTBClaimTime_${address.toLowerCase()}`);
+      }
     } catch (error) {
       console.error('Wallet disconnect error:', {
         error: error instanceof Error ? error.message : 'Unknown error',

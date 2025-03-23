@@ -374,18 +374,23 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   });
 
   useEffect(() => {
-    // Generate a persistent device ID if not exists
-    if (!localStorage.getItem('global_device_id')) {
-      localStorage.setItem('global_device_id', `device_${Math.random().toString(36).substring(2)}`);
+    if (!address) return;
+
+    const walletAddress = address.toLowerCase();
+    // Generate a wallet-specific device ID if not exists
+    const deviceIdKey = `global_device_id_${walletAddress}`;
+    if (!localStorage.getItem(deviceIdKey)) {
+      localStorage.setItem(deviceIdKey, `device_${Math.random().toString(36).substring(2)}`);
     }
 
-    // Check device-wide cooldown
+    // Check device-wide cooldown with wallet-specific keys
     const checkDeviceCooldown = () => {
-      const lastDeviceClaim = localStorage.getItem('global_lastCPXTBClaimTime');
+      const lastDeviceClaim = localStorage.getItem(`global_lastCPXTBClaimTime_${walletAddress}`);
       console.log('Device cooldown check:', {
-        deviceId: localStorage.getItem('global_device_id'),
+        deviceId: localStorage.getItem(deviceIdKey),
         lastClaim: lastDeviceClaim,
-        currentTime: new Date().toISOString()
+        currentTime: new Date().toISOString(),
+        walletAddress
       });
 
       if (lastDeviceClaim) {
@@ -409,14 +414,17 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
 
     // Check immediately and then update every second
     checkDeviceCooldown();
-    const interval = setInterval(checkDeviceCooldown, 1000); // Update every second
+    const interval = setInterval(checkDeviceCooldown, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [address]);
 
   const handleClaim = async () => {
+    if (!address) return;
+
+    const walletAddress = address.toLowerCase();
     try {
       // Check device cooldown before proceeding
-      const lastDeviceClaim = localStorage.getItem('global_lastCPXTBClaimTime');
+      const lastDeviceClaim = localStorage.getItem(`global_lastCPXTBClaimTime_${walletAddress}`);
       if (lastDeviceClaim) {
         const lastClaimTime = new Date(lastDeviceClaim);
         const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -425,10 +433,11 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
 
         if (nextAvailableTime > now) {
           console.log('Claim blocked by device cooldown:', {
-            deviceId: localStorage.getItem('global_device_id'),
+            deviceId: localStorage.getItem(`global_device_id_${walletAddress}`),
             lastClaim: lastDeviceClaim,
             nextAvailable: nextAvailableTime.toISOString(),
-            currentTime: new Date().toISOString()
+            currentTime: new Date().toISOString(),
+            walletAddress
           });
           return; // Don't proceed if device is in cooldown
         }
@@ -436,11 +445,12 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
 
       await onClaim();
 
-      // Store both device ID and claim time for global device-wide tracking
-      localStorage.setItem('global_lastCPXTBClaimTime', new Date().toISOString());
+      // Store wallet-specific device ID and claim time
+      localStorage.setItem(`global_lastCPXTBClaimTime_${walletAddress}`, new Date().toISOString());
       console.log('Claim successful, updated device cooldown:', {
-        deviceId: localStorage.getItem('global_device_id'),
-        claimTime: new Date().toISOString()
+        deviceId: localStorage.getItem(`global_device_id_${walletAddress}`),
+        claimTime: new Date().toISOString(),
+        walletAddress
       });
     } catch (error) {
       console.error('Claim error:', error);
@@ -846,7 +856,7 @@ export function MiningPlan() {
         toast({
           variant: "destructive",
           title: "Connection Error",
-          description: "Please try reconnecting your wallet"
+          description: "Pleasetry reconnecting your wallet"
         });
         return;
       }

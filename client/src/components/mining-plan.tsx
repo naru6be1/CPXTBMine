@@ -72,6 +72,30 @@ const ERC20_ABI = [
     "payable": false,
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {"name": "spender", "type": "address"},
+      {"name": "value", "type": "uint256"}
+    ],
+    "name": "approve",
+    "outputs": [{"name": "", "type": "bool"}],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {"name": "owner", "type": "address"},
+      {"name": "spender", "type": "address"}
+    ],
+    "name": "allowance",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
   }
 ] as const;
 
@@ -765,7 +789,7 @@ export function MiningPlan() {
     }
   };
 
-  // Update the handleTransfer function with better error handling
+  // Add proper USDT transfer handling
   const handleTransfer = async () => {
     try {
       if (!chain || chain.id !== 1) {
@@ -833,39 +857,97 @@ export function MiningPlan() {
 
         setIsTransferring(true);
 
-        // Log the transfer attempt
-        console.log('Attempting transfer:', {
-          from: address,
-          to: TREASURY_ADDRESS,
-          amount: currentPlan.amount.toString(),
-          planType: selectedPlan,
-          displayAmount: currentPlan.displayAmount,
-          contractAddress: USDT_CONTRACT_ADDRESS
+        // First check allowance
+        const allowance = await publicClient.readContract({
+          address: USDT_CONTRACT_ADDRESS,
+          abi: [
+            {
+              constant: true,
+              inputs: [
+                { name: "owner", type: "address" },
+                { name: "spender", type: "address" }
+              ],
+              name: "allowance",
+              outputs: [{ name: "", type: "uint256" }],
+              payable: false,
+              stateMutability: "view",
+              type: "function"
+            }
+          ],
+          functionName: 'allowance',
+          args: [address, TREASURY_ADDRESS]
         });
 
-        // First simulate the contract call
+        console.log('Current allowance:', {
+          allowance: allowance.toString(),
+          required: currentPlan.amount.toString()
+        });
+
+        // If allowance is insufficient, request approval first
+        if (allowance < currentPlan.amount) {
+          console.log('Requesting approval for:', currentPlan.amount.toString());
+
+          const { request: approvalRequest } = await publicClient.simulateContract({
+            address: USDT_CONTRACT_ADDRESS,
+            abi: [
+              {
+                constant: false,
+                inputs: [
+                  { name: "spender", type: "address" },
+                  { name: "value", type: "uint256" }
+                ],
+                name: "approve",
+                outputs: [{ name: "", type: "bool" }],
+                payable: false,
+                stateMutability: "nonpayable",
+                type: "function"
+              }
+            ],
+            functionName: 'approve',
+            args: [TREASURY_ADDRESS, currentPlan.amount],
+            account: address
+          });
+
+          const approvalHash = await walletClient.writeContract(approvalRequest);
+          console.log('Approval transaction submitted:', approvalHash);
+
+          // Wait for approval confirmation
+          const approvalReceipt = await publicClient.waitForTransactionReceipt({
+            hash: approvalHash,
+            timeout: 60000
+          });
+
+          if (approvalReceipt.status !== 'success') {
+            throw new Error('USDT approval failed');
+          }
+
+          console.log('USDT approval confirmed');
+        }
+
+        // Now proceed with transfer
         const { request } = await publicClient.simulateContract({
           address: USDT_CONTRACT_ADDRESS,
           abi: ERC20_ABI,
           functionName: 'transfer',
           args: [TREASURY_ADDRESS, currentPlan.amount],
-          account: address as `0x${string}`
+          account: address
         });
 
-        console.log('Contract simulation successful, proceeding with transaction');
+        console.log('Transfer simulation successful:', {
+          to: TREASURY_ADDRESS,
+          amount: currentPlan.amount.toString()
+        });
 
-        // Execute the actual transfer
         const hash = await walletClient.writeContract(request);
         setTransactionHash(hash);
         setIsValidating(true);
 
-        console.log('Transaction submitted:', {
+        console.log('Transfer transaction submitted:', {
           hash,
-          planType: selectedPlan,
+          to: TREASURY_ADDRESS,
           amount: currentPlan.amount.toString()
         });
 
-        // Wait for confirmation with timeout
         const receipt = await publicClient.waitForTransactionReceipt({
           hash,
           timeout: 60000,
@@ -873,8 +955,10 @@ export function MiningPlan() {
         });
 
         if (receipt.status !== 'success') {
-          throw new Error('Transaction failed');
+          throw new Error('USDT transfer failed');
         }
+
+        console.log('Transfer confirmed:', receipt);
 
         setIsConfirmed(true);
 
@@ -892,11 +976,6 @@ export function MiningPlan() {
           transactionHash: hash,
           referralCode: referralCode
         };
-
-        console.log('Creating mining plan with details:', {
-          ...planDetails,
-          timestamp: new Date().toISOString()
-        });
 
         const response = await fetch('/api/mining-plans', {
           method: 'POST',
@@ -932,12 +1011,10 @@ export function MiningPlan() {
         setIsTransferring(false);
         setIsValidating(false);
 
-        // Show more specific error message
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         toast({
           variant: "destructive",
           title: "Transfer Failed",
-          description: `Error: ${errorMessage}. Please try again or contact support if the issue persists.`
+          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or contact support if the issue persists.`
         });
       }
     } catch (error) {

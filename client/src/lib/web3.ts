@@ -22,11 +22,10 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-// Configure chains with improved error handling and retry logic
+// Configure chains with full provider options
 const { chains, publicClient, webSocketPublicClient } = configureChains(
   [mainnet],
   [
-    // Add fallback RPC endpoints with retry logic
     jsonRpcProvider({
       rpc: () => ({
         http: 'https://eth.llamarpc.com',
@@ -58,7 +57,7 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
   }
 );
 
-// Create wagmi config with enhanced logging and error handling
+// Updated config with enhanced error handling
 const config = createConfig({
   autoConnect: true,
   connectors: [
@@ -113,4 +112,4 @@ const web3Modal = createWeb3Modal({
 
 console.log("Web3 configuration completed with enhanced error handling");
 
-export { web3Modal, config }
+export { web3Modal, config, chains }

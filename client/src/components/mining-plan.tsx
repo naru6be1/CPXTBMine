@@ -100,7 +100,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
   silver: {
     amount: BigInt("10000000"), // 10 USDT (6 decimals)
     displayAmount: "10",
-    rewardUSD: 12, // Updated to 6 USD per day (12 USD for 48 hours)
+    rewardUSD: 6, // Updated to 6 USD per day (12 USD for 48 hours)
     duration: "48 hours",
     name: "Silver Plan",
     description: "Enhanced mining power with better rewards (6 USD/day)",
@@ -273,9 +273,9 @@ function ActivePlanDisplay({
             <div>
               <p className="text-sm text-muted-foreground">Daily CPXTB Reward</p>
               <p className="text-lg font-semibold">
-                {(parseFloat(dailyRewardCPXTBCalc) / (planType === 'gold' ? 7 : planType === 'silver' ? 2 : 1)).toFixed(2)} CPXTB
+                {dailyRewardCPXTBCalc} CPXTB
                 <span className="text-sm text-muted-foreground ml-2">
-                  (≈${planType === 'silver' ? '6' : planType === 'gold' ? '20' : '0.15'} per day)
+                  (≈${dailyRewardUSD} per day)
                 </span>
               </p>
             </div>
@@ -283,9 +283,9 @@ function ActivePlanDisplay({
             <div>
               <p className="text-sm text-muted-foreground">Total Reward</p>
               <p className="text-lg font-semibold">
-                {dailyRewardCPXTBCalc} CPXTB
+                {totalRewardCPXTBCalc} CPXTB
                 <span className="text-sm text-muted-foreground ml-2">
-                  (≈${planType === 'silver' ? '12' : planType === 'gold' ? '140' : '0.15'} total)
+                  (≈${dailyRewardUSD * totalDays} total)
                 </span>
               </p>
             </div>
@@ -848,7 +848,7 @@ export function MiningPlan() {
       const planDetails = {
         walletAddress: address,
         withdrawalAddress: address, // Use connected address for withdrawals
-                planType: selectedPlan,
+        planType: selectedPlan,
         amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
         activatedAt: activationTime.toISOString(), // Pass Date object directly
@@ -903,7 +903,8 @@ export function MiningPlan() {
 
   // Function to verify and enforce Base network
   const verifyBaseNetwork = async () => {
-    if (chain?.id !== BASE_CHAIN_ID) {      console.log('Current chain:', chain?.id, 'Switchingto Base:', BASE_CHAIN_ID);
+    if (chain?.id !== BASE_CHAIN_ID) {
+      console.log('Current chain:', chain?.id, 'Switching to Base:', BASE_CHAIN_ID);
 
       try {
         if (!switchNetwork) {
@@ -1211,7 +1212,7 @@ export function MiningPlan() {
                 <p className="text-2xl font-bold text-primary">
                   {dailyRewardCPXTB} CPXTB
                   <span className="text-sm text-muted-foreground ml-2">
-                                        (≈${currentPlan.rewardUSD})
+                    (≈${currentPlan.rewardUSD})
                   </span>
                 </p>
               </div>

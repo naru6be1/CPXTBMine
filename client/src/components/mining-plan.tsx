@@ -109,7 +109,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
   gold: {
     amount: BigInt("100000000"), // 100 USDT (6 decimals)
     displayAmount: "100",
-    rewardUSD: 140, // Updated to 20 USD per day (140 USD for 7 days)
+    rewardUSD: 20, // Updated to 20 USD per day (140 USD for 7 days)
     duration: "7 days",
     name: "Gold Plan",
     description: "Maximum mining power with highest rewards (20 USD/day)",
@@ -210,6 +210,14 @@ function ActivePlanDisplay({
     return () => clearInterval(timer);
   }, [expiresAt]);
 
+  // Calculate daily rewards based on plan type
+  const dailyRewardUSD = planType === 'gold' ? 20 : planType === 'silver' ? 6 : 0.15;
+  const cpxtbPrice = 0.002529;
+  const dailyRewardCPXTBCalc = (dailyRewardUSD / cpxtbPrice).toFixed(2);
+  const totalDays = planType === 'gold' ? 7 : planType === 'silver' ? 2 : 1;
+  const totalRewardCPXTBCalc = (parseFloat(dailyRewardCPXTBCalc) * totalDays).toFixed(2);
+
+
   return (
     <Card className={`w-full border-${plan.color}`}>
       <CardContent className="pt-6">
@@ -265,7 +273,7 @@ function ActivePlanDisplay({
             <div>
               <p className="text-sm text-muted-foreground">Daily CPXTB Reward</p>
               <p className="text-lg font-semibold">
-                {planType === 'silver' ? '2372.87' : planType === 'gold' ? '7909.57' : '59.31'} CPXTB
+                {(parseFloat(dailyRewardCPXTBCalc) / (planType === 'gold' ? 7 : planType === 'silver' ? 2 : 1)).toFixed(2)} CPXTB
                 <span className="text-sm text-muted-foreground ml-2">
                   (≈${planType === 'silver' ? '6' : planType === 'gold' ? '20' : '0.15'} per day)
                 </span>
@@ -275,7 +283,7 @@ function ActivePlanDisplay({
             <div>
               <p className="text-sm text-muted-foreground">Total Reward</p>
               <p className="text-lg font-semibold">
-                {dailyRewardCPXTB} CPXTB
+                {dailyRewardCPXTBCalc} CPXTB
                 <span className="text-sm text-muted-foreground ml-2">
                   (≈${planType === 'silver' ? '12' : planType === 'gold' ? '140' : '0.15'} total)
                 </span>
@@ -840,7 +848,7 @@ export function MiningPlan() {
       const planDetails = {
         walletAddress: address,
         withdrawalAddress: address, // Use connected address for withdrawals
-        planType: selectedPlan,
+                planType: selectedPlan,
         amount: currentPlan.displayAmount,
         dailyRewardCPXTB,
         activatedAt: activationTime.toISOString(), // Pass Date object directly
@@ -862,12 +870,12 @@ export function MiningPlan() {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save mining plan');
-}
+      }
 
       // Refetch active plans and referral stats
       await refetchActivePlans();
       if (user?.referralCode) {
-                await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
+        await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
       }
 
       toast({

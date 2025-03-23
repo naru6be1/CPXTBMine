@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi'
+import { ErrorBoundary } from "@/components/error-boundary";
 
 function Router() {
   return (
@@ -18,12 +19,14 @@ function Router() {
 
 function App() {
   return (
-    <WagmiConfig config={config}>
-      <QueryClientProvider client={queryClient}>
-        <Router />
-        <Toaster />
-      </QueryClientProvider>
-    </WagmiConfig>
+    <ErrorBoundary>
+      <WagmiConfig config={config}>
+        <QueryClientProvider client={queryClient}>
+          <Router />
+          <Toaster />
+        </QueryClientProvider>
+      </WagmiConfig>
+    </ErrorBoundary>
   );
 }
 

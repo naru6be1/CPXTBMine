@@ -34,7 +34,9 @@ const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27";
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b"; // Base network CPXTB
 const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004"; // Base network WETH
 const BASE_CHAIN_ID = 8453;
-const BASE_RPC_URL = "https://mainnet.base.org";
+// Update Base RPC configuration
+const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${import.meta.env.VITE_BASE_RPC_API_KEY}`;
+const BASE_BACKUP_RPC_URL = "https://mainnet.base.org"; // Fallback RPC
 
 // Configure Base chain with correct settings
 const baseChain = base;
@@ -638,7 +640,7 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
 
 // Fix the problematic sections
 
-// Fix the verifyBaseNetwork function
+// Update the verifyBaseNetwork function with fallback
 const verifyBaseNetwork = async () => {
   if (chain?.id !== BASE_CHAIN_ID) {
     console.log('Current chain:', chain?.id, 'Switching to Base:', BASE_CHAIN_ID);
@@ -690,6 +692,19 @@ export function MiningPlan() {
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
   const queryClient = useQueryClient();
+
+  // Update Base client configuration with fallback
+  const baseClient = createPublicClient({
+    chain: baseChain,
+    transport: http(BASE_RPC_URL, {
+      timeout: 30000,
+      retryCount: 3,
+      retryDelay: 1000,
+      fallback: [
+        http(BASE_BACKUP_RPC_URL)
+      ]
+    })
+  });
 
   // Queries
   const { data: activePlans = [], refetch: refetchActivePlans, isLoading: isLoadingActive } = useQuery({
@@ -793,143 +808,155 @@ export function MiningPlan() {
     }
   };
 
+  // Update the handleTransfer function with better error handling
   const handleTransfer = async () => {
-    if (!chain || chain.id !== 1) {
-      toast({
-        variant: "destructive",
-        title: "Wrong Network",
-        description: "Please switch to Ethereum mainnet"
-      });
-      return;
-    }
-
-    if (!address) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to continue"
-      });
-      return;
-    }
-
-    if (!walletClient || !publicClient) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet and try again"
-      });
-      return;
-    }
-
     try {
-      const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
-      if (balance < currentPlan.amount) {
+      if (!chain || chain.id !== 1) {
+        console.log('Network check failed:', {
+          currentChain: chain?.id,
+          requiredChain: 1,
+          walletAddress: address
+        });
+
         toast({
           variant: "destructive",
-          title: "Insufficient Balance",
-          description: `You need ${currentPlan.displayAmount} USDT. Current balance: ${formatUnits(balance, 6)} USDT`
+          title: "Wrong Network",
+          description: "Please switch to Ethereum mainnet"
         });
         return;
       }
 
-      setIsTransferring(true);
+      if (!address) {
+        console.log('Wallet not connected');
+        toast({
+          variant: "destructive",
+          title: "Wallet Not Connected",
+          description: "Please connect your wallet to continue"
+        });
+        return;
+      }
 
-      const { request } = await publicClient.simulateContract({
-        address: USDT_CONTRACT_ADDRESS as Address,
-        abi: [
-          {
-            "constant": true,
-            "inputs": [{"name": "_owner", "type": "address"}],
-            "name": "balanceOf",
-            "outputs": [{"name": "", "type": "uint256"}],
-            "payable": false,
-            "stateMutability": "view",
-            "type": "function"
+      if (!walletClient || !publicClient) {
+        console.log('Client initialization failed:', {
+          hasWalletClient: !!walletClient,
+          hasPublicClient: !!publicClient,
+          walletAddress: address
+        });
+
+        toast({
+          variant: "destructive",
+          title: "Connection Error",
+          description: "Please try reconnecting your wallet"
+        });
+        return;
+      }
+
+      try {
+        const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
+        if (balance < currentPlan.amount) {
+          console.log('Insufficient balance:', {
+            required: currentPlan.amount.toString(),
+            actual: balance.toString(),
+            walletAddress: address
+          });
+
+          toast({
+            variant: "destructive",
+            title: "Insufficient Balance",
+            description: `You need ${currentPlan.displayAmount} USDT. Current balance: ${formatUnits(balance,6)} USDT`
+          });
+          return;
+        }
+
+        setIsTransferring(true);
+
+        const { request } = await publicClient.simulateContract({
+          address: USDT_CONTRACT_ADDRESS as Address,
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [
+            TREASURY_ADDRESS as Address,
+            currentPlan.amount
+          ],
+          account: address as Address,
+        });
+
+        const hash = await walletClient.writeContract(request);
+        setTransactionHash(hash);
+        setIsValidating(true);
+
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+        if (receipt.status !== 'success') {
+          throw new Error('Transaction failed');
+        }
+
+        setIsConfirmed(true);
+        const activationTime = new Date();
+        const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'gold' ? 7 : (selectedPlan === 'silver' ? 2 : 1)) * 24 * 60 * 60 * 1000);
+
+        const planDetails = {
+          walletAddress: address,
+          withdrawalAddress: address,
+          planType: selectedPlan,
+          amount: currentPlan.displayAmount,
+          dailyRewardCPXTB,
+          activatedAt: activationTime.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          transactionHash: hash,
+          referralCode: referralCode
+        };
+
+        console.log('Creating mining plan with details:', {
+          ...planDetails,
+          timestamp: new Date().toISOString()
+        });
+
+        const response = await fetch('/api/mining-plans', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          {
-            "constant": false,
-            "inputs": [
-              {"name": "_to", "type": "address"},
-              {"name": "_value", "type": "uint256"}
-            ],
-            "name": "transfer",
-            "outputs": [],
-            "payable": false,
-            "stateMutability": "nonpayable",
-            "type": "function"
-          }
-        ],
-        functionName: 'transfer',
-        args: [
-          TREASURY_ADDRESS as Address,
-          currentPlan.amount
-        ],
-        account: address as Address,
-      });
+          body: JSON.stringify(planDetails),
+        });
 
-      const hash = await walletClient.writeContract(request);
-      setTransactionHash(hash);
-      setIsValidating(true);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to save mining plan');
+        }
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        await refetchActivePlans();
+        if (user?.referralCode) {
+          await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
+        }
 
-      if (receipt.status !== 'success') {
-        throw new Error('Transaction failed');
+        toast({
+          title: "Plan Activated",
+          description: "Your mining plan has been successfully activated!"
+        });
+
+      } catch (error) {
+        console.error('Transfer execution error:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          walletAddress: address,
+          timestamp: new Date().toISOString()
+        });
+        setIsTransferring(false);
+        setIsValidating(false);
+
+        toast({
+          variant: "destructive",
+          title: "Transfer Failed",
+          description: error instanceof Error
+            ? `Error: ${error.message}. Please try again.`
+            : "Failed to transfer USDT. Please try again."
+        });
       }
-
-      setIsConfirmed(true);
-      const activationTime = new Date();
-      const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'gold' ? 7 : (selectedPlan === 'silver' ? 2 : 1)) * 24 * 60 * 60 * 1000);
-
-      const planDetails = {
-        walletAddress: address,
-        withdrawalAddress: address, // Use connected address for withdrawals
-        planType: selectedPlan,
-        amount: currentPlan.displayAmount,
-        dailyRewardCPXTB,
-        activatedAt: activationTime.toISOString(), // Pass Date object directly
-        expiresAt: expiresAt.toISOString(), // Pass Date object directly
-        transactionHash: hash,
-        referralCode: referralCode
-      };
-
-      console.log('Creating mining plan with details:', planDetails);
-
-      const response = await fetch('/api/mining-plans', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(planDetails),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save mining plan');
-      }
-
-      // Refetch active plans and referral stats
-      await refetchActivePlans();
-      if (user?.referralCode) {
-        await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
-      }
-
-      toast({
-        title: "Plan Activated",
-        description: "Your mining plan has been successfully activated!"
-      });
-
     } catch (error) {
-      console.error('Transfer error:', error);
-      setIsTransferring(false);
-      setIsValidating(false);
-
-      toast({
-        variant: "destructive",
-        title: "Transfer Failed",
-        description: error instanceof Error
-          ? `Error: ${error.message}. Please try again.`
-          : "Failed to transfer USDT. Please try again."
+      console.error('Critical error in transfer handling:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        walletAddress: address,
+        timestamp: new Date().toISOString()
       });
     } finally {
       setIsTransferring(false);
@@ -979,12 +1006,6 @@ export function MiningPlan() {
       if (!walletClient || !publicClient) {
         throw new Error('Wallet not connected');
       }
-
-      // Create Base-specific client
-      const baseClient = createPublicClient({
-        chain: baseChain,
-        transport: http(BASE_RPC_URL)
-      });
 
       // Verify contract exists
       const code = await baseClient.getBytecode({

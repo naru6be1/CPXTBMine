@@ -97,7 +97,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
     duration: "24 hours",
     name: "Bronze Plan",
     description: "Start mining with minimal investment",
-    color: "bronze"
+    color: "amber-600"
   },
   silver: {
     amount: BigInt("10000000"), // 10 USDT (6 decimals)
@@ -106,7 +106,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
     duration: "48 hours",
     name: "Silver Plan",
     description: "Enhanced mining power with better rewards (6 USD/day)",
-    color: "silver"
+    color: "slate-400"
   },
   gold: {
     amount: BigInt("100000000"), // 100 USDT (6 decimals)
@@ -115,7 +115,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
     duration: "7 days",
     name: "Gold Plan",
     description: "Maximum mining power with highest rewards (20 USD/day)",
-    color: "gold"
+    color: "yellow-500"
   }
 };
 
@@ -221,9 +221,17 @@ function ActivePlanDisplay({
 
 
   return (
-    <Card className={`w-full border-${plan.color}`}>
+    <Card className={cn("w-full", {
+      "border-amber-600": planType === "bronze",
+      "border-slate-400": planType === "silver",
+      "border-yellow-500": planType === "gold"
+    })}>
       <CardContent className="pt-6">
-        <div className={`bg-${plan.color}/10 rounded-lg p-6`}>
+        <div className={cn("rounded-lg p-6", {
+          "bg-amber-600/10": planType === "bronze",
+          "bg-slate-400/10": planType === "silver",
+          "bg-yellow-500/10": planType === "gold"
+        })}>
           <h3 className="text-xl font-semibold text-primary mb-2 flex items-center gap-2">
             {isFreeClaimPlan ? (
               <>
@@ -622,12 +630,20 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
       {(Object.entries(PLANS) as [PlanType, PlanConfig][]).map(([type, plan]) => (
         <Card
           key={type}
-          className={`cursor-pointer hover:border-${plan.color} transition-colors`}
+          className={cn("cursor-pointer transition-colors", {
+            "hover:border-amber-600": type === "bronze",
+            "hover:border-slate-400": type === "silver",
+            "hover:border-yellow-500": type === "gold"
+          })}
           onClick={() => onSelect(type)}
         >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Server className={`h-6 w-6 text-${plan.color}`} />
+              <Server className={cn({
+                "text-amber-600": type === "bronze",
+                "text-slate-400": type === "silver",
+                "text-yellow-500": type === "gold"
+              })} />
               {plan.name}
             </CardTitle>
           </CardHeader>

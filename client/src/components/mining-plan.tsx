@@ -263,7 +263,17 @@ function ActivePlanDisplay({
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">CPXTB Reward</p>
+              <p className="text-sm text-muted-foreground">Daily CPXTB Reward</p>
+              <p className="text-lg font-semibold">
+                {planType === 'silver' ? '6' : planType === 'gold' ? '20' : '0.15'} USD
+                <span className="text-sm text-muted-foreground ml-2">
+                  ({(parseFloat(dailyRewardCPXTB) / (planType === 'gold' ? 7 : planType === 'silver' ? 2 : 1)).toFixed(2)} CPXTB per day)
+                </span>
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground">Total Reward</p>
               <p className="text-lg font-semibold">{dailyRewardCPXTB} CPXTB</p>
             </div>
 
@@ -852,7 +862,7 @@ export function MiningPlan() {
       // Refetch active plans and referral stats
       await refetchActivePlans();
       if (user?.referralCode) {
-        await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
+                await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
       }
 
       toast({

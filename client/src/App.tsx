@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import MiningPage from "@/pages/mining";
 import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi'
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -13,6 +14,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/mining" component={MiningPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -602,7 +602,8 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
               <p className="text-sm text-muted-foreground">{plan.description}</p>
               <div className="space-y-1">
                 <p className="text-sm">✓ {plan.duration} duration</p>
-                <p className="text-sm">✓ {(plan.rewardUSD / 0.002529).toFixed(2)} CPXTB reward</p>
+                <p className="text-sm">✓ Daily Reward: {type === 'silver' ? '6' : type === 'gold' ? '20' : '0.15'} USD</p>
+                <p className="text-sm text-muted-foreground">({(plan.rewardUSD / 0.002529).toFixed(2)} CPXTB total)</p>
               </div>
             </div>
           </CardContent>
@@ -879,8 +880,7 @@ export function MiningPlan() {
 
   // Function to verify and enforce Base network
   const verifyBaseNetwork = async () => {
-    if (chain?.id !== BASE_CHAIN_ID) {
-      console.log('Current chain:', chain?.id, 'Switchingto Base:', BASE_CHAIN_ID);
+    if (chain?.id !== BASE_CHAIN_ID) {      console.log('Current chain:', chain?.id, 'Switchingto Base:', BASE_CHAIN_ID);
 
       try {
         if (!switchNetwork) {

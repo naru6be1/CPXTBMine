@@ -100,7 +100,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
   silver: {
     amount: BigInt("10000000"), // 10 USDT (6 decimals)
     displayAmount: "10",
-    rewardUSD: 2,
+    rewardUSD: 5, // Increased from 2 to 5 USD
     duration: "48 hours",
     name: "Silver Plan",
     description: "Enhanced mining power with better rewards",
@@ -893,7 +893,7 @@ export function MiningPlan() {
         const timeout = 30000; // 30 seconds
         const startTime = Date.now();
 
-        while (Date.now() - startTime < timeout< 30000) {
+        while (Date.now() - startTime < timeout) {
           if (chain?.id === BASE_CHAIN_ID) {
             console.log('Successfully switched to Base network');
             return true;

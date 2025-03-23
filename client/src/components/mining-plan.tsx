@@ -102,7 +102,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
   silver: {
     amount: BigInt("10000000"), // 10 USDT (6 decimals)
     displayAmount: "10",
-    rewardUSD: 6, // Updated to 6 USD per day (12 USD for 48 hours)
+    rewardUSD: 6,
     duration: "48 hours",
     name: "Silver Plan",
     description: "Enhanced mining power with better rewards (6 USD/day)",
@@ -111,7 +111,7 @@ const PLANS: Record<PlanType, PlanConfig> = {
   gold: {
     amount: BigInt("100000000"), // 100 USDT (6 decimals)
     displayAmount: "100",
-    rewardUSD: 20, // Updated to 20 USD per day (140 USD for 7 days)
+    rewardUSD: 20,
     duration: "7 days",
     name: "Gold Plan",
     description: "Maximum mining power with highest rewards (20 USD/day)",
@@ -843,13 +843,15 @@ export function MiningPlan() {
         console.log('Network check failed:', {
           currentChain: chain?.id,
           requiredChain: 1,
-          walletAddress: address
+          walletAddress: address,
+          planType: selectedPlan,
+          amount: currentPlan.amount.toString()
         });
 
         toast({
           variant: "destructive",
           title: "Wrong Network",
-          description: "Please switch to Ethereum mainnet"
+                    description: "Please switch to Ethereum mainnet"
         });
         return;
       }
@@ -868,35 +870,48 @@ export function MiningPlan() {
         console.log('Client initialization failed:', {
           hasWalletClient: !!walletClient,
           hasPublicClient: !!publicClient,
-          walletAddress: address
+          walletAddress: address,
+          planType: selectedPlan
         });
 
         toast({
           variant: "destructive",
           title: "Connection Error",
-          description: "Pleasetry reconnecting your wallet"
+          description: "Please try reconnecting your wallet"
         });
         return;
       }
 
       try {
         const balance = usdtBalance ? BigInt(usdtBalance.toString()) : BigInt(0);
-        if (balance < currentPlan.amount) {
-          console.log('Insufficient balance:', {
-            required: currentPlan.amount.toString(),
-            actual: balance.toString(),
-            walletAddress: address
-          });
 
+        console.log('Checking balance for transfer:', {
+          required: currentPlan.amount.toString(),
+          actual: balance.toString(),
+          walletAddress: address,
+          planType: selectedPlan,
+          displayAmount: currentPlan.displayAmount
+        });
+
+        if (balance < currentPlan.amount) {
           toast({
             variant: "destructive",
             title: "Insufficient Balance",
-            description: `You need ${currentPlan.displayAmount} USDT. Current balance: ${formatUnits(balance,6)} USDT`
+            description: `You need ${currentPlan.displayAmount} USDT. Current balance: ${formatUnits(balance, 6)} USDT`
           });
           return;
         }
 
         setIsTransferring(true);
+
+        // Log the transfer attempt
+        console.log('Attempting transfer:', {
+          from: address,
+          to: TREASURY_ADDRESS,
+          amount: currentPlan.amount.toString(),
+          planType: selectedPlan,
+          displayAmount: currentPlan.displayAmount
+        });
 
         const { request } = await publicClient.simulateContract({
           address: USDT_CONTRACT_ADDRESS as Address,
@@ -909,11 +924,22 @@ export function MiningPlan() {
           account: address as Address,
         });
 
+        console.log('Contract simulation successful, proceeding with transaction');
+
         const hash = await walletClient.writeContract(request);
         setTransactionHash(hash);
         setIsValidating(true);
 
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        console.log('Transaction submitted:', {
+          hash,
+          planType: selectedPlan,
+          amount: currentPlan.amount.toString()
+        });
+
+        const receipt = await publicClient.waitForTransactionReceipt({ 
+          hash,
+          timeout: 60000 // Increase timeout to 60 seconds
+        });
 
         if (receipt.status !== 'success') {
           throw new Error('Transaction failed');
@@ -967,6 +993,7 @@ export function MiningPlan() {
         console.error('Transfer execution error:', {
           error: error instanceof Error ? error.message : 'Unknown error',
           walletAddress: address,
+          planType: selectedPlan,
           timestamp: new Date().toISOString()
         });
         setIsTransferring(false);
@@ -975,7 +1002,7 @@ export function MiningPlan() {
         toast({
           variant: "destructive",
           title: "Transfer Failed",
-          description: error instanceof Error
+          description: error instanceof Error 
             ? `Error: ${error.message}. Please try again.`
             : "Failed to transfer USDT. Please try again."
         });
@@ -984,6 +1011,7 @@ export function MiningPlan() {
       console.error('Critical error in transfer handling:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         walletAddress: address,
+        planType: selectedPlan,
         timestamp: new Date().toISOString()
       });
     } finally {

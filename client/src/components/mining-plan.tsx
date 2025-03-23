@@ -21,8 +21,6 @@ import { createPublicClient, http } from 'viem';
 import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
-import { NetworkHeartbeat } from "./network-heartbeat"; // Added import
-
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -1150,7 +1148,6 @@ export function MiningPlan() {
   return (
     <div className="space-y-6">
       <ReferralStats />
-      <NetworkHeartbeat />
       {isConnected && (
         <div>
           {!user?.hasClaimedFreeCPXTB ? (

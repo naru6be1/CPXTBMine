@@ -201,22 +201,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:address", async (req, res) => {
     try {
       const { address } = req.params;
+      const normalizedAddress = address.toLowerCase();
       const referredBy = req.query.ref as string;
 
       console.log('Fetching user data with detailed logging:', {
-        requestedAddress: address,
+        originalAddress: address,
+        normalizedAddress,
         referralCode: referredBy,
         timestamp: new Date().toISOString(),
-        headers: req.headers
+        headers: req.headers,
+        url: req.url,
+        method: req.method,
+        query: req.query
       });
 
-      // First check if user exists
-      let user = await storage.getUserByUsername(address);
+      // First check if user exists - try both original and normalized address
+      let user = await storage.getUserByUsername(normalizedAddress);
+
+      if (!user) {
+        // Try with original address if normalized failed
+        user = await storage.getUserByUsername(address);
+      }
 
       console.log('Database query result:', {
         userFound: !!user,
         userData: user,
-        requestedAddress: address
+        originalAddress: address,
+        normalizedAddress,
+        timestamp: new Date().toISOString()
       });
 
       if (!user) {
@@ -234,20 +246,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create new user with referral info
         const newUserData = {
-          username: address,
+          username: normalizedAddress, // Store normalized address
           password: 'not-used', // OAuth-based auth, password not used
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           referredBy: referredBy,
-          hasClaimedFreeCPXTB: false // Set initial value
+          hasClaimedFreeCPXTB: false
         };
 
-        console.log('Creating new user with data:', newUserData);
+        console.log('Creating new user with data:', {
+          ...newUserData,
+          timestamp: new Date().toISOString()
+        });
+
         user = await storage.createUser(newUserData);
       }
 
       // Add detailed response logging
       console.log('Sending user response:', {
-        address,
+        originalAddress: address,
+        normalizedAddress,
         user,
         timestamp: new Date().toISOString()
       });
@@ -257,7 +274,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Detailed error in user fetch/create:", {
         error: error.message,
         stack: error.stack,
-        timestamp: new Date().toISOString()
+        address: req.params.address,
+        normalizedAddress: req.params.address?.toLowerCase(),
+        timestamp: new Date().toISOString(),
+        headers: req.headers,
+        url: req.url
       });
       res.status(500).json({
         message: "Error fetching/creating user: " + error.message

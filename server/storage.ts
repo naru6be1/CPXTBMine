@@ -1,6 +1,6 @@
 import { users, miningPlans, type User, type InsertUser, type MiningPlan, type InsertMiningPlan } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -87,16 +87,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveMiningPlans(walletAddress: string): Promise<MiningPlan[]> {
+    const normalizedAddress = walletAddress.toLowerCase();
+    console.log('Fetching active plans for:', {
+      walletAddress: normalizedAddress,
+      currentTime: new Date().toISOString()
+    });
+
     return await db
       .select()
       .from(miningPlans)
       .where(
         and(
-          eq(miningPlans.walletAddress, walletAddress),
+          sql`LOWER(${miningPlans.walletAddress}) = ${normalizedAddress}`,
           eq(miningPlans.isActive, true),
+          eq(miningPlans.hasWithdrawn, false),
           gte(miningPlans.expiresAt, new Date())  // Only return plans that haven't expired yet
         )
-      );
+      )
+      .orderBy(miningPlans.createdAt, "desc");
   }
 
   async getMiningPlanByHash(transactionHash: string): Promise<MiningPlan | undefined> {
@@ -122,7 +130,7 @@ export class DatabaseStorage implements IStorage {
   async markPlanAsWithdrawn(planId: number): Promise<MiningPlan> {
     const [updatedPlan] = await db
       .update(miningPlans)
-      .set({ 
+      .set({
         hasWithdrawn: true,
         isActive: false  // Also mark the plan as inactive after withdrawal
       })

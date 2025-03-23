@@ -355,21 +355,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Log the incoming request
-      console.log('Creating mining plan with referral:', {
-        referralCode: req.body.referralCode,
-        walletAddress: req.body.walletAddress
+      console.log('Creating mining plan with details:', {
+        ...req.body,
+        timestamp: new Date().toISOString()
       });
 
       // Validate plan data against schema
       const planData = insertMiningPlanSchema.parse(req.body);
 
+      // Normalize addresses
+      planData.walletAddress = planData.walletAddress.toLowerCase();
+      planData.withdrawalAddress = planData.withdrawalAddress.toLowerCase();
+
       const plan = await storage.createMiningPlan(planData);
+
+      console.log('Mining plan created successfully:', {
+        planId: plan.id,
+        walletAddress: plan.walletAddress,
+        isActive: plan.isActive,
+        expiresAt: plan.expiresAt,
+        timestamp: new Date().toISOString()
+      });
+
       res.status(201).json({ plan });
     } catch (error: any) {
       console.error("Error creating mining plan:", error);
 
-      // Enhanced error handling for validation errors
       if (error.name === "ZodError") {
         const validationError = fromZodError(error);
         res.status(400).json({

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Coins, MessageCircle, Server, Cpu, Gift } from "lucide-react";
+import { Coins, MessageCircle, Server, Cpu, Gift, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
@@ -11,6 +11,7 @@ import { formatUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
 import { SiTelegram } from 'react-icons/si';
+import { FaTwitter } from 'react-icons/fa';
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -484,87 +485,50 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   );
 }
 
-// Add enhanced error logging to handleClaimFreeCPXTB
-const handleClaimFreeCPXTB = async () => {
-  if (!address || !isConnected) {
-    console.log('Claim attempt failed: Wallet not connected');
-    toast({
-      variant: "destructive",
-      title: "Wallet Not Connected",
-      description: "Please connect your wallet to claim free CPXTB"
-    });
-    return;
-  }
-
-  // Check device cooldown before proceeding
-  const lastDeviceClaim = localStorage.getItem('global_lastCPXTBClaimTime');
-  if (lastDeviceClaim) {
-    const lastClaimTime = new Date(lastDeviceClaim);
-    const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-    const now = new Date();
-
-    if (nextAvailableTime > now) {
-      const diffMs = nextAvailableTime.getTime() - now.getTime();
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      console.log('Claim blocked by device cooldown:', {
-        deviceId: localStorage.getItem('global_device_id'),
-        lastClaim: lastDeviceClaim,
-        nextAvailable: nextAvailableTime.toISOString(),
-        currentTime: now.toISOString()
-      });
-      toast({
-        variant: "destructive",
-        title: "Device Cooldown Active",
-        description: `Please wait ${hours}h ${minutes}m before claiming from this device`
-      });
-      return;
-    }
-  }
-
-  try {
-    console.log('Initiating CPXTB claim for address:', address);
-
-    const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ withdrawalAddress: address }),
-    });
-
-    console.log('Claim response status:', response.status);
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Claim error response:', error);
-      throw new Error(error.message || 'Failed to claim free CPXTB');
-    }
-
-    const result = await response.json();
-    console.log('Claim success:', result);
-
-    // Store the claim time in localStorage for global device tracking
-    localStorage.setItem('global_lastCPXTBClaimTime', new Date().toISOString());
-    console.log('Updated device cooldown timestamp');
-
-    await refetchUser();
-    await refetchActivePlans();
-
-    toast({
-      title: "Success!",
-      description: "Your free 10 CPXTB tokens have been claimed successfully!"
-    });
-  } catch (error) {
-    console.error('Error claiming CPXTB:', error);
-    toast({
-      variant: "destructive",
-      title: "Failed to claim",
-      description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
-    });
-  }
+// Add social sharing component
+const createShareMessage = (amount: string, type: 'claim' | 'reward') => {
+  const baseMessage = type === 'claim'
+    ? `Just claimed ${amount} CPXTB tokens on CPXTBMining! 🎉`
+    : `Successfully earned ${amount} CPXTB from my mining rewards! 💰`;
+  return `${baseMessage}\n\nJoin the mining revolution: https://cpxtbmining.com`;
 };
+
+// Update the SocialShareButtons component
+function SocialShareButtons({ amount, type }: { amount: string, type: 'claim' | 'reward' }) {
+  const message = createShareMessage(amount, type);
+  const encodedMessage = encodeURIComponent(message);
+
+  const shareToTwitter = () => {
+    window.open(`https://twitter.com/intent/tweet?text=${encodedMessage}`, '_blank');
+  };
+
+  const shareToTelegram = () => {
+    window.open(`https://t.me/share/url?url=https://cpxtbmining.com&text=${encodedMessage}`, '_blank');
+  };
+
+  return (
+    <div className="flex gap-2 justify-center mt-4">
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex items-center gap-2"
+        onClick={shareToTwitter}
+      >
+        <FaTwitter className="w-4 h-4 text-[#1DA1F2]" />
+        Share on Twitter
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="flex items-center gap-2"
+        onClick={shareToTelegram}
+      >
+        <SiTelegram className="w-4 h-4 text-[#229ED9]" />
+        Share on Telegram
+      </Button>
+    </div>
+  );
+}
 
 
 // Update the handleDistributeAll function
@@ -607,7 +571,7 @@ const handleDistributeAll = async () => {
     await refetchActivePlans();
   } catch (error) {
     console.error('Distribution error:', error);
-    toast({        variant: "destructive",
+    toast({ variant: "destructive",
       title: "Distribution Failed",
       description: error instanceof Error ? error.message : "Failed to process distributions"
     });
@@ -621,8 +585,8 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       {(Object.entries(PLANS) as [PlanType, PlanConfig][]).map(([type, plan]) => (
-        <Card 
-          key={type} 
+        <Card
+          key={type}
           className={`cursor-pointer hover:border-${plan.color} transition-colors`}
           onClick={() => onSelect(type)}
         >
@@ -929,7 +893,7 @@ export function MiningPlan() {
         const timeout = 30000; // 30 seconds
         const startTime = Date.now();
 
-        while (Date.now() - startTime < timeout) {
+        while (Date.now() - startTime < timeout< 30000) {
           if (chain?.id === BASE_CHAIN_ID) {
             console.log('Successfully switched to Base network');
             return true;
@@ -1004,7 +968,7 @@ export function MiningPlan() {
       setTransactionHash(hash);
       setIsValidating(true);
 
-      const receipt = await baseClient.waitForTransactionReceipt({hash });
+      const receipt = await baseClient.waitForTransactionReceipt({ hash });
 
       if (receipt.status !== 'success') {
         throw new Error('Transaction failed');
@@ -1020,11 +984,16 @@ export function MiningPlan() {
       await refetchActivePlans();
 
       toast({
-        title: "Rewards Distributed",
-        description: `Successfully sent ${plan.dailyRewardCPXTB} CPXTB to ${plan.withdrawalAddress}`
+        title: "Success!",
+        description: (
+          <div className="space-y-2">
+            <p>Successfully distributed {plan.dailyRewardCPXTB} CPXTB!</p>
+            <SocialShareButtons amount={plan.dailyRewardCPXTB} type="reward" />
+          </div>
+        )
       });
 
-    } catch(error) {
+    } catch (error) {
       console.error('Distribution error:', error);
       toast({
         variant: "destructive",
@@ -1091,7 +1060,12 @@ export function MiningPlan() {
 
       toast({
         title: "Success!",
-        description: "Your free 10 CPXTB tokens have been claimed successfully!"
+        description: (
+          <div className="space-y-2">
+            <p>Your free 10 CPXTB tokens have been claimed successfully!</p>
+            <SocialShareButtons amount="10" type="claim" />
+          </div>
+        )
       });
     } catch (error) {
       toast({
@@ -1142,7 +1116,7 @@ export function MiningPlan() {
       await refetchActivePlans();
     } catch (error) {
       console.error('Distribution error:', error);
-      toast({        variant: "destructive",
+      toast({ variant: "destructive",
         title: "Distribution Failed",
         description: error instanceof Error ? error.message : "Failed to process distributions"
       });
@@ -1320,7 +1294,7 @@ export function MiningPlan() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Button 
+            <Button
               onClick={handleDistributeAll}
               className="w-full"
               variant="default"

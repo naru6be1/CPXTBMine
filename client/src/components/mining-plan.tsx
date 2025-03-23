@@ -41,7 +41,7 @@ const BASE_BACKUP_RPC_URL = "https://mainnet.base.org"; // Fallback RPC
 // Configure Base chain with correct settings
 const baseChain = base;
 
-// Standard ERC20 ABI with complete interface
+// Update ERC20 ABI to match CPXTB usage
 const ERC20_ABI = [
   {
     "inputs": [
@@ -51,26 +51,6 @@ const ERC20_ABI = [
     "name": "transfer",
     "outputs": [{ "name": "", "type": "bool" }],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "name": "spender", "type": "address" },
-      { "name": "value", "type": "uint256" }
-    ],
-    "name": "approve",
-    "outputs": [{ "name": "", "type": "bool" }],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "name": "owner", "type": "address" },
-      { "name": "spender", "type": "address" }
-    ],
-    "name": "allowance",
-    "outputs": [{ "name": "", "type": "uint256" }],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -783,168 +763,140 @@ export function MiningPlan() {
         return;
       }
 
-      if (!address) {
-        toast({
-          variant: "destructive",
-          title: "Wallet Not Connected",
-          description: "Please connect your wallet to continue"
-        });
-        return;
-      }
-
-      if (!walletClient || !publicClient) {
+      if (!address || !walletClient || !publicClient) {
         toast({
           variant: "destructive",
           title: "Connection Error",
-          description: "Please try reconnecting your wallet"
+          description: "Please connect your wallet"
         });
         return;
       }
 
-      const planAmount = parseUnits(PLANS[selectedPlan].amount, 6); // USDT uses 6 decimals
+      const planAmount = BigInt(PLANS[selectedPlan].amount);
 
-      console.log('Starting USDT transfer with configuration:', {
-        from: address,
-        to: TREASURY_ADDRESS,
-        amount: planAmount.toString(),
-        planType: selectedPlan,
-        network: chain.id
-      });
-
-      // First check allowance
-      const allowance = await publicClient.readContract({
-        address: USDT_CONTRACT_ADDRESS,
-        abi: ERC20_ABI,
-        functionName: 'allowance',
-        args: [address as `0x${string}`, TREASURY_ADDRESS],
-        account: address as `0x${string}`
-      });
-
-      console.log('Current allowance:', {
-        current: allowance.toString(),
-        required: planAmount.toString()
-      });
-
-      // If allowance is insufficient, request approval
-      if (allowance < planAmount) {
-        console.log('Requesting approval for:', planAmount.toString());
-
-        const { request: approvalRequest } = await publicClient.simulateContract({
-          address: USDT_CONTRACT_ADDRESS,
-          abi: ERC20_ABI,
-          functionName: 'approve',
-          args: [TREASURY_ADDRESS, planAmount],
-          account: address as `0x${string}`
+      try {
+        // First verify contract exists
+        const code = await publicClient.getBytecode({
+          address: USDT_CONTRACT_ADDRESS
         });
 
-        const approvalHash = await walletClient.writeContract(approvalRequest);
-        console.log('Approval transaction submitted:', approvalHash);
+        if (!code) {
+          throw new Error('USDT contract not found');
+        }
 
-        // Wait for approval confirmation with timeout
-        const approvalReceipt = await publicClient.waitForTransactionReceipt({
-          hash: approvalHash,          timeout: 60000,
+        // Check balance
+        const balance = await publicClient.readContract({
+          address: USDT_CONTRACT_ADDRESS,
+          abi: ERC20_ABI,
+          functionName: 'balanceOf',
+          args: [address]
+        });
+
+        console.log('Balance check:', {
+          required: planAmount.toString(),
+          actual: balance.toString(),
+          walletAddress: address
+        });
+
+        if (balance < planAmount) {
+          toast({
+            variant: "destructive",
+            title: "Insufficient Balance",
+            description: `You need ${formatUnits(planAmount, 6)} USDT. Current balance: ${formatUnits(balance, 6)} USDT`
+          });
+          return;
+        }
+
+        setIsTransferring(true);
+
+        // Simulate the transfer before executing
+        const { request } = await publicClient.simulateContract({
+          address: USDT_CONTRACT_ADDRESS,
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [TREASURY_ADDRESS, planAmount],
+          account: address
+        });
+
+        const hash = await walletClient.writeContract(request);
+
+        setTransactionHash(hash);
+        setIsValidating(true);
+
+        console.log('Transaction submitted:', hash);
+
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          timeout: 60000,
           confirmations: 2
         });
 
-        if (approvalReceipt.status !== 'success') {
-          throw new Error('USDT approval failed');
+        if (receipt.status !== 'success') {
+          throw new Error('USDT transfer failed');
         }
 
-        console.log('USDT approval confirmed:', approvalReceipt);
+        console.log('Transfer confirmed');
+
+        setIsConfirmed(true);
+
+        // Create mining plan after successful transfer
+        const activationTime = new Date();
+        const expiresAt = new Date(activationTime.getTime() + 
+          (selectedPlan === 'gold' ? 7 : selectedPlan === 'silver' ? 2 : 1) * 24 * 60 * 60 * 1000
+        );
+
+        const planDetails = {
+          walletAddress: address,
+          withdrawalAddress: address,
+          planType: selectedPlan,
+          amount: PLANS[selectedPlan].displayAmount,
+          dailyRewardCPXTB,dailyRewardCPXTB,
+          activatedAt: activationTime.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          transactionHash: hash,
+          referralCode: referralCode
+        };
+
+        const response = await fetch('/api/mining-plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(planDetails),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to save mining plan');
+        }
+
+        await refetchActivePlans();
+        if (user?.referralCode) {
+          await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
+        }
+
+        toast({
+          title: "Plan Activated",
+          description: "Your mining plan has been successfully activated!"
+        });
+
+      } catch (error) {
+        console.error('Transfer error:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          walletAddress: address,
+          planType: selectedPlan,
+          contractAddress: USDT_CONTRACT_ADDRESS
+        });
+
+        toast({
+          variant: "destructive",
+          title: "Transfer Failed",
+          description: error instanceof Error ? error.message : "Failed to transfer USDT"
+        });
+      } finally {
+        setIsTransferring(false);
+        setIsValidating(false);
       }
-
-      // Now proceed with transfer
-      const { request } = await publicClient.simulateContract({
-        address: USDT_CONTRACT_ADDRESS,
-        abi: ERC20_ABI,
-        functionName: 'transfer',
-        args: [TREASURY_ADDRESS, planAmount],
-        account: address as `0x${string}`
-      });
-
-      console.log('Transfer simulation successful:', {
-        to: TREASURY_ADDRESS,
-        amount: planAmount.toString()
-      });
-
-      const hash = await walletClient.writeContract(request);
-      setTransactionHash(hash);
-      setIsValidating(true);
-
-      console.log('Transfer transaction submitted:', hash);
-
-      // Wait for confirmation with increased timeout and confirmations
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash,
-        timeout: 60000,
-        confirmations: 2
-      });
-
-      if (receipt.status !== 'success') {
-        throw new Error('USDT transfer failed');
-      }
-
-      console.log('Transfer confirmed:', receipt);
-
-      setIsConfirmed(true);
-
-      // Create mining plan
-      const activationTime = new Date();
-      const expiresAt = new Date(activationTime.getTime() + 
-        (selectedPlan === 'gold' ? 7 : selectedPlan === 'silver' ? 2 : 1) * 24 * 60 * 60 * 1000
-      );
-
-      const planDetails = {
-        walletAddress: address,
-        withdrawalAddress: address,
-        planType: selectedPlan,
-        amount: PLANS[selectedPlan].displayAmount,
-        dailyRewardCPXTB: dailyRewardCPXTB,
-        activatedAt: activationTime.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        transactionHash: hash,
-        referralCode: referralCode
-      };
-
-      const response = await fetch('/api/mining-plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(planDetails),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save mining plan');
-      }
-
-      await refetchActivePlans();
-      if (user?.referralCode) {
-        await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
-      }
-
-      toast({
-        title: "Plan Activated",
-        description: "Your mining plan has been successfully activated!"
-      });
-
     } catch (error) {
-      console.error('Transfer execution error:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        walletAddress: address,
-        planType: selectedPlan,
-        contractAddress: USDT_CONTRACT_ADDRESS
-      });
-      setIsTransferring(false);
-      setIsValidating(false);
-
-      toast({
-        variant: "destructive",
-        title: "Transfer Failed",
-        description: error instanceof Error ? 
-          `Error: ${error.message}. Please try again.` : 
-          "Failed to transfer USDT. Please try again."
-      });
-    } finally {
+      console.error('Critical error:', error);
       setIsTransferring(false);
     }
   };

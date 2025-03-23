@@ -29,8 +29,8 @@ const { chains } = configureChains(
 );
 
 // Constants
-const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`; // Ethereum Mainnet USDT
-const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27" as `0x${string}`;
+const USDT_CONTRACT_ADDRESS = "0xdac17f958d2ee523a2206206994597c13d831ec7" as `0x${string}`; // Ethereum Mainnet USDT
+const TREASURY_ADDRESS = "0xce3cb5b5a05edc80594f84740fd077c80292bd27" as `0x${string}`;
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b" as const; // Base network CPXTB
 const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004" as const; // Base network WETH
 const BASE_CHAIN_ID = 8453;
@@ -57,6 +57,82 @@ const ERC20_ABI = [
     "inputs": [{ "name": "account", "type": "address" }],
     "name": "balanceOf",
     "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const;
+
+// USDT Contract ABI from Etherscan (verified contract)
+const USDT_ABI = [
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "name",
+    "outputs": [{ "name": "", "type": "string" }],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [{ "name": "_spender", "type": "address" }, { "name": "_value", "type": "uint256" }],
+    "name": "approve",
+    "outputs": [{ "name": "", "type": "bool" }],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "totalSupply",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [{ "name": "_from", "type": "address" }, { "name": "_to", "type": "address" }, { "name": "_value", "type": "uint256" }],
+    "name": "transferFrom",
+    "outputs": [{ "name": "", "type": "bool" }],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "decimals",
+    "outputs": [{ "name": "", "type": "uint8" }],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [{ "name": "_owner", "type": "address" }],
+    "name": "balanceOf",
+    "outputs": [{ "name": "balance", "type": "uint256" }],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [{ "name": "_to", "type": "address" }, { "name": "_value", "type": "uint256" }],
+    "name": "transfer",
+    "outputs": [{ "name": "", "type": "bool" }],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [{ "name": "_owner", "type": "address" }, { "name": "_spender", "type": "address" }],
+    "name": "allowance",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "payable": false,
     "stateMutability": "view",
     "type": "function"
   }
@@ -731,7 +807,7 @@ export function MiningPlan() {
   // USDT Balance Check
   const { data: usdtBalance, isError: isBalanceError } = useContractRead({
     address: USDT_CONTRACT_ADDRESS as Address,
-    abi: ERC20_ABI,
+    abi: USDT_ABI,
     functionName: 'balanceOf',
     args: [address as Address],
     enabled: !!address && chain?.id === 1,
@@ -744,7 +820,7 @@ export function MiningPlan() {
     if (isBalanceError) return "Error loading balance";
     if (!usdtBalance) return "0 USDT";
     try {
-      return `${formatUnits(usdtBalance, 6)} USDT`;
+      return `${formatUnits(usdtBalance,6)} USDT`;
     } catch (error) {
       console.error('Error formatting balance:', error);
       return "Error displaying balance";
@@ -772,8 +848,6 @@ export function MiningPlan() {
         return;
       }
 
-      const planAmount = BigInt(PLANS[selectedPlan].amount);
-
       try {
         // First verify contract exists
         const code = await publicClient.getBytecode({
@@ -784,25 +858,33 @@ export function MiningPlan() {
           throw new Error('USDT contract not found');
         }
 
-        // Check balance
+        const planAmountRaw = PLANS[selectedPlan].amount;
+        console.log('Plan amount:', {
+          raw: planAmountRaw,
+          selectedPlan,
+          displayAmount: PLANS[selectedPlan].displayAmount
+        });
+
+        // Get USDT balance
         const balance = await publicClient.readContract({
           address: USDT_CONTRACT_ADDRESS,
-          abi: ERC20_ABI,
+          abi: USDT_ABI,
           functionName: 'balanceOf',
-          args: [address]
+          args: [address as `0x${string}`]
         });
 
         console.log('Balance check:', {
-          required: planAmount.toString(),
+          required: planAmountRaw,
           actual: balance.toString(),
-          walletAddress: address
+          walletAddress: address,
+          contractAddress: USDT_CONTRACT_ADDRESS
         });
 
-        if (balance < planAmount) {
+        if (balance < BigInt(planAmountRaw)) {
           toast({
             variant: "destructive",
             title: "Insufficient Balance",
-            description: `You need ${formatUnits(planAmount, 6)} USDT. Current balance: ${formatUnits(balance, 6)} USDT`
+            description: `You need ${PLANS[selectedPlan].displayAmount} USDT. Current balance: ${formatUnits(balance, 6)} USDT`
           });
           return;
         }
@@ -812,18 +894,30 @@ export function MiningPlan() {
         // Simulate the transfer before executing
         const { request } = await publicClient.simulateContract({
           address: USDT_CONTRACT_ADDRESS,
-          abi: ERC20_ABI,
+          abi: USDT_ABI,
           functionName: 'transfer',
-          args: [TREASURY_ADDRESS, planAmount],
-          account: address
+          args: [
+            TREASURY_ADDRESS,
+            BigInt(planAmountRaw)
+          ],
+          account: address as `0x${string}`
+        });
+
+        console.log('Transfer simulation successful:', {
+          to: TREASURY_ADDRESS,
+          amount: planAmountRaw,
+          simulation: request
         });
 
         const hash = await walletClient.writeContract(request);
-
         setTransactionHash(hash);
         setIsValidating(true);
 
-        console.log('Transaction submitted:', hash);
+        console.log('Transaction submitted:', {
+          hash,
+          to: TREASURY_ADDRESS,
+          amount: planAmountRaw
+        });
 
         const receipt = await publicClient.waitForTransactionReceipt({
           hash,
@@ -832,16 +926,16 @@ export function MiningPlan() {
         });
 
         if (receipt.status !== 'success') {
-          throw new Error('USDT transfer failed');
+          throw new Error('Transaction failed');
         }
 
-        console.log('Transfer confirmed');
+        console.log('Transaction confirmed:', receipt);
 
         setIsConfirmed(true);
 
-        // Create mining plan after successful transfer
+        // Create mining plan
         const activationTime = new Date();
-        const expiresAt = new Date(activationTime.getTime() + 
+        const expiresAt = new Date(activationTime.getTime() +
           (selectedPlan === 'gold' ? 7 : selectedPlan === 'silver' ? 2 : 1) * 24 * 60 * 60 * 1000
         );
 
@@ -850,12 +944,14 @@ export function MiningPlan() {
           withdrawalAddress: address,
           planType: selectedPlan,
           amount: PLANS[selectedPlan].displayAmount,
-          dailyRewardCPXTB,dailyRewardCPXTB,
+          dailyRewardCPXTB,
           activatedAt: activationTime.toISOString(),
           expiresAt: expiresAt.toISOString(),
           transactionHash: hash,
           referralCode: referralCode
         };
+
+        console.log('Creating mining plan:', planDetails);
 
         const response = await fetch('/api/mining-plans', {
           method: 'POST',

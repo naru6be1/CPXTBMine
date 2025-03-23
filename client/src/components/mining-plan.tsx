@@ -636,6 +636,42 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
   );
 }
 
+// Fix the problematic sections
+
+// Fix the verifyBaseNetwork function
+const verifyBaseNetwork = async () => {
+  if (chain?.id !== BASE_CHAIN_ID) {
+    console.log('Current chain:', chain?.id, 'Switching to Base:', BASE_CHAIN_ID);
+
+    try {
+      if (!switchNetwork) {
+        throw new Error('Network switching not supported');
+      }
+
+      await switchNetwork(BASE_CHAIN_ID);
+
+      // Wait for network switch with timeout
+      const timeout = 30000; // 30 seconds
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < timeout) {
+        if (chain?.id === BASE_CHAIN_ID) {
+          console.log('Successfully switched to Base network');
+          return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('Waiting for network switch, current chain:', chain?.id);
+      }
+
+      throw new Error('Network switch timeout');
+    } catch (error) {
+      console.error('Network switch error:', error);
+      throw new Error(`Failed to switch to Base network: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  return true;
+};
+
 export function MiningPlan() {
   // State management
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('bronze');

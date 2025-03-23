@@ -197,24 +197,34 @@ async function checkAndDistributeMaturedPlans() {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Update user endpoint with debug logging
+  // Update user endpoint with additional logging and error handling
   app.get("/api/users/:address", async (req, res) => {
     try {
       const { address } = req.params;
       const referredBy = req.query.ref as string;
 
-      console.log('Fetching user data:', { address, referredBy });
+      console.log('Fetching user data with detailed logging:', {
+        requestedAddress: address,
+        referralCode: referredBy,
+        timestamp: new Date().toISOString(),
+        headers: req.headers
+      });
 
       // First check if user exists
       let user = await storage.getUserByUsername(address);
 
-      console.log('Existing user data:', user);
+      console.log('Database query result:', {
+        userFound: !!user,
+        userData: user,
+        requestedAddress: address
+      });
 
       if (!user) {
         // If referral code provided, verify it exists
         if (referredBy) {
           const referrer = await storage.getUserByReferralCode(referredBy);
           if (!referrer) {
+            console.log('Invalid referral code:', referredBy);
             res.status(400).json({
               message: "Invalid referral code"
             });
@@ -235,10 +245,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user = await storage.createUser(newUserData);
       }
 
-      console.log('Returning user data:', user);
+      // Add detailed response logging
+      console.log('Sending user response:', {
+        address,
+        user,
+        timestamp: new Date().toISOString()
+      });
+
       res.json({ user });
     } catch (error: any) {
-      console.error("Error fetching/creating user:", error);
+      console.error("Detailed error in user fetch/create:", {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
       res.status(500).json({
         message: "Error fetching/creating user: " + error.message
       });

@@ -19,6 +19,7 @@ export const miningPlans = pgTable("mining_plans", {
   amount: text("amount").notNull(),
   dailyRewardCPXTB: text("daily_reward_cpxtb").notNull(),
   activatedAt: timestamp("activated_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   transactionHash: text("transaction_hash").notNull(),
@@ -42,7 +43,8 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
     id: true,
     isActive: true,
     hasWithdrawn: true,
-    referralRewardPaid: true
+    referralRewardPaid: true,
+    createdAt: true
   })
   .extend({
     amount: z.string(),

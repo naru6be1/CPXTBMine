@@ -1,6 +1,6 @@
 import { users, miningPlans, type User, type InsertUser, type MiningPlan, type InsertMiningPlan } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, sql } from "drizzle-orm";
+import { eq, and, gte, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -22,9 +22,6 @@ export interface IStorage {
   getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]>;
   markReferralRewardPaid(planId: number): Promise<MiningPlan>;
   getReferralPlans(referralCode: string): Promise<MiningPlan[]>;
-  // Update for CPXTB claims
-  updateLastCPXTBClaimTime(username: string): Promise<User>;
-  claimFreeCPXTB(username: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -104,7 +101,7 @@ export class DatabaseStorage implements IStorage {
           gte(miningPlans.expiresAt, new Date())  // Only return plans that haven't expired yet
         )
       )
-      .orderBy(miningPlans.createdAt, "desc");
+      .orderBy(desc(miningPlans.activatedAt)); // Order by activation time, most recent first
   }
 
   async getMiningPlanByHash(transactionHash: string): Promise<MiningPlan | undefined> {
@@ -176,24 +173,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(miningPlans)
       .where(eq(miningPlans.referralCode, referralCode));
-  }
-
-  async claimFreeCPXTB(username: string): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ hasClaimedFreeCPXTB: true })
-      .where(eq(users.username, username))
-      .returning();
-    return user;
-  }
-
-  async updateLastCPXTBClaimTime(username: string): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ lastCPXTBClaimTime: new Date() })
-      .where(eq(users.username, username))
-      .returning();
-    return user;
   }
 }
 

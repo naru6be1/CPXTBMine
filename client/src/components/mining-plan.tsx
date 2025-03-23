@@ -29,8 +29,8 @@ const { chains } = configureChains(
 );
 
 // Constants
-const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as const; // Ethereum Mainnet USDT
-const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27" as const;
+const USDT_CONTRACT_ADDRESS = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`; // Ethereum Mainnet USDT
+const TREASURY_ADDRESS = "0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27" as `0x${string}`;
 const CPXTB_CONTRACT_ADDRESS = "0x96A0cc3C0fc5D07818E763E1B25bc78ab4170D1b" as const; // Base network CPXTB
 const WETH_CONTRACT_ADDRESS = "0x4300000000000000000000000000000000000004" as const; // Base network WETH
 const BASE_CHAIN_ID = 8453;
@@ -849,546 +849,548 @@ export function MiningPlan() {
           abi: ERC20_ABI,
           functionName: 'transfer',
           args: [TREASURY_ADDRESS, currentPlan.amount],
-          account: address
+          account: address as `0x${string}`
         });
 
         console.log('Contract simulation successful, proceeding with transaction');
 
         // Execute the actual transfer
         const hash = await walletClient.writeContract(request);
+        setTransactionHash(hash);
+        setIsValidating(true);
+
+        console.log('Transaction submitted:', {
+          hash,
+          planType: selectedPlan,
+          amount: currentPlan.amount.toString()
+        });
+
+        // Wait for confirmation with timeout
+        const receipt = await publicClient.waitForTransactionReceipt({
+          hash,
+          timeout: 60000,
+          confirmations: 1
+        });
+
+        if (receipt.status !== 'success') {
+          throw new Error('Transaction failed');
+        }
+
+        setIsConfirmed(true);
+
+        const activationTime = new Date();
+        const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'gold' ? 7 : (selectedPlan === 'silver' ? 2 : 1)) * 24 * 60 * 60 * 1000);
+
+        const planDetails = {
+          walletAddress: address,
+          withdrawalAddress: address,
+          planType: selectedPlan,
+          amount: currentPlan.displayAmount,
+          dailyRewardCPXTB,
+          activatedAt: activationTime.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          transactionHash: hash,
+          referralCode: referralCode
+        };
+
+        console.log('Creating mining plan with details:', {
+          ...planDetails,
+          timestamp: new Date().toISOString()
+        });
+
+        const response = await fetch('/api/mining-plans', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(planDetails),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to save mining plan');
+        }
+
+        await refetchActivePlans();
+        if (user?.referralCode) {
+          await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
+        }
+
+        toast({
+          title: "Plan Activated",
+          description: "Your mining plan has been successfully activated!"
+        });
+
+      } catch (error) {
+        console.error('Transfer execution error:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          walletAddress: address,
+          planType: selectedPlan,
+          contractAddress: USDT_CONTRACT_ADDRESS,
+          timestamp: new Date().toISOString()
+        });
+        setIsTransferring(false);
+        setIsValidating(false);
+
+        // Show more specific error message
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        toast({
+          variant: "destructive",
+          title: "Transfer Failed",
+          description: `Error: ${errorMessage}. Please try again or contact support if the issue persists.`
+        });
+      }
+    } catch (error) {
+      console.error('Critical error in transfer handling:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        walletAddress: address,
+        planType: selectedPlan,
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
+  // Function to verify and enforce Base network
+  const verifyBaseNetwork = async () => {
+    if (chain?.id !== BASE_CHAIN_ID) {
+      console.log('Current chain:', chain?.id, 'Switching to Base:', BASE_CHAIN_ID);
+
+      try {
+        if (!switchNetwork) {
+          throw new Error('Network switching not supported');
+        }
+
+        await switchNetwork(BASE_CHAIN_ID);
+
+        // Wait for network switch with timeout
+        const timeout = 30000; // 30 seconds
+        const startTime = Date.now();
+
+        while (Date.now() - startTime < timeout) {
+          if (chain?.id === BASE_CHAIN_ID) {
+            console.log('Successfully switched to Base network');
+            return true;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log('Waiting for network switch, current chain:', chain?.id);
+        }
+
+        throw new Error('Network switch timeout');
+      } catch (error) {
+        console.error('Network switch error:', error);
+        throw new Error(`Failed to switch to Base network: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+    return true;
+  };
+
+  const handleClaimRewards = async (plan: MiningPlan) => {
+    try {
+      // First, verify and enforce Base network
+      await verifyBaseNetwork();
+
+      if (!walletClient || !publicClient) {
+        throw new Error('Wallet not connected');
+      }
+
+      // Verify contract exists
+      const code = await baseClient.getBytecode({
+        address: CPXTB_CONTRACT_ADDRESS as Address
+      });
+
+      if (!code) {
+        throw new Error(`No contract found at ${CPXTB_CONTRACT_ADDRESS} on Base network`);
+      }
+
+      console.log('Contract verification successful');
+
+      // Convert reward amount to proper decimals (18 decimals for CPXTB)
+      const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
+      const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
+
+      console.log('Distribution details:', {
+        amount: rewardAmount,
+        amountInWei: rewardInWei.toString(),
+        recipient: plan.withdrawalAddress,
+        contract: CPXTB_CONTRACT_ADDRESS,
+        chainId: chain?.id
+      });
+
+      // Use the wallet client directly with the Base chain
+      const { request } = await baseClient.simulateContract({
+        address: CPXTB_CONTRACT_ADDRESS as Address,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [plan.withdrawalAddress as Address, rewardInWei],
+        account: address as Address,
+        chain: baseChain
+      });
+
+      // Execute the transaction
+      const hash = await walletClient.writeContract({
+        ...request,
+        chain: baseChain
+      });
+
       setTransactionHash(hash);
       setIsValidating(true);
 
-      console.log('Transaction submitted:', {
-        hash,
-        planType: selectedPlan,
-        amount: currentPlan.amount.toString()
-      });
-
-      // Wait for confirmation with timeout
-      const receipt = await publicClient.waitForTransactionReceipt({
-        hash,
-        timeout: 60000, // 60 seconds timeout
-        confirmations: 1
-      });
+      const receipt = await baseClient.waitForTransactionReceipt({ hash });
 
       if (receipt.status !== 'success') {
         throw new Error('Transaction failed');
       }
 
-      setIsConfirmed(true);
-
-      const activationTime = new Date();
-      const expiresAt = new Date(activationTime.getTime() + (selectedPlan === 'gold' ? 7 : (selectedPlan === 'silver' ? 2 : 1)) * 24 * 60 * 60 * 1000);
-
-      const planDetails = {
-        walletAddress: address,
-        withdrawalAddress: address,
-        planType: selectedPlan,
-        amount: currentPlan.displayAmount,
-        dailyRewardCPXTB,
-        activatedAt: activationTime.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        transactionHash: hash,
-        referralCode: referralCode
-      };
-
-      console.log('Creating mining plan with details:', {
-        ...planDetails,
-        timestamp: new Date().toISOString()
+      // Update backend
+      await apiRequest("POST", `/api/mining-plans/${plan.id}/withdraw`, {
+        transactionHash: hash
       });
 
-      const response = await fetch('/api/mining-plans', {
+      setIsConfirmed(true);
+      await refetchClaimablePlans();
+      await refetchActivePlans();
+
+      toast({
+        title: "Success!",
+        description: (
+          <div className="space-y-2">
+            <p>Successfully distributed {plan.dailyRewardCPXTB} CPXTB!</p>
+            <SocialShareButtons amount={plan.dailyRewardCPXTB} type="reward" />
+          </div>
+        )
+      });
+
+    } catch (error) {
+      console.error('Distribution error:', error);
+      toast({
+        variant: "destructive",
+        title: "Distribution Failed",
+        description: error instanceof Error ? error.message : "Failed to distribute rewards"
+      });
+    } finally {
+      setIsTransferring(false);
+      setIsValidating(false);
+    }
+  };
+
+  // Handle free CPXTB claim
+  const handleClaimFreeCPXTB = async () => {
+    if (!address || !isConnected) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to claim free CPXTB"
+      });
+      return;
+    }
+
+    // Check device cooldown before proceeding
+    const lastDeviceClaim = localStorage.getItem('global_lastCPXTBClaimTime');
+    if (lastDeviceClaim) {
+      const lastClaimTime = new Date(lastDeviceClaim);
+      const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+      const now = new Date();
+
+      if (nextAvailableTime > now) {
+        const diffMs = nextAvailableTime.getTime() - now.getTime();
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        toast({
+          variant: "destructive",
+          title: "Device Cooldown Active",
+          description: `Please wait ${hours}h ${minutes}m before claiming from this device`
+        });
+        return;
+      }
+    }
+
+    try {
+      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(planDetails),
+        body: JSON.stringify({ withdrawalAddress: address }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save mining plan');
+        const error = await response.json();
+        throw new Error(error.message);
       }
 
+      // Store the claim time in localStorage for global device tracking
+      localStorage.setItem('global_lastCPXTBClaimTime', new Date().toISOString());
+
+      await refetchUser();
       await refetchActivePlans();
-      if (user?.referralCode) {
-        await queryClient.invalidateQueries({ queryKey: ['referralStats', user.referralCode] });
-      }
 
       toast({
-        title: "Plan Activated",
-        description: "Your mining plan has been successfully activated!"
-      });
-
-    } catch (error) {
-      console.error('Transfer execution error:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        walletAddress: address,
-        planType: selectedPlan,
-        contractAddress: USDT_CONTRACT_ADDRESS,
-        timestamp: new Date().toISOString()
-      });
-      setIsTransferring(false);
-      setIsValidating(false);
-
-      toast({
-        variant: "destructive",
-        title: "Transfer Failed",
-        description: "Failed to transfer USDT. Please verify your wallet has sufficient balance and try again."
-      });
-    }
-  } catch (error) {
-    console.error('Critical error in transfer handling:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      walletAddress: address,
-      planType: selectedPlan,
-      timestamp: new Date().toISOString()
-    });
-  } finally {
-    setIsTransferring(false);
-  }
-};
-
-// Function to verify and enforce Base network
-const verifyBaseNetwork = async () => {
-  if (chain?.id !== BASE_CHAIN_ID) {
-    console.log('Current chain:', chain?.id, 'Switching to Base:', BASE_CHAIN_ID);
-
-    try {
-      if (!switchNetwork) {
-        throw new Error('Network switching not supported');
-      }
-
-      await switchNetwork(BASE_CHAIN_ID);
-
-      // Wait for network switch with timeout
-      const timeout = 30000; // 30 seconds
-      const startTime = Date.now();
-
-      while (Date.now() - startTime < timeout) {
-        if (chain?.id === BASE_CHAIN_ID) {
-          console.log('Successfully switched to Base network');
-          return true;
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('Waiting for network switch, current chain:', chain?.id);
-      }
-
-      throw new Error('Network switch timeout');
-    } catch (error) {
-      console.error('Network switch error:', error);
-      throw new Error(`Failed to switch to Base network: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-  return true;
-};
-
-const handleClaimRewards = async (plan: MiningPlan) => {
-  try {
-    // First, verify and enforce Base network
-    await verifyBaseNetwork();
-
-    if (!walletClient || !publicClient) {
-      throw new Error('Wallet not connected');
-    }
-
-    // Verify contract exists
-    const code = await baseClient.getBytecode({
-      address: CPXTB_CONTRACT_ADDRESS as Address
-    });
-
-    if (!code) {
-      throw new Error(`No contract found at ${CPXTB_CONTRACT_ADDRESS} on Base network`);
-    }
-
-    console.log('Contract verification successful');
-
-    // Convert reward amount to proper decimals (18 decimals for CPXTB)
-    const rewardAmount = parseFloat(plan.dailyRewardCPXTB);
-    const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
-
-    console.log('Distribution details:', {
-      amount: rewardAmount,
-      amountInWei: rewardInWei.toString(),
-      recipient: plan.withdrawalAddress,
-      contract: CPXTB_CONTRACT_ADDRESS,
-      chainId: chain?.id
-    });
-
-    // Use the wallet client directly with the Base chain
-    const { request } = await baseClient.simulateContract({
-      address: CPXTB_CONTRACT_ADDRESS as Address,
-      abi: ERC20_ABI,
-      functionName: 'transfer',
-      args: [plan.withdrawalAddress as Address, rewardInWei],
-      account: address as Address,
-      chain: baseChain
-    });
-
-    // Execute the transaction
-    const hash = await walletClient.writeContract({
-      ...request,
-      chain: baseChain
-    });
-
-    setTransactionHash(hash);
-    setIsValidating(true);
-
-    const receipt = await baseClient.waitForTransactionReceipt({ hash });
-
-    if (receipt.status !== 'success') {
-      throw new Error('Transaction failed');
-    }
-
-    // Update backend
-    await apiRequest("POST", `/api/mining-plans/${plan.id}/withdraw`, {
-      transactionHash: hash
-    });
-
-    setIsConfirmed(true);
-    await refetchClaimablePlans();
-    await refetchActivePlans();
-
-    toast({
-      title: "Success!",
-      description: (
-        <div className="space-y-2">
-          <p>Successfully distributed {plan.dailyRewardCPXTB} CPXTB!</p>
-          <SocialShareButtons amount={plan.dailyRewardCPXTB} type="reward" />
-        </div>
-      )
-    });
-
-  } catch (error) {
-    console.error('Distribution error:', error);
-    toast({
-      variant: "destructive",
-      title: "Distribution Failed",
-      description: error instanceof Error ? error.message : "Failed to distribute rewards"
-    });
-  } finally {
-    setIsTransferring(false);
-    setIsValidating(false);
-  }
-};
-
-// Handle free CPXTB claim
-const handleClaimFreeCPXTB = async () => {
-  if (!address || !isConnected) {
-    toast({
-      variant: "destructive",
-      title: "Wallet Not Connected",
-      description: "Please connect your wallet to claim free CPXTB"
-    });
-    return;
-  }
-
-  // Check device cooldown before proceeding
-  const lastDeviceClaim = localStorage.getItem('global_lastCPXTBClaimTime');
-  if (lastDeviceClaim) {
-    const lastClaimTime = new Date(lastDeviceClaim);
-    const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-    const now = new Date();
-
-    if (nextAvailableTime > now) {
-      const diffMs = nextAvailableTime.getTime() - now.getTime();
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
-      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      toast({
-        variant: "destructive",
-        title: "Device Cooldown Active",
-        description: `Please wait ${hours}h ${minutes}m before claiming from this device`
-      });
-      return;
-    }
-  }
-
-  try {
-    const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ withdrawalAddress: address }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message);
-    }
-
-    // Store the claim time in localStorage for global device tracking
-    localStorage.setItem('global_lastCPXTBClaimTime', new Date().toISOString());
-
-    await refetchUser();
-    await refetchActivePlans();
-
-    toast({
-      title: "Success!",
-      description: (
-        <div className="space-y-2">
-          <p>Your free 10 CPXTB tokens have been claimed successfully!</p>
-          <SocialShareButtons amount="10" type="claim" />
-        </div>
-      )
-    });
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Failed to claim",
-      description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
-    });
-  }
-};
-
-// Update the handleDistributeAll function
-const handleDistributeAll = async () => {
-  try {
-    setIsTransferring(true);
-
-    // First, verify and enforce Base network
-    await verifyBaseNetwork();
-
-    toast({
-      title: "Processing Distributions",
-      description: "Starting the distribution process, please wait..."
-    });
-
-    const response = await fetch('/api/mining-plans/distribute-all', {
-      method: 'POST',
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message);
-    }
-
-    const data = await response.json();
-    console.log('Distribution results:', data);
-
-    const successCount = data.results.filter((r: any) => r.success).length;
-    const failedCount = data.results.length - successCount;
-
-    toast({
-      variant: successCount > 0 ? "default" : "destructive",
-      title: "Distribution Status",
-      description: `${data.message}${failedCount > 0 ?
-        `\nFailed distributions: ${failedCount}. Check Base network connection or try again.` : ''}`
-    });
-
-    // Refresh the plans
-    await refetchClaimablePlans();
-    await refetchActivePlans();
-  } catch (error) {
-    console.error('Distribution error:', error);
-    toast({ variant: "destructive",
-      title: "Distribution Failed",
-      description: error instanceof Error ? error.message : "Failed to process distributions"
-    });
-  } finally {
-    setIsTransferring(false);
-  }
-};
-
-// Render loading state
-if (isLoadingActive || isLoadingClaimable) {
-  return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <span className="ml-3">Loading mining plan status...</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-console.log('User data in component:', {
-  isConnected,
-  address,
-  user,
-  hasClaimedFreeCPXTB: user?.hasClaimedFreeCPXTB
-});
-
-return (
-  <div className="space-y-6">
-    <ReferralStats />
-    {isConnected && (
-      <div>
-        {!user?.hasClaimedFreeCPXTB ? (
-          <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
-        ) : (
-          <p className="text-sm text-muted-foreground text-center">
-            You have already claimed your free CPXTB.
-          </p>
-        )}
-      </div>
-    )}
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Server className="h-6 w-6 text-primary animate-pulse" />
-          Mining Plans
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <MiningPlanSelection onSelect={setSelectedPlan} />
-        <div className="bg-muted rounded-lg p-6 space-y-4">
-          <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
-            <Cpu className="h-5 w-5 text-primary" />
-            {currentPlan.name} Details
-          </h3>
-          <div className="grid gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Your USDT Balance</p>
-              <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Investment Required</p>
-              <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Daily Reward</p>
-              <p className="text-2xl font-bold text-primary">
-                {dailyRewardCPXTB} CPXTB
-                <span className="text-sm text-muted-foreground ml-2">
-                  (≈${currentPlan.rewardUSD})
-                </span>
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Duration</p>
-              <p className="text-2xl font-bold">{currentPlan.duration}</p>
-            </div>
+        title: "Success!",
+        description: (
+          <div className="space-y-2">
+            <p>Your free 10 CPXTB tokens have been claimed successfully!</p>
+            <SocialShareButtons amount="10" type="claim" />
           </div>
-        </div>
+        )
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to claim",
+        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
+      });
+    }
+  };
 
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground text-center">
-            Your connected wallet address will be used to receive CPXTB rewards.
-          </p>
+  // Update the handleDistributeAll function
+  const handleDistributeAll = async () => {
+    try {
+      setIsTransferring(true);
 
-          {isConnected && (
-            <Button
-              className="w-full mt-4"
-              size="lg"
-              onClick={handleTransfer}
-              disabled={isTransferring || isValidating || isSwitchingNetwork}
-            >
-              <Coins className="mr-2 h-4 w-4" />
-              {isSwitchingNetwork ? "Switching Network..." :
-                isTransferring ? "Transferring USDT..." :
-                  isValidating ? "Validating Transaction..." :
-                    `Activate ${currentPlan.name} (${currentPlan.displayAmount} USDT)`}
-            </Button>
-          )}
+      // First, verify and enforce Base network
+      await verifyBaseNetwork();
 
-          {transactionHash && (
-            <TransactionStatus
-              hash={transactionHash}
-              isValidating={isValidating}
-              isConfirmed={isConfirmed}
-            />
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      toast({
+        title: "Processing Distributions",
+        description: "Starting the distribution process, please wait..."
+      });
 
-    {isConnected && activePlans.length > 0 && (
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Active Mining Plans</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {activePlans.map((plan: MiningPlan) => (
-            <ActivePlanDisplay
-              key={plan.id}
-              withdrawalAddress={plan.withdrawalAddress}
-              dailyRewardCPXTB={plan.dailyRewardCPXTB}
-              activatedAt={plan.activatedAt}
-              planType={plan.planType}
-              onClaim={() => handleClaimRewards(plan)}
-              isExpired={new Date() > new Date(plan.expiresAt)}
-              hasWithdrawn={plan.hasWithdrawn}
-              amount={plan.amount}
-              isAdmin={isAdmin}
-              walletAddress={plan.walletAddress}
-              chain={chain}
-              transactionHash={plan.transactionHash}
-              expiresAt={plan.expiresAt}
-            />
-          ))}
-        </div>
-      </div>
-    )}
+      const response = await fetch('/api/mining-plans/distribute-all', {
+        method: 'POST',
+      });
 
-    {isConnected && claimablePlans.length > 0 && (
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">
-          {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
-        </h2>
-        <div className="grid gridcols-1 md:grid-cols-2 gap-4">
-          {claimablePlans.map((plan: MiningPlan) => (
-            <ActivePlanDisplay
-              key={plan.id}
-              withdrawalAddress={plan.withdrawalAddress}
-              dailyRewardCPXTB={plan.dailyRewardCPXTB}
-              activatedAt={plan.activatedAt}
-              planType={plan.planType}
-              onClaim={() => handleClaimRewards(plan)}
-              isExpired={true}
-              hasWithdrawn={plan.hasWithdrawn}
-              amount={plan.amount}
-              isAdmin={isAdmin}
-              walletAddress={plan.walletAddress}
-              chain={chain}
-              transactionHash={plan.transactionHash}
-              expiresAt={plan.expiresAt}
-            />
-          ))}
-        </div>
-      </div>
-    )}
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
 
-    {/* Update the admin actions card */}
-    {isAdmin && (
-      <Card className="w-full max-w-2xl mx-auto mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Coins className="h-6 w-6 text-primary" />
-            Admin Actions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={handleDistributeAll}
-            className="w-full"
-            variant="default"
-            disabled={isTransferring}
-          >
-            {isTransferring ? (
-              <>
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Processing Distributions...
-              </>
-            ) : (
-              <>
-                <Coins className="mr-2 h-4 w-4" />
-                Distribute All Matured Plans
-              </>
-            )}
-          </Button>
+      const data = await response.json();
+      console.log('Distribution results:', data);
+
+      const successCount = data.results.filter((r: any) => r.success).length;
+      const failedCount = data.results.length - successCount;
+
+      toast({
+        variant: successCount > 0 ? "default" : "destructive",
+        title: "Distribution Status",
+        description: `${data.message}${failedCount > 0 ?
+          `\nFailed distributions: ${failedCount}. Check Base network connection or try again.` : ''}`
+      });
+
+      // Refresh the plans
+      await refetchClaimablePlans();
+      await refetchActivePlans();
+    } catch (error) {
+      console.error('Distribution error:', error);
+      toast({ variant: "destructive",
+        title: "Distribution Failed",
+        description: error instanceof Error ? error.message : "Failed to process distributions"
+      });
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
+  // Render loading state
+  if (isLoadingActive || isLoadingClaimable) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-3">Loading mining plan status...</span>
+          </div>
         </CardContent>
       </Card>
-    )}
+    );
+  }
 
-    <div className="pt-6 border-t border-border">
-      <p className="text-sm text-muted-foreground mb-3 text-center">
-        Need help? Contact our support team
-      </p>
-      <TelegramSupport />
+  console.log('User data in component:', {
+    isConnected,
+    address,
+    user,
+    hasClaimedFreeCPXTB: user?.hasClaimedFreeCPXTB
+  });
+
+  return (
+    <div className="space-y-6">
+      <ReferralStats />
+      {isConnected && (
+        <div>
+          {!user?.hasClaimedFreeCPXTB ? (
+            <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center">
+              You have already claimed your free CPXTB.
+            </p>
+          )}
+        </div>
+      )}
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Server className="h-6 w-6 text-primary animate-pulse" />
+            Mining Plans
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <MiningPlanSelection onSelect={setSelectedPlan} />
+          <div className="bg-muted rounded-lg p-6 space-y-4">
+            <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-primary" />
+              {currentPlan.name} Details
+            </h3>
+            <div className="grid gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Your USDT Balance</p>
+                <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Investment Required</p>
+                <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Daily Reward</p>
+                <p className="text-2xl font-bold text-primary">
+                  {dailyRewardCPXTB} CPXTB
+                  <span className="text-sm text-muted-foreground ml-2">
+                    (≈${currentPlan.rewardUSD})
+                  </span>
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Duration</p>
+                <p className="text-2xl font-bold">{currentPlan.duration}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Your connected wallet address will be used to receive CPXTB rewards.
+            </p>
+
+            {isConnected && (
+              <Button
+                className="w-full mt-4"
+                size="lg"
+                onClick={handleTransfer}
+                disabled={isTransferring || isValidating || isSwitchingNetwork}
+              >
+                <Coins className="mr-2 h-4 w-4" />
+                {isSwitchingNetwork ? "Switching Network..." :
+                  isTransferring ? "Transferring USDT..." :
+                    isValidating ? "Validating Transaction..." :
+                      `Activate ${currentPlan.name} (${currentPlan.displayAmount} USDT)`}
+              </Button>
+            )}
+
+            {transactionHash && (
+              <TransactionStatus
+                hash={transactionHash}
+                isValidating={isValidating}
+                isConfirmed={isConfirmed}
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {isConnected && activePlans.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">Active Mining Plans</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activePlans.map((plan: MiningPlan) => (
+              <ActivePlanDisplay
+                key={plan.id}
+                withdrawalAddress={plan.withdrawalAddress}
+                dailyRewardCPXTB={plan.dailyRewardCPXTB}
+                activatedAt={plan.activatedAt}
+                planType={plan.planType}
+                onClaim={() => handleClaimRewards(plan)}
+                isExpired={new Date() > new Date(plan.expiresAt)}
+                hasWithdrawn={plan.hasWithdrawn}
+                amount={plan.amount}
+                isAdmin={isAdmin}
+                walletAddress={plan.walletAddress}
+                chain={chain}
+                transactionHash={plan.transactionHash}
+                expiresAt={plan.expiresAt}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isConnected && claimablePlans.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">
+            {isAdmin ? "All Claimable Plans" : "Your Claimable Plans"}
+          </h2>
+          <div className="grid gridcols-1 md:grid-cols-2 gap-4">
+            {claimablePlans.map((plan: MiningPlan) => (
+              <ActivePlanDisplay
+                key={plan.id}
+                withdrawalAddress={plan.withdrawalAddress}
+                dailyRewardCPXTB={plan.dailyRewardCPXTB}
+                activatedAt={plan.activatedAt}
+                planType={plan.planType}
+                onClaim={() => handleClaimRewards(plan)}
+                isExpired={true}
+                hasWithdrawn={plan.hasWithdrawn}
+                amount={plan.amount}
+                isAdmin={isAdmin}
+                walletAddress={plan.walletAddress}
+                chain={chain}
+                transactionHash={plan.transactionHash}
+                expiresAt={plan.expiresAt}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Update the admin actions card */}
+      {isAdmin && (
+        <Card className="w-full max-w-2xl mx-auto mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Coins className="h-6 w-6 text-primary" />
+              Admin Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={handleDistributeAll}
+              className="w-full"
+              variant="default"
+              disabled={isTransferring}
+            >
+              {isTransferring ? (
+                <>
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Processing Distributions...
+                </>
+              ) : (
+                <>
+                  <Coins className="mr-2 h-4 w-4" />
+                  Distribute All Matured Plans
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="pt-6 border-t border-border">
+        <p className="text-sm text-muted-foreground mb-3 text-center">
+          Need help? Contact our support team
+        </p>
+        <TelegramSupport />
+      </div>
     </div>
-  </div>
-);
+  );
 }

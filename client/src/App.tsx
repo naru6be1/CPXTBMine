@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi'
 import { ErrorBoundary } from "@/components/error-boundary";
+import { HamburgerMenu } from "@/components/hamburger-menu";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function App() {
     <ErrorBoundary>
       <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
+          <HamburgerMenu />
           <Router />
           <Toaster />
         </QueryClientProvider>

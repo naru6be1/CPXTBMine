@@ -858,8 +858,7 @@ export function MiningPlan() {
         console.error('Transfer execution error:', {
           error: error instanceof Error ? error.message : 'Unknown error',
           walletAddress: address,
-          planType: selectedPlan,
-          contractAddress: USDT_CONTRACT_ADDRESS
+          planType: selectedPlan,          contractAddress: USDT_CONTRACT_ADDRESS
         });
 
         toast({

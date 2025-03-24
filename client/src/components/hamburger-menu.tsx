@@ -58,6 +58,12 @@ export function HamburgerMenu() {
               Blog
             </Button>
           </Link>
+          <Link href="/about">
+            <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
+              <Shield className="mr-2 h-4 w-4" />
+              About CPXTB
+            </Button>
+          </Link>
         </div>
       </SheetContent>
     </Sheet>

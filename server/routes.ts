@@ -462,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update the free CPXTB claim endpoint with IP restriction
+  // Update the free CPXTB claim endpoint with proper user creation
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
@@ -518,8 +518,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error(`This IP address has already claimed within 24 hours. Please wait ${timeRemaining} hours before claiming again.`);
         }
 
-        // Get user
-        const user = await tx
+        // Try to get existing user or create new one
+        let user = await tx
           .select()
           .from(users)
           .where(eq(users.username, normalizedAddress))
@@ -527,18 +527,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .then(rows => rows[0]);
 
         if (!user) {
-          throw new Error("User not found");
-        }
+          console.log('Creating new user for address:', normalizedAddress);
+          // Create new user
+          [user] = await tx
+            .insert(users)
+            .values({
+              username: normalizedAddress,
+              password: 'not-used', // OAuth-based auth
+              referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+              lastCPXTBClaimTime: new Date(),
+              ipClaimTime: new Date(),
+              lastClaimIp: clientIp
+            })
+            .returning();
 
-        // Update user's last claim time and IP within the transaction
-        await tx
-          .update(users)
-          .set({
-            lastCPXTBClaimTime: new Date(),
-            ipClaimTime: new Date(),
-            lastClaimIp: clientIp
-          })
-          .where(eq(users.username, normalizedAddress));
+          console.log('New user created:', user);
+        } else {
+          // Update existing user's claim time and IP
+          await tx
+            .update(users)
+            .set({
+              lastCPXTBClaimTime: new Date(),
+              ipClaimTime: new Date(),
+              lastClaimIp: clientIp
+            })
+            .where(eq(users.username, normalizedAddress));
+        }
 
         // Create a special mining plan for the free CPXTB within the transaction
         const now = new Date();

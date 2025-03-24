@@ -566,6 +566,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Update user's last claim time BEFORE creating the mining plan to prevent race conditions
+      await db
+        .update(users)
+        .set({ lastCPXTBClaimTime: new Date() })
+        .where(eq(users.username, normalizedAddress));
+
       // Validate withdrawal address format
       if (!withdrawalAddress || !/^0x[a-fA-F0-9]{40}$/.test(withdrawalAddress)) {
         console.error('Claim failed: Invalid withdrawal address format');
@@ -607,12 +613,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
       }
-
-      // Update user's last claim time BEFORE creating the mining plan to prevent race conditions
-      await db
-        .update(users)
-        .set({ lastCPXTBClaimTime: new Date() })
-        .where(eq(users.username, normalizedAddress));
 
       // Create a special mining plan for the free CPXTB with short expiry
       const now = new Date();

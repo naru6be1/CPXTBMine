@@ -871,8 +871,8 @@ export function MiningPlan() {
     const { toast } = useToast();
     const { data: walletClient } = useWalletClient();
     const { data: user, refetch: refetchUser } = useQuery({
-      queryKey: ['user',address],
-      queryFn: async () => {
+      queryKey: ['user', address],
+      queryFn: async ()=> {
         if (!address) return null;
         console.log('Fetching user data for address:', address);
         const response = await fetch(`/api/users/${address}`);
@@ -967,6 +967,12 @@ export function MiningPlan() {
           if (response.status === 429) {
             throw new Error("Rate limit exceeded. Please try again later.");
           }
+          if (error.nextAvailableTime) {
+            const nextTime = new Date(error.nextAvailableTime);
+            const now = new Date();
+            const diffHours = Math.ceil((nextTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+            throw new Error(`Please wait ${diffHours} hours before claiming again`);
+          }
           throw new Error(error.message || "Failed to claim free CPXTB");
         }
 
@@ -1007,27 +1013,6 @@ export function MiningPlan() {
 
     const isDeviceCoolingDown = !!deviceCooldownMessage;
 
-    if (isDeviceCoolingDown) {
-      return (
-        <Card className="w-full max-w-2xl mx-auto mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gift className="h-6 w-6 text-primary" />
-              Daily Free CPXTB Claim
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-destructive/10 rounded-lg p-4">
-              <p className="text-lg font-semibold text-destructive">Cooldown Active</p>
-              <p className="text-sm text-muted-foreground">
-                {deviceCooldownMessage}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      );
-    }
-
     return (
       <>
         <Card className="w-full max-w-2xl mx-auto mb-6">
@@ -1038,20 +1023,31 @@ export function MiningPlan() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-primary/10 rounded-lg p-4">
-              <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
-              <p className="text-sm text-muted-foreground">
-                Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
-              </p>
-            </div>
-            <Button
-              className="w-full"
-              onClick={handleClaim}
-              disabled={isDeviceCoolingDown || isProcessing}
-            >
-              <Gift className="mr-2 h-4 w-4" />
-              Claim Free CPXTB
-            </Button>
+            {isDeviceCoolingDown ? (
+              <div className="bg-destructive/10 rounded-lg p-4">
+                <p className="text-lg font-semibold text-destructive">Cooldown Active</p>
+                <p className="text-sm text-muted-foreground">
+                  {deviceCooldownMessage}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-primary/10 rounded-lg p-4">
+                  <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
+                  <p className="text-sm text-muted-foreground">
+                    Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
+                  </p>
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={handleClaim}
+                  disabled={isDeviceCoolingDown || isProcessing}
+                >
+                  <Gift className="mr-2 h-4 w-4" />
+                  {isProcessing ? "Processing..." : "Claim Free CPXTB"}
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
         {process.env.NODE_ENV === 'development' && <TestInterface />}

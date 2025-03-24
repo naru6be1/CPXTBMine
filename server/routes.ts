@@ -462,27 +462,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update the free CPXTB claim endpoint with IP restriction
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
       const { withdrawalAddress } = req.body;
       const normalizedAddress = address.toLowerCase();
 
+      // Get real IP from x-forwarded-for header
+      const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip;
+
       console.log('Processing free CPXTB claim:', {
         userAddress: normalizedAddress,
         withdrawalAddress,
+        clientIp,
         timestamp: new Date().toISOString()
       });
 
       if (!withdrawalAddress) {
-        console.error('Claim failed: Missing withdrawal address');
         res.status(400).json({
           message: "Withdrawal address is required"
         });
         return;
       }
 
-      // Get user and check cooldown period
+      // Check if any user has claimed from this IP in the last 24 hours
+      const [recentClaim] = await db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.last_claim_ip, clientIp),
+            gte(users.ip_claim_time, sql`NOW() - INTERVAL '24 hours'`)
+          )
+        );
+
+      if (recentClaim) {
+        const nextAvailableTime = new Date(recentClaim.ip_claim_time);
+        nextAvailableTime.setHours(nextAvailableTime.getHours() + 24);
+        const now = new Date();
+        const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+
+        console.error('Claim failed: IP cooldown active', {
+          ip: clientIp,
+          lastClaim: recentClaim.ip_claim_time,
+          nextAvailable: nextAvailableTime,
+          hoursRemaining: timeRemaining
+        });
+
+        res.status(400).json({
+          message: `This IP address has already claimed within 24 hours. Please wait ${timeRemaining} hours before claiming again.`
+        });
+        return;
+      }
+
+      // Get user and check user-level cooldown period
       const user = await storage.getUserByUsername(normalizedAddress);
       if (!user) {
         console.error('Claim failed: User not found', { address: normalizedAddress });
@@ -492,32 +526,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Check if 24 hours have passed since last claim
-      if (user.lastCPXTBClaimTime) {
-        const lastClaimTime = new Date(user.lastCPXTBClaimTime);
-        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-        const now = new Date();
-
-        if (nextAvailableTime > now) {
-          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-          console.error('Claim failed: Cooldown period active', {
-            lastClaim: lastClaimTime,
-            nextAvailable: nextAvailableTime,
-            hoursRemaining: timeRemaining,
-            walletAddress: normalizedAddress
-          });
-          res.status(400).json({
-            message: `Please wait ${timeRemaining} hours before claiming again`
-          });
-          return;
-        }
-      }
-
-      // Update user's last claim time
+      // Update user's last claim time and IP
       await db
         .update(users)
-        .set({ lastCPXTBClaimTime: new Date() })
+        .set({
+          lastCPXTBClaimTime: new Date(),
+          ip_claim_time: new Date(),
+          last_claim_ip: clientIp
+        })
         .where(eq(users.username, normalizedAddress));
 
       // Create a special mining plan for the free CPXTB
@@ -540,7 +556,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         planId: plan.id,
         walletAddress: normalizedAddress,
         expiresAt: expiresAt.toISOString(),
-        now: now.toISOString()
+        now: now.toISOString(),
+        clientIp
       });
 
       res.json({

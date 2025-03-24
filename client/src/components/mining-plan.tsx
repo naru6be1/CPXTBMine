@@ -21,6 +21,7 @@ import { createPublicClient, http } from 'viem';
 import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
+import { TestInterface } from "./test-interface";
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -377,7 +378,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   const [deviceCooldownMessage, setDeviceCooldownMessage] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-
+  const { data: walletClient } = useWalletClient();
   const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['user', address],
     queryFn: async () => {
@@ -422,7 +423,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   }, [user?.lastCPXTBClaimTime]);
 
   const handleClaim = async () => {
-    if (!address || !isConnected) {
+    if (!address || !isConnected || !walletClient) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -448,13 +449,32 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         throw new Error("Invalid wallet address format");
       }
 
-      // First ensure user exists by fetching/creating
-      await refetchUser();
+      // Generate signature for verification
+      const message = `Claiming CPXTB tokens at ${new Date().toISOString()}`;
+      const signature = await walletClient.signMessage({ message });
 
       console.log('Processing free CPXTB claim:', {
         walletAddress: address,
+        signature,
         timestamp: new Date().toISOString()
       });
+
+      // Make claim request with signature
+      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          withdrawalAddress: address,
+          signature
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to claim free CPXTB");
+      }
 
       await onClaim();
       await refetchUser(); // Refresh user data after claim
@@ -512,30 +532,33 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Gift className="h-6 w-6 text-primary" />
-          Daily Free CPXTB Claim
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="bg-primary/10 rounded-lg p-4">
-          <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
-          <p className="text-sm text-muted-foreground">
-            Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
-          </p>
-        </div>
-        <Button
-          className="w-full"
-          onClick={handleClaim}
-          disabled={isDeviceCoolingDown || isProcessing}
-        >
-          <Gift className="mr-2 h-4 w-4" />
-          Claim Free CPXTB
-        </Button>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="w-full max-w-2xl mx-auto mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="h-6 w-6 text-primary" />
+            Daily Free CPXTB Claim
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-primary/10 rounded-lg p-4">
+            <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
+            <p className="text-sm text-muted-foreground">
+              Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
+            </p>
+          </div>
+          <Button
+            className="w-full"
+            onClick={handleClaim}
+            disabled={isDeviceCoolingDown || isProcessing}
+          >
+            <Gift className="mr-2 h-4 w-4" />
+            Claim Free CPXTB
+          </Button>
+        </CardContent>
+      </Card>
+      {process.env.NODE_ENV === 'development' && <TestInterface />}
+    </>
   );
 }
 
@@ -821,7 +844,7 @@ export function MiningPlan() {
           return;
         }
 
-        setIsTransferring(true);
+setIsTransferring(true);
 
         // Execute transfer
         const hash = await walletClient.writeContract({

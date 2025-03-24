@@ -11,6 +11,7 @@ import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import * as testUtils from './test-utils'; // Import with correct filename
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
@@ -462,18 +463,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update the free CPXTB claim endpoint with enhanced security
+  // Add rate limiting middleware
+  const rateLimits = new Map<string, { count: number, timestamp: number }>();
+  const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
+  const MAX_CLAIMS_PER_HOUR = 3;
+
+  function checkRateLimit(address: string): boolean {
+    const now = Date.now();
+    const limit = rateLimits.get(address);
+
+    if (!limit) {
+      rateLimits.set(address, { count: 1, timestamp: now });
+      return true;
+    }
+
+    // Reset counter if window has passed
+    if (now - limit.timestamp > RATE_LIMIT_WINDOW) {
+      rateLimits.set(address, { count: 1, timestamp: now });
+      return true;
+    }
+
+    // Check if within limits
+    if (limit.count >= MAX_CLAIMS_PER_HOUR) {
+      return false;
+    }
+
+    // Increment counter
+    limit.count++;
+    return true;
+  }
+
+
+  // Update the free CPXTB claim endpoint with signature verification
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
-      const { withdrawalAddress } = req.body;
+      const { withdrawalAddress, signature } = req.body;
       const normalizedAddress = address.toLowerCase();
+      const isTestMode = process.env.NODE_ENV === 'development';
 
       console.log('Processing free CPXTB claim:', {
         userAddress: normalizedAddress,
         withdrawalAddress,
+        isTestMode,
         timestamp: new Date().toISOString()
       });
+
+      // Check rate limiting
+      if (!isTestMode && !checkRateLimit(normalizedAddress)) {
+        console.error('Claim failed: Rate limit exceeded', {
+          address: normalizedAddress,
+          timestamp: new Date().toISOString()
+        });
+        res.status(429).json({
+          message: "Too many claim attempts. Please try again later."
+        });
+        return;
+      }
 
       // Validate withdrawal address format
       if (!withdrawalAddress || !/^0x[a-fA-F0-9]{40}$/.test(withdrawalAddress)) {
@@ -484,16 +530,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Ensure addresses match to prevent unauthorized withdrawals
-      if (normalizedAddress.toLowerCase() !== withdrawalAddress.toLowerCase()) {
-        console.error('Claim failed: Withdrawal address mismatch', {
-          claimAddress: normalizedAddress,
-          withdrawalAddress: withdrawalAddress.toLowerCase()
-        });
-        res.status(403).json({
-          message: "Withdrawal address must match claiming address"
-        });
-        return;
+      // Verify signature
+      if (!isTestMode) {
+        try {
+          const message = `Claiming CPXTB tokens at ${new Date().toISOString()}`;
+          const publicClient = createPublicClient({
+            chain: base,
+            transport: http(BASE_RPC_URL)
+          });
+          const recoveredAddress = await publicClient.verifyMessage({
+            address: withdrawalAddress as `0x${string}`,
+            message,
+            signature: signature as `0x${string}`
+          });
+
+          if (recoveredAddress.toLowerCase() !== normalizedAddress) {
+            console.error('Claim failed: Invalid signature', {
+              recoveredAddress,
+              claimAddress: normalizedAddress
+            });
+            res.status(403).json({
+              message: "Invalid signature"
+            });
+            return;
+          }
+        } catch (error) {
+          console.error('Signature verification failed:', error);
+          res.status(403).json({
+            message: "Invalid signature"
+          });
+          return;
+        }
       }
 
       // Get user and check cooldown period with enhanced validation
@@ -537,7 +604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create a special mining plan for the free CPXTB with short expiry
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes expiry
+      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes expiry for testing
 
       const plan = await storage.createMiningPlan({
         walletAddress: normalizedAddress,
@@ -627,6 +694,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Add these test routes after the existing routes
+  if (process.env.NODE_ENV === 'development') {
+    // Test endpoint to reset cooldown
+    app.post("/api/test/reset-cooldown/:address", async (req, res) => {
+      try {
+        const { address } = req.params;
+        await testUtils.resetClaimCooldown(address);
+        res.json({ message: "Cooldown reset successful" });
+      } catch (error: any) {
+        console.error("Error resetting cooldown:", error);
+        res.status(500).json({ message: error.message });
+      }
+    });
+
+    // Test endpoint to simulate different timing scenarios
+    app.post("/api/test/set-claim-time/:address", async (req, res) => {
+      try {
+        const { address } = req.params;
+        const { time } = req.body;
+        await testUtils.setCustomClaimTime(address, new Date(time));
+        res.json({ message: "Claim time updated successfully" });
+      } catch (error: any) {
+        console.error("Error setting claim time:", error);
+        res.status(500).json({ message: error.message });
+      }
+    });
+  }
 
   const httpServer = createServer(app);
 

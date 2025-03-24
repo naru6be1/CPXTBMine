@@ -870,9 +870,10 @@ export function MiningPlan() {
     const [isProcessing, setIsProcessing] = useState(false);
     const { toast } = useToast();
     const { data: walletClient } = useWalletClient();
+
     const { data: user, refetch: refetchUser } = useQuery({
       queryKey: ['user', address],
-      queryFn: async ()=> {
+      queryFn: async () => {
         if (!address) return null;
         console.log('Fetching user data for address:', address);
         const response = await fetch(`/api/users/${address}`);
@@ -884,7 +885,8 @@ export function MiningPlan() {
         console.log('Received user data:', data);
         return data.user;
       },
-      enabled: !!address
+      enabled: !!address,
+      refetchInterval: 5000 // Poll every 5 seconds to keep cooldown status updated
     });
 
     useEffect(() => {
@@ -932,13 +934,17 @@ export function MiningPlan() {
         return;
       }
 
+      if (deviceCooldownMessage) {
+        toast({
+          variant: "destructive",
+          title: "Cooldown Active",
+          description: deviceCooldownMessage
+        });
+        return;
+      }
+
       try {
         setIsProcessing(true);
-
-        // Validate address format
-        if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-          throw new Error("Invalid wallet address format");
-        }
 
         // Generate signature for verification
         const message = `Claiming CPXTB tokens at ${new Date().toISOString()}`;
@@ -979,9 +985,6 @@ export function MiningPlan() {
         await onClaim();
         await refetchUser(); // Refresh user data after claim
 
-        // Store the claim time in localStorage for device tracking
-        localStorage.setItem('global_lastCPXTBClaimTime', new Date().toISOString());
-
         toast({
           title: "Success",
           description: "Successfully claimed free CPXTB! It will be distributed shortly."
@@ -1011,8 +1014,6 @@ export function MiningPlan() {
       );
     }
 
-    const isDeviceCoolingDown = !!deviceCooldownMessage;
-
     return (
       <>
         <Card className="w-full max-w-2xl mx-auto mb-6">
@@ -1023,7 +1024,7 @@ export function MiningPlan() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {isDeviceCoolingDown ? (
+            {deviceCooldownMessage ? (
               <div className="bg-destructive/10 rounded-lg p-4">
                 <p className="text-lg font-semibold text-destructive">Cooldown Active</p>
                 <p className="text-sm text-muted-foreground">
@@ -1041,7 +1042,7 @@ export function MiningPlan() {
                 <Button
                   className="w-full"
                   onClick={handleClaim}
-                  disabled={isDeviceCoolingDown || isProcessing}
+                  disabled={!!deviceCooldownMessage || isProcessing}
                 >
                   <Gift className="mr-2 h-4 w-4" />
                   {isProcessing ? "Processing..." : "Claim Free CPXTB"}

@@ -506,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return true;
   }
 
-  // Update the free CPXTB claim endpoint with enhanced validation
+  // Update the free CPXTB claim endpoint with test mode
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
@@ -566,22 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Update user's last claim time BEFORE creating the mining plan to prevent race conditions
-      await db
-        .update(users)
-        .set({ lastCPXTBClaimTime: new Date() })
-        .where(eq(users.username, normalizedAddress));
-
-      // Validate withdrawal address format
-      if (!withdrawalAddress || !/^0x[a-fA-F0-9]{40}$/.test(withdrawalAddress)) {
-        console.error('Claim failed: Invalid withdrawal address format');
-        res.status(400).json({
-          message: "Invalid withdrawal address format"
-        });
-        return;
-      }
-
-      // Verify signature
+      // Verify signature if not in test mode
       if (!isTestMode) {
         try {
           const message = `Claiming CPXTB tokens at ${new Date().toISOString()}`;
@@ -613,6 +598,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
       }
+
+      // Update user's last claim time BEFORE creating the mining plan to prevent race conditions
+      await db
+        .update(users)
+        .set({ lastCPXTBClaimTime: new Date() })
+        .where(eq(users.username, normalizedAddress));
 
       // Create a special mining plan for the free CPXTB with short expiry
       const now = new Date();

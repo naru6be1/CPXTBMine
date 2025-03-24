@@ -11,7 +11,6 @@ import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import * as testUtils from './test-utils'; // Import with correct filename
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
@@ -463,65 +462,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add rate limiting middleware
-  const rateLimits = new Map<string, { count: number, timestamp: number }>();
-  const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
-  const MAX_CLAIMS_PER_HOUR = 3;
-
-  function checkRateLimit(address: string): boolean {
-    const now = Date.now();
-    const limit = rateLimits.get(address);
-    const normalizedAddress = address.toLowerCase();
-
-    // Always check if user has active claim first
-    if (limit) {
-      console.log('Rate limit check for address:', {
-        address: normalizedAddress,
-        currentCount: limit.count,
-        windowStart: new Date(limit.timestamp).toISOString(),
-        now: new Date(now).toISOString()
-      });
-
-      // Check if within window
-      if (now - limit.timestamp < RATE_LIMIT_WINDOW) {
-        if (limit.count >= MAX_CLAIMS_PER_HOUR) {
-          console.log('Rate limit exceeded:', {
-            address: normalizedAddress,
-            count: limit.count,
-            max: MAX_CLAIMS_PER_HOUR
-          });
-          return false;
-        }
-        // Within window and under limit - increment
-        limit.count++;
-      } else {
-        // Window expired - reset counter
-        rateLimits.set(normalizedAddress, { count: 1, timestamp: now });
-      }
-    } else {
-      // First claim for this address
-      rateLimits.set(normalizedAddress, { count: 1, timestamp: now });
-    }
-
-    return true;
-  }
-
-  // Update the free CPXTB claim endpoint with strict cooldown validation
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
-      const { withdrawalAddress, signature } = req.body;
+      const { withdrawalAddress } = req.body;
       const normalizedAddress = address.toLowerCase();
-      const isTestMode = process.env.NODE_ENV === 'development';
 
       console.log('Processing free CPXTB claim:', {
         userAddress: normalizedAddress,
         withdrawalAddress,
-        isTestMode,
         timestamp: new Date().toISOString()
       });
 
-      // Get user first to check cooldown before proceeding
+      if (!withdrawalAddress) {
+        console.error('Claim failed: Missing withdrawal address');
+        res.status(400).json({
+          message: "Withdrawal address is required"
+        });
+        return;
+      }
+
+      // Get user and check cooldown period
       const user = await storage.getUserByUsername(normalizedAddress);
       if (!user) {
         console.error('Claim failed: User not found', { address: normalizedAddress });
@@ -531,14 +492,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Strict cooldown check with proper error handling
+      // Check if 24 hours have passed since last claim
       if (user.lastCPXTBClaimTime) {
         const lastClaimTime = new Date(user.lastCPXTBClaimTime);
         const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
         const now = new Date();
 
-        // Even in test mode, enforce cooldown
         if (nextAvailableTime > now) {
           const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
           console.error('Claim failed: Cooldown period active', {
@@ -548,88 +508,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
             walletAddress: normalizedAddress
           });
           res.status(400).json({
-            message: `Please wait ${timeRemaining} hours before claiming again`,
-            nextAvailableTime: nextAvailableTime.toISOString()
+            message: `Please wait ${timeRemaining} hours before claiming again`
           });
           return;
         }
       }
 
-      // Check rate limiting only in production
-      if (!isTestMode && !checkRateLimit(normalizedAddress)) {
-        console.error('Claim failed: Rate limit exceeded', {
-          address: normalizedAddress,
-          timestamp: new Date().toISOString()
-        });
-        res.status(429).json({
-          message: "Too many claim attempts. Please try again later."
-        });
-        return;
-      }
+      // Update user's last claim time
+      await db
+        .update(users)
+        .set({ lastCPXTBClaimTime: new Date() })
+        .where(eq(users.username, normalizedAddress));
 
-      // Verify signature if not in test mode
-      if (!isTestMode) {
-        try {
-          const message = `Claiming CPXTB tokens at ${new Date().toISOString()}`;
-          const publicClient = createPublicClient({
-            chain: base,
-            transport: http(BASE_RPC_URL)
-          });
-          const recoveredAddress = await publicClient.verifyMessage({
-            address: withdrawalAddress as `0x${string}`,
-            message,
-            signature: signature as `0x${string}`
-          });
+      // Create a special mining plan for the free CPXTB
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes
 
-          if (recoveredAddress.toLowerCase() !== normalizedAddress) {
-            console.error('Claim failed: Invalid signature', {
-              recoveredAddress,
-              claimAddress: normalizedAddress
-            });
-            res.status(403).json({
-              message: "Invalid signature"
-            });
-            return;
-          }
-        } catch (error) {
-          console.error('Signature verification failed:', error);
-          res.status(403).json({
-            message: "Invalid signature"
-          });
-          return;
-        }
-      }
+      const plan = await storage.createMiningPlan({
+        walletAddress: normalizedAddress,
+        withdrawalAddress: withdrawalAddress.toLowerCase(),
+        planType: "bronze", // Use bronze as the base plan type
+        amount: "0", // Free plan
+        dailyRewardCPXTB: "10", // 10 CPXTB
+        activatedAt: now,
+        expiresAt: expiresAt,
+        transactionHash: 'FREE_CPXTB_CLAIM',
+        referralCode: null
+      });
 
-      // Transaction: Update user's claim time and create mining plan
-      await db.transaction(async (tx) => {
-        // Update last claim time
-        await tx
-          .update(users)
-          .set({ lastCPXTBClaimTime: new Date() })
-          .where(eq(users.username, normalizedAddress));
-
-        // Create mining plan
-        const now = new Date();
-        const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes expiry for testing
-
-        await tx.insert(miningPlans).values({
-          walletAddress: normalizedAddress,
-          withdrawalAddress: withdrawalAddress.toLowerCase(),
-          planType: "bronze",
-          amount: "0",
-          dailyRewardCPXTB: "10",
-          activatedAt: now,
-          expiresAt: expiresAt,
-          transactionHash: 'FREE_CPXTB_CLAIM',
-          referralCode: null
-        });
+      console.log('Created free CPXTB claim plan:', {
+        planId: plan.id,
+        walletAddress: normalizedAddress,
+        expiresAt: expiresAt.toISOString(),
+        now: now.toISOString()
       });
 
       res.json({
         user: await storage.getUserByUsername(normalizedAddress),
-        message: "Claim successful"
+        plan
       });
-
     } catch (error: any) {
       console.error("Error claiming free CPXTB:", error);
       res.status(500).json({
@@ -695,79 +612,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
-  // Add these test routes within the development check block
-  if (process.env.NODE_ENV === 'development') {
-    // Test endpoint to reset cooldown
-    app.post("/api/test/reset-cooldown/:address", async (req, res) => {
-      try {
-        const { address } = req.params;
-        await testUtils.resetClaimCooldown(address);
-        res.json({ message: "Cooldown reset successful" });
-      } catch (error: any) {
-        console.error("Error resetting cooldown:", error);
-        res.status(500).json({ message: error.message });
-      }
-    });
-
-    // Test endpoint to simulate different timing scenarios
-    app.post("/api/test/set-claim-time/:address", async (req, res) => {
-      try {
-        const { address } = req.params;
-        const { time } = req.body;
-        await testUtils.setCustomClaimTime(address, new Date(time));
-        res.json({ message: "Claim time updated successfully" });
-      } catch (error: any) {
-        console.error("Error setting claim time:", error);
-        res.status(500).json({ message: error.message });
-      }
-    });
-
-    // Add rate limit test endpoints
-    app.post("/api/test/reset-rate-limit/:address", async (req, res) => {
-      try {
-        const { address } = req.params;
-        // Reset rate limit counter for this address
-        rateLimits.delete(address.toLowerCase());
-        res.json({
-          message: "Rate limit reset successful",
-          remainingClaims: MAX_CLAIMS_PER_HOUR
-        });
-      } catch (error: any) {
-        console.error("Error resetting rate limit:", error);
-        res.status(500).json({ message: error.message });
-      }
-    });
-
-    app.get("/api/test/rate-limit-status/:address", async (req, res) => {
-      try {
-        const { address } = req.params;
-        const normalizedAddress = address.toLowerCase();
-        const limit = rateLimits.get(normalizedAddress);
-
-        if (!limit) {
-          res.json({
-            remainingClaims: MAX_CLAIMS_PER_HOUR,
-            resetTime: null
-          });
-          return;
-        }
-
-        const now = Date.now();
-        const timeUntilReset = Math.max(0, RATE_LIMIT_WINDOW - (now - limit.timestamp));
-        const remainingClaims = Math.max(0, MAX_CLAIMS_PER_HOUR - limit.count);
-
-        res.json({
-          remainingClaims,
-          resetTime: new Date(limit.timestamp + RATE_LIMIT_WINDOW).toISOString(),
-          timeUntilReset
-        });
-      } catch (error: any) {
-        console.error("Error getting rate limit status:", error);
-        res.status(500).json({ message: error.message });
-      }
-    });
-  }
 
   const httpServer = createServer(app);
 

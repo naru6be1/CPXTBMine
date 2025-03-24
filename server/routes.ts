@@ -506,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return true;
   }
 
-  // Update the free CPXTB claim endpoint with test mode
+  // Update the free CPXTB claim endpoint with strict cooldown validation
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
@@ -538,7 +538,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
         const now = new Date();
 
-        if (nextAvailableTime > now && !isTestMode) {
+        // Even in test mode, enforce cooldown
+        if (nextAvailableTime > now) {
           const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
           console.error('Claim failed: Cooldown period active', {
             lastClaim: lastClaimTime,
@@ -554,7 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Check rate limiting after cooldown
+      // Check rate limiting only in production
       if (!isTestMode && !checkRateLimit(normalizedAddress)) {
         console.error('Claim failed: Rate limit exceeded', {
           address: normalizedAddress,
@@ -599,39 +600,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Update user's last claim time BEFORE creating the mining plan to prevent race conditions
-      await db
-        .update(users)
-        .set({ lastCPXTBClaimTime: new Date() })
-        .where(eq(users.username, normalizedAddress));
+      // Transaction: Update user's claim time and create mining plan
+      await db.transaction(async (tx) => {
+        // Update last claim time
+        await tx
+          .update(users)
+          .set({ lastCPXTBClaimTime: new Date() })
+          .where(eq(users.username, normalizedAddress));
 
-      // Create a special mining plan for the free CPXTB with short expiry
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes expiry for testing
+        // Create mining plan
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes expiry for testing
 
-      const plan = await storage.createMiningPlan({
-        walletAddress: normalizedAddress,
-        withdrawalAddress: withdrawalAddress.toLowerCase(),
-        planType: "bronze",
-        amount: "0",
-        dailyRewardCPXTB: "10",
-        activatedAt: now,
-        expiresAt: expiresAt,
-        transactionHash: 'FREE_CPXTB_CLAIM',
-        referralCode: null
-      });
-
-      console.log('Created free CPXTB claim plan:', {
-        planId: plan.id,
-        walletAddress: normalizedAddress,
-        expiresAt: expiresAt.toISOString(),
-        now: now.toISOString()
+        await tx.insert(miningPlans).values({
+          walletAddress: normalizedAddress,
+          withdrawalAddress: withdrawalAddress.toLowerCase(),
+          planType: "bronze",
+          amount: "0",
+          dailyRewardCPXTB: "10",
+          activatedAt: now,
+          expiresAt: expiresAt,
+          transactionHash: 'FREE_CPXTB_CLAIM',
+          referralCode: null
+        });
       });
 
       res.json({
         user: await storage.getUserByUsername(normalizedAddress),
-        plan
+        message: "Claim successful"
       });
+
     } catch (error: any) {
       console.error("Error claiming free CPXTB:", error);
       res.status(500).json({

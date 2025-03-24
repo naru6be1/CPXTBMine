@@ -871,6 +871,7 @@ export function MiningPlan() {
     const { toast } = useToast();
     const { data: walletClient } = useWalletClient();
 
+    // Query user data with auto-refresh
     const { data: user, refetch: refetchUser } = useQuery({
       queryKey: ['user', address],
       queryFn: async () => {
@@ -889,8 +890,12 @@ export function MiningPlan() {
       refetchInterval: 5000 // Poll every 5 seconds to keep cooldown status updated
     });
 
+    // Check cooldown status
     useEffect(() => {
-      if (!user?.lastCPXTBClaimTime) return;
+      if (!user?.lastCPXTBClaimTime) {
+        setDeviceCooldownMessage("");
+        return;
+      }
 
       const checkCooldown = () => {
         const lastClaimTime = new Date(user.lastCPXTBClaimTime);
@@ -981,6 +986,9 @@ export function MiningPlan() {
           }
           throw new Error(error.message || "Failed to claim free CPXTB");
         }
+
+        const result = await response.json();
+        console.log('Claim result:', result);
 
         await onClaim();
         await refetchUser(); // Refresh user data after claim

@@ -471,30 +471,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function checkRateLimit(address: string): boolean {
     const now = Date.now();
     const limit = rateLimits.get(address);
+    const normalizedAddress = address.toLowerCase();
 
-    if (!limit) {
-      rateLimits.set(address, { count: 1, timestamp: now });
-      return true;
+    // Always check if user has active claim first
+    if (limit) {
+      console.log('Rate limit check for address:', {
+        address: normalizedAddress,
+        currentCount: limit.count,
+        windowStart: new Date(limit.timestamp).toISOString(),
+        now: new Date(now).toISOString()
+      });
+
+      // Check if within window
+      if (now - limit.timestamp < RATE_LIMIT_WINDOW) {
+        if (limit.count >= MAX_CLAIMS_PER_HOUR) {
+          console.log('Rate limit exceeded:', {
+            address: normalizedAddress,
+            count: limit.count,
+            max: MAX_CLAIMS_PER_HOUR
+          });
+          return false;
+        }
+        // Within window and under limit - increment
+        limit.count++;
+      } else {
+        // Window expired - reset counter
+        rateLimits.set(normalizedAddress, { count: 1, timestamp: now });
+      }
+    } else {
+      // First claim for this address
+      rateLimits.set(normalizedAddress, { count: 1, timestamp: now });
     }
 
-    // Reset counter if window has passed
-    if (now - limit.timestamp > RATE_LIMIT_WINDOW) {
-      rateLimits.set(address, { count: 1, timestamp: now });
-      return true;
-    }
-
-    // Check if within limits
-    if (limit.count >= MAX_CLAIMS_PER_HOUR) {
-      return false;
-    }
-
-    // Increment counter
-    limit.count++;
     return true;
   }
 
-
-  // Update the free CPXTB claim endpoint with signature verification
+  // Update the free CPXTB claim endpoint with enhanced validation
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
@@ -509,7 +521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
 
-      // Check rate limiting
+      // First check rate limiting before any other processing
       if (!isTestMode && !checkRateLimit(normalizedAddress)) {
         console.error('Claim failed: Rate limit exceeded', {
           address: normalizedAddress,
@@ -520,6 +532,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return;
       }
+
+      // Get user first to check cooldown before proceeding
+      const user = await storage.getUserByUsername(normalizedAddress);
+      if (!user) {
+        console.error('Claim failed: User not found', { address: normalizedAddress });
+        res.status(404).json({
+          message: "User not found"
+        });
+        return;
+      }
+
+      // Strict cooldown check with proper error handling
+      if (user.lastCPXTBClaimTime) {
+        const lastClaimTime = new Date(user.lastCPXTBClaimTime);
+        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
+        const now = new Date();
+
+        if (nextAvailableTime > now) {
+          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+          console.error('Claim failed: Cooldown period active', {
+            lastClaim: lastClaimTime,
+            nextAvailable: nextAvailableTime,
+            hoursRemaining: timeRemaining,
+            walletAddress: normalizedAddress
+          });
+          res.status(400).json({
+            message: `Please wait ${timeRemaining} hours before claiming again`,
+            nextAvailableTime: nextAvailableTime.toISOString()
+          });
+          return;
+        }
+      }
+
+      // Update user's last claim time BEFORE processing to prevent race conditions
+      await db
+        .update(users)
+        .set({ lastCPXTBClaimTime: new Date() })
+        .where(eq(users.username, normalizedAddress));
 
       // Validate withdrawal address format
       if (!withdrawalAddress || !/^0x[a-fA-F0-9]{40}$/.test(withdrawalAddress)) {
@@ -563,44 +614,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Get user and check cooldown period with enhanced validation
-      const user = await storage.getUserByUsername(normalizedAddress);
-      if (!user) {
-        console.error('Claim failed: User not found', { address: normalizedAddress });
-        res.status(404).json({
-          message: "User not found"
-        });
-        return;
-      }
-
-      // Strict cooldown check with proper error handling
-      if (user.lastCPXTBClaimTime) {
-        const lastClaimTime = new Date(user.lastCPXTBClaimTime);
-        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-        const now = new Date();
-
-        if (nextAvailableTime > now) {
-          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-          console.error('Claim failed: Cooldown period active', {
-            lastClaim: lastClaimTime,
-            nextAvailable: nextAvailableTime,
-            hoursRemaining: timeRemaining,
-            walletAddress: normalizedAddress
-          });
-          res.status(400).json({
-            message: `Please wait ${timeRemaining} hours before claiming again`,
-            nextAvailableTime: nextAvailableTime.toISOString()
-          });
-          return;
-        }
-      }
-
-      // Update user's last claim time immediately to prevent race conditions
-      await db
-        .update(users)
-        .set({ lastCPXTBClaimTime: new Date() })
-        .where(eq(users.username, normalizedAddress));
 
       // Create a special mining plan for the free CPXTB with short expiry
       const now = new Date();
@@ -695,7 +708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add these test routes after the existing routes
+  // Add these test routes within the development check block
   if (process.env.NODE_ENV === 'development') {
     // Test endpoint to reset cooldown
     app.post("/api/test/reset-cooldown/:address", async (req, res) => {
@@ -718,6 +731,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ message: "Claim time updated successfully" });
       } catch (error: any) {
         console.error("Error setting claim time:", error);
+        res.status(500).json({ message: error.message });
+      }
+    });
+
+    // Add rate limit test endpoints
+    app.post("/api/test/reset-rate-limit/:address", async (req, res) => {
+      try {
+        const { address } = req.params;
+        // Reset rate limit counter for this address
+        rateLimits.delete(address.toLowerCase());
+        res.json({
+          message: "Rate limit reset successful",
+          remainingClaims: MAX_CLAIMS_PER_HOUR
+        });
+      } catch (error: any) {
+        console.error("Error resetting rate limit:", error);
+        res.status(500).json({ message: error.message });
+      }
+    });
+
+    app.get("/api/test/rate-limit-status/:address", async (req, res) => {
+      try {
+        const { address } = req.params;
+        const normalizedAddress = address.toLowerCase();
+        const limit = rateLimits.get(normalizedAddress);
+
+        if (!limit) {
+          res.json({
+            remainingClaims: MAX_CLAIMS_PER_HOUR,
+            resetTime: null
+          });
+          return;
+        }
+
+        const now = Date.now();
+        const timeUntilReset = Math.max(0, RATE_LIMIT_WINDOW - (now - limit.timestamp));
+        const remainingClaims = Math.max(0, MAX_CLAIMS_PER_HOUR - limit.count);
+
+        res.json({
+          remainingClaims,
+          resetTime: new Date(limit.timestamp + RATE_LIMIT_WINDOW).toISOString(),
+          timeUntilReset
+        });
+      } catch (error: any) {
+        console.error("Error getting rate limit status:", error);
         res.status(500).json({ message: error.message });
       }
     });

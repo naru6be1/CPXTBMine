@@ -473,6 +473,9 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
 
       if (!response.ok) {
         const error = await response.json();
+        if (response.status === 429) {
+          throw new Error("Rate limit exceeded. Please try again later.");
+        }
         throw new Error(error.message || "Failed to claim free CPXTB");
       }
 
@@ -844,7 +847,7 @@ export function MiningPlan() {
           return;
         }
 
-setIsTransferring(true);
+        setIsTransferring(true);
 
         // Execute transfer
         const hash = await walletClient.writeContract({

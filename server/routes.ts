@@ -487,25 +487,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if any user has claimed from this IP in the last 24 hours
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
       const [recentClaim] = await db
         .select()
         .from(users)
         .where(
           and(
-            eq(users.last_claim_ip, clientIp),
-            gte(users.ip_claim_time, sql`NOW() - INTERVAL '24 hours'`)
+            eq(users.lastClaimIp, clientIp),
+            gte(users.ipClaimTime, oneDayAgo)
           )
         );
 
       if (recentClaim) {
-        const nextAvailableTime = new Date(recentClaim.ip_claim_time);
+        const nextAvailableTime = new Date(recentClaim.ipClaimTime!);
         nextAvailableTime.setHours(nextAvailableTime.getHours() + 24);
         const now = new Date();
         const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
 
         console.error('Claim failed: IP cooldown active', {
           ip: clientIp,
-          lastClaim: recentClaim.ip_claim_time,
+          lastClaim: recentClaim.ipClaimTime,
           nextAvailable: nextAvailableTime,
           hoursRemaining: timeRemaining
         });
@@ -516,7 +518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Get user and check user-level cooldown period
+      // Get user
       const user = await storage.getUserByUsername(normalizedAddress);
       if (!user) {
         console.error('Claim failed: User not found', { address: normalizedAddress });
@@ -531,8 +533,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(users)
         .set({
           lastCPXTBClaimTime: new Date(),
-          ip_claim_time: new Date(),
-          last_claim_ip: clientIp
+          ipClaimTime: new Date(),
+          lastClaimIp: clientIp
         })
         .where(eq(users.username, normalizedAddress));
 

@@ -9,6 +9,8 @@ export const users = pgTable("users", {
   referralCode: text("referral_code").notNull().unique(),
   referredBy: text("referred_by"),
   lastCPXTBClaimTime: timestamp("last_cpxtb_claim_time"),
+  lastClaimIp: text("last_claim_ip"),
+  ipClaimTime: timestamp("ip_claim_time"),
 });
 
 export const miningPlans = pgTable("mining_plans", {
@@ -36,6 +38,8 @@ export const insertUserSchema = createInsertSchema(users)
     referralCode: z.string(),
     referredBy: z.string().optional(),
     lastCPXTBClaimTime: z.date().nullable().optional(),
+    lastClaimIp: z.string().nullable().optional(),
+    ipClaimTime: z.date().nullable().optional(),
   });
 
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)

@@ -1,6 +1,6 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Gift, Pickaxe, Users, Award, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 
@@ -30,17 +30,26 @@ export function HamburgerMenu() {
           </Link>
           <Link href="/mining">
             <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
+              <Pickaxe className="mr-2 h-4 w-4" />
               Mining Plans
             </Button>
           </Link>
           <Link href="/referrals">
             <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
+              <Users className="mr-2 h-4 w-4" />
               Referrals
             </Button>
           </Link>
           <Link href="/rewards">
             <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
+              <Gift className="mr-2 h-4 w-4" />
               Rewards
+            </Button>
+          </Link>
+          <Link href="/features">
+            <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
+              <Award className="mr-2 h-4 w-4" />
+              Features
             </Button>
           </Link>
         </div>

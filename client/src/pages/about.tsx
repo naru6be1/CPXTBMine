@@ -66,6 +66,10 @@ export default function AboutPage() {
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex items-center text-primary hover:underline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open(exchange.url, '_blank', 'noopener,noreferrer');
+                    }}
                   >
                     Visit {exchange.name}
                     <ExternalLink className="ml-1 h-4 w-4" />

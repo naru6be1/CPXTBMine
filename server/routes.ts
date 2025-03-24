@@ -521,18 +521,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
 
-      // First check rate limiting before any other processing
-      if (!isTestMode && !checkRateLimit(normalizedAddress)) {
-        console.error('Claim failed: Rate limit exceeded', {
-          address: normalizedAddress,
-          timestamp: new Date().toISOString()
-        });
-        res.status(429).json({
-          message: "Too many claim attempts. Please try again later."
-        });
-        return;
-      }
-
       // Get user first to check cooldown before proceeding
       const user = await storage.getUserByUsername(normalizedAddress);
       if (!user) {
@@ -550,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
         const now = new Date();
 
-        if (nextAvailableTime > now) {
+        if (nextAvailableTime > now && !isTestMode) {
           const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
           console.error('Claim failed: Cooldown period active', {
             lastClaim: lastClaimTime,
@@ -566,11 +554,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Update user's last claim time BEFORE processing to prevent race conditions
-      await db
-        .update(users)
-        .set({ lastCPXTBClaimTime: new Date() })
-        .where(eq(users.username, normalizedAddress));
+      // Check rate limiting after cooldown
+      if (!isTestMode && !checkRateLimit(normalizedAddress)) {
+        console.error('Claim failed: Rate limit exceeded', {
+          address: normalizedAddress,
+          timestamp: new Date().toISOString()
+        });
+        res.status(429).json({
+          message: "Too many claim attempts. Please try again later."
+        });
+        return;
+      }
 
       // Validate withdrawal address format
       if (!withdrawalAddress || !/^0x[a-fA-F0-9]{40}$/.test(withdrawalAddress)) {
@@ -614,6 +608,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Update user's last claim time BEFORE creating the mining plan to prevent race conditions
+      await db
+        .update(users)
+        .set({ lastCPXTBClaimTime: new Date() })
+        .where(eq(users.username, normalizedAddress));
 
       // Create a special mining plan for the free CPXTB with short expiry
       const now = new Date();

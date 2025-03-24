@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Coins, MessageCircle, Server, Cpu, Gift, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
-import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
+import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient, useQuery } from 'wagmi';
 import { parseUnits, formatUnits } from "viem";
 import { TransactionStatus } from "./transaction-status";
 import { type Address } from 'viem';
@@ -14,7 +14,7 @@ import { SiTelegram } from 'react-icons/si';
 import { FaTwitter } from 'react-icons/fa';
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { ReferralStats } from "./referral-stats";
 import { useLocation } from "wouter";
 import { createPublicClient, http } from 'viem';
@@ -369,199 +369,6 @@ function ActivePlanDisplay({
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-// Update the FreeCPXTBClaim component with enhanced security
-function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
-  const { isConnected, address } = useWallet();
-  const [deviceCooldownMessage, setDeviceCooldownMessage] = useState<string>("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { toast } = useToast();
-  const { data: walletClient } = useWalletClient();
-  const { data: user, refetch: refetchUser } = useQuery({
-    queryKey: ['user', address],
-    queryFn: async () => {
-      if (!address) return null;
-      console.log('Fetching user data for address:', address);
-      const response = await fetch(`/api/users/${address}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch user');
-      }
-      const data = await response.json();
-      console.log('Received user data:', data);
-      return data.user;
-    },
-    enabled: !!address
-  });
-
-  useEffect(() => {
-    if (!user?.lastCPXTBClaimTime) return;
-
-    const checkCooldown = () => {
-      const lastClaimTime = new Date(user.lastCPXTBClaimTime);
-      const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-      const now = new Date();
-
-      if (nextAvailableTime > now) {
-        const diffMs = nextAvailableTime.getTime() - now.getTime();
-        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        setDeviceCooldownMessage(
-          `Next claim available in ${hours}h ${minutes}m`
-        );
-      } else {
-        setDeviceCooldownMessage("");
-      }
-    };
-
-    checkCooldown();
-    const interval = setInterval(checkCooldown, 1000);
-    return () => clearInterval(interval);
-  }, [user?.lastCPXTBClaimTime]);
-
-  const handleClaim = async () => {
-    if (!address || !isConnected || !walletClient) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please connect your wallet first"
-      });
-      return;
-    }
-
-    if (isProcessing) {
-      toast({
-        variant: "destructive",
-        title: "Processing",
-        description: "Please wait while your previous claim is being processed"
-      });
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-
-      // Validate address format
-      if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-        throw new Error("Invalid wallet address format");
-      }
-
-      // Generate signature for verification
-      const message = `Claiming CPXTB tokens at ${new Date().toISOString()}`;
-      const signature = await walletClient.signMessage({ message });
-
-      console.log('Processing free CPXTB claim:', {
-        walletAddress: address,
-        signature,
-        timestamp: new Date().toISOString()
-      });
-
-      // Make claim request with signature
-      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          withdrawalAddress: address,
-          signature
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        if (response.status === 429) {
-          throw new Error("Rate limit exceeded. Please try again later.");
-        }
-        throw new Error(error.message || "Failed to claim free CPXTB");
-      }
-
-      await onClaim();
-      await refetchUser(); // Refresh user data after claim
-
-      toast({
-        title: "Success",
-        description: "Successfully claimed free CPXTB! It will be distributed shortly."
-      });
-
-    } catch (error) {
-      console.error('Claim error:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to Claim",
-        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  if (!isConnected || !address) {
-    return (
-      <Card className="w-full max-w-2xl mx-auto mb-6">
-        <CardContent className="p-6">
-          <p className="text-sm text-muted-foreground text-center">
-            Please connect your wallet to claim free CPXTB.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const isDeviceCoolingDown = !!deviceCooldownMessage;
-
-  if (isDeviceCoolingDown) {
-    return (
-      <Card className="w-full max-w-2xl mx-auto mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="h-6 w-6 text-primary" />
-            Daily Free CPXTB Claim
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-destructive/10 rounded-lg p-4">
-            <p className="text-lg font-semibold text-destructive">Cooldown Active</p>
-            <p className="text-sm text-muted-foreground">
-              {deviceCooldownMessage}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <>
-      <Card className="w-full max-w-2xl mx-auto mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="h-6 w-6 text-primary" />
-            Daily Free CPXTB Claim
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-primary/10 rounded-lg p-4">
-            <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
-            <p className="text-sm text-muted-foreground">
-              Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
-            </p>
-          </div>
-          <Button
-            className="w-full"
-            onClick={handleClaim}
-            disabled={isDeviceCoolingDown || isProcessing}
-          >
-            <Gift className="mr-2 h-4 w-4" />
-            Claim Free CPXTB
-          </Button>
-        </CardContent>
-      </Card>
-      {process.env.NODE_ENV === 'development' && <TestInterface />}
-    </>
   );
 }
 
@@ -1071,7 +878,7 @@ export function MiningPlan() {
     const lastDeviceClaim = localStorage.getItem('global_lastCPXTBClaimTime');
     if (lastDeviceClaim) {
       const lastClaimTime = new Date(lastDeviceClaim);
-      const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      const cooldownPeriod = 24 * 60 * 60* 1000; // 24 hours in milliseconds
       const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
       const now = new Date();
 

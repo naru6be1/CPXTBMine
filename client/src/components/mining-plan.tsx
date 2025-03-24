@@ -375,13 +375,18 @@ function ActivePlanDisplay({
 function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   const { isConnected, address } = useWallet();
   const [deviceCooldownMessage, setDeviceCooldownMessage] = useState<string>("");
-  const { data: user } = useQuery({
+  const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['user', address],
     queryFn: async () => {
       if (!address) return null;
+      console.log('Fetching user data for address:', address);
       const response = await fetch(`/api/users/${address}`);
-      if (!response.ok) throw new Error('Failed to fetch user');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch user');
+      }
       const data = await response.json();
+      console.log('Received user data:', data);
       return data.user;
     },
     enabled: !!address
@@ -418,27 +423,16 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
     if (!address || !isConnected) return;
 
     try {
+      // First ensure user exists by fetching/creating
+      await refetchUser();
+
       console.log('Processing free CPXTB claim:', {
         walletAddress: address,
         timestamp: new Date().toISOString()
       });
 
-      // Check server-side cooldown
-      if (user?.lastCPXTBClaimTime) {
-        const lastClaimTime = new Date(user.lastCPXTBClaimTime);
-        const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours
-        const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-        const now = new Date();
-
-        if (nextAvailableTime > now) {
-          const diffMs = nextAvailableTime.getTime() - now.getTime();
-          const hours = Math.floor(diffMs / (1000 * 60 * 60));
-          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-          throw new Error(`Please wait ${hours}h ${minutes}m before claiming again`);
-        }
-      }
-
       await onClaim();
+      await refetchUser(); // Refresh user data after claim
 
     } catch (error) {
       console.error('Claim error:', error);

@@ -462,6 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update the free CPXTB claim endpoint with enhanced security
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
@@ -474,15 +475,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
 
-      if (!withdrawalAddress) {
-        console.error('Claim failed: Missing withdrawal address');
+      // Validate withdrawal address format
+      if (!withdrawalAddress || !/^0x[a-fA-F0-9]{40}$/.test(withdrawalAddress)) {
+        console.error('Claim failed: Invalid withdrawal address format');
         res.status(400).json({
-          message: "Withdrawal address is required"
+          message: "Invalid withdrawal address format"
         });
         return;
       }
 
-      // Get user and check cooldown period
+      // Ensure addresses match to prevent unauthorized withdrawals
+      if (normalizedAddress.toLowerCase() !== withdrawalAddress.toLowerCase()) {
+        console.error('Claim failed: Withdrawal address mismatch', {
+          claimAddress: normalizedAddress,
+          withdrawalAddress: withdrawalAddress.toLowerCase()
+        });
+        res.status(403).json({
+          message: "Withdrawal address must match claiming address"
+        });
+        return;
+      }
+
+      // Get user and check cooldown period with enhanced validation
       const user = await storage.getUserByUsername(normalizedAddress);
       if (!user) {
         console.error('Claim failed: User not found', { address: normalizedAddress });
@@ -492,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Check if 24 hours have passed since last claim
+      // Strict cooldown check with proper error handling
       if (user.lastCPXTBClaimTime) {
         const lastClaimTime = new Date(user.lastCPXTBClaimTime);
         const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -508,28 +522,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
             walletAddress: normalizedAddress
           });
           res.status(400).json({
-            message: `Please wait ${timeRemaining} hours before claiming again`
+            message: `Please wait ${timeRemaining} hours before claiming again`,
+            nextAvailableTime: nextAvailableTime.toISOString()
           });
           return;
         }
       }
 
-      // Update user's last claim time
+      // Update user's last claim time immediately to prevent race conditions
       await db
         .update(users)
         .set({ lastCPXTBClaimTime: new Date() })
         .where(eq(users.username, normalizedAddress));
 
-      // Create a special mining plan for the free CPXTB
+      // Create a special mining plan for the free CPXTB with short expiry
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes
+      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes expiry
 
       const plan = await storage.createMiningPlan({
         walletAddress: normalizedAddress,
         withdrawalAddress: withdrawalAddress.toLowerCase(),
-        planType: "bronze", // Use bronze as the base plan type
-        amount: "0", // Free plan
-        dailyRewardCPXTB: "10", // 10 CPXTB
+        planType: "bronze",
+        amount: "0",
+        dailyRewardCPXTB: "10",
         activatedAt: now,
         expiresAt: expiresAt,
         transactionHash: 'FREE_CPXTB_CLAIM',

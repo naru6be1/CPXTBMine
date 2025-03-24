@@ -371,10 +371,13 @@ function ActivePlanDisplay({
   );
 }
 
-// Update the FreeCPXTBClaim component to use server time
+// Update the FreeCPXTBClaim component with enhanced security
 function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   const { isConnected, address } = useWallet();
   const [deviceCooldownMessage, setDeviceCooldownMessage] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
+
   const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['user', address],
     queryFn: async () => {
@@ -413,16 +416,38 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
       }
     };
 
-    // Check immediately and then update every second
     checkCooldown();
     const interval = setInterval(checkCooldown, 1000);
     return () => clearInterval(interval);
   }, [user?.lastCPXTBClaimTime]);
 
   const handleClaim = async () => {
-    if (!address || !isConnected) return;
+    if (!address || !isConnected) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please connect your wallet first"
+      });
+      return;
+    }
+
+    if (isProcessing) {
+      toast({
+        variant: "destructive",
+        title: "Processing",
+        description: "Please wait while your previous claim is being processed"
+      });
+      return;
+    }
 
     try {
+      setIsProcessing(true);
+
+      // Validate address format
+      if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        throw new Error("Invalid wallet address format");
+      }
+
       // First ensure user exists by fetching/creating
       await refetchUser();
 
@@ -434,6 +459,11 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
       await onClaim();
       await refetchUser(); // Refresh user data after claim
 
+      toast({
+        title: "Success",
+        description: "Successfully claimed free CPXTB! It will be distributed shortly."
+      });
+
     } catch (error) {
       console.error('Claim error:', error);
       toast({
@@ -441,6 +471,8 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         title: "Failed to Claim",
         description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -497,7 +529,7 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         <Button
           className="w-full"
           onClick={handleClaim}
-          disabled={isDeviceCoolingDown}
+          disabled={isDeviceCoolingDown || isProcessing}
         >
           <Gift className="mr-2 h-4 w-4" />
           Claim Free CPXTB

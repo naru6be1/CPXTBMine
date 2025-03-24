@@ -506,16 +506,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const nextAvailableTime = new Date(recentClaim.ipClaimTime!);
           nextAvailableTime.setHours(nextAvailableTime.getHours() + 24);
           const now = new Date();
-          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+          const diffMs = nextAvailableTime.getTime() - now.getTime();
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
           console.error('Claim failed: IP cooldown active', {
             ip: clientIp,
             lastClaim: recentClaim.ipClaimTime,
             nextAvailable: nextAvailableTime,
-            hoursRemaining: timeRemaining
+            hoursRemaining: hours,
+            minutesRemaining: minutes
           });
 
-          throw new Error(`This IP address has already claimed within 24 hours. Please wait ${timeRemaining} hours before claiming again.`);
+          throw new Error(`This IP address has already claimed within 24 hours. Please wait ${hours}h ${minutes}m before claiming again.`);
         }
 
         // Try to get existing user or create new one

@@ -32,16 +32,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    // Try both original and normalized address
+    const normalizedUsername = username.toLowerCase();
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        sql`LOWER(${users.username}) = ${normalizedUsername}`
+      );
+
+    if (!user && username !== normalizedUsername) {
+      // Try with original case if not found
+      const [originalUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username));
+      return originalUser;
+    }
+
     return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    // Always normalize username (wallet address)
+    const normalizedUsername = insertUser.username.toLowerCase();
+
+    // Check if user exists first
+    const existingUser = await this.getUserByUsername(normalizedUsername);
+    if (existingUser) {
+      return existingUser;
+    }
+
     // Generate unique referral code if not provided
     if (!insertUser.referralCode) {
       insertUser.referralCode = `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     }
-    const [user] = await db.insert(users).values(insertUser).returning();
+
+    // Create new user with normalized username
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        username: normalizedUsername
+      })
+      .returning();
+
     return user;
   }
 

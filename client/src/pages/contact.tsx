@@ -6,7 +6,7 @@ export default function ContactPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Contact Us</h1>
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -19,12 +19,12 @@ export default function ContactPage() {
             Our support team is available 24/7 on Telegram to assist you with any questions or concerns about CPXTB mining.
           </p>
           <a 
-            href="https://t.me/cpxtbminingbot" 
+            href="https://t.me/CPXTBase" 
             target="_blank" 
             rel="noopener noreferrer"
             onClick={(e) => {
               e.preventDefault();
-              window.open('https://t.me/cpxtbminingbot', '_blank', 'noopener,noreferrer');
+              window.open('https://t.me/CPXTBase', '_blank', 'noopener,noreferrer');
             }}
           >
             <Button className="w-full sm:w-auto">

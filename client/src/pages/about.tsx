@@ -34,7 +34,7 @@ export default function AboutPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">About CPXTB</h1>
-      
+
       <div className="grid gap-6">
         <Card>
           <CardHeader>
@@ -46,7 +46,7 @@ export default function AboutPage() {
             </p>
             <div className="bg-muted p-4 rounded-lg">
               <p className="font-mono text-sm break-all">
-                Contract Address: 0x18fec483ad7f68df0f9cca34d82792376b8d18d0
+                Contract Address: 0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b
               </p>
             </div>
           </CardContent>

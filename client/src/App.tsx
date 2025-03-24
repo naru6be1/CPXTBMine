@@ -8,6 +8,8 @@ import MiningPage from "@/pages/mining";
 import ReferralsPage from "@/pages/referrals";
 import RewardsPage from "@/pages/rewards";
 import FeaturesPage from "@/pages/features";
+import BlogPage from "@/pages/blog";
+import BlogPost from "@/pages/blog-post";
 import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi'
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -21,6 +23,8 @@ function Router() {
       <Route path="/referrals" component={ReferralsPage} />
       <Route path="/rewards" component={RewardsPage} />
       <Route path="/features" component={FeaturesPage} />
+      <Route path="/blog" component={BlogPage} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route component={NotFound} />
     </Switch>
   );

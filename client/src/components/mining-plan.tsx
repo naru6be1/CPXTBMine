@@ -882,8 +882,7 @@ export function MiningPlan() {
         body: JSON.stringify({ withdrawalAddress: address }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (!response.ok) {        const error = await response.json();
         throw new Error(error.message);
       }
 
@@ -1158,6 +1157,8 @@ export function MiningPlan() {
 function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
   const { isConnected, address } = useWallet();
   const { toast } = useToast();
+  const [isClaimInProgress, setIsClaimInProgress] = useState(false);
+
   const { data: user, refetch: refetchUser } = useQuery({
     queryKey: ['user', address],
     queryFn: async () => {
@@ -1185,14 +1186,12 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
       return;
     }
 
-    try {
-      // First ensure user exists by fetching/creating
-      await refetchUser();
+    if (isClaimInProgress) {
+      return; // Prevent multiple clicks while claiming
+    }
 
-      console.log('Processing free CPXTB claim:', {
-        walletAddress: address,
-        timestamp: new Date().toISOString()
-      });
+    try {
+      setIsClaimInProgress(true);
 
       const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
         method: 'POST',
@@ -1202,13 +1201,14 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         body: JSON.stringify({ withdrawalAddress: address }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
+        throw new Error(data.message || 'Failed to claim CPXTB');
       }
 
       await onClaim();
-      await refetchUser(); // Refresh user data after claim
+      await refetchUser();
 
       toast({
         title: "Success!",
@@ -1227,6 +1227,8 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         title: "Failed to Claim",
         description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
       });
+    } finally {
+      setIsClaimInProgress(false);
     }
   };
 
@@ -1261,9 +1263,19 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         <Button
           className="w-full"
           onClick={handleClaim}
+          disabled={isClaimInProgress}
         >
-          <Gift className="mr-2 h-4 w-4" />
-          Claim Free CPXTB
+          {isClaimInProgress ? (
+            <>
+              <span className="animate-spin mr-2">⌛</span>
+              Processing...
+            </>
+          ) : (
+            <>
+              <Gift className="mr-2 h-4 w-4" />
+              Claim Free CPXTB
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>

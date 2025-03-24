@@ -862,7 +862,7 @@ export function MiningPlan() {
     }
   };
 
-  // Handle free CPXTB claim
+  // Handle free CPXTB claim - REMOVED DEVICE BASED COOLDOWN
   const handleClaimFreeCPXTB = async () => {
     if (!address || !isConnected) {
       toast({
@@ -871,27 +871,6 @@ export function MiningPlan() {
         description: "Please connect your wallet to claim free CPXTB"
       });
       return;
-    }
-
-    // Check device cooldown before proceeding
-    const lastDeviceClaim = localStorage.getItem('global_lastCPXTBClaimTime');
-    if (lastDeviceClaim) {
-      const lastClaimTime = new Date(lastDeviceClaim);
-      const cooldownPeriod = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      const nextAvailableTime = new Date(lastClaimTime.getTime() + cooldownPeriod);
-      const now = new Date();
-
-      if (nextAvailableTime > now) {
-        const diffMs = nextAvailableTime.getTime() - now.getTime();
-        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        toast({
-          variant: "destructive",
-          title: "Device Cooldown Active",
-          description: `Please wait ${hours}h ${minutes}m before claiming from this device`
-        });
-        return;
-      }
     }
 
     try {
@@ -1007,13 +986,8 @@ export function MiningPlan() {
       <ReferralStats />
       {isConnected && (
         <div>
-          {!user?.hasClaimedFreeCPXTB ? (
-            <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
-          ) : (
-            <p className="text-sm text-muted-foreground text-center">
-              You have already claimed your free CPXTB.
-            </p>
-          )}
+          {/* Replaced with the new FreeCPXTBClaim component */}
+          <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
         </div>
       )}
       <Card className="w-full max-w-2xl mx-auto">
@@ -1179,5 +1153,119 @@ export function MiningPlan() {
         <TelegramSupport />
       </div>
     </div>
+  );
+}
+function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
+  const { isConnected, address } = useWallet();
+  const { toast } = useToast();
+  const { data: user, refetch: refetchUser } = useQuery({
+    queryKey: ['user', address],
+    queryFn: async () => {
+      if (!address) return null;
+      console.log('Fetching user data for address:', address);
+      const response = await fetch(`/api/users/${address}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch user');
+      }
+      const data = await response.json();
+      console.log('Received user data:', data);
+      return data.user;
+    },
+    enabled: !!address
+  });
+
+  const handleClaim = async () => {
+    if (!address || !isConnected) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to claim free CPXTB"
+      });
+      return;
+    }
+
+    try {
+      // First ensure user exists by fetching/creating
+      await refetchUser();
+
+      console.log('Processing free CPXTB claim:', {
+        walletAddress: address,
+        timestamp: new Date().toISOString()
+      });
+
+      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ withdrawalAddress: address }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+
+      await onClaim();
+      await refetchUser(); // Refresh user data after claim
+
+      toast({
+        title: "Success!",
+        description: (
+          <div className="space-y-2">
+            <p>Your free 10 CPXTB tokens have been claimed successfully!</p>
+            <SocialShareButtons amount="10" type="claim" />
+          </div>
+        )
+      });
+
+    } catch (error) {
+      console.error('Claim error:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to Claim",
+        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
+      });
+    }
+  };
+
+  if (!isConnected || !address) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto mb-6">
+        <CardContent className="p-6">
+          <p className="text-sm text-muted-foreground text-center">
+            Please connect your wallet to claim free CPXTB.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Gift className="h-6 w-6 text-primary" />
+          Daily Free CPXTB Claim
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="bg-primary/10 rounded-lg p-4">
+          <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
+          <p className="text-sm text-muted-foreground">
+            Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
+            Note: Only one claim per IP address is allowed every 24 hours.
+          </p>
+        </div>
+        <Button
+          className="w-full"
+          onClick={handleClaim}
+        >
+          <Gift className="mr-2 h-4 w-4" />
+          Claim Free CPXTB
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

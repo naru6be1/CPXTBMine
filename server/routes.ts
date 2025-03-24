@@ -486,90 +486,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Check if any user has claimed from this IP in the last 24 hours
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      // Use a transaction to ensure atomic updates
+      await db.transaction(async (tx) => {
+        // Check if any user has claimed from this IP in the last 24 hours
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      const [recentClaim] = await db
-        .select()
-        .from(users)
-        .where(
-          and(
-            eq(users.lastClaimIp, clientIp),
-            gte(users.ipClaimTime, oneDayAgo)
+        const [recentClaim] = await tx
+          .select()
+          .from(users)
+          .where(
+            and(
+              eq(users.lastClaimIp, clientIp),
+              gte(users.ipClaimTime, oneDayAgo)
+            )
           )
-        );
+          .for('update');  // Lock the rows for update
 
-      if (recentClaim) {
-        const nextAvailableTime = new Date(recentClaim.ipClaimTime!);
-        nextAvailableTime.setHours(nextAvailableTime.getHours() + 24);
+        if (recentClaim) {
+          const nextAvailableTime = new Date(recentClaim.ipClaimTime!);
+          nextAvailableTime.setHours(nextAvailableTime.getHours() + 24);
+          const now = new Date();
+          const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+
+          console.error('Claim failed: IP cooldown active', {
+            ip: clientIp,
+            lastClaim: recentClaim.ipClaimTime,
+            nextAvailable: nextAvailableTime,
+            hoursRemaining: timeRemaining
+          });
+
+          throw new Error(`This IP address has already claimed within 24 hours. Please wait ${timeRemaining} hours before claiming again.`);
+        }
+
+        // Get user
+        const user = await tx
+          .select()
+          .from(users)
+          .where(eq(users.username, normalizedAddress))
+          .for('update')
+          .then(rows => rows[0]);
+
+        if (!user) {
+          throw new Error("User not found");
+        }
+
+        // Update user's last claim time and IP within the transaction
+        await tx
+          .update(users)
+          .set({
+            lastCPXTBClaimTime: new Date(),
+            ipClaimTime: new Date(),
+            lastClaimIp: clientIp
+          })
+          .where(eq(users.username, normalizedAddress));
+
+        // Create a special mining plan for the free CPXTB within the transaction
         const now = new Date();
-        const timeRemaining = Math.ceil((nextAvailableTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+        const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes
 
-        console.error('Claim failed: IP cooldown active', {
-          ip: clientIp,
-          lastClaim: recentClaim.ipClaimTime,
-          nextAvailable: nextAvailableTime,
-          hoursRemaining: timeRemaining
+        const plan = await tx
+          .insert(miningPlans)
+          .values({
+            walletAddress: normalizedAddress,
+            withdrawalAddress: withdrawalAddress.toLowerCase(),
+            planType: "bronze", // Use bronze as the base plan type
+            amount: "0", // Free plan
+            dailyRewardCPXTB: "10", // 10 CPXTB
+            activatedAt: now,
+            expiresAt: expiresAt,
+            transactionHash: 'FREE_CPXTB_CLAIM',
+            referralCode: null,
+            isActive: true,
+            hasWithdrawn: false,
+            referralRewardPaid: false,
+            createdAt: now
+          })
+          .returning()
+          .then(rows => rows[0]);
+
+        console.log('Created free CPXTB claim plan:', {
+          planId: plan.id,
+          walletAddress: normalizedAddress,
+          expiresAt: expiresAt.toISOString(),
+          now: now.toISOString(),
+          clientIp
         });
 
-        res.status(400).json({
-          message: `This IP address has already claimed within 24 hours. Please wait ${timeRemaining} hours before claiming again.`
+        // Return updated user and plan info
+        res.json({
+          user: await tx
+            .select()
+            .from(users)
+            .where(eq(users.username, normalizedAddress))
+            .then(rows => rows[0]),
+          plan
         });
-        return;
-      }
-
-      // Get user
-      const user = await storage.getUserByUsername(normalizedAddress);
-      if (!user) {
-        console.error('Claim failed: User not found', { address: normalizedAddress });
-        res.status(404).json({
-          message: "User not found"
-        });
-        return;
-      }
-
-      // Update user's last claim time and IP
-      await db
-        .update(users)
-        .set({
-          lastCPXTBClaimTime: new Date(),
-          ipClaimTime: new Date(),
-          lastClaimIp: clientIp
-        })
-        .where(eq(users.username, normalizedAddress));
-
-      // Create a special mining plan for the free CPXTB
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes
-
-      const plan = await storage.createMiningPlan({
-        walletAddress: normalizedAddress,
-        withdrawalAddress: withdrawalAddress.toLowerCase(),
-        planType: "bronze", // Use bronze as the base plan type
-        amount: "0", // Free plan
-        dailyRewardCPXTB: "10", // 10 CPXTB
-        activatedAt: now,
-        expiresAt: expiresAt,
-        transactionHash: 'FREE_CPXTB_CLAIM',
-        referralCode: null
       });
 
-      console.log('Created free CPXTB claim plan:', {
-        planId: plan.id,
-        walletAddress: normalizedAddress,
-        expiresAt: expiresAt.toISOString(),
-        now: now.toISOString(),
-        clientIp
-      });
-
-      res.json({
-        user: await storage.getUserByUsername(normalizedAddress),
-        plan
-      });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error claiming free CPXTB:", error);
-      res.status(500).json({
-        message: "Error claiming free CPXTB: " + error.message
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Error claiming free CPXTB"
       });
     }
   });

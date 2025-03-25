@@ -862,56 +862,34 @@ export function MiningPlan() {
     }
   };
 
-  // Handle free CPXTB claim with enhanced error handling
+  // Handle free CPXTB claim with improved signature request flow
   const handleClaimFreeCPXTB = async () => {
-    if (!address || !isConnected) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to claim free CPXTB"
-      });
-      return;
-    }
-
-    if (!walletClient) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Client Error",
-        description: "Unable to access wallet. Please reconnect your wallet and try again."
-      });
-      return;
-    }
-
     try {
       console.log('Starting CPXTB claim process...');
-      // Request signature from wallet
-      const message = `I authorize claiming freeCPXTB tokens with my wallet address: ${address}`;
-      console.log('Requesting signature for message:', message);
 
-      let signature;
-      try {
-        signature = await walletClient.signMessage({
-          message,
-          account: address as `0x${string}`,
-        });
-        console.log('Signature received:', signature);
-      } catch (error) {
-        console.error('Signature error:', error);
-        toast({
-          variant: "destructive",
-          title: "Signature Required",
-          description: "Please sign the message in your wallet to verify ownership"
-        });
-        return;
+      if (!address || !isConnected) {
+        throw new Error('Please connect your wallet to claim free CPXTB');
       }
 
+      if (!walletClient) {
+        throw new Error('Wallet connection not initialized. Please try reconnecting your wallet.');
+      }
+
+      // Prepare signature request
+      const message = `I authorize claiming free CPXTB tokens with my wallet address: ${address}\nTimestamp: ${new Date().toISOString()}`;
+      console.log('Requesting signature for message:', message);
+
+      // Request signature first
+      const signature = await walletClient.signMessage({
+        message,
+        account: address as `0x${string}`,
+      });
+
+      console.log('Signature received:', signature);
+
+      // Only proceed with API call if we have a valid signature
       if (!signature) {
-        toast({
-          variant: "destructive",
-          title: "Signature Failed",
-          description: "Failed to get wallet signature. Please try again."
-        });
-        return;
+        throw new Error('Failed to get wallet signature');
       }
 
       console.log('Making claim request with signature...');

@@ -862,9 +862,9 @@ export function MiningPlan() {
     }
   };
 
-  // Handle free CPXTB claim - Update with signature requirement
+  // Handle free CPXTB claim with enhanced error handling
   const handleClaimFreeCPXTB = async () => {
-    if (!address || !isConnected || !walletClient) {
+    if (!address || !isConnected) {
       toast({
         variant: "destructive",
         title: "Wallet Not Connected",
@@ -873,9 +873,20 @@ export function MiningPlan() {
       return;
     }
 
+    if (!walletClient) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Client Error",
+        description: "Unable to access wallet. Please reconnect your wallet and try again."
+      });
+      return;
+    }
+
     try {
+      console.log('Starting CPXTB claim process...');
       // Request signature from wallet
-      const message = `I authorize claiming free CPXTB tokens with my wallet address: ${address}`;
+      const message = `I authorize claiming freeCPXTB tokens with my wallet address: ${address}`;
+      console.log('Requesting signature for message:', message);
 
       let signature;
       try {
@@ -883,16 +894,27 @@ export function MiningPlan() {
           message,
           account: address as `0x${string}`,
         });
+        console.log('Signature received:', signature);
       } catch (error) {
         console.error('Signature error:', error);
         toast({
           variant: "destructive",
           title: "Signature Required",
-          description: "Please sign the message to verify your wallet ownership"
+          description: "Please sign the message in your wallet to verify ownership"
         });
         return;
       }
 
+      if (!signature) {
+        toast({
+          variant: "destructive",
+          title: "Signature Failed",
+          description: "Failed to get wallet signature. Please try again."
+        });
+        return;
+      }
+
+      console.log('Making claim request with signature...');
       const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
         method: 'POST',
         headers: {
@@ -906,11 +928,8 @@ export function MiningPlan() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message);
+        throw new Error(error.message || 'Failed to claim CPXTB');
       }
-
-      // Store the claim time in localStorage for global device tracking
-      localStorage.setItem('global_lastCPXTBClaimTime', new Date().toISOString());
 
       await refetchUser();
       await refetchActivePlans();
@@ -925,6 +944,7 @@ export function MiningPlan() {
         )
       });
     } catch (error) {
+      console.error('Claim error:', error);
       toast({
         variant: "destructive",
         title: "Failed to claim",

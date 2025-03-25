@@ -862,9 +862,9 @@ export function MiningPlan() {
     }
   };
 
-  // Handle free CPXTB claim - REMOVED DEVICE BASED COOLDOWN
+  // Handle free CPXTB claim - Update with signature requirement
   const handleClaimFreeCPXTB = async () => {
-    if (!address || !isConnected) {
+    if (!address || !isConnected || !walletClient) {
       toast({
         variant: "destructive",
         title: "Wallet Not Connected",
@@ -874,15 +874,38 @@ export function MiningPlan() {
     }
 
     try {
+      // Request signature from wallet
+      const message = `I authorize claiming free CPXTB tokens with my wallet address: ${address}`;
+
+      let signature;
+      try {
+        signature = await walletClient.signMessage({
+          message,
+          account: address as `0x${string}`,
+        });
+      } catch (error) {
+        console.error('Signature error:', error);
+        toast({
+          variant: "destructive",
+          title: "Signature Required",
+          description: "Please sign the message to verify your wallet ownership"
+        });
+        return;
+      }
+
       const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ withdrawalAddress: address }),
+        body: JSON.stringify({ 
+          withdrawalAddress: address,
+          signature
+        }),
       });
 
-      if (!response.ok) {        const error = await response.json();
+      if (!response.ok) {
+        const error = await response.json();
         throw new Error(error.message);
       }
 

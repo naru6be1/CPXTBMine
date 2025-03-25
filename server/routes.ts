@@ -466,8 +466,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
     try {
       const { address } = req.params;
-      const { withdrawalAddress } = req.body;
+      const { withdrawalAddress, signature } = req.body;
       const normalizedAddress = address.toLowerCase();
+
+      // Verify signature is provided
+      if (!signature) {
+        res.status(400).json({
+          message: "Wallet signature is required for verification"
+        });
+        return;
+      }
 
       // Get real IP from x-forwarded-for header
       const clientIp = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() || req.ip;
@@ -476,6 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userAddress: normalizedAddress,
         withdrawalAddress,
         clientIp,
+        hasSignature: !!signature,
         timestamp: new Date().toISOString()
       });
 

@@ -879,7 +879,7 @@ export function MiningPlan() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ withdrawalAddress: address }),
+        body:JSON.stringify({ withdrawalAddress: address }),
       });
 
       if (!response.ok) {
@@ -912,40 +912,7 @@ export function MiningPlan() {
   };
 
   // Add proper user reference to the claim section
-  {/* Show claim section regardless of wallet connection */}
-  <div className="mb-6">
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Gift className="h-6 w-6 text-primary" />
-          Free CPXTB Claim
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground mb-6">
-          New users can claim 10 free CPXTB tokens! {!isConnected && 'Connect your wallet to get started.'}
-        </p>
-        {isConnected ? (
-          <Button
-            className="w-full"
-            onClick={handleClaimFreeCPXTB}
-            disabled={user?.lastCPXTBClaimTime}
-          >
-            <Gift className="mr-2 h-4 w-4" />
-            {user?.lastCPXTBClaimTime ? 'Already Claimed' : 'Claim Free CPXTB'}
-          </Button>
-        ) : (
-          <Button
-            className="w-full"
-            onClick={connectWallet}
-          >
-            <Gift className="mr-2 h-4 w-4" />
-            Connect Wallet to Claim
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  </div>
+  // Show claim section regardless of wallet connection
 
   // Update the handleDistributeAll function
   const handleDistributeAll = async () => {
@@ -1019,8 +986,6 @@ export function MiningPlan() {
 
   return (
     <div className="space-y-6">
-      <ReferralStats />
-
       {/* Show claim section regardless of wallet connection */}
       <div className="mb-6">
         <Card className="w-full max-w-2xl mx-auto">
@@ -1032,7 +997,7 @@ export function MiningPlan() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-6">
-              New users can claim 10 free CPXTB tokens! Connect your wallet to get started.
+              New users can claim 10 free CPXTB tokens! {!isConnected && 'Connect your wallet to get started.'}
             </p>
             {isConnected ? (
               <Button
@@ -1055,6 +1020,8 @@ export function MiningPlan() {
           </CardContent>
         </Card>
       </div>
+
+      <ReferralStats />
 
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>

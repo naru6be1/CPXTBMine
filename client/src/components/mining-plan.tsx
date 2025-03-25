@@ -21,6 +21,8 @@ import { createPublicClient, http } from 'viem';
 import { configureChains } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
+import Web3Modal from "web3modal"; //Import web3Modal
+
 
 // Configure chains for wagmi
 const { chains } = configureChains(
@@ -879,7 +881,7 @@ export function MiningPlan() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body:JSON.stringify({ withdrawalAddress: address }),
+        body: JSON.stringify({ withdrawalAddress: address }),
       });
 
       if (!response.ok) {
@@ -1011,7 +1013,19 @@ export function MiningPlan() {
             ) : (
               <Button
                 className="w-full"
-                onClick={connectWallet}
+                variant="default"
+                onClick={async () => {
+                  try {
+                    await connectWallet();
+                  } catch (error) {
+                    console.error('Wallet connection error:', error);
+                    toast({
+                      variant: "destructive",
+                      title: "Connection Failed",
+                      description: "Failed to connect wallet. Please try again."
+                    });
+                  }
+                }}
               >
                 <Gift className="mr-2 h-4 w-4" />
                 Connect Wallet to Claim
@@ -1021,8 +1035,10 @@ export function MiningPlan() {
         </Card>
       </div>
 
+      {/* Show ReferralStats after claim section */}
       <ReferralStats />
 
+      {/* Keep rest of the component unchanged */}
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

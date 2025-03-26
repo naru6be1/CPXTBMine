@@ -98,7 +98,7 @@ export default function SpaceMiningGame() {
         id: Math.random(),
         x: Math.random() * 80 + 10, // Keep minerals within 10-90% of the container
         y: Math.random() * 80 + 10,
-        value: Math.floor(Math.random() * 10) + 1
+        value: Math.floor(Math.random() * 50) + 10 // Increased from 10 to range 10-60
       });
     }
     setMinerals(newMinerals);
@@ -125,7 +125,7 @@ export default function SpaceMiningGame() {
       id: Math.random(),
       x: Math.random() * 80 + 10,
       y: Math.random() * 80 + 10,
-      value: Math.floor(Math.random() * 10) + 1
+      value: Math.floor(Math.random() * 50) + 10 // Increased from 10 to range 10-60
     };
     setMinerals(prev => [...prev, newMineral]);
 
@@ -383,7 +383,7 @@ export default function SpaceMiningGame() {
           <CardContent>
             <ul className="list-disc list-inside space-y-2">
               <li>Click the glowing minerals to collect them</li>
-              <li>Each mineral has a random value between 1-10 points</li>
+              <li>Each mineral has a random value between 10-60 points</li>
               <li>Collect as many minerals as possible in 60 seconds</li>
               <li>Every 100 points equals 1 CPXTB reward</li>
               <li>Accumulate 1000 CPXTB to claim your rewards</li>

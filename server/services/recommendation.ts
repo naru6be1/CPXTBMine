@@ -2,8 +2,14 @@ import OpenAI from 'openai';
 import { storage } from '../storage';
 import type { User, MiningPlan, InsertRecommendation } from '@shared/schema';
 
+// Check if API key exists
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+if (!OPENAI_API_KEY) {
+  console.error('OpenAI API key is missing. AI recommendations will use fallback mode.');
+}
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: OPENAI_API_KEY,
 });
 
 export class RecommendationService {
@@ -19,6 +25,18 @@ export class RecommendationService {
         preferredPlanType: this.getPreferredPlanType(activePlans),
         lastClaimTime: user.lastCPXTBClaimTime,
       };
+
+      console.log('Generating recommendation with context:', {
+        userAddress: user.username,
+        context: userContext,
+        hasApiKey: !!OPENAI_API_KEY,
+        timestamp: new Date().toISOString()
+      });
+
+      // If no API key, return fallback recommendation immediately
+      if (!OPENAI_API_KEY) {
+        return this.getFallbackRecommendation(activePlans);
+      }
 
       const prompt = `As a crypto mining advisor, analyze this user's mining behavior:
       - Mining History: ${userContext.miningHistory} active plans
@@ -36,8 +54,14 @@ export class RecommendationService {
         temperature: 0.7,
       });
 
+      console.log('OpenAI API Response:', {
+        status: 'success',
+        content: completion.choices[0].message.content,
+        timestamp: new Date().toISOString()
+      });
+
       return completion.choices[0].message.content || 
-        "Consider diversifying your mining portfolio with different plan types to optimize rewards.";
+        this.getFallbackRecommendation(activePlans);
     } catch (error: any) {
       console.error('Error generating AI recommendation:', {
         error: error.message,
@@ -46,22 +70,18 @@ export class RecommendationService {
         timestamp: new Date().toISOString()
       });
 
-      // Check for specific OpenAI errors and provide appropriate fallback messages
-      if (error.status === 429) {
-        return "Our AI system is currently at capacity. Here's a general tip: Consider upgrading to a higher tier mining plan for better rewards, or diversify across multiple plan types.";
-      } else if (error.status === 401) {
-        return "System maintenance in progress. In the meantime, review your current mining plans and consider claiming any available rewards.";
-      }
+      return this.getFallbackRecommendation(activePlans);
+    }
+  }
 
-      // Default fallback recommendation based on basic metrics
-      const planCount = activePlans.length;
-      if (planCount === 0) {
-        return "Start your mining journey with our Bronze plan - it's perfect for beginners and offers steady rewards.";
-      } else if (planCount === 1) {
-        return "Great start with your first plan! Consider adding a second mining plan to diversify your rewards.";
-      } else {
-        return "You're doing well with multiple plans! Keep monitoring your rewards and consider upgrading plans when possible.";
-      }
+  private getFallbackRecommendation(plans: MiningPlan[]): string {
+    const planCount = plans.length;
+    if (planCount === 0) {
+      return "Start your mining journey with our Bronze plan - it's perfect for beginners and offers steady rewards.";
+    } else if (planCount === 1) {
+      return "Great start with your first plan! Consider adding a second mining plan to diversify your rewards.";
+    } else {
+      return "You're doing well with multiple plans! Keep monitoring your rewards and consider upgrading plans when possible.";
     }
   }
 
@@ -77,10 +97,16 @@ export class RecommendationService {
 
   async createRecommendation(userId: number): Promise<InsertRecommendation | null> {
     try {
+      console.log('Starting recommendation creation for user:', userId);
+
       const user = await storage.getUser(userId);
-      if (!user) return null;
+      if (!user) {
+        console.log('User not found:', userId);
+        return null;
+      }
 
       const activePlans = await storage.getActiveMiningPlans(user.username);
+      console.log('Active plans found:', activePlans.length);
 
       const recommendationContent = await this.generateRecommendation(
         user,
@@ -98,7 +124,12 @@ export class RecommendationService {
         },
       };
 
-      // Store recommendation in database
+      console.log('Successfully created recommendation:', {
+        userId,
+        type: recommendation.recommendationType,
+        timestamp: new Date().toISOString()
+      });
+
       return recommendation;
     } catch (error) {
       console.error('Error creating recommendation:', error);

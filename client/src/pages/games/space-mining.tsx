@@ -56,15 +56,20 @@ export default function SpaceMiningGame() {
     enabled: !!address && !!userData
   });
 
-  // Helper function to convert points to CPXTB
+  // Calculate CPXTB with more precise handling
   const calculateCPXTB = (points: number): string => {
-    // Ensure points is treated as a number and calculation is precise
-    const cpxtb = (Math.floor(points) / POINTS_PER_CPXTB).toFixed(3);
+    // Ensure points is treated as a number
+    const pointsNum = Math.floor(points);
+    const cpxtb = (pointsNum / POINTS_PER_CPXTB).toFixed(3);
+
     console.log('Calculating CPXTB:', {
-      points,
-      cpxtb,
+      originalPoints: points,
+      flooredPoints: pointsNum,
+      calculatedCPXTB: cpxtb,
+      pointsPerCPXTB: POINTS_PER_CPXTB,
       timestamp: new Date().toISOString()
     });
+
     return cpxtb;
   };
 
@@ -114,7 +119,7 @@ export default function SpaceMiningGame() {
     setMinerals(prev => [...prev, newMineral]);
   };
 
-  // Update game end and score saving logic
+  // Handle game end with better error handling and logging
   const handleGameEnd = async () => {
     if (!address || !isConnected) {
       toast({
@@ -126,11 +131,9 @@ export default function SpaceMiningGame() {
     }
 
     try {
-      // Ensure user exists first
-      await fetch(`/api/users/${address}`);
-
+      // Calculate earned CPXTB
       const earnedCPXTB = calculateCPXTB(score);
-      console.log('Saving game score:', {
+      console.log('Submitting game score:', {
         walletAddress: address,
         score: Math.floor(score),
         earnedCPXTB,
@@ -155,6 +158,8 @@ export default function SpaceMiningGame() {
       }
 
       const result = await response.json();
+      console.log('Score save result:', result);
+
       await refetchGameStats();
 
       toast({

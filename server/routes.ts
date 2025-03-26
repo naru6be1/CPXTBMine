@@ -732,12 +732,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log('Found user:', {
-        userId: user.id,
-        username: user.username,
-        currentAccumulatedCPXTB: user.accumulatedCPXTB
-      });
-
       // Calculate new total (handle null case)
       const currentAmount = user.accumulatedCPXTB || 0;
       const newAmount = currentAmount + parseFloat(earnedCPXTB);
@@ -745,7 +739,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Updating CPXTB:', {
         currentAmount,
         earnedCPXTB,
-        newAmount
+        newAmount,
+        username: user.username
       });
 
       // Update with calculated amount
@@ -758,7 +753,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .returning();
 
       console.log('Successfully updated user CPXTB:', {
-        userId: user.id,
+        userId: updatedUser.id,
+        username: updatedUser.username,
+        previousAmount: currentAmount,
+        addedAmount: parseFloat(earnedCPXTB),
         newAccumulatedCPXTB: updatedUser.accumulatedCPXTB
       });
 

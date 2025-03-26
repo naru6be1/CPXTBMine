@@ -672,13 +672,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Processing game score:', {
         walletAddress,
-        normalizedAddress: walletAddress?.toLowerCase(),
         score,
         earnedCPXTB,
         timestamp: new Date().toISOString()
       });
 
-      // Check if all required fields are present (allowing zero values)
       if (!walletAddress || score === undefined || earnedCPXTB === undefined) {
         console.error('Missing required fields:', { walletAddress, score, earnedCPXTB });
         res.status(400).json({
@@ -687,82 +685,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Get current user and their CPXTB balance
+      // Get user's current CPXTB balance with proper numeric handling
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.username, walletAddress.toLowerCase()));
 
       if (!user) {
-        console.log('Creating new user for game:', {
-          address: walletAddress,
-          normalizedAddress: walletAddress.toLowerCase(),
+        // Create new user with initial CPXTB
+        const [newUser] = await db
+          .insert(users)
+          .values({
+            username: walletAddress.toLowerCase(),
+            password: 'not-used',
+            referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+            accumulatedCPXTB: earnedCPXTB
+          })
+          .returning();
+
+        console.log('New user created:', {
+          userId: newUser.id,
+          username: newUser.username,
           initialCPXTB: earnedCPXTB
         });
 
-        // Try to create the user if they don't exist
-        try {
-          const [newUser] = await db
-            .insert(users)
-            .values({
-              username: walletAddress.toLowerCase(),
-              password: 'not-used',
-              referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-              accumulatedCPXTB: parseFloat(earnedCPXTB)
-            })
-            .returning();
-
-          console.log('New user created with CPXTB:', {
-            userId: newUser.id,
-            username: newUser.username,
-            accumulatedCPXTB: newUser.accumulatedCPXTB
-          });
-
-          res.json({
-            success: true,
-            accumulatedCPXTB: newUser.accumulatedCPXTB
-          });
-          return;
-        } catch (createError) {
-          console.error('Failed to create new user:', createError);
-          res.status(500).json({
-            message: "Failed to create new user"
-          });
-          return;
-        }
+        res.json({
+          success: true,
+          accumulatedCPXTB: newUser.accumulatedCPXTB
+        });
+        return;
       }
 
-      // Calculate new total with better precision
+      // Calculate new total with proper numeric handling
       const currentAmount = parseFloat(user.accumulatedCPXTB?.toString() || '0');
       const earnedAmount = parseFloat(earnedCPXTB);
       const newAmount = parseFloat((currentAmount + earnedAmount).toFixed(3));
 
-      console.log('CPXTB Calculation Details:', {
+      console.log('CPXTB Update:', {
         userId: user.id,
         username: user.username,
         currentAmount,
         earnedAmount,
         newAmount,
-        rawEarnedCPXTB: earnedCPXTB,
         timestamp: new Date().toISOString()
       });
 
-      // Update with calculated amount
+      // Update with new amount
       const [updatedUser] = await db
         .update(users)
         .set({
-          accumulatedCPXTB: newAmount
+          accumulatedCPXTB: newAmount.toString() // Convert to string for numeric column
         })
         .where(eq(users.username, walletAddress.toLowerCase()))
         .returning();
 
-      console.log('Updated user CPXTB details:', {
+      console.log('User CPXTB updated:', {
         userId: updatedUser.id,
         username: updatedUser.username,
-        previousAmount: currentAmount,
-        addedAmount: earnedAmount,
-        newTotal: updatedUser.accumulatedCPXTB,
-        timestamp: new Date().toISOString()
+        finalAmount: updatedUser.accumulatedCPXTB
       });
 
       res.json({
@@ -771,11 +751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
-      console.error("Error saving game score:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        timestamp: new Date().toISOString()
-      });
+      console.error("Error saving game score:", error);
       res.status(500).json({
         message: error instanceof Error ? error.message : "Failed to save game score"
       });

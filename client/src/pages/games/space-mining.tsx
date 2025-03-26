@@ -58,13 +58,14 @@ export default function SpaceMiningGame() {
 
   // Calculate CPXTB with better precision handling
   const calculateCPXTB = (points: number): string => {
-    // Ensure we're working with positive numbers and handle decimals properly
+    // Ensure we're working with positive numbers
     const rawPoints = Math.max(0, points);
+    // Calculate with 3 decimal places precision
     const cpxtb = (rawPoints / POINTS_PER_CPXTB).toFixed(3);
 
-    console.log('Calculating CPXTB:', {
-      points: rawPoints,
-      calculatedCPXTB: cpxtb,
+    console.log('CPXTB Calculation:', {
+      rawPoints,
+      cpxtb,
       pointsPerCPXTB: POINTS_PER_CPXTB,
       timestamp: new Date().toISOString()
     });
@@ -103,16 +104,16 @@ export default function SpaceMiningGame() {
     setMinerals(newMinerals);
   };
 
-  // Handle mineral collection
+  // Handle mineral collection with better logging
   const collectMineral = (mineral: Mineral) => {
     const newScore = score + mineral.value;
     setScore(newScore);
 
-    console.log('Collected mineral:', {
+    console.log('Mineral collected:', {
       mineralValue: mineral.value,
       previousScore: score,
       newScore,
-      estimatedCPXTB: (newScore / POINTS_PER_CPXTB).toFixed(3),
+      estimatedCPXTB: calculateCPXTB(newScore),
       timestamp: new Date().toISOString()
     });
 

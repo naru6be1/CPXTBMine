@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,7 +11,7 @@ export const users = pgTable("users", {
   lastCPXTBClaimTime: timestamp("last_cpxtb_claim_time"),
   lastClaimIp: text("last_claim_ip"),
   ipClaimTime: timestamp("ip_claim_time"),
-  accumulatedCPXTB: real("accumulated_cpxtb").default(0), // Add accumulated CPXTB field
+  accumulatedCPXTB: numeric("accumulated_cpxtb", { precision: 10, scale: 3 }).default("0"), // Changed to numeric for better precision
 });
 
 export const miningPlans = pgTable("mining_plans", {
@@ -41,7 +41,7 @@ export const insertUserSchema = createInsertSchema(users)
     lastCPXTBClaimTime: z.date().nullable().optional(),
     lastClaimIp: z.string().nullable().optional(),
     ipClaimTime: z.date().nullable().optional(),
-    accumulatedCPXTB: z.number().default(0), // Add to schema
+    accumulatedCPXTB: z.number().default(0), 
   });
 
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)

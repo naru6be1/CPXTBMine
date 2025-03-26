@@ -76,7 +76,11 @@ export class RecommendationService {
           type: error.constructor.name,
           timestamp: new Date().toISOString()
         });
-        throw error; // Re-throw to be caught by outer try-catch
+        if (error.message.includes('403')) {
+          console.error('OpenAI API access denied. Please check API key configuration.');
+        }
+
+        return this.getFallbackRecommendation(activePlans);
       }
     } catch (error: any) {
       console.error('Error in recommendation generation:', {

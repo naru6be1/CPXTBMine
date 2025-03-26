@@ -670,7 +670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { walletAddress, score, earnedCPXTB } = req.body;
 
-      console.log('Saving game score:', {
+      console.log('Processing game score:', {
         walletAddress,
         normalizedAddress: walletAddress?.toLowerCase(),
         score,
@@ -694,10 +694,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(users.username, walletAddress.toLowerCase()));
 
       if (!user) {
-        console.error('User not found:', {
-          requestedAddress: walletAddress,
+        console.log('Creating new user for game:', {
+          address: walletAddress,
           normalizedAddress: walletAddress.toLowerCase(),
-          timestamp: new Date().toISOString()
+          initialCPXTB: earnedCPXTB
         });
 
         // Try to create the user if they don't exist
@@ -712,7 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             })
             .returning();
 
-          console.log('Created new user:', {
+          console.log('New user created with CPXTB:', {
             userId: newUser.id,
             username: newUser.username,
             accumulatedCPXTB: newUser.accumulatedCPXTB
@@ -732,15 +732,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Calculate new total (handle null case)
+      // Calculate new total with precise parsing
       const currentAmount = user.accumulatedCPXTB || 0;
-      const newAmount = currentAmount + parseFloat(earnedCPXTB);
+      const earnedAmount = parseFloat(earnedCPXTB);
+      const newAmount = currentAmount + earnedAmount;
 
-      console.log('Updating CPXTB:', {
+      console.log('Updating CPXTB amounts:', {
+        userId: user.id,
+        username: user.username,
         currentAmount,
-        earnedCPXTB,
+        earnedAmount,
         newAmount,
-        username: user.username
+        timestamp: new Date().toISOString()
       });
 
       // Update with calculated amount
@@ -756,8 +759,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: updatedUser.id,
         username: updatedUser.username,
         previousAmount: currentAmount,
-        addedAmount: parseFloat(earnedCPXTB),
-        newAccumulatedCPXTB: updatedUser.accumulatedCPXTB
+        addedAmount: earnedAmount,
+        newTotal: updatedUser.accumulatedCPXTB,
+        timestamp: new Date().toISOString()
       });
 
       res.json({
@@ -767,7 +771,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error saving game score:", {
         error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
       });
       res.status(500).json({
         message: error instanceof Error ? error.message : "Failed to save game score"

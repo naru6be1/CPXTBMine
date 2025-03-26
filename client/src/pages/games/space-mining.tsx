@@ -16,7 +16,7 @@ interface Mineral {
 }
 
 // Constants
-const POINTS_PER_CPXTB = 1000;
+const POINTS_PER_CPXTB = 100; // Changed from 1000 to make it easier to accumulate
 
 export default function SpaceMiningGame() {
   const [score, setScore] = useState(0);
@@ -56,15 +56,13 @@ export default function SpaceMiningGame() {
     enabled: !!address && !!userData
   });
 
-  // Calculate CPXTB with more precise handling
+  // Calculate CPXTB with less aggressive rounding
   const calculateCPXTB = (points: number): string => {
-    // Ensure points is treated as a number
-    const pointsNum = Math.floor(points);
-    const cpxtb = (pointsNum / POINTS_PER_CPXTB).toFixed(3);
+    // Don't floor the points, just use the raw value
+    const cpxtb = (points / POINTS_PER_CPXTB).toFixed(3);
 
     console.log('Calculating CPXTB:', {
-      originalPoints: points,
-      flooredPoints: pointsNum,
+      points,
       calculatedCPXTB: cpxtb,
       pointsPerCPXTB: POINTS_PER_CPXTB,
       timestamp: new Date().toISOString()
@@ -119,7 +117,7 @@ export default function SpaceMiningGame() {
     setMinerals(prev => [...prev, newMineral]);
   };
 
-  // Handle game end with better error handling and logging
+  // Handle game end with better calculation
   const handleGameEnd = async () => {
     if (!address || !isConnected) {
       toast({
@@ -131,11 +129,11 @@ export default function SpaceMiningGame() {
     }
 
     try {
-      // Calculate earned CPXTB
+      // Calculate earned CPXTB without flooring the score
       const earnedCPXTB = calculateCPXTB(score);
       console.log('Submitting game score:', {
         walletAddress: address,
-        score: Math.floor(score),
+        score,
         earnedCPXTB,
         timestamp: new Date().toISOString()
       });
@@ -147,7 +145,7 @@ export default function SpaceMiningGame() {
         },
         body: JSON.stringify({
           walletAddress: address,
-          score: Math.floor(score),
+          score,
           earnedCPXTB
         }),
       });
@@ -364,7 +362,7 @@ export default function SpaceMiningGame() {
               <li>Click the glowing minerals to collect them</li>
               <li>Each mineral has a random value between 1-10 points</li>
               <li>Collect as many minerals as possible in 60 seconds</li>
-              <li>Every 1000 points equals 1 CPXTB reward</li>
+              <li>Every 100 points equals 1 CPXTB reward</li>
               <li>Accumulate 1000 CPXTB to claim your rewards</li>
               <li>The game ends when the timer reaches zero</li>
               <li>Try to get the highest score possible!</li>

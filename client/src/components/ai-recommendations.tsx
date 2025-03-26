@@ -86,7 +86,7 @@ export function AIRecommendations() {
   }
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={200}>
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -94,12 +94,14 @@ export function AIRecommendations() {
             AI-Powered Recommendations
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/50">
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Our AI analyzes your mining behavior and provides personalized recommendations to help optimize your rewards and strategy.</p>
+              <TooltipContent side="right" className="max-w-xs p-3">
+                <p className="text-sm leading-relaxed">
+                  Our AI analyzes your mining behavior and provides personalized recommendations to help optimize your rewards and strategy.
+                </p>
               </TooltipContent>
             </Tooltip>
           </CardTitle>
@@ -124,13 +126,14 @@ export function AIRecommendations() {
                               variant="ghost"
                               size="sm"
                               onClick={() => markAsReadMutation.mutate(recommendation.id)}
+                              className="hover:bg-muted"
                             >
                               <Circle className="h-4 w-4 mr-1" />
                               Mark as Read
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Click to acknowledge you've read this recommendation</p>
+                          <TooltipContent side="left" className="p-3">
+                            <p className="text-sm">Click to acknowledge you've read this recommendation</p>
                           </TooltipContent>
                         </Tooltip>
                       )}
@@ -141,13 +144,14 @@ export function AIRecommendations() {
                               variant="outline"
                               size="sm"
                               onClick={() => implementRecommendationMutation.mutate(recommendation.id)}
+                              className="hover:bg-muted"
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Implement
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Click when you've followed this recommendation to track your progress</p>
+                          <TooltipContent side="left" className="p-3">
+                            <p className="text-sm">Click when you've followed this recommendation to track your progress</p>
                           </TooltipContent>
                         </Tooltip>
                       )}

@@ -672,6 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Saving game score:', {
         walletAddress,
+        normalizedAddress: walletAddress?.toLowerCase(),
         score,
         earnedCPXTB,
         timestamp: new Date().toISOString()
@@ -693,11 +694,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(users.username, walletAddress.toLowerCase()));
 
       if (!user) {
-        console.error('User not found:', walletAddress);
-        res.status(404).json({
-          message: "User not found"
+        console.error('User not found:', {
+          requestedAddress: walletAddress,
+          normalizedAddress: walletAddress.toLowerCase(),
+          timestamp: new Date().toISOString()
         });
-        return;
+
+        // Try to create the user if they don't exist
+        try {
+          const [newUser] = await db
+            .insert(users)
+            .values({
+              username: walletAddress.toLowerCase(),
+              password: 'not-used',
+              referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+              accumulatedCPXTB: parseFloat(earnedCPXTB)
+            })
+            .returning();
+
+          console.log('Created new user:', {
+            userId: newUser.id,
+            username: newUser.username,
+            accumulatedCPXTB: newUser.accumulatedCPXTB
+          });
+
+          res.json({
+            success: true,
+            accumulatedCPXTB: newUser.accumulatedCPXTB
+          });
+          return;
+        } catch (createError) {
+          console.error('Failed to create new user:', createError);
+          res.status(500).json({
+            message: "Failed to create new user"
+          });
+          return;
+        }
       }
 
       console.log('Found user:', {
@@ -755,6 +787,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(users.username, address.toLowerCase()));
 
       if (!user) {
+        console.error('User not found in stats:', {
+          requestedAddress: address,
+          normalizedAddress: address.toLowerCase(),
+          timestamp: new Date().toISOString()
+        });
         res.status(404).json({
           message: "User not found"
         });

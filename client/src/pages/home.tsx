@@ -4,7 +4,7 @@ import { MiningPlan } from "@/components/mining-plan";
 import { useWallet } from "@/hooks/use-wallet";
 import { Logo } from "@/components/ui/logo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gamepad2 } from "lucide-react";
+import { Gamepad2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Add GameRecommendations component
@@ -13,19 +13,27 @@ function GameRecommendations() {
     {
       name: "Space Mining Adventure",
       description: "Explore the galaxy while mining rare minerals and earning CPXTB rewards.",
-      difficulty: "Easy"
+      difficulty: "Easy",
+      link: "/games/space-mining"
     },
     {
       name: "Crypto Defense",
       description: "Protect your mining operations from cyber attacks and earn bonus CPXTB.",
-      difficulty: "Medium"
+      difficulty: "Medium",
+      link: "/games/crypto-defense"
     },
     {
       name: "Mining Empire",
       description: "Build and manage your own mining empire to maximize CPXTB earnings.",
-      difficulty: "Hard"
+      difficulty: "Hard",
+      link: "/games/mining-empire"
     }
   ];
+
+  const handleGameClick = (link: string) => {
+    // For now, show a coming soon message
+    alert("Game coming soon! Stay tuned for exciting CPXTB gaming experiences.");
+  };
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -38,11 +46,20 @@ function GameRecommendations() {
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {games.map((game, index) => (
-            <Card key={index} className="bg-muted/50">
+            <Card 
+              key={index} 
+              className="bg-muted/50 cursor-pointer transition-all hover:shadow-lg hover:bg-muted"
+              onClick={() => handleGameClick(game.link)}
+            >
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-2">{game.name}</h3>
-                <p className="text-sm text-muted-foreground mb-2">{game.description}</p>
-                <p className="text-xs font-medium">Difficulty: {game.difficulty}</p>
+                <p className="text-sm text-muted-foreground mb-4">{game.description}</p>
+                <div className="flex justify-between items-center">
+                  <p className="text-xs font-medium">Difficulty: {game.difficulty}</p>
+                  <Button variant="ghost" size="sm" className="gap-1">
+                    Play Now <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

@@ -3,6 +3,31 @@ import { PriceDisplay } from "@/components/price-display";
 import { MiningPlan } from "@/components/mining-plan";
 import { useWallet } from "@/hooks/use-wallet";
 import { Logo } from "@/components/ui/logo";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Gift } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+// Add FreeCPXTBClaim component
+function FreeCPXTBClaim() {
+  return (
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Gift className="h-6 w-6 text-primary" />
+          Claim Free CPXTB
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4">
+          Connect your wallet to claim your free CPXTB tokens. Each wallet can claim once every 24 hours.
+        </p>
+        <div className="space-y-4">
+          <ConnectWallet />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Home() {
   const { isConnected, address } = useWallet();
@@ -20,10 +45,13 @@ export default function Home() {
         </div>
 
         <PriceDisplay />
+
+        {/* Add FreeCPXTBClaim before MiningPlan */}
+        <FreeCPXTBClaim />
         <MiningPlan />
 
         <div className="max-w-md mx-auto">
-          <ConnectWallet />
+          {/*<ConnectWallet />*/}
         </div>
 
         {isConnected && address && (

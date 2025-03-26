@@ -38,17 +38,22 @@ export class RecommendationService {
         return this.getFallbackRecommendation(activePlans);
       }
 
-      const prompt = `As a crypto mining advisor, analyze this user's mining behavior:
+      const systemMessage = `You are a crypto mining advisor specializing in CPXTB mining strategies. 
+      Your role is to provide clear, actionable recommendations to help users optimize their mining rewards.`;
+
+      const userMessage = `Based on this user's mining behavior:
       - Mining History: ${userContext.miningHistory} active plans
       - Total Investment: ${userContext.totalInvestment} WETH
       - Preferred Plan: ${userContext.preferredPlanType}
       - Last Claim: ${userContext.lastClaimTime}
 
-      Based on this data, provide a concise, personalized recommendation for their CPXTB mining strategy.
-      Focus on maximizing rewards and suggesting the most suitable mining plans.`;
+      Provide a concise, personalized recommendation focusing on maximizing their CPXTB mining rewards.`;
 
       const completion = await openai.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          { role: "system", content: systemMessage },
+          { role: "user", content: userMessage }
+        ],
         model: "gpt-3.5-turbo",
         max_tokens: 150,
         temperature: 0.7,

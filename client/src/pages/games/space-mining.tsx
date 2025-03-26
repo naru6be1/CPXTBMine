@@ -28,6 +28,20 @@ export default function SpaceMiningGame() {
   const { address, isConnected } = useWallet();
   const queryClient = useQueryClient();
 
+  // Query for user data and registration
+  const { data: userData } = useQuery({
+    queryKey: ['userData', address],
+    queryFn: async () => {
+      if (!address) return null;
+      const response = await fetch(`/api/users/${address}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch/create user');
+      }
+      return response.json();
+    },
+    enabled: !!address
+  });
+
   // Query for accumulated CPXTB
   const { data: gameStats, refetch: refetchGameStats } = useQuery({
     queryKey: ['gameStats', address],
@@ -39,7 +53,7 @@ export default function SpaceMiningGame() {
       }
       return await response.json();
     },
-    enabled: !!address
+    enabled: !!address && !!userData
   });
 
   // Helper function to convert points to CPXTB
@@ -49,6 +63,15 @@ export default function SpaceMiningGame() {
 
   // Initialize game
   const startGame = () => {
+    if (!address || !isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to play and earn CPXTB rewards.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setGameStarted(true);
     setScore(0);
     setTimeLeft(60);
@@ -96,6 +119,9 @@ export default function SpaceMiningGame() {
     }
 
     try {
+      // Ensure user exists first
+      await fetch(`/api/users/${address}`);
+
       const earnedCPXTB = calculateCPXTB(score);
       const response = await fetch('/api/games/save-score', {
         method: 'POST',

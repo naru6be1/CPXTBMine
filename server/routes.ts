@@ -665,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  // Add game routes for saving scores and claiming CPXTB
+  // Update the save-score endpoint
   app.post("/api/games/save-score", async (req, res) => {
     try {
       const { walletAddress, score, earnedCPXTB } = req.body;
@@ -761,6 +761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add game routes for saving scores and claiming CPXTB
   app.get("/api/games/stats/:address", async (req, res) => {
     try {
       const { address } = req.params;

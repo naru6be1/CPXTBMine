@@ -16,7 +16,7 @@ interface Mineral {
 }
 
 // Constants
-const POINTS_PER_CPXTB = 10; // Changed from 1000 to make it easier to accumulate
+const POINTS_PER_CPXTB = 10; // Changed from 100 to make it easier to accumulate
 
 export default function SpaceMiningGame() {
   const [score, setScore] = useState(0);
@@ -193,48 +193,6 @@ export default function SpaceMiningGame() {
       toast({
         title: "Error Saving Score",
         description: error instanceof Error ? error.message : "Failed to save score",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Handle CPXTB claim
-  const handleClaimCPXTB = async () => {
-    if (!address || !isConnected) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to claim CPXTB.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/games/claim-cpxtb', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: address,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      await refetchGameStats();
-
-      toast({
-        title: "CPXTB Claimed!",
-        description: "Your accumulated CPXTB has been successfully claimed.",
-      });
-    } catch (error) {
-      toast({
-        title: "Claim Failed",
-        description: error instanceof Error ? error.message : "Failed to claim CPXTB",
         variant: "destructive"
       });
     }

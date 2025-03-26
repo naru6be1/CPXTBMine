@@ -105,7 +105,17 @@ export default function SpaceMiningGame() {
 
   // Handle mineral collection
   const collectMineral = (mineral: Mineral) => {
-    setScore(prev => prev + mineral.value);
+    const newScore = score + mineral.value;
+    setScore(newScore);
+
+    console.log('Collected mineral:', {
+      mineralValue: mineral.value,
+      previousScore: score,
+      newScore,
+      estimatedCPXTB: (newScore / POINTS_PER_CPXTB).toFixed(3),
+      timestamp: new Date().toISOString()
+    });
+
     setMinerals(prev => prev.filter(m => m.id !== mineral.id));
 
     // Spawn new mineral when one is collected
@@ -132,11 +142,11 @@ export default function SpaceMiningGame() {
     try {
       // Calculate earned CPXTB without flooring the score
       const earnedCPXTB = calculateCPXTB(score);
-      console.log('Submitting game score:', {
+      console.log('Game ended - submitting score:', {
         walletAddress: address,
-        score,
+        finalScore: score,
         earnedCPXTB,
-        rawScoreValue: score,
+        pointsPerCPXTB: POINTS_PER_CPXTB,
         timestamp: new Date().toISOString()
       });
 
@@ -158,7 +168,10 @@ export default function SpaceMiningGame() {
       }
 
       const result = await response.json();
-      console.log('Score save result:', result);
+      console.log('Score save response:', {
+        result,
+        timestamp: new Date().toISOString()
+      });
 
       await refetchGameStats();
 

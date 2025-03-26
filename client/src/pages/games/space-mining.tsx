@@ -58,7 +58,14 @@ export default function SpaceMiningGame() {
 
   // Helper function to convert points to CPXTB
   const calculateCPXTB = (points: number): string => {
-    return (points / POINTS_PER_CPXTB).toFixed(3);
+    // Ensure points is treated as a number and calculation is precise
+    const cpxtb = (Math.floor(points) / POINTS_PER_CPXTB).toFixed(3);
+    console.log('Calculating CPXTB:', {
+      points,
+      cpxtb,
+      timestamp: new Date().toISOString()
+    });
+    return cpxtb;
   };
 
   // Initialize game
@@ -125,7 +132,7 @@ export default function SpaceMiningGame() {
       const earnedCPXTB = calculateCPXTB(score);
       console.log('Saving game score:', {
         walletAddress: address,
-        score,
+        score: Math.floor(score),
         earnedCPXTB,
         timestamp: new Date().toISOString()
       });
@@ -137,7 +144,7 @@ export default function SpaceMiningGame() {
         },
         body: JSON.stringify({
           walletAddress: address,
-          score,
+          score: Math.floor(score),
           earnedCPXTB
         }),
       });
@@ -147,6 +154,7 @@ export default function SpaceMiningGame() {
         throw new Error(error.message || 'Failed to save game score');
       }
 
+      const result = await response.json();
       await refetchGameStats();
 
       toast({

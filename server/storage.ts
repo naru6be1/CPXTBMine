@@ -1,6 +1,7 @@
 import { users, miningPlans, type User, type InsertUser, type MiningPlan, type InsertMiningPlan } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, sql, desc } from "drizzle-orm";
+import { recommendations, type Recommendation, type InsertRecommendation } from "@shared/schema";
 
 export interface IStorage {
   // User methods
@@ -22,6 +23,12 @@ export interface IStorage {
   getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]>;
   markReferralRewardPaid(planId: number): Promise<MiningPlan>;
   getReferralPlans(referralCode: string): Promise<MiningPlan[]>;
+
+  // Recommendation methods
+  createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation>;
+  getUserRecommendations(userId: number): Promise<Recommendation[]>;
+  markRecommendationAsRead(id: number): Promise<Recommendation>;
+  markRecommendationAsImplemented(id: number): Promise<Recommendation>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -208,6 +215,40 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(miningPlans)
       .where(eq(miningPlans.referralCode, referralCode));
+  }
+
+  async createRecommendation(recommendation: InsertRecommendation): Promise<Recommendation> {
+    const [newRecommendation] = await db
+      .insert(recommendations)
+      .values(recommendation)
+      .returning();
+    return newRecommendation;
+  }
+
+  async getUserRecommendations(userId: number): Promise<Recommendation[]> {
+    return await db
+      .select()
+      .from(recommendations)
+      .where(eq(recommendations.userId, userId))
+      .orderBy(desc(recommendations.createdAt));
+  }
+
+  async markRecommendationAsRead(id: number): Promise<Recommendation> {
+    const [recommendation] = await db
+      .update(recommendations)
+      .set({ isRead: true })
+      .where(eq(recommendations.id, id))
+      .returning();
+    return recommendation;
+  }
+
+  async markRecommendationAsImplemented(id: number): Promise<Recommendation> {
+    const [recommendation] = await db
+      .update(recommendations)
+      .set({ isImplemented: true })
+      .where(eq(recommendations.id, id))
+      .returning();
+    return recommendation;
   }
 }
 

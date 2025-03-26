@@ -878,8 +878,7 @@ export function MiningPlan() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ withdrawalAddress: address }),
+        },        body: JSON.stringify({ withdrawalAddress: address }),
       });
 
       if (!response.ok) {        const error = await response.json();
@@ -983,81 +982,89 @@ export function MiningPlan() {
   return (
     <div className="space-y-6">
       <ReferralStats />
-      {isConnected && (
-        <div>
-          {/* Replaced with the new FreeCPXTBClaim component */}
-          <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
-        </div>
-      )}
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Server className="h-6 w-6 text-primary animate-pulse" />
-            Mining Plans
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <MiningPlanSelection onSelect={setSelectedPlan} />
-          <div className="bg-muted rounded-lg p-6 space-y-4">
-            <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
-              <Cpu className="h-5 w-5 text-primary" />
-              {currentPlan.name} Details
-            </h3>
-            <div className="grid gap-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Your USDT Balance</p>
-                <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Investment Required</p>
-                <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Daily Reward</p>
-                <p className="text-2xl font-bold text-primary">
-                  {dailyRewardCPXTB} CPXTB
-                  <span className="text-sm text-muted-foreground ml-2">
-                    (≈${currentPlan.rewardUSD})
-                  </span>
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Duration</p>
-                <p className="text-2xl font-bold">{currentPlan.duration}</p>
+
+      {/* Move FreeCPXTB claim before wallet connection check */}
+      <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
+
+      {isConnected ? (
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-6 w-6 text-primary animate-pulse" />
+              Mining Plans
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <MiningPlanSelection onSelect={setSelectedPlan} />
+            <div className="bg-muted rounded-lg p-6 space-y-4">
+              <h3 className="text-lg font-semibold capitalize flex items-center gap-2">
+                <Cpu className="h-5 w-5 text-primary" />
+                {currentPlan.name} Details
+              </h3>
+              <div className="grid gap-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Your USDT Balance</p>
+                  <p className="text-2xl font-bold">{getBalanceDisplay()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Investment Required</p>
+                  <p className="text-2xl font-bold">{currentPlan.displayAmount} USDT</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Daily Reward</p>
+                  <p className="text-2xl font-bold text-primary">
+                    {dailyRewardCPXTB} CPXTB
+                    <span className="text-sm text-muted-foreground ml-2">
+                      (≈${currentPlan.rewardUSD})
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Duration</p>
+                  <p className="text-2xl font-bold">{currentPlan.duration}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              Your connected wallet address will be used to receive CPXTB rewards.
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Your connected wallet address will be used to receive CPXTB rewards.
+              </p>
+
+              {isConnected && (
+                <Button
+                  className="w-full mt-4"
+                  size="lg"
+                  onClick={handleTransfer}
+                  disabled={isTransferring || isValidating || isSwitchingNetwork}
+                >
+                  <Coins className="mr-2 h-4 w-4" />
+                  {isSwitchingNetwork ? "Switching Network..." :
+                    isTransferring ? "Transferring USDT..." :
+                      isValidating ? "Validating Transaction..." :
+                        `Activate ${currentPlan.name} (${currentPlan.displayAmount} USDT)`}
+                </Button>
+              )}
+
+              {transactionHash && (
+                <TransactionStatus
+                  hash={transactionHash}
+                  isValidating={isValidating}
+                  isConfirmed={isConfirmed}
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardContent className="p-6">
+            <p className="text-center text-muted-foreground mb-4">
+              Connect your wallet to start mining CPXTB
             </p>
-
-            {isConnected && (
-              <Button
-                className="w-full mt-4"
-                size="lg"
-                onClick={handleTransfer}
-                disabled={isTransferring || isValidating || isSwitchingNetwork}
-              >
-                <Coins className="mr-2 h-4 w-4" />
-                {isSwitchingNetwork ? "Switching Network..." :
-                  isTransferring ? "Transferring USDT..." :
-                    isValidating ? "Validating Transaction..." :
-                      `Activate ${currentPlan.name} (${currentPlan.displayAmount} USDT)`}
-              </Button>
-            )}
-
-            {transactionHash && (
-              <TransactionStatus
-                hash={transactionHash}
-                isValidating={isValidating}
-                isConfirmed={isConfirmed}
-              />
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {isConnected && activePlans.length > 0 && (
         <div className="space-y-4">

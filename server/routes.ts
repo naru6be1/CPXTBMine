@@ -670,31 +670,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { walletAddress, score, earnedCPXTB } = req.body;
 
-      // Update user's accumulated CPXTB in the database
+      console.log('Saving game score:', {
+        walletAddress,
+        score,
+        earnedCPXTB,
+        timestamp: new Date().toISOString()
+      });
+
+      if (!walletAddress || !score || !earnedCPXTB) {
+        console.error('Missing required fields:', { walletAddress, score, earnedCPXTB });
+        res.status(400).json({
+          message: "Missing required fields"
+        });
+        return;
+      }
+
+      // Get current user and their CPXTB balance
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.username, walletAddress.toLowerCase()))
-        .for('update');
+        .where(eq(users.username, walletAddress.toLowerCase()));
 
       if (!user) {
+        console.error('User not found:', walletAddress);
         res.status(404).json({
           message: "User not found"
         });
         return;
       }
 
-      // Add the earned CPXTB to user's accumulated total
-      await db
+      console.log('Found user:', {
+        userId: user.id,
+        username: user.username,
+        currentAccumulatedCPXTB: user.accumulatedCPXTB
+      });
+
+      // Calculate new total (handle null case)
+      const currentAmount = user.accumulatedCPXTB || 0;
+      const newAmount = currentAmount + parseFloat(earnedCPXTB);
+
+      console.log('Updating CPXTB:', {
+        currentAmount,
+        earnedCPXTB,
+        newAmount
+      });
+
+      // Update with calculated amount
+      const [updatedUser] = await db
         .update(users)
         .set({
-          accumulatedCPXTB: sql`COALESCE(accumulated_cpxtb, 0) + ${parseFloat(earnedCPXTB)}`
+          accumulatedCPXTB: newAmount
         })
-        .where(eq(users.username, walletAddress.toLowerCase()));
+        .where(eq(users.username, walletAddress.toLowerCase()))
+        .returning();
 
-      res.json({ success: true });
+      console.log('Successfully updated user CPXTB:', {
+        userId: user.id,
+        newAccumulatedCPXTB: updatedUser.accumulatedCPXTB
+      });
+
+      res.json({ 
+        success: true,
+        accumulatedCPXTB: updatedUser.accumulatedCPXTB 
+      });
     } catch (error) {
-      console.error("Error saving game score:", error);
+      console.error("Error saving game score:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined
+      });
       res.status(500).json({
         message: error instanceof Error ? error.message : "Failed to save game score"
       });

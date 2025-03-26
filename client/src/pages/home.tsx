@@ -6,6 +6,7 @@ import { Logo } from "@/components/ui/logo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gamepad2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 // Add GameRecommendations component
 function GameRecommendations() {
@@ -14,25 +15,29 @@ function GameRecommendations() {
       name: "Space Mining Adventure",
       description: "Explore the galaxy while mining rare minerals and earning CPXTB rewards.",
       difficulty: "Easy",
-      link: "/games/space-mining"
+      link: "/games/space-mining",
+      isAvailable: true
     },
     {
       name: "Crypto Defense",
       description: "Protect your mining operations from cyber attacks and earn bonus CPXTB.",
       difficulty: "Medium",
-      link: "/games/crypto-defense"
+      link: "/games/crypto-defense",
+      isAvailable: false
     },
     {
       name: "Mining Empire",
       description: "Build and manage your own mining empire to maximize CPXTB earnings.",
       difficulty: "Hard",
-      link: "/games/mining-empire"
+      link: "/games/mining-empire",
+      isAvailable: false
     }
   ];
 
-  const handleGameClick = (link: string) => {
-    // For now, show a coming soon message
-    alert("Game coming soon! Stay tuned for exciting CPXTB gaming experiences.");
+  const handleGameClick = (game: typeof games[0]) => {
+    if (!game.isAvailable) {
+      alert("Game coming soon! Stay tuned for exciting CPXTB gaming experiences.");
+    }
   };
 
   return (
@@ -46,22 +51,41 @@ function GameRecommendations() {
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {games.map((game, index) => (
-            <Card 
-              key={index} 
-              className="bg-muted/50 cursor-pointer transition-all hover:shadow-lg hover:bg-muted"
-              onClick={() => handleGameClick(game.link)}
-            >
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-2">{game.name}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{game.description}</p>
-                <div className="flex justify-between items-center">
-                  <p className="text-xs font-medium">Difficulty: {game.difficulty}</p>
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    Play Now <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            game.isAvailable ? (
+              <Link key={index} href={game.link}>
+                <Card 
+                  className="bg-muted/50 cursor-pointer transition-all hover:shadow-lg hover:bg-muted"
+                >
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-2">{game.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-4">{game.description}</p>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs font-medium">Difficulty: {game.difficulty}</p>
+                      <Button variant="ghost" size="sm" className="gap-1">
+                        Play Now <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ) : (
+              <Card 
+                key={index}
+                className="bg-muted/50 cursor-pointer transition-all hover:shadow-lg hover:bg-muted"
+                onClick={() => handleGameClick(game)}
+              >
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-2">{game.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">{game.description}</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-medium">Difficulty: {game.difficulty}</p>
+                    <Button variant="ghost" size="sm" className="gap-1">
+                      Coming Soon <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
           ))}
         </div>
       </CardContent>

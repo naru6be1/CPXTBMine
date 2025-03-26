@@ -107,7 +107,7 @@ export default function SpaceMiningGame() {
     setMinerals(prev => [...prev, newMineral]);
   };
 
-  // Handle game end and save score
+  // Update game end and score saving logic
   const handleGameEnd = async () => {
     if (!address || !isConnected) {
       toast({

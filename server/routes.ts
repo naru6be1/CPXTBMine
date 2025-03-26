@@ -780,6 +780,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/games/stats/:address", async (req, res) => {
     try {
       const { address } = req.params;
+      console.log('Fetching game stats for:', {
+        address,
+        normalizedAddress: address.toLowerCase(),
+        timestamp: new Date().toISOString()
+      });
 
       const [user] = await db
         .select()
@@ -797,6 +802,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return;
       }
+
+      console.log('Found user stats:', {
+        userId: user.id,
+        username: user.username,
+        accumulatedCPXTB: user.accumulatedCPXTB
+      });
 
       res.json({
         accumulatedCPXTB: user.accumulatedCPXTB?.toString() || '0'

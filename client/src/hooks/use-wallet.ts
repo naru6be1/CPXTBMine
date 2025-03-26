@@ -10,8 +10,8 @@ export function useWallet() {
 
   const connectWallet = async () => {
     try {
-      // Enhanced logging for connection attempts
-      console.log('Attempting to connect wallet with detailed logging...', {
+      // Log connection attempt
+      console.log('Attempting to connect wallet...', {
         currentAddress: address,
         isCurrentlyConnected: isConnected,
         availableConnectors: connectors.map(c => ({
@@ -22,9 +22,15 @@ export function useWallet() {
         timestamp: new Date().toISOString()
       });
 
-      // Open Web3Modal
-      await web3Modal.open()
+      // First check if Web3Modal is available
+      if (!web3Modal) {
+        throw new Error('Web3Modal not initialized');
+      }
 
+      // Open Web3Modal
+      await web3Modal.open();
+
+      // Show toast only after successful connection
       toast({
         title: "Choose Your Wallet",
         description: "Select your preferred wallet to connect",
@@ -35,7 +41,7 @@ export function useWallet() {
         errorObject: error,
         connectionParams: {
           isConnected,
-          address: address?.toLowerCase(), // Log normalized address
+          address: address?.toLowerCase(),
           connectors: connectors.map(c => ({
             name: c.name,
             ready: c.ready,
@@ -43,13 +49,15 @@ export function useWallet() {
           })),
         },
         timestamp: new Date().toISOString()
-      })
+      });
+
+      // Show error toast with more descriptive message
       toast({
         variant: "destructive",
         title: "Connection Failed",
         description: error instanceof Error 
-          ? `Error: ${error.message}` 
-          : "Failed to connect wallet. Please try again.",
+          ? `Please ensure you have a wallet installed and try again. Error: ${error.message}`
+          : "Failed to connect wallet. Please ensure you have a wallet installed and try again.",
       })
     }
   }
@@ -75,7 +83,7 @@ export function useWallet() {
     } catch (error) {
       console.error('Wallet disconnect error:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        address: address?.toLowerCase(), // Log normalized address
+        address: address?.toLowerCase(),
         timestamp: new Date().toISOString()
       })
       toast({
@@ -91,7 +99,7 @@ export function useWallet() {
   // Enhanced wallet state logging
   console.log('Wallet Hook State:', {
     isConnected,
-    address: address?.toLowerCase(), // Log normalized address
+    address: address?.toLowerCase(), 
     isConnecting: isLoading,
     availableConnectors: connectors.map(c => ({
       name: c.name,

@@ -734,7 +734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [updatedUser] = await db
         .update(users)
         .set({
-          accumulatedCPXTB: newAmount.toString()
+          accumulatedCPXTB: sql`CAST(${newAmount.toFixed(3)} AS numeric(10,3))`
         })
         .where(eq(users.username, walletAddress.toLowerCase()))
         .returning();

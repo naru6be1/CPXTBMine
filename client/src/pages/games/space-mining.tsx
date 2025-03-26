@@ -16,7 +16,7 @@ interface Mineral {
 }
 
 // Constants
-const POINTS_PER_CPXTB = 100; // Changed from 1000 to make it easier to accumulate
+const POINTS_PER_CPXTB = 10; // Changed from 1000 to make it easier to accumulate
 
 export default function SpaceMiningGame() {
   const [score, setScore] = useState(0);
@@ -115,6 +115,7 @@ export default function SpaceMiningGame() {
       previousScore: score,
       newScore,
       estimatedCPXTB: calculateCPXTB(newScore),
+      pointsPerCPXTB: POINTS_PER_CPXTB,
       timestamp: new Date().toISOString()
     });
 
@@ -385,7 +386,7 @@ export default function SpaceMiningGame() {
               <li>Click the glowing minerals to collect them</li>
               <li>Each mineral has a random value between 10-60 points</li>
               <li>Collect as many minerals as possible in 60 seconds</li>
-              <li>Every 100 points equals 1 CPXTB reward</li>
+              <li>Every 10 points equals 1 CPXTB reward</li>
               <li>Accumulate 1000 CPXTB to claim your rewards</li>
               <li>The game ends when the timer reaches zero</li>
               <li>Try to get the highest score possible!</li>

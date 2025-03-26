@@ -5,11 +5,10 @@ import { useWallet } from "@/hooks/use-wallet";
 import { Brain, CheckCircle, Circle, HelpCircle } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface Recommendation {
   id: number;
@@ -86,83 +85,88 @@ export function AIRecommendations() {
   }
 
   return (
-    <TooltipProvider delayDuration={500}>
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-6 w-6 text-primary" />
-            AI-Powered Recommendations
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/50">
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-xs p-3" sideOffset={10}>
-                <p className="text-sm leading-relaxed">
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Brain className="h-6 w-6 text-primary" />
+          AI-Powered Recommendations
+          <HoverCard openDelay={200} closeDelay={300}>
+            <HoverCardTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-muted/50">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80" side="right" align="start">
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">AI Recommendations</h4>
+                <p className="text-sm text-muted-foreground">
                   Our AI analyzes your mining behavior and provides personalized recommendations to help optimize your rewards and strategy.
                 </p>
-              </TooltipContent>
-            </Tooltip>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recommendations.map((recommendation: Recommendation) => (
-              <Card key={recommendation.id} className="bg-muted/50">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="text-sm mb-2">{recommendation.content}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(recommendation.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {!recommendation.isRead && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => markAsReadMutation.mutate(recommendation.id)}
-                              className="hover:bg-muted"
-                            >
-                              <Circle className="h-4 w-4 mr-1" />
-                              Mark as Read
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="left" className="p-3 text-left" sideOffset={10}>
-                            <p className="text-sm">Click to acknowledge you've read this recommendation</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                      {recommendation.isRead && !recommendation.isImplemented && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => implementRecommendationMutation.mutate(recommendation.id)}
-                              className="hover:bg-muted"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Implement
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="left" className="p-3 text-left" sideOffset={10}>
-                            <p className="text-sm">Click when you've followed this recommendation to track your progress</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {recommendations.map((recommendation: Recommendation) => (
+            <Card key={recommendation.id} className="bg-muted/50">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm mb-2">{recommendation.content}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(recommendation.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </TooltipProvider>
+                  <div className="flex items-center gap-2">
+                    {!recommendation.isRead && (
+                      <HoverCard openDelay={200} closeDelay={300}>
+                        <HoverCardTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => markAsReadMutation.mutate(recommendation.id)}
+                            className="hover:bg-muted"
+                          >
+                            <Circle className="h-4 w-4 mr-1" />
+                            Mark as Read
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-64" side="left" align="center">
+                          <p className="text-sm">
+                            Click to acknowledge you've read this recommendation
+                          </p>
+                        </HoverCardContent>
+                      </HoverCard>
+                    )}
+                    {recommendation.isRead && !recommendation.isImplemented && (
+                      <HoverCard openDelay={200} closeDelay={300}>
+                        <HoverCardTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => implementRecommendationMutation.mutate(recommendation.id)}
+                            className="hover:bg-muted"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Implement
+                          </Button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-64" side="left" align="center">
+                          <p className="text-sm">
+                            Click when you've followed this recommendation to track your progress
+                          </p>
+                        </HoverCardContent>
+                      </HoverCard>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

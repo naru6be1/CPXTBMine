@@ -678,7 +678,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!walletAddress || score === undefined || earnedCPXTB === undefined) {
-        console.error('Missing required fields:', { walletAddress, score, earnedCPXTB });
         res.status(400).json({
           message: "Missing required fields"
         });
@@ -699,7 +698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             username: walletAddress.toLowerCase(),
             password: 'not-used',
             referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-            accumulatedCPXTB: earnedCPXTB
+            accumulatedCPXTB: earnedCPXTB.toString()
           })
           .returning();
 
@@ -727,14 +726,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentAmount,
         earnedAmount,
         newAmount,
+        rawEarnedCPXTB: earnedCPXTB,
         timestamp: new Date().toISOString()
       });
 
-      // Update with new amount
+      // Update with new amount, ensuring it's stored as a string
       const [updatedUser] = await db
         .update(users)
         .set({
-          accumulatedCPXTB: newAmount.toString() // Convert to string for numeric column
+          accumulatedCPXTB: newAmount.toString()
         })
         .where(eq(users.username, walletAddress.toLowerCase()))
         .returning();

@@ -56,7 +56,7 @@ export default function SpaceMiningGame() {
     enabled: !!address && !!userData
   });
 
-  // Calculate CPXTB with better precision handling
+  // Calculate CPXTB with precision handling
   const calculateCPXTB = (points: number): string => {
     // Ensure we're working with positive numbers
     const rawPoints = Math.max(0, points);
@@ -106,11 +106,12 @@ export default function SpaceMiningGame() {
 
   // Handle mineral collection with better logging
   const collectMineral = (mineral: Mineral) => {
-    const newScore = score + mineral.value;
+    const mineralValue = Math.max(0, mineral.value);
+    const newScore = score + mineralValue;
     setScore(newScore);
 
-    console.log('Mineral collected:', {
-      mineralValue: mineral.value,
+    console.log('CPXTB Calculation:', {
+      mineralValue,
       previousScore: score,
       newScore,
       estimatedCPXTB: calculateCPXTB(newScore),
@@ -127,6 +128,12 @@ export default function SpaceMiningGame() {
       value: Math.floor(Math.random() * 10) + 1
     };
     setMinerals(prev => [...prev, newMineral]);
+
+    // Show immediate feedback
+    toast({
+      title: `+${mineralValue} points!`,
+      description: `Current CPXTB: ${calculateCPXTB(newScore)}`,
+    });
   };
 
   // Handle game end with better error handling

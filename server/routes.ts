@@ -677,7 +677,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
 
-      if (!walletAddress || !score || !earnedCPXTB) {
+      // Check if all required fields are present (allowing zero values)
+      if (!walletAddress || score === undefined || earnedCPXTB === undefined) {
         console.error('Missing required fields:', { walletAddress, score, earnedCPXTB });
         res.status(400).json({
           message: "Missing required fields"

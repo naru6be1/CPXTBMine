@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rocket, Star, ArrowLeft } from "lucide-react";
+import { Rocket, Star, ArrowLeft, Coins } from "lucide-react";
 import { Link } from "wouter";
 
 interface Mineral {
@@ -12,12 +12,20 @@ interface Mineral {
   value: number;
 }
 
+// Constants
+const POINTS_PER_CPXTB = 1000;
+
 export default function SpaceMiningGame() {
   const [score, setScore] = useState(0);
   const [minerals, setMinerals] = useState<Mineral[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60); // 60 seconds game duration
   const controls = useAnimation();
+
+  // Helper function to convert points to CPXTB
+  const calculateCPXTB = (points: number): string => {
+    return (points / POINTS_PER_CPXTB).toFixed(3);
+  };
 
   // Initialize game
   const startGame = () => {
@@ -45,7 +53,7 @@ export default function SpaceMiningGame() {
   const collectMineral = (mineral: Mineral) => {
     setScore(prev => prev + mineral.value);
     setMinerals(prev => prev.filter(m => m.id !== mineral.id));
-    
+
     // Spawn new mineral when one is collected
     const newMineral: Mineral = {
       id: Math.random(),
@@ -94,8 +102,17 @@ export default function SpaceMiningGame() {
                 <Rocket className="h-6 w-6 text-primary" />
                 Game Status
               </div>
-              <div className="text-xl">
-                Score: {score} | Time: {timeLeft}s
+              <div className="flex items-center gap-4">
+                <div className="text-xl">
+                  Score: {score} points
+                </div>
+                <div className="text-xl flex items-center gap-2">
+                  <Coins className="h-5 w-5 text-yellow-500" />
+                  {calculateCPXTB(score)} CPXTB
+                </div>
+                <div className="text-xl">
+                  Time: {timeLeft}s
+                </div>
               </div>
             </CardTitle>
           </CardHeader>
@@ -106,7 +123,13 @@ export default function SpaceMiningGame() {
                   {timeLeft === 0 ? 'Game Over!' : 'Ready to Mine?'}
                 </h2>
                 {timeLeft === 0 && (
-                  <p className="text-xl mb-4">Final Score: {score}</p>
+                  <div className="space-y-2 mb-4">
+                    <p className="text-xl">Final Score: {score} points</p>
+                    <p className="text-xl flex items-center justify-center gap-2">
+                      <Coins className="h-5 w-5 text-yellow-500" />
+                      Earned: {calculateCPXTB(score)} CPXTB
+                    </p>
+                  </div>
                 )}
                 <Button 
                   size="lg"
@@ -154,6 +177,7 @@ export default function SpaceMiningGame() {
               <li>Click the glowing minerals to collect them</li>
               <li>Each mineral has a random value between 1-10 points</li>
               <li>Collect as many minerals as possible in 60 seconds</li>
+              <li>Every 1000 points equals 1 CPXTB reward</li>
               <li>The game ends when the timer reaches zero</li>
               <li>Try to get the highest score possible!</li>
             </ul>

@@ -25,7 +25,7 @@ export class RecommendationService {
       - Total Investment: ${userContext.totalInvestment} WETH
       - Preferred Plan: ${userContext.preferredPlanType}
       - Last Claim: ${userContext.lastClaimTime}
-      
+
       Based on this data, provide a concise, personalized recommendation for their CPXTB mining strategy.
       Focus on maximizing rewards and suggesting the most suitable mining plans.`;
 
@@ -38,9 +38,30 @@ export class RecommendationService {
 
       return completion.choices[0].message.content || 
         "Consider diversifying your mining portfolio with different plan types to optimize rewards.";
-    } catch (error) {
-      console.error('Error generating AI recommendation:', error);
-      return "Unable to generate personalized recommendation at this time. Please try again later.";
+    } catch (error: any) {
+      console.error('Error generating AI recommendation:', {
+        error: error.message,
+        status: error.status,
+        type: error.constructor.name,
+        timestamp: new Date().toISOString()
+      });
+
+      // Check for specific OpenAI errors and provide appropriate fallback messages
+      if (error.status === 429) {
+        return "Our AI system is currently at capacity. Here's a general tip: Consider upgrading to a higher tier mining plan for better rewards, or diversify across multiple plan types.";
+      } else if (error.status === 401) {
+        return "System maintenance in progress. In the meantime, review your current mining plans and consider claiming any available rewards.";
+      }
+
+      // Default fallback recommendation based on basic metrics
+      const planCount = activePlans.length;
+      if (planCount === 0) {
+        return "Start your mining journey with our Bronze plan - it's perfect for beginners and offers steady rewards.";
+      } else if (planCount === 1) {
+        return "Great start with your first plan! Consider adding a second mining plan to diversify your rewards.";
+      } else {
+        return "You're doing well with multiple plans! Keep monitoring your rewards and consider upgrading plans when possible.";
+      }
     }
   }
 
@@ -60,7 +81,7 @@ export class RecommendationService {
       if (!user) return null;
 
       const activePlans = await storage.getActiveMiningPlans(user.username);
-      
+
       const recommendationContent = await this.generateRecommendation(
         user,
         activePlans,

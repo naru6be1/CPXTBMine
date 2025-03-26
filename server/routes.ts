@@ -665,6 +665,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  // Add game routes for saving scores and claiming CPXTB
+  app.post("/api/games/save-score", async (req, res) => {
+    try {
+      const { walletAddress, score, earnedCPXTB } = req.body;
+
+      // Update user's accumulated CPXTB in the database
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, walletAddress.toLowerCase()))
+        .for('update');
+
+      if (!user) {
+        res.status(404).json({
+          message: "User not found"
+        });
+        return;
+      }
+
+      // Add the earned CPXTB to user's accumulated total
+      await db
+        .update(users)
+        .set({
+          accumulatedCPXTB: sql`COALESCE(accumulated_cpxtb, 0) + ${parseFloat(earnedCPXTB)}`
+        })
+        .where(eq(users.username, walletAddress.toLowerCase()));
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving game score:", error);
+      res.status(500).json({
+        message: error instanceof Error ? error.message : "Failed to save game score"
+      });
+    }
+  });
+
+  app.get("/api/games/stats/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, address.toLowerCase()));
+
+      if (!user) {
+        res.status(404).json({
+          message: "User not found"
+        });
+        return;
+      }
+
+      res.json({
+        accumulatedCPXTB: user.accumulatedCPXTB?.toString() || '0'
+      });
+    } catch (error) {
+      console.error("Error fetching game stats:", error);
+      res.status(500).json({
+        message: error instanceof Error ? error.message : "Failed to fetch game stats"
+      });
+    }
+  });
+
+  app.post("/api/games/claim-cpxtb", async (req, res) => {
+    try {
+      const { walletAddress } = req.body;
+
+      // Get user's current accumulated CPXTB
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, walletAddress.toLowerCase()))
+        .for('update');
+
+      if (!user) {
+        res.status(404).json({
+          message: "User not found"
+        });
+        return;
+      }
+
+      const accumulatedCPXTB = user.accumulatedCPXTB || 0;
+
+      if (accumulatedCPXTB < 1000) {
+        res.status(400).json({
+          message: "Must accumulate at least 1000 CPXTB to claim"
+        });
+        return;
+      }
+
+      // Create a mining plan for the claimed CPXTB
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 2 minutes
+
+      const [plan] = await db
+        .insert(miningPlans)
+        .values({
+          walletAddress: walletAddress.toLowerCase(),
+          withdrawalAddress: walletAddress.toLowerCase(),
+          planType: "bronze",
+          amount: "0",
+          dailyRewardCPXTB: accumulatedCPXTB.toString(),
+          activatedAt: now,
+          expiresAt: expiresAt,
+          transactionHash: 'GAME_CPXTB_CLAIM',
+          referralCode: null,
+          isActive: true,
+          hasWithdrawn: false,
+          referralRewardPaid: false,
+          createdAt: now
+        })
+        .returning();
+
+      // Reset user's accumulated CPXTB
+      await db
+        .update(users)
+        .set({
+          accumulatedCPXTB: 0
+        })
+        .where(eq(users.username, walletAddress.toLowerCase()));
+
+      res.json({ success: true, plan });
+    } catch (error) {
+      console.error("Error claiming CPXTB:", error);
+      res.status(500).json({
+        message: error instanceof Error ? error.message : "Failed to claim CPXTB"
+      });
+    }
+  });
 
   const httpServer = createServer(app);
 

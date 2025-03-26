@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Rocket, Star, ArrowLeft, Coins } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { useWallet } from "@/hooks/use-wallet";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Mineral {
   id: number;
@@ -21,6 +24,23 @@ export default function SpaceMiningGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60); // 60 seconds game duration
   const controls = useAnimation();
+  const { toast } = useToast();
+  const { address, isConnected } = useWallet();
+  const queryClient = useQueryClient();
+
+  // Query for accumulated CPXTB
+  const { data: gameStats, refetch: refetchGameStats } = useQuery({
+    queryKey: ['gameStats', address],
+    queryFn: async () => {
+      if (!address) return { accumulatedCPXTB: '0' };
+      const response = await fetch(`/api/games/stats/${address}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch game stats');
+      }
+      return await response.json();
+    },
+    enabled: !!address
+  });
 
   // Helper function to convert points to CPXTB
   const calculateCPXTB = (points: number): string => {
@@ -64,6 +84,92 @@ export default function SpaceMiningGame() {
     setMinerals(prev => [...prev, newMineral]);
   };
 
+  // Handle game end and save score
+  const handleGameEnd = async () => {
+    if (!address || !isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to save your game rewards.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const earnedCPXTB = calculateCPXTB(score);
+      const response = await fetch('/api/games/save-score', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+          score,
+          earnedCPXTB
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save game score');
+      }
+
+      await refetchGameStats();
+
+      toast({
+        title: "Score Saved!",
+        description: `You earned ${earnedCPXTB} CPXTB! Keep playing to accumulate more.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error Saving Score",
+        description: error instanceof Error ? error.message : "Failed to save score",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle CPXTB claim
+  const handleClaimCPXTB = async () => {
+    if (!address || !isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to claim CPXTB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/games/claim-cpxtb', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+
+      await refetchGameStats();
+
+      toast({
+        title: "CPXTB Claimed!",
+        description: "Your accumulated CPXTB has been successfully claimed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Claim Failed",
+        description: error instanceof Error ? error.message : "Failed to claim CPXTB",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Game timer
   useEffect(() => {
     if (!gameStarted) return;
@@ -73,6 +179,7 @@ export default function SpaceMiningGame() {
         if (prev <= 1) {
           clearInterval(timer);
           setGameStarted(false);
+          handleGameEnd();
           return 0;
         }
         return prev - 1;
@@ -168,6 +275,38 @@ export default function SpaceMiningGame() {
           </CardContent>
         </Card>
 
+        {/* Accumulated CPXTB Card */}
+        {isConnected && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Coins className="h-6 w-6 text-yellow-500" />
+                Accumulated CPXTB
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-lg">
+                    Total Accumulated: <span className="font-bold">{gameStats?.accumulatedCPXTB || '0'} CPXTB</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Claim available at 1000 CPXTB
+                  </p>
+                </div>
+                <Button
+                  onClick={handleClaimCPXTB}
+                  disabled={!gameStats || parseFloat(gameStats.accumulatedCPXTB) < 1000}
+                  className="gap-2"
+                >
+                  <Coins className="h-4 w-4" />
+                  Claim CPXTB
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>How to Play</CardTitle>
@@ -178,6 +317,7 @@ export default function SpaceMiningGame() {
               <li>Each mineral has a random value between 1-10 points</li>
               <li>Collect as many minerals as possible in 60 seconds</li>
               <li>Every 1000 points equals 1 CPXTB reward</li>
+              <li>Accumulate 1000 CPXTB to claim your rewards</li>
               <li>The game ends when the timer reaches zero</li>
               <li>Try to get the highest score possible!</li>
             </ul>

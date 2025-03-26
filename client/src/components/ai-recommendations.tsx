@@ -40,7 +40,8 @@ export function AIRecommendations() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['recommendations', address]);
+      // Fix the invalidateQueries call
+      queryClient.invalidateQueries({ queryKey: ['recommendations', address] });
     }
   });
 
@@ -55,7 +56,8 @@ export function AIRecommendations() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['recommendations', address]);
+      // Fix the invalidateQueries call
+      queryClient.invalidateQueries({ queryKey: ['recommendations', address] });
     }
   });
 

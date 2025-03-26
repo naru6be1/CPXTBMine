@@ -4,25 +4,48 @@ import { MiningPlan } from "@/components/mining-plan";
 import { useWallet } from "@/hooks/use-wallet";
 import { Logo } from "@/components/ui/logo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gift } from "lucide-react";
+import { Gamepad2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Add FreeCPXTBClaim component
-function FreeCPXTBClaim() {
+// Add GameRecommendations component
+function GameRecommendations() {
+  const games = [
+    {
+      name: "Space Mining Adventure",
+      description: "Explore the galaxy while mining rare minerals and earning CPXTB rewards.",
+      difficulty: "Easy"
+    },
+    {
+      name: "Crypto Defense",
+      description: "Protect your mining operations from cyber attacks and earn bonus CPXTB.",
+      difficulty: "Medium"
+    },
+    {
+      name: "Mining Empire",
+      description: "Build and manage your own mining empire to maximize CPXTB earnings.",
+      difficulty: "Hard"
+    }
+  ];
+
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Gift className="h-6 w-6 text-primary" />
-          Claim Free CPXTB
+          <Gamepad2 className="h-6 w-6 text-primary" />
+          Recommended Games
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
-          Connect your wallet to claim your free CPXTB tokens. Each wallet can claim once every 24 hours.
-        </p>
-        <div className="space-y-4">
-          <ConnectWallet />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {games.map((game, index) => (
+            <Card key={index} className="bg-muted/50">
+              <CardContent className="pt-6">
+                <h3 className="font-semibold mb-2">{game.name}</h3>
+                <p className="text-sm text-muted-foreground mb-2">{game.description}</p>
+                <p className="text-xs font-medium">Difficulty: {game.difficulty}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </CardContent>
     </Card>
@@ -46,12 +69,12 @@ export default function Home() {
 
         <PriceDisplay />
 
-        {/* Add FreeCPXTBClaim before MiningPlan */}
-        <FreeCPXTBClaim />
+        {/* Add GameRecommendations before MiningPlan */}
+        <GameRecommendations />
         <MiningPlan />
 
         <div className="max-w-md mx-auto">
-          {/*<ConnectWallet />*/}
+          <ConnectWallet />
         </div>
 
         {isConnected && address && (

@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import OpenAI from "openai";
 import { storage } from '../storage';
 import type { User, MiningPlan, InsertRecommendation } from '@shared/schema';
 
@@ -35,6 +35,7 @@ export class RecommendationService {
 
       // If no API key, return fallback recommendation immediately
       if (!OPENAI_API_KEY) {
+        console.log('No API key available, using fallback recommendation');
         return this.getFallbackRecommendation(activePlans);
       }
 
@@ -49,29 +50,38 @@ export class RecommendationService {
 
       Provide a concise, personalized recommendation focusing on maximizing their CPXTB mining rewards.`;
 
-      const completion = await openai.chat.completions.create({
-        messages: [
-          { role: "system", content: systemMessage },
-          { role: "user", content: userMessage }
-        ],
-        model: "gpt-3.5-turbo",
-        max_tokens: 150,
-        temperature: 0.7,
-      });
+      try {
+        const completion = await openai.chat.completions.create({
+          messages: [
+            { role: "system", content: systemMessage },
+            { role: "user", content: userMessage }
+          ],
+          model: "gpt-3.5-turbo",
+          max_tokens: 150,
+          temperature: 0.7,
+        });
 
-      console.log('OpenAI API Response:', {
-        status: 'success',
-        content: completion.choices[0].message.content,
-        timestamp: new Date().toISOString()
-      });
+        console.log('OpenAI API Response:', {
+          status: 'success',
+          content: completion.choices[0].message.content,
+          timestamp: new Date().toISOString()
+        });
 
-      return completion.choices[0].message.content || 
-        this.getFallbackRecommendation(activePlans);
+        return completion.choices[0].message.content || 
+          this.getFallbackRecommendation(activePlans);
+      } catch (error: any) {
+        console.error('OpenAI API Error:', {
+          error: error.message,
+          status: error.status,
+          type: error.constructor.name,
+          timestamp: new Date().toISOString()
+        });
+        throw error; // Re-throw to be caught by outer try-catch
+      }
     } catch (error: any) {
-      console.error('Error generating AI recommendation:', {
+      console.error('Error in recommendation generation:', {
         error: error.message,
-        status: error.status,
-        type: error.constructor.name,
+        stack: error.stack,
         timestamp: new Date().toISOString()
       });
 

@@ -732,17 +732,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Calculate new total with precise parsing
-      const currentAmount = user.accumulatedCPXTB || 0;
+      // Calculate new total with better precision
+      const currentAmount = parseFloat(user.accumulatedCPXTB?.toString() || '0');
       const earnedAmount = parseFloat(earnedCPXTB);
-      const newAmount = currentAmount + earnedAmount;
+      const newAmount = parseFloat((currentAmount + earnedAmount).toFixed(3));
 
-      console.log('Updating CPXTB amounts:', {
+      console.log('CPXTB Calculation Details:', {
         userId: user.id,
         username: user.username,
         currentAmount,
         earnedAmount,
         newAmount,
+        rawEarnedCPXTB: earnedCPXTB,
         timestamp: new Date().toISOString()
       });
 
@@ -755,7 +756,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(users.username, walletAddress.toLowerCase()))
         .returning();
 
-      console.log('Successfully updated user CPXTB:', {
+      console.log('Updated user CPXTB details:', {
         userId: updatedUser.id,
         username: updatedUser.username,
         previousAmount: currentAmount,
@@ -768,6 +769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         accumulatedCPXTB: updatedUser.accumulatedCPXTB
       });
+
     } catch (error) {
       console.error("Error saving game score:", {
         error: error instanceof Error ? error.message : "Unknown error",

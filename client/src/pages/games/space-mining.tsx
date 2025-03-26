@@ -56,13 +56,14 @@ export default function SpaceMiningGame() {
     enabled: !!address && !!userData
   });
 
-  // Calculate CPXTB with less aggressive rounding
+  // Calculate CPXTB with better precision handling
   const calculateCPXTB = (points: number): string => {
-    // Don't floor the points, just use the raw value
-    const cpxtb = (points / POINTS_PER_CPXTB).toFixed(3);
+    // Ensure we're working with positive numbers and handle decimals properly
+    const rawPoints = Math.max(0, points);
+    const cpxtb = (rawPoints / POINTS_PER_CPXTB).toFixed(3);
 
     console.log('Calculating CPXTB:', {
-      points,
+      points: rawPoints,
       calculatedCPXTB: cpxtb,
       pointsPerCPXTB: POINTS_PER_CPXTB,
       timestamp: new Date().toISOString()
@@ -135,6 +136,7 @@ export default function SpaceMiningGame() {
         walletAddress: address,
         score,
         earnedCPXTB,
+        rawScoreValue: score,
         timestamp: new Date().toISOString()
       });
 

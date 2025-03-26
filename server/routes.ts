@@ -250,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: 'not-used', // OAuth-based auth, password not used
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           referredBy: referredBy,
-          hasClaimedFreeCPXTB: false
+          accumulatedCPXTB: 0 // Make sure to set initial CPXTB
         };
 
         console.log('Creating new user with data:', {
@@ -730,9 +730,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newAccumulatedCPXTB: updatedUser.accumulatedCPXTB
       });
 
-      res.json({ 
+      res.json({
         success: true,
-        accumulatedCPXTB: updatedUser.accumulatedCPXTB 
+        accumulatedCPXTB: updatedUser.accumulatedCPXTB
       });
     } catch (error) {
       console.error("Error saving game score:", {

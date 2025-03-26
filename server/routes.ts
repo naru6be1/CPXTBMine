@@ -11,7 +11,6 @@ import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { recommendationService } from './services/recommendation';
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
@@ -605,67 +604,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error claiming free CPXTB:", error);
       res.status(400).json({
         message: error instanceof Error ? error.message : "Error claiming free CPXTB"
-      });
-    }
-  });
-
-  // Get recommendations for a user
-  app.get("/api/users/:address/recommendations", async (req, res) => {
-    try {
-      const { address } = req.params;
-      const user = await storage.getUserByUsername(address.toLowerCase());
-
-      if (!user) {
-        res.status(404).json({ message: "User not found" });
-        return;
-      }
-
-      // Generate new recommendation if needed
-      const lastRecommendation = await storage.getUserRecommendations(user.id);
-      const shouldGenerateNew = !lastRecommendation.length ||
-        (new Date().getTime() - new Date(lastRecommendation[0].createdAt).getTime()) > 24 * 60 * 60 * 1000;
-
-      if (shouldGenerateNew) {
-        const newRecommendation = await recommendationService.createRecommendation(user.id);
-        if (newRecommendation) {
-          await storage.createRecommendation(newRecommendation);
-        }
-      }
-
-      const recommendations = await storage.getUserRecommendations(user.id);
-      res.json({ recommendations });
-    } catch (error) {
-      console.error("Error fetching recommendations:", error);
-      res.status(500).json({
-        message: "Error fetching recommendations"
-      });
-    }
-  });
-
-  // Mark recommendation as read
-  app.post("/api/recommendations/:id/read", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const recommendation = await storage.markRecommendationAsRead(parseInt(id));
-      res.json({ recommendation });
-    } catch (error) {
-      console.error("Error marking recommendation as read:", error);
-      res.status(500).json({
-        message: "Error updating recommendation"
-      });
-    }
-  });
-
-  // Mark recommendation as implemented
-  app.post("/api/recommendations/:id/implement", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const recommendation = await storage.markRecommendationAsImplemented(parseInt(id));
-      res.json({ recommendation });
-    } catch (error) {
-      console.error("Error marking recommendation as implemented:", error);
-      res.status(500).json({
-        message: "Error updating recommendation"
       });
     }
   });

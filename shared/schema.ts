@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,8 +11,6 @@ export const users = pgTable("users", {
   lastCPXTBClaimTime: timestamp("last_cpxtb_claim_time"),
   lastClaimIp: text("last_claim_ip"),
   ipClaimTime: timestamp("ip_claim_time"),
-  preferences: jsonb("preferences"), // Store user preferences
-  lastRecommendationTime: timestamp("last_recommendation_time"),
 });
 
 export const miningPlans = pgTable("mining_plans", {
@@ -32,17 +30,7 @@ export const miningPlans = pgTable("mining_plans", {
   referralRewardPaid: boolean("referral_reward_paid").default(false),
 });
 
-export const recommendations = pgTable("recommendations", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  recommendationType: text("recommendation_type").notNull(), 
-  content: text("content").notNull(), 
-  context: jsonb("context"), 
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  isRead: boolean("is_read").default(false),
-  isImplemented: boolean("is_implemented").default(false),
-});
-
+// Update user schema
 export const insertUserSchema = createInsertSchema(users)
   .extend({
     username: z.string(),
@@ -52,8 +40,6 @@ export const insertUserSchema = createInsertSchema(users)
     lastCPXTBClaimTime: z.date().nullable().optional(),
     lastClaimIp: z.string().nullable().optional(),
     ipClaimTime: z.date().nullable().optional(),
-    preferences: z.object({}).passthrough().optional(),
-    lastRecommendationTime: z.date().nullable().optional(),
   });
 
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)
@@ -76,16 +62,8 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
     referralCode: z.string().nullable().optional(),
   });
 
-export const insertRecommendationSchema = createInsertSchema(recommendations)
-  .extend({
-    recommendationType: z.enum(['mining_plan', 'strategy', 'referral']),
-    content: z.string(),
-    context: z.object({}).passthrough().optional(),
-  });
-
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
 export type InsertMiningPlan = z.infer<typeof insertMiningPlanSchema>;
 export type MiningPlan = typeof miningPlans.$inferSelect;
-export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
-export type Recommendation = typeof recommendations.$inferSelect;

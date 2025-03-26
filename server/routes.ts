@@ -742,7 +742,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('User CPXTB updated:', {
         userId: updatedUser.id,
         username: updatedUser.username,
-        finalAmount: updatedUser.accumulatedCPXTB
+        previousAmount: currentAmount,
+        addedAmount: earnedAmount,
+        finalAmount: updatedUser.accumulatedCPXTB,
+        timestamp: new Date().toISOString()
       });
 
       res.json({

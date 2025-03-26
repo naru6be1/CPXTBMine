@@ -129,7 +129,7 @@ export default function SpaceMiningGame() {
     setMinerals(prev => [...prev, newMineral]);
   };
 
-  // Handle game end with better calculation
+  // Handle game end with better error handling
   const handleGameEnd = async () => {
     if (!address || !isConnected) {
       toast({

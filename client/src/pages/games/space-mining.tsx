@@ -123,6 +123,13 @@ export default function SpaceMiningGame() {
       await fetch(`/api/users/${address}`);
 
       const earnedCPXTB = calculateCPXTB(score);
+      console.log('Saving game score:', {
+        walletAddress: address,
+        score,
+        earnedCPXTB,
+        timestamp: new Date().toISOString()
+      });
+
       const response = await fetch('/api/games/save-score', {
         method: 'POST',
         headers: {
@@ -136,7 +143,8 @@ export default function SpaceMiningGame() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save game score');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to save game score');
       }
 
       await refetchGameStats();
@@ -146,6 +154,7 @@ export default function SpaceMiningGame() {
         description: `You earned ${earnedCPXTB} CPXTB! Keep playing to accumulate more.`,
       });
     } catch (error) {
+      console.error('Error saving score:', error);
       toast({
         title: "Error Saving Score",
         description: error instanceof Error ? error.message : "Failed to save score",
@@ -264,7 +273,7 @@ export default function SpaceMiningGame() {
                     </p>
                   </div>
                 )}
-                <Button 
+                <Button
                   size="lg"
                   onClick={startGame}
                   className="gap-2"
@@ -274,7 +283,7 @@ export default function SpaceMiningGame() {
                 </Button>
               </div>
             ) : (
-              <div 
+              <div
                 className="relative w-full h-[400px] bg-black rounded-lg overflow-hidden"
                 style={{ background: 'linear-gradient(to bottom, #0f172a, #1e293b)' }}
               >
@@ -290,8 +299,8 @@ export default function SpaceMiningGame() {
                     whileHover={{ scale: 1.2 }}
                     onClick={() => collectMineral(mineral)}
                   >
-                    <Star 
-                      className="h-6 w-6 text-yellow-400 animate-pulse" 
+                    <Star
+                      className="h-6 w-6 text-yellow-400 animate-pulse"
                       style={{ filter: 'drop-shadow(0 0 8px rgba(250, 204, 21, 0.5))' }}
                     />
                   </motion.div>

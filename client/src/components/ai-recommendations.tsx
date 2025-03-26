@@ -86,7 +86,7 @@ export function AIRecommendations() {
   }
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider delayDuration={500}>
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -98,7 +98,7 @@ export function AIRecommendations() {
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-xs p-3">
+              <TooltipContent side="right" className="max-w-xs p-3" sideOffset={10}>
                 <p className="text-sm leading-relaxed">
                   Our AI analyzes your mining behavior and provides personalized recommendations to help optimize your rewards and strategy.
                 </p>
@@ -132,7 +132,7 @@ export function AIRecommendations() {
                               Mark as Read
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent side="left" className="p-3">
+                          <TooltipContent side="left" className="p-3 text-left" sideOffset={10}>
                             <p className="text-sm">Click to acknowledge you've read this recommendation</p>
                           </TooltipContent>
                         </Tooltip>
@@ -150,7 +150,7 @@ export function AIRecommendations() {
                               Implement
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent side="left" className="p-3">
+                          <TooltipContent side="left" className="p-3 text-left" sideOffset={10}>
                             <p className="text-sm">Click when you've followed this recommendation to track your progress</p>
                           </TooltipContent>
                         </Tooltip>

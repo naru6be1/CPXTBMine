@@ -665,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  // Update the save-score endpoint
+  // Update the save-score endpoint - Handles both connected and demo wallet
   app.post("/api/games/save-score", async (req, res) => {
     try {
       const { walletAddress, score, earnedCPXTB } = req.body;
@@ -674,6 +674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         walletAddress,
         score,
         earnedCPXTB,
+        isDemoWallet: walletAddress === '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77',
         timestamp: new Date().toISOString()
       });
 
@@ -820,9 +821,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/games/stats/:address", async (req, res) => {
     try {
       const { address } = req.params;
+      // Check if it's a demo wallet
+      const isDemoWallet = address === '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77';
+      
       console.log('Fetching game stats for:', {
         address,
         normalizedAddress: address.toLowerCase(),
+        isDemoWallet,
         timestamp: new Date().toISOString()
       });
 
@@ -832,6 +837,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(users.username, address.toLowerCase()));
 
       if (!user) {
+        console.log('User not found in stats - creating demo account:', {
+          requestedAddress: address,
+          normalizedAddress: address.toLowerCase(),
+          isDemoWallet,
+          timestamp: new Date().toISOString()
+        });
+        
+        // For demo wallets, auto-create the user instead of returning 404
+        if (isDemoWallet) {
+          // Create new user with initial CPXTB
+          const [newUser] = await db
+            .insert(users)
+            .values({
+              username: address.toLowerCase(),
+              password: 'not-used',
+              referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+              accumulatedCPXTB: "0.000"
+            })
+            .returning();
+            
+          console.log('Demo user created:', {
+            userId: newUser.id,
+            username: newUser.username,
+            initialCPXTB: 0,
+            rawAccumulatedCPXTB: newUser.accumulatedCPXTB
+          });
+          
+          // Continue with the newly created user
+          res.json({
+            accumulatedCPXTB: "0.000"
+          });
+          return;
+        }
+        
+        // For non-demo wallets, return 404 as before
         console.error('User not found in stats:', {
           requestedAddress: address,
           normalizedAddress: address.toLowerCase(),

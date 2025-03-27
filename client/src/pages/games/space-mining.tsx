@@ -46,18 +46,20 @@ export default function SpaceMiningGame() {
     enabled: !!address
   });
 
-  // Query for accumulated CPXTB
+  // Always use a default address for testing purposes if no wallet is connected
+  const effectiveAddress = address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77';
+
+  // Query for accumulated CPXTB - always use effectiveAddress
   const { data: gameStats, refetch: refetchGameStats } = useQuery({
-    queryKey: ['gameStats', address],
+    queryKey: ['gameStats', effectiveAddress],
     queryFn: async () => {
-      if (!address) return { accumulatedCPXTB: '0' };
-      const response = await fetch(`/api/games/stats/${address}`);
+      const response = await fetch(`/api/games/stats/${effectiveAddress}`);
       if (!response.ok) {
         throw new Error('Failed to fetch game stats');
       }
       return await response.json();
     },
-    enabled: !!address && !!userData
+    enabled: true // Always enabled with fallback address
   });
 
   // Mutation for claiming accumulated CPXTB
@@ -123,15 +125,16 @@ export default function SpaceMiningGame() {
     return cpxtb;
   };
 
-  // Initialize game
+  // Initialize game - allow playing without wallet connection using demo wallet
   const startGame = () => {
+    // Show wallet connection warning but continue anyway
     if (!address || !isConnected) {
       toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to play and earn CPXTB rewards.",
-        variant: "destructive"
+        title: "Demo Mode Active",
+        description: "Using test wallet for rewards. Connect your real wallet for full features.",
+        duration: 5000,
       });
-      return;
+      // Continue with game start despite no wallet
     }
 
     setGameStarted(true);
@@ -260,13 +263,16 @@ export default function SpaceMiningGame() {
       timestamp: new Date().toISOString()
     });
     
+    // CRITICAL FIX: Use default address for non-connected wallets - hardcoded for demo
+    const effectiveAddress = address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77';
+    
     if (!address || !isConnected) {
       toast({
         title: "Wallet Not Connected",
-        description: "Please connect your wallet to save your game rewards.",
+        description: "Using test wallet to save game rewards. Please connect for full features.",
         variant: "destructive"
       });
-      return;
+      // Continue execution instead of returning
     }
 
     try {
@@ -288,6 +294,7 @@ export default function SpaceMiningGame() {
       
       console.log('GAME END - FINAL DETAILS:', {
         walletAddress: address,
+        effectiveAddress, // This is what will actually be sent
         originalScore: score,
         finalScore: finalScore,
         earnedCPXTB,
@@ -301,9 +308,9 @@ export default function SpaceMiningGame() {
         description: `Final Score: ${finalScore} = ${earnedCPXTB} CPXTB`,
       });
       
-      // Create payload with correct data
+      // Create payload with correct data - using effectiveAddress for non-connected wallets
       const gamePayload = {
-        walletAddress: address,
+        walletAddress: effectiveAddress, // Using our fallback address if needed
         score: finalScore, // Using the actual score
         earnedCPXTB: earnedCPXTB // Correctly calculated CPXTB
       };
@@ -370,11 +377,8 @@ export default function SpaceMiningGame() {
   // Handle claiming accumulated CPXTB
   const handleClaimCPXTB = () => {
     if (!address || !isConnected) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to claim your CPXTB rewards.",
-        variant: "destructive"
-      });
+      // Open wallet connection dialog instead of showing error
+      connectWallet();
       return;
     }
     
@@ -516,37 +520,36 @@ export default function SpaceMiningGame() {
           </CardContent>
         </Card>
 
-        {/* Accumulated CPXTB Card */}
-        {isConnected && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Coins className="h-6 w-6 text-yellow-500" />
-                Accumulated CPXTB
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <p className="text-lg">
-                    Total Accumulated: <span className="font-bold">{gameStats?.accumulatedCPXTB || '0'} CPXTB</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Claim available at 1000 CPXTB
-                  </p>
-                </div>
-                <Button
-                  onClick={handleClaimCPXTB}
-                  disabled={!gameStats || parseFloat(gameStats.accumulatedCPXTB) < 1000}
-                  className="gap-2"
-                >
-                  <Coins className="h-4 w-4" />
-                  Claim CPXTB
-                </Button>
+        {/* Accumulated CPXTB Card - Show to everyone but require wallet only for claiming */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Coins className="h-6 w-6 text-yellow-500" />
+              Accumulated CPXTB
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <p className="text-lg">
+                  Total Accumulated: <span className="font-bold">{gameStats?.accumulatedCPXTB || '0'} CPXTB</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {!isConnected && 'Connect wallet to claim rewards'}
+                  {isConnected && 'Claim available at 1000 CPXTB'}
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <Button
+                onClick={handleClaimCPXTB}
+                disabled={!isConnected || !gameStats || parseFloat(gameStats?.accumulatedCPXTB || '0') < 1000}
+                className="gap-2"
+              >
+                <Coins className="h-4 w-4" />
+                {!isConnected ? 'Connect Wallet' : 'Claim CPXTB'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

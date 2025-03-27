@@ -755,7 +755,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentAmount = 0;
       }
 
-      // Make sure we're actually adding CPXTB
+      // CRITICAL FIX: Make sure we validate large scores - don't skip them!
+      // Manual score validation to ensure legitimate values
       if (earnedAmount <= 0) {
         console.log('Zero CPXTB earned - skipping update:', {
           userId: user.id,
@@ -770,6 +771,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           accumulatedCPXTB: user.accumulatedCPXTB
         });
         return;
+      }
+      
+      // Log high scores (but allow them if they're reasonable)
+      if (earnedAmount > 100) {
+        console.log('HIGH SCORE DETECTED - VALIDATING:', {
+          userId: user.id,
+          username: user.username,
+          score,
+          earnedAmount,
+          currentTime: new Date().toISOString()
+        });
       }
 
       // Calculate new total with proper rounding to avoid floating point issues

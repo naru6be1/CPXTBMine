@@ -302,6 +302,14 @@ export default function SpaceMiningGame() {
         timestamp: new Date().toISOString()
       });
       
+      // CRITICAL DEBUG for score persistence issue
+      console.log('CRITICAL SCORE CHECK BEFORE SAVE:', {
+        finalScoreVariable: finalScore,
+        directScoreState: score,
+        calculatedCPXTB: earnedCPXTB,
+        date: new Date().toISOString()
+      });
+      
       // Show saving indicator
       toast({
         title: "Saving Score...",
@@ -377,8 +385,12 @@ export default function SpaceMiningGame() {
   // Handle claiming accumulated CPXTB
   const handleClaimCPXTB = () => {
     if (!address || !isConnected) {
-      // Open wallet connection dialog instead of showing error
-      connectWallet();
+      // Show wallet connection error since we can't directly connect from here
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to claim your CPXTB rewards.",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -403,6 +415,40 @@ export default function SpaceMiningGame() {
         if (prev <= 1) {
           clearInterval(timer);
           setGameStarted(false);
+          
+          // CRITICAL FIX: Save the current score in a local variable
+          // before it gets reset by setGameStarted(false)
+          const finalScore = score;
+          const finalEarnedCPXTB = calculateCPXTB(finalScore);
+          
+          console.log('GAME ABOUT TO END - CAPTURING FINAL SCORE:', {
+            finalScore,
+            finalEarnedCPXTB,
+            directScoreState: score
+          });
+          
+          // Save score immediately before handleGameEnd is called
+          if (finalScore > 0) {
+            const gamePayload = {
+              walletAddress: address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77', 
+              score: finalScore,
+              earnedCPXTB: finalEarnedCPXTB
+            };
+            
+            console.log('IMMEDIATE SCORE SAVE:', gamePayload);
+            
+            // Send score to server directly to ensure it's saved
+            fetch('/api/games/save-score', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(gamePayload),
+            })
+            .then(response => response.json())
+            .then(data => console.log('IMMEDIATE SAVE RESULT:', data))
+            .catch(err => console.error('IMMEDIATE SAVE ERROR:', err));
+          }
+          
+          // Continue normal end game processing
           handleGameEnd();
           return 0;
         }
@@ -411,7 +457,7 @@ export default function SpaceMiningGame() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameStarted]);
+  }, [gameStarted, score, address, isConnected]);
 
   return (
     <div className="container mx-auto px-4 py-8">

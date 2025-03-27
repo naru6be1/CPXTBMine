@@ -18,6 +18,7 @@ interface Mineral {
 
 // Constants
 const POINTS_PER_CPXTB = 10; // Lower to make it easier to accumulate
+const DEBUG_MODE = false; // Set to false for production
 
 export default function SpaceMiningGame() {
   const [score, setScore] = useState(0);
@@ -181,8 +182,8 @@ export default function SpaceMiningGame() {
         return; // Exit early if mineral data is invalid
       }
       
-      // Set minimum value to 25 to ensure meaningful score increases
-      const mineralValue = Math.max(25, mineral.value);
+      // CRITICAL FIX: Use the actual mineral value with no minimum
+      const mineralValue = mineral.value;
       
       // Use a callback form of setState to ensure we're working with the latest state
       setScore(prevScore => {
@@ -280,9 +281,9 @@ export default function SpaceMiningGame() {
         return;
       }
       
-      // FIXED: Use the actual score value instead of a minimum - for debugging we still have a minimum
-      // but this is just to make sure we always get some points
-      const finalScore = Math.max(score, 25); // Using actual score value!
+      // CRITICAL FIX: Use the ACTUAL score value with NO minimum
+      // This was causing the issue with large scores being reduced to tiny values
+      const finalScore = score; // Using actual score with no minimum!
       const earnedCPXTB = calculateCPXTB(finalScore);
       
       console.log('GAME END - FINAL DETAILS:', {
@@ -354,8 +355,7 @@ export default function SpaceMiningGame() {
       // Show success message with actual earned amount
       toast({
         title: `Score Saved: ${finalScore} points!`,
-        description: `You earned ${earnedCPXTB} CPXTB! Keep playing to earn more rewards.`,
-        variant: "success"
+        description: `You earned ${earnedCPXTB} CPXTB! Keep playing to earn more rewards.`
       });
     } catch (error) {
       console.error('CRITICAL ERROR SAVING SCORE:', error);

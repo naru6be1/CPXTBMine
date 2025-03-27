@@ -775,7 +775,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // NEW FEATURE: Cap CPXTB earnings at 2.0 per game
       // This is a server-side failsafe in case client-side limitations are bypassed
-      if (earnedAmount > 2.0) {
+      let finalEarnedAmount = earnedAmount; // Create a new variable instead of modifying earnedAmount
+      if (finalEarnedAmount > 2.0) {
         console.log('CAPPING CPXTB REWARD:', {
           userId: user.id,
           username: user.username,
@@ -785,8 +786,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentTime: new Date().toISOString()
         });
         
-        // Set a hard cap of 2.0 CPXTB per game
-        earnedAmount = 2.0;
+        // Set a hard cap of 2.0 CPXTB per game using the new variable
+        finalEarnedAmount = 2.0;
       }
       
       // Still log high scores for monitoring purposes
@@ -801,14 +802,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate new total with proper rounding to avoid floating point issues
-      const newAmount = parseFloat((currentAmount + earnedAmount).toFixed(3));
+      // Use finalEarnedAmount which might be capped at 2.0 CPXTB
+      const newAmount = parseFloat((currentAmount + finalEarnedAmount).toFixed(3));
 
       console.log('CPXTB Update:', {
         userId: user.id,
         username: user.username,
         currentAmountRaw: user.accumulatedCPXTB,
         currentAmount,
-        earnedAmount,
+        originalEarnedAmount: earnedAmount,
+        cappedEarnedAmount: finalEarnedAmount,
         newAmount,
         timestamp: new Date().toISOString()
       });
@@ -826,7 +829,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: updatedUser.id,
         username: updatedUser.username,
         previousAmount: currentAmount,
-        addedAmount: earnedAmount,
+        originalAmount: earnedAmount,
+        cappedAmount: finalEarnedAmount,
         finalAmount: updatedUser.accumulatedCPXTB,
         rawFinalAmount: updatedUser.accumulatedCPXTB,
         timestamp: new Date().toISOString()

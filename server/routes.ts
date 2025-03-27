@@ -684,6 +684,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Ensure earnedCPXTB is a valid numeric value
+      const earnedAmount = parseFloat(earnedCPXTB);
+      if (isNaN(earnedAmount)) {
+        res.status(400).json({
+          message: "Invalid CPXTB value"
+        });
+        return;
+      }
+
       // Get user's current CPXTB balance with proper numeric handling
       const [user] = await db
         .select()
@@ -698,14 +707,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             username: walletAddress.toLowerCase(),
             password: 'not-used',
             referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-            accumulatedCPXTB: earnedCPXTB.toString()
+            accumulatedCPXTB: earnedAmount.toString()
           })
           .returning();
 
         console.log('New user created:', {
           userId: newUser.id,
           username: newUser.username,
-          initialCPXTB: earnedCPXTB
+          initialCPXTB: earnedAmount,
+          rawAccumulatedCPXTB: newUser.accumulatedCPXTB
         });
 
         res.json({
@@ -715,22 +725,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Calculate new total with proper numeric handling
-      const currentAmount = parseFloat(user.accumulatedCPXTB?.toString() || '0');
-      const earnedAmount = parseFloat(earnedCPXTB);
+      // Ensure we have a valid numeric current amount
+      let currentAmount = 0;
+      try {
+        if (user.accumulatedCPXTB !== null && user.accumulatedCPXTB !== undefined) {
+          currentAmount = parseFloat(user.accumulatedCPXTB.toString());
+          if (isNaN(currentAmount)) currentAmount = 0;
+        }
+      } catch (e) {
+        console.error('Error parsing current CPXTB amount:', e);
+        currentAmount = 0;
+      }
+
+      // Calculate new total with proper rounding to avoid floating point issues
       const newAmount = parseFloat((currentAmount + earnedAmount).toFixed(3));
 
       console.log('CPXTB Update:', {
         userId: user.id,
         username: user.username,
+        currentAmountRaw: user.accumulatedCPXTB,
         currentAmount,
         earnedAmount,
         newAmount,
-        rawEarnedCPXTB: earnedCPXTB,
         timestamp: new Date().toISOString()
       });
 
-      // Update with new amount, ensuring it's stored as a string
+      // Update with new amount, ensuring it's stored as a proper numeric value
       const [updatedUser] = await db
         .update(users)
         .set({
@@ -745,6 +765,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         previousAmount: currentAmount,
         addedAmount: earnedAmount,
         finalAmount: updatedUser.accumulatedCPXTB,
+        rawFinalAmount: updatedUser.accumulatedCPXTB,
         timestamp: new Date().toISOString()
       });
 
@@ -788,14 +809,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Ensure we have a valid numeric value for accumulated CPXTB
+      let accumulatedCPXTB = '0';
+      if (user.accumulatedCPXTB !== null && user.accumulatedCPXTB !== undefined) {
+        try {
+          const cpxtbValue = parseFloat(user.accumulatedCPXTB.toString());
+          accumulatedCPXTB = isNaN(cpxtbValue) ? '0' : cpxtbValue.toFixed(3);
+        } catch (e) {
+          console.error('Error parsing accumulated CPXTB value:', e);
+        }
+      }
+
       console.log('Found user stats:', {
         userId: user.id,
         username: user.username,
-        accumulatedCPXTB: user.accumulatedCPXTB
+        rawAccumulatedCPXTB: user.accumulatedCPXTB,
+        parsedAccumulatedCPXTB: accumulatedCPXTB
       });
 
       res.json({
-        accumulatedCPXTB: user.accumulatedCPXTB?.toString() || '0'
+        accumulatedCPXTB
       });
     } catch (error) {
       console.error("Error fetching game stats:", error);
@@ -823,7 +856,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      const accumulatedCPXTB = user.accumulatedCPXTB || 0;
+      // Parse accumulated CPXTB into a number for comparison
+      let accumulatedCPXTB = 0;
+      if (user.accumulatedCPXTB !== null && user.accumulatedCPXTB !== undefined) {
+        try {
+          accumulatedCPXTB = parseFloat(user.accumulatedCPXTB.toString());
+          if (isNaN(accumulatedCPXTB)) accumulatedCPXTB = 0;
+        } catch (e) {
+          console.error('Error parsing CPXTB value:', e);
+        }
+      }
 
       if (accumulatedCPXTB < 1000) {
         res.status(400).json({
@@ -859,7 +901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db
         .update(users)
         .set({
-          accumulatedCPXTB: 0
+          accumulatedCPXTB: sql`0`
         })
         .where(eq(users.username, walletAddress.toLowerCase()));
 

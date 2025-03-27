@@ -773,8 +773,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // Log high scores (but allow them if they're reasonable)
-      if (earnedAmount > 100) {
+      // NEW FEATURE: Cap CPXTB earnings at 2.0 per game
+      // This is a server-side failsafe in case client-side limitations are bypassed
+      if (earnedAmount > 2.0) {
+        console.log('CAPPING CPXTB REWARD:', {
+          userId: user.id,
+          username: user.username,
+          originalScore: score,
+          originalEarnedAmount: earnedAmount,
+          cappedAmount: 2.0,
+          currentTime: new Date().toISOString()
+        });
+        
+        // Set a hard cap of 2.0 CPXTB per game
+        earnedAmount = 2.0;
+      }
+      
+      // Still log high scores for monitoring purposes
+      if (score > 1000) {
         console.log('HIGH SCORE DETECTED - VALIDATING:', {
           userId: user.id,
           username: user.username,

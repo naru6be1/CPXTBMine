@@ -155,13 +155,14 @@ export default function SpaceMiningGame() {
     });
     
     for (let i = 0; i < mineralCount; i++) {
+      // Drastically reduced mineral values to limit CPXTB earnings to ~2 per game
       newMinerals.push({
         id: Date.now() + Math.random(),
         // More spread out minerals for mobile
         x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
         y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-        // Higher value minerals on mobile
-        value: Math.floor(Math.random() * 50) + (isMobile ? 20 : 10)
+        // Much lower values to keep CPXTB under 2 per game
+        value: Math.floor(Math.random() * 3) + (isMobile ? 1 : 1)
       });
     }
     setMinerals(newMinerals);
@@ -216,12 +217,12 @@ export default function SpaceMiningGame() {
           // First filter out the collected mineral
           const filteredMinerals = prevMinerals.filter(m => m.id !== mineral.id);
           
-          // Create a new mineral with guaranteed value
+          // Create a new mineral with much lower values to keep CPXTB under 2 per game
           const newMineral: Mineral = {
             id: Date.now() + Math.random(), // More unique ID
             x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
             y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-            value: Math.floor(Math.random() * 50) + (isMobile ? 25 : 15) // Higher values
+            value: Math.floor(Math.random() * 3) + (isMobile ? 1 : 1) // Much lower values
           };
           
           console.log('MINERAL REPLACED', {
@@ -604,9 +605,10 @@ export default function SpaceMiningGame() {
           <CardContent>
             <ul className="list-disc list-inside space-y-2">
               <li>Click the glowing minerals to collect them</li>
-              <li>Each mineral has a random value between 10-60 points</li>
+              <li>Each mineral has a random value between 1-4 points</li>
               <li>Collect as many minerals as possible in 60 seconds</li>
               <li>Every 10 points equals 1 CPXTB reward</li>
+              <li>Maximum CPXTB per game is limited to 2 CPXTB</li>
               <li>Accumulate 1000 CPXTB to claim your rewards</li>
               <li>The game ends when the timer reaches zero</li>
               <li>Try to get the highest score possible!</li>

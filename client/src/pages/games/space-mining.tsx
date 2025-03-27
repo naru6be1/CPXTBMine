@@ -6,7 +6,7 @@ import { Rocket, Star, ArrowLeft, Coins } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
 interface Mineral {
   id: number;
@@ -16,7 +16,7 @@ interface Mineral {
 }
 
 // Constants
-const POINTS_PER_CPXTB = 10; // Changed from 100 to make it easier to accumulate
+const POINTS_PER_CPXTB = 10; // Lower to make it easier to accumulate
 
 export default function SpaceMiningGame() {
   const [score, setScore] = useState(0);
@@ -54,6 +54,52 @@ export default function SpaceMiningGame() {
       return await response.json();
     },
     enabled: !!address && !!userData
+  });
+
+  // Mutation for claiming accumulated CPXTB
+  const claimCPXTBMutation = useMutation({
+    mutationFn: async () => {
+      if (!address) throw new Error('Wallet not connected');
+      
+      console.log('Attempting to claim CPXTB:', {
+        walletAddress: address,
+        accumulatedAmount: gameStats?.accumulatedCPXTB || '0',
+        timestamp: new Date().toISOString()
+      });
+      
+      const response = await fetch('/api/games/claim-cpxtb', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: address
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to claim CPXTB');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "CPXTB Claimed Successfully!",
+        description: "Your CPXTB rewards have been sent to your wallet.",
+      });
+      // Refetch stats to update the UI
+      refetchGameStats();
+    },
+    onError: (error) => {
+      console.error('Error claiming CPXTB:', error);
+      toast({
+        title: "Error Claiming CPXTB",
+        description: error instanceof Error ? error.message : "Failed to claim CPXTB",
+        variant: "destructive"
+      });
+    }
   });
 
   // Calculate CPXTB with precision handling
@@ -98,13 +144,13 @@ export default function SpaceMiningGame() {
         id: Math.random(),
         x: Math.random() * 80 + 10, // Keep minerals within 10-90% of the container
         y: Math.random() * 80 + 10,
-        value: Math.floor(Math.random() * 50) + 10 // Increased from 10 to range 10-60
+        value: Math.floor(Math.random() * 50) + 10 // Range 10-60
       });
     }
     setMinerals(newMinerals);
   };
 
-  // Handle mineral collection with better logging
+  // Handle mineral collection
   const collectMineral = (mineral: Mineral) => {
     const mineralValue = Math.max(0, mineral.value);
     const newScore = score + mineralValue;
@@ -126,7 +172,7 @@ export default function SpaceMiningGame() {
       id: Math.random(),
       x: Math.random() * 80 + 10,
       y: Math.random() * 80 + 10,
-      value: Math.floor(Math.random() * 50) + 10 // Increased from 10 to range 10-60
+      value: Math.floor(Math.random() * 50) + 10
     };
     setMinerals(prev => [...prev, newMineral]);
 
@@ -196,6 +242,29 @@ export default function SpaceMiningGame() {
         variant: "destructive"
       });
     }
+  };
+  
+  // Handle claiming accumulated CPXTB
+  const handleClaimCPXTB = () => {
+    if (!address || !isConnected) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to claim your CPXTB rewards.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!gameStats || parseFloat(gameStats.accumulatedCPXTB) < 1000) {
+      toast({
+        title: "Insufficient CPXTB",
+        description: "You need at least 1000 CPXTB to claim rewards.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    claimCPXTBMutation.mutate();
   };
 
   // Game timer

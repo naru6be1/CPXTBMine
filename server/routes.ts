@@ -666,15 +666,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // Update the save-score endpoint - Handles both connected and demo wallet
+  // Track recent submissions to prevent duplicates
+  const recentSubmissions = new Map();
+  
   app.post("/api/games/save-score", async (req, res) => {
     try {
       const { walletAddress, score, earnedCPXTB } = req.body;
+
+      // Create a unique submission ID based on user address and score
+      const submissionId = `${walletAddress.toLowerCase()}_${score}_${Date.now().toString().slice(0, -3)}`;
+      
+      // Check if this looks like a duplicate submission (within the last 3 seconds)
+      const lastSubmissionTime = recentSubmissions.get(`${walletAddress.toLowerCase()}_${score}`);
+      const now = Date.now();
+      if (lastSubmissionTime && (now - lastSubmissionTime < 3000)) {
+        console.log('DUPLICATE SUBMISSION DETECTED:', {
+          walletAddress,
+          score,
+          earnedCPXTB,
+          previousSubmission: lastSubmissionTime,
+          currentTime: now,
+          timeDiff: now - lastSubmissionTime
+        });
+        
+        res.json({
+          success: true,
+          message: "Duplicate submission ignored",
+          accumulatedCPXTB: "0.000" // Client will refresh stats anyway
+        });
+        return;
+      }
+      
+      // Store this submission timestamp
+      recentSubmissions.set(`${walletAddress.toLowerCase()}_${score}`, now);
+      
+      // Cleanup old entries (keep map small)
+      if (recentSubmissions.size > 100) {
+        const keysToDelete = [];
+        for (const [key, timestamp] of recentSubmissions.entries()) {
+          if (now - timestamp > 10000) { // Older than 10 seconds
+            keysToDelete.push(key);
+          }
+        }
+        keysToDelete.forEach(key => recentSubmissions.delete(key));
+      }
 
       console.log('Processing game score:', {
         walletAddress,
         score,
         earnedCPXTB,
         isDemoWallet: walletAddress === '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77',
+        submissionId,
         timestamp: new Date().toISOString()
       });
 

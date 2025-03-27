@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Mineral {
   id: number;
@@ -27,6 +28,8 @@ export default function SpaceMiningGame() {
   const { toast } = useToast();
   const { address, isConnected } = useWallet();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const gameAreaRef = useRef<HTMLDivElement>(null);
 
   // Query for user data and registration
   const { data: userData } = useQuery({
@@ -136,51 +139,92 @@ export default function SpaceMiningGame() {
     spawnMinerals();
   };
 
-  // Spawn minerals randomly
+  // Spawn minerals randomly with adjustments for mobile devices
   const spawnMinerals = () => {
     const newMinerals: Mineral[] = [];
-    for (let i = 0; i < 5; i++) {
+    // Add more minerals on mobile for easier tapping
+    const mineralCount = isMobile ? 7 : 5;
+    console.log('Spawning minerals for platform:', {
+      isMobile,
+      mineralCount,
+      timestamp: new Date().toISOString()
+    });
+    
+    for (let i = 0; i < mineralCount; i++) {
       newMinerals.push({
-        id: Math.random(),
-        x: Math.random() * 80 + 10, // Keep minerals within 10-90% of the container
-        y: Math.random() * 80 + 10,
-        value: Math.floor(Math.random() * 50) + 10 // Range 10-60
+        id: Date.now() + Math.random(),
+        // More spread out minerals for mobile
+        x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
+        y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
+        // Higher value minerals on mobile
+        value: Math.floor(Math.random() * 50) + (isMobile ? 20 : 10)
       });
     }
     setMinerals(newMinerals);
   };
 
-  // Handle mineral collection
+  // Handle mineral collection with improved event detection for mobile
   const collectMineral = (mineral: Mineral) => {
-    const mineralValue = Math.max(0, mineral.value);
-    const newScore = score + mineralValue;
-    setScore(newScore);
-
-    console.log('CPXTB Calculation:', {
-      mineralValue,
-      previousScore: score,
-      newScore,
-      estimatedCPXTB: calculateCPXTB(newScore),
-      pointsPerCPXTB: POINTS_PER_CPXTB,
-      timestamp: new Date().toISOString()
-    });
-
-    setMinerals(prev => prev.filter(m => m.id !== mineral.id));
-
-    // Spawn new mineral when one is collected
-    const newMineral: Mineral = {
-      id: Math.random(),
-      x: Math.random() * 80 + 10,
-      y: Math.random() * 80 + 10,
-      value: Math.floor(Math.random() * 50) + 10
-    };
-    setMinerals(prev => [...prev, newMineral]);
-
-    // Show immediate feedback
-    toast({
-      title: `+${mineralValue} points!`,
-      description: `Current CPXTB: ${calculateCPXTB(newScore)}`,
-    });
+    try {
+      // Add a clear log when a mineral is clicked
+      console.log('Mineral clicked:', {
+        mineralId: mineral.id,
+        mineralValue: mineral.value,
+        mineralPosition: { x: mineral.x, y: mineral.y },
+        timestamp: new Date().toISOString()
+      });
+      
+      // Ensure the value is positive with a guaranteed minimum
+      const mineralValue = Math.max(20, mineral.value); // Higher minimum value of 20
+      
+      // Show visual feedback with animation on collection
+      controls.start({
+        scale: [1, 1.2, 1],
+        transition: { duration: 0.3 }
+      });
+      
+      // Update score with the new value
+      const newScore = score + mineralValue;
+      setScore(newScore);
+  
+      console.log('Score updated:', {
+        previousScore: score,
+        addedValue: mineralValue,
+        newScore: newScore,
+        estimatedCPXTB: calculateCPXTB(newScore),
+        timestamp: new Date().toISOString()
+      });
+  
+      // Remove the collected mineral
+      setMinerals(prev => prev.filter(m => m.id !== mineral.id));
+  
+      // Spawn new mineral with guaranteed value, using mobile-friendly settings if on mobile
+      const newMineral: Mineral = {
+        id: Date.now() + Math.random(), // More unique ID
+        // Keep minerals appropriately placed and sized for device
+        x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
+        y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
+        // Higher value minerals on mobile
+        value: Math.floor(Math.random() * 50) + (isMobile ? 20 : 10)
+      };
+      
+      // Add the new mineral
+      setMinerals(prev => [...prev, newMineral]);
+  
+      // Show immediate feedback with toast - smaller and more compact for mobile
+      toast({
+        title: `+${mineralValue} points!`,
+        description: `Current CPXTB: ${calculateCPXTB(newScore)}`,
+        duration: 1500, // shorter duration
+      });
+    } catch (error) {
+      console.error('Error collecting mineral:', error);
+      toast({
+        title: "Error collecting mineral",
+        description: "There was a problem collecting this mineral. Try another one.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle game end with better error handling
@@ -314,21 +358,21 @@ export default function SpaceMiningGame() {
 
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className={`flex items-center ${isMobile ? 'flex-col' : 'justify-between'}`}>
               <div className="flex items-center gap-2">
                 <Rocket className="h-6 w-6 text-primary" />
                 Game Status
               </div>
-              <div className="flex items-center gap-4">
-                <div className="text-xl">
-                  Score: {score} points
+              <div className={`flex items-center ${isMobile ? 'flex-wrap justify-center mt-2' : ''} gap-4`}>
+                <div className="text-xl flex items-center">
+                  <span className="font-semibold mr-1">Score:</span> {score}
                 </div>
-                <div className="text-xl flex items-center gap-2">
+                <div className="text-xl flex items-center gap-1">
                   <Coins className="h-5 w-5 text-yellow-500" />
-                  {calculateCPXTB(score)} CPXTB
+                  <span className="font-semibold">{calculateCPXTB(score)}</span>
                 </div>
-                <div className="text-xl">
-                  Time: {timeLeft}s
+                <div className="text-xl flex items-center">
+                  <span className="font-semibold mr-1">Time:</span> {timeLeft}s
                 </div>
               </div>
             </CardTitle>
@@ -362,22 +406,33 @@ export default function SpaceMiningGame() {
                 className="relative w-full h-[400px] bg-black rounded-lg overflow-hidden"
                 style={{ background: 'linear-gradient(to bottom, #0f172a, #1e293b)' }}
               >
-                {/* Game area */}
+                {/* Game area with improved click targets */}
                 {minerals.map(mineral => (
                   <motion.div
                     key={mineral.id}
-                    className="absolute cursor-pointer"
+                    className="absolute cursor-pointer z-10"
                     style={{
                       left: `${mineral.x}%`,
                       top: `${mineral.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                      padding: '10px', // Larger hit area
                     }}
-                    whileHover={{ scale: 1.2 }}
+                    whileHover={{ scale: 1.3 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => collectMineral(mineral)}
                   >
-                    <Star
-                      className="h-6 w-6 text-yellow-400 animate-pulse"
-                      style={{ filter: 'drop-shadow(0 0 8px rgba(250, 204, 21, 0.5))' }}
-                    />
+                    <div className="relative">
+                      <Star
+                        className="h-10 w-10 text-yellow-400 animate-pulse"
+                        style={{ 
+                          filter: 'drop-shadow(0 0 12px rgba(250, 204, 21, 0.7))',
+                        }}
+                      />
+                      <div 
+                        className="absolute inset-0 rounded-full bg-transparent"
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </div>
                   </motion.div>
                 ))}
               </div>

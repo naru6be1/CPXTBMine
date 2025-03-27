@@ -717,7 +717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(users.username, walletAddress.toLowerCase()));
 
       if (!user) {
-        // Create new user with initial CPXTB
+        // Create new user with initial CPXTB (earnedAmount is already in CPXTB units)
         const [newUser] = await db
           .insert(users)
           .values({
@@ -771,7 +771,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Calculate new total with proper rounding to avoid floating point issues
+      // Add the earned CPXTB directly to the accumulated amount (no need to convert again)
+      // The earnedAmount is already in CPXTB (calculated as score/1000 on the client)
       const newAmount = parseFloat((currentAmount + earnedAmount).toFixed(3));
 
       console.log('CPXTB Update:', {

@@ -109,12 +109,17 @@ export default function SpaceMiningGame() {
   const calculateCPXTB = (points: number): string => {
     // Ensure we're working with positive numbers
     const rawPoints = Math.max(0, points);
-    // Calculate with 3 decimal places precision
-    const cpxtb = (rawPoints / POINTS_PER_CPXTB).toFixed(3);
+    
+    // Calculate with strict 3 decimal places precision
+    const rawCPXTB = rawPoints / POINTS_PER_CPXTB;
+    const cpxtb = rawCPXTB.toFixed(3);
 
-    console.log('CPXTB Calculation:', {
+    // Enhanced debugging to ensure values are calculated correctly
+    console.log('CPXTB Calculation Details:', {
       rawPoints,
-      cpxtb,
+      divisionResult: rawPoints / POINTS_PER_CPXTB,
+      rawCPXTB,
+      formattedCPXTB: cpxtb,
       pointsPerCPXTB: POINTS_PER_CPXTB,
       timestamp: new Date().toISOString()
     });
@@ -151,13 +156,18 @@ export default function SpaceMiningGame() {
     });
     
     for (let i = 0; i < mineralCount; i++) {
+      // Create minerals with high point values (100-250)
+      const mineralValue = Math.floor(Math.random() * 150) + 100;
+      
+      console.log(`Creating mineral ${i+1}/${mineralCount} with value: ${mineralValue}`);
+      
       newMinerals.push({
         id: Date.now() + Math.random(),
         // More spread out minerals for mobile
         x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
         y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-        // Increased value range for faster CPXTB earning (100-250 points per mineral)
-        value: Math.floor(Math.random() * 150) + 100
+        // High value range for faster CPXTB earning (100-250 points per mineral)
+        value: mineralValue
       });
     }
     setMinerals(newMinerals);

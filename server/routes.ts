@@ -666,57 +666,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // Update the save-score endpoint - Handles both connected and demo wallet
-  // Track recent submissions to prevent duplicates
-  const recentSubmissions = new Map();
-  
   app.post("/api/games/save-score", async (req, res) => {
     try {
       const { walletAddress, score, earnedCPXTB } = req.body;
-
-      // Create a unique submission ID based on user address and score
-      const submissionId = `${walletAddress.toLowerCase()}_${score}_${Date.now().toString().slice(0, -3)}`;
-      
-      // Check if this looks like a duplicate submission (within the last 3 seconds)
-      const lastSubmissionTime = recentSubmissions.get(`${walletAddress.toLowerCase()}_${score}`);
-      const now = Date.now();
-      if (lastSubmissionTime && (now - lastSubmissionTime < 3000)) {
-        console.log('DUPLICATE SUBMISSION DETECTED:', {
-          walletAddress,
-          score,
-          earnedCPXTB,
-          previousSubmission: lastSubmissionTime,
-          currentTime: now,
-          timeDiff: now - lastSubmissionTime
-        });
-        
-        res.json({
-          success: true,
-          message: "Duplicate submission ignored",
-          accumulatedCPXTB: "0.000" // Client will refresh stats anyway
-        });
-        return;
-      }
-      
-      // Store this submission timestamp
-      recentSubmissions.set(`${walletAddress.toLowerCase()}_${score}`, now);
-      
-      // Cleanup old entries (keep map small)
-      if (recentSubmissions.size > 100) {
-        const keysToDelete = [];
-        for (const [key, timestamp] of recentSubmissions.entries()) {
-          if (now - timestamp > 10000) { // Older than 10 seconds
-            keysToDelete.push(key);
-          }
-        }
-        keysToDelete.forEach(key => recentSubmissions.delete(key));
-      }
 
       console.log('Processing game score:', {
         walletAddress,
         score,
         earnedCPXTB,
         isDemoWallet: walletAddress === '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77',
-        submissionId,
         timestamp: new Date().toISOString()
       });
 
@@ -815,25 +773,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // NEW FEATURE: Cap CPXTB earnings at 2.0 per game
-      // This is a server-side failsafe in case client-side limitations are bypassed
-      let finalEarnedAmount = earnedAmount; // Create a new variable instead of modifying earnedAmount
-      if (finalEarnedAmount > 2.0) {
-        console.log('CAPPING CPXTB REWARD:', {
-          userId: user.id,
-          username: user.username,
-          originalScore: score,
-          originalEarnedAmount: earnedAmount,
-          cappedAmount: 2.0,
-          currentTime: new Date().toISOString()
-        });
-        
-        // Set a hard cap of 2.0 CPXTB per game using the new variable
-        finalEarnedAmount = 2.0;
-      }
-      
-      // Still log high scores for monitoring purposes
-      if (score > 1000) {
+      // Log high scores (but allow them if they're reasonable)
+      if (earnedAmount > 100) {
         console.log('HIGH SCORE DETECTED - VALIDATING:', {
           userId: user.id,
           username: user.username,
@@ -844,16 +785,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate new total with proper rounding to avoid floating point issues
-      // Use finalEarnedAmount which might be capped at 2.0 CPXTB
-      const newAmount = parseFloat((currentAmount + finalEarnedAmount).toFixed(3));
+      const newAmount = parseFloat((currentAmount + earnedAmount).toFixed(3));
 
       console.log('CPXTB Update:', {
         userId: user.id,
         username: user.username,
         currentAmountRaw: user.accumulatedCPXTB,
         currentAmount,
-        originalEarnedAmount: earnedAmount,
-        cappedEarnedAmount: finalEarnedAmount,
+        earnedAmount,
         newAmount,
         timestamp: new Date().toISOString()
       });
@@ -871,8 +810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: updatedUser.id,
         username: updatedUser.username,
         previousAmount: currentAmount,
-        originalAmount: earnedAmount,
-        cappedAmount: finalEarnedAmount,
+        addedAmount: earnedAmount,
         finalAmount: updatedUser.accumulatedCPXTB,
         rawFinalAmount: updatedUser.accumulatedCPXTB,
         timestamp: new Date().toISOString()

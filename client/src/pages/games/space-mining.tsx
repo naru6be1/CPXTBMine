@@ -17,7 +17,7 @@ interface Mineral {
 }
 
 // Constants
-const POINTS_PER_CPXTB = 1000; // 1000 points = 1 CPXTB
+const POINTS_PER_CPXTB = 10; // Lower to make it easier to accumulate
 
 export default function SpaceMiningGame() {
   const [score, setScore] = useState(0);
@@ -109,17 +109,12 @@ export default function SpaceMiningGame() {
   const calculateCPXTB = (points: number): string => {
     // Ensure we're working with positive numbers
     const rawPoints = Math.max(0, points);
-    
-    // Calculate with strict 3 decimal places precision
-    const rawCPXTB = rawPoints / POINTS_PER_CPXTB;
-    const cpxtb = rawCPXTB.toFixed(3);
+    // Calculate with 3 decimal places precision
+    const cpxtb = (rawPoints / POINTS_PER_CPXTB).toFixed(3);
 
-    // Enhanced debugging to ensure values are calculated correctly
-    console.log('CPXTB Calculation Details:', {
+    console.log('CPXTB Calculation:', {
       rawPoints,
-      divisionResult: rawPoints / POINTS_PER_CPXTB,
-      rawCPXTB,
-      formattedCPXTB: cpxtb,
+      cpxtb,
       pointsPerCPXTB: POINTS_PER_CPXTB,
       timestamp: new Date().toISOString()
     });
@@ -156,18 +151,13 @@ export default function SpaceMiningGame() {
     });
     
     for (let i = 0; i < mineralCount; i++) {
-      // Create minerals with high point values (100-250)
-      const mineralValue = Math.floor(Math.random() * 150) + 100;
-      
-      console.log(`Creating mineral ${i+1}/${mineralCount} with value: ${mineralValue}`);
-      
       newMinerals.push({
         id: Date.now() + Math.random(),
         // More spread out minerals for mobile
         x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
         y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-        // High value range for faster CPXTB earning (100-250 points per mineral)
-        value: mineralValue
+        // Higher value minerals on mobile
+        value: Math.floor(Math.random() * 50) + (isMobile ? 20 : 10)
       });
     }
     setMinerals(newMinerals);
@@ -191,8 +181,8 @@ export default function SpaceMiningGame() {
         return; // Exit early if mineral data is invalid
       }
       
-      // Use the actual mineral value (now 100-250 range)
-      const mineralValue = mineral.value;
+      // Set minimum value to 25 to ensure meaningful score increases
+      const mineralValue = Math.max(25, mineral.value);
       
       // Use a callback form of setState to ensure we're working with the latest state
       setScore(prevScore => {
@@ -227,7 +217,7 @@ export default function SpaceMiningGame() {
             id: Date.now() + Math.random(), // More unique ID
             x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
             y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-            value: Math.floor(Math.random() * 150) + 100 // Same 100-250 point range
+            value: Math.floor(Math.random() * 50) + (isMobile ? 25 : 15) // Higher values
           };
           
           console.log('MINERAL REPLACED', {
@@ -290,8 +280,8 @@ export default function SpaceMiningGame() {
         return;
       }
       
-      // Only use the actual score without forcing a minimum
-      const finalScore = score;
+      // Force a minimum score of 5 to avoid issues with zero scores
+      const finalScore = Math.max(score, 5);
       const earnedCPXTB = calculateCPXTB(finalScore);
       
       // Log the final details
@@ -359,7 +349,7 @@ export default function SpaceMiningGame() {
       toast({
         title: "Score Saved Successfully!",
         description: `You earned ${earnedCPXTB} CPXTB! Keep playing to earn more rewards.`,
-        variant: "default"
+        variant: "success"
       });
     } catch (error) {
       console.error('CRITICAL ERROR SAVING SCORE:', error);
@@ -559,9 +549,9 @@ export default function SpaceMiningGame() {
           <CardContent>
             <ul className="list-disc list-inside space-y-2">
               <li>Click the glowing minerals to collect them</li>
-              <li>Each mineral has a random value between 100-250 points</li>
+              <li>Each mineral has a random value between 10-60 points</li>
               <li>Collect as many minerals as possible in 60 seconds</li>
-              <li>Every 1000 points equals 1 CPXTB reward</li>
+              <li>Every 10 points equals 1 CPXTB reward</li>
               <li>Accumulate 1000 CPXTB to claim your rewards</li>
               <li>The game ends when the timer reaches zero</li>
               <li>Try to get the highest score possible!</li>

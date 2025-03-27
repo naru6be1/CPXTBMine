@@ -196,11 +196,24 @@ export default function SpaceMiningGame() {
 
     try {
       // Calculate earned CPXTB without flooring the score
-      const earnedCPXTB = calculateCPXTB(score);
+      const earnedCPXTB = score > 0 ? calculateCPXTB(score) : "0.000";
+      
+      // Make sure we're only recording scores greater than 0
+      if (score <= 0) {
+        console.log('Game ended with zero score - skipping submission');
+        toast({
+          title: "No points earned",
+          description: "You need to collect minerals to earn CPXTB!",
+        });
+        return;
+      }
+      
       console.log('Game ended - submitting score:', {
         walletAddress: address,
         finalScore: score,
         earnedCPXTB,
+        earnedCPXTBType: typeof earnedCPXTB,
+        earnedCPXTBFloat: parseFloat(earnedCPXTB),
         pointsPerCPXTB: POINTS_PER_CPXTB,
         timestamp: new Date().toISOString()
       });

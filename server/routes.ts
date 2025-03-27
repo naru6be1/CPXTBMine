@@ -684,6 +684,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Skip if score is zero
+      if (score <= 0) {
+        console.log('Zero score submitted - skipping update');
+        res.json({
+          success: true,
+          message: "Zero score - no update needed",
+          accumulatedCPXTB: "0.000"
+        });
+        return;
+      }
+
       // Ensure earnedCPXTB is a valid numeric value
       const earnedAmount = parseFloat(earnedCPXTB);
       if (isNaN(earnedAmount)) {
@@ -692,6 +703,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return;
       }
+
+      // Log the submission to a dedicated table for debugging
+      await db.execute(sql`
+        INSERT INTO game_scores (wallet_address, score, earned_cpxtb)
+        VALUES (${walletAddress.toLowerCase()}, ${score}, ${earnedAmount})
+      `);
 
       // Get user's current CPXTB balance with proper numeric handling
       const [user] = await db
@@ -735,6 +752,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (e) {
         console.error('Error parsing current CPXTB amount:', e);
         currentAmount = 0;
+      }
+
+      // Make sure we're actually adding CPXTB
+      if (earnedAmount <= 0) {
+        console.log('Zero CPXTB earned - skipping update:', {
+          userId: user.id,
+          username: user.username,
+          score,
+          earnedCPXTB
+        });
+        
+        res.json({
+          success: true,
+          message: "Zero CPXTB earned - no update needed",
+          accumulatedCPXTB: user.accumulatedCPXTB
+        });
+        return;
       }
 
       // Calculate new total with proper rounding to avoid floating point issues

@@ -166,18 +166,49 @@ export default function MemoryMatchGame() {
           const capturedScore = score;
           console.log('TIME\'S UP! Captured score BEFORE game end:', capturedScore);
           
-          // Set final score immediately
+          // Immediately set final score and game state variables
           setFinalScore(capturedScore);
-          
-          // Then set game states
           setIsGameActive(false);
           setGameResult('lose');
           
-          // Add a more substantial delay before ending the game to ensure state updates
+          // Force a synchronous game end with the captured score
+          // This avoids relying on state updates which can be delayed
+          const earnedCPXTB = calculateCPXTB(capturedScore);
+          
+          // Log what we're sending to the server
+          console.log('TIME\'S UP! About to send:', {
+            score: capturedScore,
+            earnedCPXTB,
+            gameType: 'memory-match'
+          });
+          
+          // Send the score directly to the server right away
           setTimeout(() => {
-            console.log('TIME\'S UP! Final score state before handleGameEnd:', finalScore);
-            handleGameEnd(false, capturedScore);
-          }, 300);
+            fetch('/api/games/save-score', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                walletAddress: effectiveAddress,
+                score: capturedScore,
+                earnedCPXTB: earnedCPXTB,
+                gameType: 'memory-match'
+              }),
+            })
+            .then(response => response.json())
+            .then(result => {
+              console.log('SCORE SAVE SUCCESS FROM TIMER:', result);
+              refetchGameStats();
+              
+              // Show a toast notification for the player
+              toast({
+                title: "Game Over - Time's Up!",
+                description: `Final Score: ${capturedScore} = ${parseFloat(earnedCPXTB).toFixed(3)} CPXTB`,
+              });
+            })
+            .catch(error => {
+              console.error('ERROR SAVING SCORE FROM TIMER:', error);
+            });
+          }, 500);
           
           return 0;
         }
@@ -368,6 +399,12 @@ export default function MemoryMatchGame() {
       });
     }
   };
+  
+  // Update finalScore whenever score changes
+  useEffect(() => {
+    setFinalScore(score);
+    console.log('Score changed, updating finalScore:', score);
+  }, [score]);
   
   // Clean up timer on unmount
   useEffect(() => {

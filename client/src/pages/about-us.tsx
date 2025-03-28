@@ -100,9 +100,9 @@ export default function AboutUsPage() {
                 Have questions or suggestions? We'd love to hear from you!
               </p>
               <p>
-                Email: support@cpxtb-platform.com<br />
-                Telegram Support: @CPXTBSupport<br />
-                Twitter: @CPXTBPlatform
+                Email: info@coinpredictiontool.com<br />
+                Telegram Support: @CPXTBase<br />
+                Twitter: @cpxtbofficial
               </p>
             </section>
           </CardContent>

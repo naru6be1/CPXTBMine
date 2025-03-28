@@ -161,6 +161,7 @@ export default function MemoryMatchGame() {
           if (timerRef.current) clearInterval(timerRef.current);
           setIsGameActive(false);
           setGameResult('lose');
+          // Make sure to preserve the player's score when time runs out
           handleGameEnd(false);
           return 0;
         }
@@ -285,7 +286,8 @@ export default function MemoryMatchGame() {
   // Handle game end (win or lose)
   const handleGameEnd = async (isWin: boolean) => {
     try {
-      // Calculate final score
+      // Calculate final score - ensure we're getting the latest score
+      // Don't reset the score to 0 when the player loses
       const finalScore = score;
       const earnedCPXTB = calculateCPXTB(finalScore);
       

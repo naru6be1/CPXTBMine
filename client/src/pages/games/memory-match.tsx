@@ -161,16 +161,23 @@ export default function MemoryMatchGame() {
         if (prev <= 1) {
           // Game over - time's up
           if (timerRef.current) clearInterval(timerRef.current);
+          
+          // Capture current score directly from state before setting other states
+          const capturedScore = score;
+          console.log('TIME\'S UP! Captured score BEFORE game end:', capturedScore);
+          
+          // Set final score immediately
+          setFinalScore(capturedScore);
+          
+          // Then set game states
           setIsGameActive(false);
           setGameResult('lose');
           
-          // Use a small timeout to ensure state updates are complete before ending the game
+          // Add a more substantial delay before ending the game to ensure state updates
           setTimeout(() => {
-            // Make sure to pass the current score explicitly to avoid race conditions
-            const finalScore = score;
-            console.log('TIME\'S UP! Final score before game end:', finalScore);
-            handleGameEnd(false, finalScore);
-          }, 100);
+            console.log('TIME\'S UP! Final score state before handleGameEnd:', finalScore);
+            handleGameEnd(false, capturedScore);
+          }, 300);
           
           return 0;
         }
@@ -248,13 +255,16 @@ export default function MemoryMatchGame() {
             const timeBonus = Math.floor(timeLeft * 5 * DIFFICULTY_LEVELS[difficulty].multiplier);
             const totalScore = score + pointsForMatch + timeBonus;
             
-            // Set final score with time bonus
+            // Set both score and finalScore with time bonus
             setScore(totalScore);
+            setFinalScore(totalScore);
             
             // Clear timer and end game
             if (timerRef.current) clearInterval(timerRef.current);
             setIsGameActive(false);
             setGameResult('win');
+            
+            console.log('WIN! Setting final score to:', totalScore);
             
             toast({
               title: "Perfect Match!",

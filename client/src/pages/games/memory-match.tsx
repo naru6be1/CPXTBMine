@@ -161,8 +161,15 @@ export default function MemoryMatchGame() {
           if (timerRef.current) clearInterval(timerRef.current);
           setIsGameActive(false);
           setGameResult('lose');
-          // Make sure to preserve the player's score when time runs out
-          handleGameEnd(false);
+          
+          // Use a small timeout to ensure state updates are complete before ending the game
+          setTimeout(() => {
+            // Make sure to pass the current score explicitly to avoid race conditions
+            const finalScore = score;
+            console.log('TIME\'S UP! Final score before game end:', finalScore);
+            handleGameEnd(false, finalScore);
+          }, 100);
+          
           return 0;
         }
         return prev - 1;
@@ -252,8 +259,8 @@ export default function MemoryMatchGame() {
               description: `Time Bonus: +${timeBonus} points!`,
             });
             
-            // Handle game end with win condition
-            handleGameEnd(true);
+            // Handle game end with win condition, passing the total score
+            handleGameEnd(true, totalScore);
           }
           return newMatchedPairs;
         });
@@ -284,11 +291,10 @@ export default function MemoryMatchGame() {
   }, [flippedCards, cards, difficulty, score, controls, toast, timeLeft]);
   
   // Handle game end (win or lose)
-  const handleGameEnd = async (isWin: boolean) => {
+  const handleGameEnd = async (isWin: boolean, explicitScore?: number) => {
     try {
-      // Calculate final score - ensure we're getting the latest score
-      // Don't reset the score to 0 when the player loses
-      const finalScore = score;
+      // Use explicit score if provided (for timer expiration), otherwise use state
+      const finalScore = explicitScore !== undefined ? explicitScore : score;
       const earnedCPXTB = calculateCPXTB(finalScore);
       
       console.log('GAME END - FINAL DETAILS:', {

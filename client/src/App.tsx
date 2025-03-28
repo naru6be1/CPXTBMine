@@ -14,6 +14,9 @@ import AboutPage from "@/pages/about";
 import ContactPage from "@/pages/contact";
 import SpaceMiningGame from "@/pages/games/space-mining";
 import MemoryMatchGame from "@/pages/games/memory-match";
+import AboutUsPage from "@/pages/about-us";
+import PrivacyPolicyPage from "@/pages/privacy-policy";
+import TermsOfServicePage from "@/pages/terms-of-service";
 import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi'
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -30,9 +33,12 @@ function Router() {
       <Route path="/blog" component={BlogPage} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/about" component={AboutPage} />
+      <Route path="/about-us" component={AboutUsPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/games/space-mining" component={SpaceMiningGame} />
       <Route path="/games/memory-match" component={MemoryMatchGame} />
+      <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+      <Route path="/terms-of-service" component={TermsOfServicePage} />
       <Route component={NotFound} />
     </Switch>
   );

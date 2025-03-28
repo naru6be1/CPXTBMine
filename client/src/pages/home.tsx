@@ -145,6 +145,32 @@ export default function Home() {
           </div>
         )}
       </div>
+      
+      {/* Footer with links */}
+      <footer className="w-full max-w-4xl mx-auto mt-16 mb-8 px-4">
+        <div className="border-t border-border pt-8">
+          <div className="flex flex-col md:flex-row justify-center items-center gap-4 text-sm text-muted-foreground">
+            <Link href="/about-us" className="hover:text-primary transition-colors">
+              About Us
+            </Link>
+            <span className="hidden md:inline">•</span>
+            <Link href="/privacy-policy" className="hover:text-primary transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="hidden md:inline">•</span>
+            <Link href="/terms-of-service" className="hover:text-primary transition-colors">
+              Terms of Service
+            </Link>
+            <span className="hidden md:inline">•</span>
+            <Link href="/contact" className="hover:text-primary transition-colors">
+              Contact Us
+            </Link>
+          </div>
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            © 2025 CPXTB Platform. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

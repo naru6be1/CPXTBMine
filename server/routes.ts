@@ -486,21 +486,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Ensure we have a valid IP address to track
+      if (!clientIp) {
+        console.error('Could not determine client IP address');
+        res.status(500).json({
+          message: "Server error: Could not validate your request"
+        });
+        return;
+      }
+
       // Use a transaction to ensure atomic updates
       await db.transaction(async (tx) => {
         // Check if any user has claimed from this IP in the last 24 hours
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+        // Find any user who has claimed from this IP address in the last 24 hours
         const [recentClaim] = await tx
           .select()
           .from(users)
           .where(
             and(
-              Boolean(clientIp) ? eq(users.lastClaimIp, clientIp) : sql`FALSE`,
+              eq(users.lastClaimIp, clientIp),
               gte(users.ipClaimTime, oneDayAgo)
             )
           )
-          .for('update');  // Lock the rows for update
+          .for('update');  // Lock the rows for update to prevent race conditions
 
         if (recentClaim) {
           const nextAvailableTime = new Date(recentClaim.ipClaimTime!);
@@ -515,7 +525,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lastClaim: recentClaim.ipClaimTime,
             nextAvailable: nextAvailableTime,
             hoursRemaining: hours,
-            minutesRemaining: minutes
+            minutesRemaining: minutes,
+            attemptedByUser: normalizedAddress,
+            claimedByUser: recentClaim.username
           });
 
           throw new Error(`This IP address has already claimed within 24 hours. Please wait ${hours}h ${minutes}m before claiming again.`);

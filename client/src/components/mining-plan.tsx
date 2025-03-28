@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Coins, MessageCircle, Server, Cpu, Gift, Share2 } from "lucide-react";
+import { Coins, MessageCircle, Server, Cpu, Gift, Share2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
@@ -385,11 +385,11 @@ function SocialShareButtons({ amount, type }: { amount: string, type: 'claim' | 
   const encodedMessage = encodeURIComponent(message);
 
   const shareToTwitter = () => {
-    window.open(`https://twitter.com/intent/tweet?text=${encodedMessage}`, '_blank');
+    window.open(`https://twitter.com/intent/tweet?text=${encodedMessage}`, '_blank', 'noopener,noreferrer');
   };
 
   const shareToTelegram = () => {
-    window.open(`https://t.me/share/url?url=https://cpxtbmining.com&text=${encodedMessage}`, '_blank');
+    window.open(`https://t.me/share/url?url=https://cpxtbmining.com&text=${encodedMessage}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -862,7 +862,7 @@ export function MiningPlan() {
     }
   };
 
-  // Handle free CPXTB claim - REMOVED DEVICE BASED COOLDOWN
+  // Handle free CPXTB claim using IP-based restrictions
   const handleClaimFreeCPXTB = async () => {
     if (!address || !isConnected) {
       toast({
@@ -886,8 +886,7 @@ export function MiningPlan() {
         throw new Error(error.message);
       }
 
-      // Store the claim time in localStorage for global device tracking
-      localStorage.setItem('global_lastCPXTBClaimTime', new Date().toISOString());
+      // Using IP-based tracking on the server-side now
 
       await refetchUser();
       await refetchActivePlans();
@@ -1257,7 +1256,10 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
           <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
           <p className="text-sm text-muted-foreground">
             Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
-            Note: Only one claim per IP address is allowed every 24 hours.
+          </p>
+          <p className="text-sm font-medium text-primary mt-2">
+            <AlertCircle className="h-4 w-4 inline-block mr-1" />
+            Only one claim per IP address is allowed every 24 hours.
           </p>
         </div>
         <Button

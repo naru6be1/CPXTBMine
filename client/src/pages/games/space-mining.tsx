@@ -420,37 +420,15 @@ export default function SpaceMiningGame() {
           // CRITICAL FIX: Save the current score in a local variable
           // before it gets reset by setGameStarted(false)
           const finalScore = score;
-          const finalEarnedCPXTB = calculateCPXTB(finalScore);
           
           console.log('GAME ABOUT TO END - CAPTURING FINAL SCORE:', {
             finalScore,
-            finalEarnedCPXTB,
-            directScoreState: score
+            directScoreState: score,
+            timestamp: new Date().toISOString()
           });
           
-          // Save score immediately before handleGameEnd is called
-          if (finalScore > 0) {
-            const gamePayload = {
-              walletAddress: address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77', 
-              score: finalScore,
-              earnedCPXTB: finalEarnedCPXTB,
-              gameType: 'space-mining'
-            };
-            
-            console.log('IMMEDIATE SCORE SAVE:', gamePayload);
-            
-            // Send score to server directly to ensure it's saved
-            fetch('/api/games/save-score', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(gamePayload),
-            })
-            .then(response => response.json())
-            .then(data => console.log('IMMEDIATE SAVE RESULT:', data))
-            .catch(err => console.error('IMMEDIATE SAVE ERROR:', err));
-          }
-          
-          // Continue normal end game processing
+          // Only call handleGameEnd, don't save score directly here
+          // This avoids the duplicate score saving issue
           handleGameEnd();
           return 0;
         }

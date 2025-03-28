@@ -79,14 +79,14 @@ export function TransactionStatus({ hash, isValidating, isConfirmed }: Transacti
               </span>
             </p>
             <motion.a
-              href={`https://etherscan.io/tx/${hash}`}
+              href={`https://explorer.base.org/tx/${hash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-primary hover:underline mt-2 text-sm"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              View on Etherscan
+              View on Base Explorer
               <ExternalLink className="h-4 w-4" />
             </motion.a>
           </motion.div>

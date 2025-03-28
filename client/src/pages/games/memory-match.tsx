@@ -162,34 +162,47 @@ export default function MemoryMatchGame() {
           // Game over - time's up
           if (timerRef.current) clearInterval(timerRef.current);
           
-          // Capture current score directly from state before setting other states
-          const capturedScore = score;
-          console.log('TIME\'S UP! Captured score BEFORE game end:', capturedScore);
+          // CRITICAL BUGFIX: Don't rely on React state for this calculation
+          // Instead, read values directly from the DOM elements to ensure we have the most current values
           
-          // Immediately set final score and game state variables
-          setFinalScore(capturedScore);
+          // Force game to end
+          if (timerRef.current) clearInterval(timerRef.current);
+          
+          // Get current score from the displayed badge to ensure we have the actual value shown to user
+          // This is a hack but ensures we capture what's visible to the user
+          const scoreElement = document.querySelector('.score-badge');
+          const displayedScore = scoreElement ? parseInt(scoreElement.textContent?.replace(' pts', '') || '0', 10) : score;
+          
+          // Log what the user sees vs what the state says
+          console.log('TIME\'S UP! DOM score:', displayedScore, 'State score:', score);
+          
+          // Always use the higher of the two values to give user benefit of the doubt
+          const finalActualScore = Math.max(displayedScore, score);
+          console.log('TIME\'S UP! Using final score:', finalActualScore);
+          
+          // Immediately set these for UI display
+          setFinalScore(finalActualScore);
           setIsGameActive(false);
           setGameResult('lose');
           
-          // Force a synchronous game end with the captured score
-          // This avoids relying on state updates which can be delayed
-          const earnedCPXTB = calculateCPXTB(capturedScore);
+          // Calculate CPXTB with the actual score
+          const earnedCPXTB = calculateCPXTB(finalActualScore);
           
           // Log what we're sending to the server
-          console.log('TIME\'S UP! About to send:', {
-            score: capturedScore,
+          console.log('TIME\'S UP! Sending to server:', {
+            score: finalActualScore,
             earnedCPXTB,
             gameType: 'memory-match'
           });
           
-          // Send the score directly to the server right away
+          // Direct server save with the verified score
           setTimeout(() => {
             fetch('/api/games/save-score', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 walletAddress: effectiveAddress,
-                score: capturedScore,
+                score: finalActualScore,
                 earnedCPXTB: earnedCPXTB,
                 gameType: 'memory-match'
               }),
@@ -202,13 +215,13 @@ export default function MemoryMatchGame() {
               // Show a toast notification for the player
               toast({
                 title: "Game Over - Time's Up!",
-                description: `Final Score: ${capturedScore} = ${parseFloat(earnedCPXTB).toFixed(3)} CPXTB`,
+                description: `Final Score: ${finalActualScore} = ${parseFloat(earnedCPXTB).toFixed(3)} CPXTB`,
               });
             })
             .catch(error => {
               console.error('ERROR SAVING SCORE FROM TIMER:', error);
             });
-          }, 500);
+          }, 300);
           
           return 0;
         }
@@ -476,7 +489,7 @@ export default function MemoryMatchGame() {
                   {matchedPairs}/{DIFFICULTY_LEVELS[difficulty].pairs} Pairs
                 </Badge>
                 
-                <Badge variant="secondary" className="flex items-center gap-1">
+                <Badge variant="secondary" className="flex items-center gap-1 score-badge">
                   <Coins className="h-4 w-4" />
                   {score} pts
                 </Badge>

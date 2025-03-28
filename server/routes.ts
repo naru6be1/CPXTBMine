@@ -3,10 +3,10 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertMiningPlanSchema, miningPlans, users } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { eq, gte, and, sql } from "drizzle-orm";
+import { eq, gte, and, sql, lte } from "drizzle-orm";
 import { db } from "./db";
 import { TREASURY_ADDRESS } from "./constants";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
@@ -323,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             and(
               eq(miningPlans.hasWithdrawn, false),
               eq(miningPlans.isActive, true),
-              gte(new Date(), miningPlans.expiresAt)  // Only return truly expired plans
+              lte(miningPlans.expiresAt, sql`NOW()`)  // Only return truly expired plans
             )
           );
       } else {
@@ -496,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from(users)
           .where(
             and(
-              eq(users.lastClaimIp, clientIp),
+              Boolean(clientIp) ? eq(users.lastClaimIp, clientIp) : sql`FALSE`,
               gte(users.ipClaimTime, oneDayAgo)
             )
           )
@@ -621,7 +621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           and(
             eq(miningPlans.hasWithdrawn, false),
             eq(miningPlans.isActive, true),
-            gte(now, miningPlans.expiresAt)  // Use 'now' consistently
+            lte(miningPlans.expiresAt, sql`NOW()`)  // Only return truly expired plans
           )
         );
 
@@ -1013,6 +1013,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Setup WebSocket connection handling
+  wss.on('connection', (ws) => {
+    console.log('WebSocket client connected');
+    
+    // Send a welcome message
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'connection', message: 'Connected to CPXTB platform' }));
+    }
+    
+    // Handle incoming messages
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log('Received WebSocket message:', data);
+        
+        // Echo back the message as confirmation
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'echo', data }));
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+    });
+  });
 
   // Run the check every 15 seconds
   setInterval(checkAndDistributeMaturedPlans, 15000);

@@ -5,6 +5,7 @@ export const blogPosts = [
     title: "Understanding CPXTB Mining: Tiered Plans & Token Distribution",
     summary: "Explore the fundamentals of CPXTB mining, our three-tier plan structure, and how our platform revolutionizes the mining experience with transparent smart contract rewards.",
     slug: "understanding-cpxtb-mining",
+    image: "/images/blog/mining-tiers.svg",
     content: `
       CPXTB mining represents a groundbreaking approach to cryptocurrency mining that combines efficiency with accessibility. Unlike traditional mining operations that require extensive hardware setups, CPXTB mining operates through a streamlined, web-based platform that enables users to participate in mining activities with minimal technical knowledge.
 
@@ -20,6 +21,7 @@ export const blogPosts = [
     title: "Earn CPXTB Through Gaming: Space Mining & Memory Match",
     summary: "Discover how to earn CPXTB tokens by playing our blockchain-integrated games and maximize your rewards through strategic gameplay.",
     slug: "earning-through-gaming",
+    image: "/images/blog/gaming-rewards.svg",
     content: `
       The CPXTB platform now offers multiple ways to earn tokens beyond traditional mining plans. Our integrated gaming ecosystem allows users to accumulate CPXTB tokens through entertaining gameplay, making crypto rewards accessible to everyone regardless of investment capability.
 
@@ -37,6 +39,7 @@ export const blogPosts = [
     title: "Maximizing Your Mining Rewards: Referrals & Advanced Strategies",
     summary: "Learn advanced techniques to optimize your CPXTB rewards through strategic claiming, referral partnerships, and combined mining-gaming approaches.",
     slug: "maximizing-mining-rewards",
+    image: "/images/blog/mining-strategies.svg",
     content: `
       Successful CPXTB mining isn't just about selecting a plan - it's about implementing smart strategies to maximize your returns. One key approach is understanding the timing of your claims and how they align with network activity to optimize gas fees and reward distribution.
 
@@ -54,6 +57,7 @@ export const blogPosts = [
     title: "The Future of CPXTB: Upcoming Features & Roadmap",
     summary: "Explore our exciting roadmap for the CPXTB platform, including new games, enhanced mining features, and expanded blockchain integration.",
     slug: "cpxtb-future-roadmap",
+    image: "/images/blog/future-roadmap.svg",
     content: `
       The CPXTB platform continues to evolve with an ambitious roadmap focused on expanding user options, enhancing security, and deepening blockchain integration. Our development team is working on several exciting features set to launch in the coming months.
 

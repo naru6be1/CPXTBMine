@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="400" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <rect width="600" height="400" rx="12" fill="url(#paint0_linear)" />
+  
+  <!-- Space Mining Game -->
+  <g transform="translate(150, 160)">
+    <circle cx="0" cy="0" r="70" fill="#5E81AC" opacity="0.8" />
+    
+    <!-- Spaceship -->
+    <g transform="translate(-15, 0)">
+      <path d="M0,0 L30,0 L15,-20 Z" fill="#D8DEE9" />
+      <rect x="5" y="0" width="20" height="30" rx="3" fill="#D8DEE9" />
+      <rect x="12" y="30" width="6" height="10" fill="#BF616A" />
+    </g>
+    
+    <!-- Asteroids -->
+    <circle cx="-40" cy="-25" r="10" fill="#4C566A" />
+    <circle cx="40" cy="-30" r="8" fill="#4C566A" />
+    <circle cx="30" cy="30" r="12" fill="#4C566A" />
+    <circle cx="-30" cy="25" r="7" fill="#4C566A" />
+    
+    <!-- Game Name -->
+    <text x="0" y="60" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">SPACE MINING</text>
+  </g>
+  
+  <!-- Memory Match Game -->
+  <g transform="translate(450, 160)">
+    <circle cx="0" cy="0" r="70" fill="#B48EAD" opacity="0.8" />
+    
+    <!-- Cards -->
+    <rect x="-40" y="-30" width="25" height="35" rx="3" fill="#D8DEE9" />
+    <rect x="-40" y="-30" width="25" height="35" rx="3" stroke="#5E81AC" stroke-width="2" fill="none" />
+    
+    <rect x="-10" y="-30" width="25" height="35" rx="3" fill="#D8DEE9" />
+    <rect x="-10" y="-30" width="25" height="35" rx="3" stroke="#5E81AC" stroke-width="2" fill="none" />
+    <text x="2.5" y="-12.5" font-family="Arial, sans-serif" font-size="14" fill="#5E81AC" text-anchor="middle">?</text>
+    
+    <rect x="-40" y="10" width="25" height="35" rx="3" fill="#D8DEE9" />
+    <rect x="-40" y="10" width="25" height="35" rx="3" stroke="#5E81AC" stroke-width="2" fill="none" />
+    <text x="-27.5" y="27.5" font-family="Arial, sans-serif" font-size="14" fill="#5E81AC" text-anchor="middle">?</text>
+    
+    <rect x="-10" y="10" width="25" height="35" rx="3" fill="#EBCB8B" />
+    <rect x="-10" y="10" width="25" height="35" rx="3" stroke="#5E81AC" stroke-width="2" fill="none" />
+    
+    <rect x="20" y="-30" width="25" height="35" rx="3" fill="#EBCB8B" />
+    <rect x="20" y="-30" width="25" height="35" rx="3" stroke="#5E81AC" stroke-width="2" fill="none" />
+    
+    <rect x="20" y="10" width="25" height="35" rx="3" fill="#D8DEE9" />
+    <rect x="20" y="10" width="25" height="35" rx="3" stroke="#5E81AC" stroke-width="2" fill="none" />
+    <text x="32.5" y="27.5" font-family="Arial, sans-serif" font-size="14" fill="#5E81AC" text-anchor="middle">?</text>
+    
+    <!-- Game Name -->
+    <text x="0" y="60" font-family="Arial, sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">MEMORY MATCH</text>
+  </g>
+  
+  <!-- CPXTB Reward Token -->
+  <g transform="translate(300, 200)">
+    <circle cx="0" cy="0" r="40" fill="#A3BE8C" opacity="0.8" />
+    <text x="0" y="5" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="bold">CPXTB</text>
+    <text x="0" y="25" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">REWARDS</text>
+  </g>
+  
+  <!-- Connecting lines -->
+  <line x1="220" y1="160" x2="260" y2="180" stroke="white" stroke-width="2" stroke-dasharray="4 2" />
+  <line x1="380" y1="160" x2="340" y2="180" stroke="white" stroke-width="2" stroke-dasharray="4 2" />
+  
+  <!-- Title -->
+  <text x="300" y="40" font-family="Arial, sans-serif" font-size="24" fill="white" text-anchor="middle" font-weight="bold">EARN CPXTB THROUGH GAMING</text>
+  
+  <!-- Subtitle -->
+  <text x="300" y="70" font-family="Arial, sans-serif" font-size="16" fill="#D8DEE9" text-anchor="middle">1000 Game Points = 1 CPXTB</text>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="paint0_linear" x1="0" y1="0" x2="600" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2E3440" />
+      <stop offset="1" stop-color="#4C566A" />
+    </linearGradient>
+  </defs>
+</svg>

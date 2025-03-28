@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, numeric, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, numeric, varchar, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -38,6 +38,17 @@ export const gameScores = pgTable("game_scores", {
   earnedCPXTB: numeric("earned_cpxtb", { precision: 10, scale: 3 }).notNull(),
   gameType: varchar("game_type", { length: 30 }).default("space-mining"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const recommendations = pgTable("recommendations", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").notNull(),
+  recommendation_type: text("recommendation_type").notNull(),
+  content: text("content").notNull(),
+  context: jsonb("context"),
+  is_implemented: boolean("is_implemented").default(false),
+  is_read: boolean("is_read").default(false),
+  created_at: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Update user schema
@@ -93,3 +104,20 @@ export type MiningPlan = typeof miningPlans.$inferSelect;
 
 export type InsertGameScore = z.infer<typeof insertGameScoreSchema>;
 export type GameScore = typeof gameScores.$inferSelect;
+
+export const insertRecommendationSchema = createInsertSchema(recommendations)
+  .omit({
+    id: true,
+    created_at: true,
+    is_implemented: true,
+    is_read: true,
+  })
+  .extend({
+    user_id: z.number().int().positive(),
+    recommendation_type: z.string(),
+    content: z.string(),
+    context: z.record(z.any()).optional(),
+  });
+
+export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
+export type Recommendation = typeof recommendations.$inferSelect;

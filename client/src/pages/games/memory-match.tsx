@@ -47,6 +47,7 @@ export default function MemoryMatchGame() {
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
+  const [finalScore, setFinalScore] = useState<number>(0); // Track final score specifically for the game end result
   const [isGameActive, setIsGameActive] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('easy');
@@ -122,6 +123,7 @@ export default function MemoryMatchGame() {
     // Reset game state
     setMatchedPairs(0);
     setScore(0);
+    setFinalScore(0); // Reset final score when starting new game
     setMoveCount(0);
     setTimeLeft(timeLimit);
     setGameResult(null);
@@ -294,14 +296,18 @@ export default function MemoryMatchGame() {
   const handleGameEnd = async (isWin: boolean, explicitScore?: number) => {
     try {
       // Use explicit score if provided (for timer expiration), otherwise use state
-      const finalScore = explicitScore !== undefined ? explicitScore : score;
-      const earnedCPXTB = calculateCPXTB(finalScore);
+      const updatedFinalScore = explicitScore !== undefined ? explicitScore : score;
+      
+      // Set the finalScore state to make sure it's available in the UI
+      setFinalScore(updatedFinalScore);
+      
+      const earnedCPXTB = calculateCPXTB(updatedFinalScore);
       
       console.log('GAME END - FINAL DETAILS:', {
         walletAddress: address,
         effectiveAddress,
         isWin,
-        finalScore,
+        finalScore: updatedFinalScore,
         earnedCPXTB,
         pointsPerCPXTB: POINTS_PER_CPXTB,
         difficulty,
@@ -313,13 +319,13 @@ export default function MemoryMatchGame() {
       // Show saving indicator
       toast({
         title: isWin ? "Game Complete - You Win!" : "Game Over - Time's Up!",
-        description: `Final Score: ${finalScore} = ${parseFloat(earnedCPXTB).toFixed(3)} CPXTB`,
+        description: `Final Score: ${updatedFinalScore} = ${parseFloat(earnedCPXTB).toFixed(3)} CPXTB`,
       });
       
       // Create payload with correct data
       const gamePayload = {
         walletAddress: effectiveAddress,
-        score: finalScore,
+        score: updatedFinalScore,
         earnedCPXTB: earnedCPXTB,
         gameType: 'memory-match'
       };
@@ -510,8 +516,8 @@ export default function MemoryMatchGame() {
             <CardContent className="pt-6">
               <div className="flex flex-col items-center justify-center gap-4">
                 <div className="text-center">
-                  <p className="text-lg">Final Score: <span className="font-bold">{score}</span> points</p>
-                  <p className="text-2xl font-bold text-primary mt-2">{parseFloat(calculateCPXTB(score)).toFixed(3)} CPXTB earned</p>
+                  <p className="text-lg">Final Score: <span className="font-bold">{finalScore}</span> points</p>
+                  <p className="text-2xl font-bold text-primary mt-2">{parseFloat(calculateCPXTB(finalScore)).toFixed(3)} CPXTB earned</p>
                 </div>
                 
                 <div className="flex flex-wrap gap-3 justify-center mt-4">

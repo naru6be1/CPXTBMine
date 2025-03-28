@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, numeric, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -29,6 +29,15 @@ export const miningPlans = pgTable("mining_plans", {
   hasWithdrawn: boolean("has_withdrawn").notNull().default(false),
   referralCode: text("referral_code"),
   referralRewardPaid: boolean("referral_reward_paid").default(false),
+});
+
+export const gameScores = pgTable("game_scores", {
+  id: serial("id").primaryKey(),
+  walletAddress: text("wallet_address").notNull(),
+  score: integer("score").notNull(),
+  earnedCPXTB: numeric("earned_cpxtb", { precision: 10, scale: 3 }).notNull(),
+  gameType: varchar("game_type", { length: 30 }).default("space-mining"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Update user schema
@@ -67,5 +76,20 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+export const insertGameScoreSchema = createInsertSchema(gameScores)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .extend({
+    walletAddress: z.string(),
+    score: z.number().int().positive(),
+    earnedCPXTB: z.number().positive(),
+    gameType: z.enum(['space-mining', 'memory-match']).default('space-mining'),
+  });
+
 export type InsertMiningPlan = z.infer<typeof insertMiningPlanSchema>;
 export type MiningPlan = typeof miningPlans.$inferSelect;
+
+export type InsertGameScore = z.infer<typeof insertGameScoreSchema>;
+export type GameScore = typeof gameScores.$inferSelect;

@@ -320,7 +320,8 @@ export default function SpaceMiningGame() {
       const gamePayload = {
         walletAddress: effectiveAddress, // Using our fallback address if needed
         score: finalScore, // Using the actual score
-        earnedCPXTB: earnedCPXTB // Correctly calculated CPXTB
+        earnedCPXTB: earnedCPXTB, // Correctly calculated CPXTB
+        gameType: 'space-mining' // Specify game type
       };
       
       console.log('SENDING PAYLOAD TO SERVER:', gamePayload);
@@ -432,7 +433,8 @@ export default function SpaceMiningGame() {
             const gamePayload = {
               walletAddress: address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77', 
               score: finalScore,
-              earnedCPXTB: finalEarnedCPXTB
+              earnedCPXTB: finalEarnedCPXTB,
+              gameType: 'space-mining'
             };
             
             console.log('IMMEDIATE SCORE SAVE:', gamePayload);

@@ -19,6 +19,13 @@ function GameRecommendations() {
       isAvailable: true
     },
     {
+      name: "Memory Match",
+      description: "Test your memory by matching crypto pairs and earn CPXTB rewards for each match.",
+      difficulty: "Medium",
+      link: "/games/memory-match",
+      isAvailable: true
+    },
+    {
       name: "Crypto Defense",
       description: "Protect your mining operations from cyber attacks and earn bonus CPXTB.",
       difficulty: "Medium",
@@ -49,7 +56,7 @@ function GameRecommendations() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {games.map((game, index) => (
             game.isAvailable ? (
               <Link key={index} href={game.link}>

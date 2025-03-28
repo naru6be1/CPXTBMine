@@ -668,12 +668,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update the save-score endpoint - Handles both connected and demo wallet
   app.post("/api/games/save-score", async (req, res) => {
     try {
-      const { walletAddress, score, earnedCPXTB } = req.body;
+      const { walletAddress, score, earnedCPXTB, gameType = 'space-mining' } = req.body;
 
       console.log('Processing game score:', {
         walletAddress,
         score,
         earnedCPXTB,
+        gameType,
         isDemoWallet: walletAddress === '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77',
         timestamp: new Date().toISOString()
       });
@@ -705,10 +706,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Validate game type
+      if (gameType !== 'space-mining' && gameType !== 'memory-match') {
+        res.status(400).json({
+          message: "Invalid game type. Supported types: space-mining, memory-match"
+        });
+        return;
+      }
+
       // Log the submission to a dedicated table for debugging
       await db.execute(sql`
-        INSERT INTO game_scores (wallet_address, score, earned_cpxtb)
-        VALUES (${walletAddress.toLowerCase()}, ${score}, ${earnedAmount})
+        INSERT INTO game_scores (wallet_address, score, earned_cpxtb, game_type)
+        VALUES (${walletAddress.toLowerCase()}, ${score}, ${earnedAmount}, ${gameType})
       `);
 
       // Get user's current CPXTB balance with proper numeric handling

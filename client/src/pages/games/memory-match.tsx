@@ -305,7 +305,7 @@ export default function MemoryMatchGame() {
       // Show saving indicator
       toast({
         title: isWin ? "Game Complete - You Win!" : "Game Over - Time's Up!",
-        description: `Final Score: ${finalScore} = ${earnedCPXTB} CPXTB`,
+        description: `Final Score: ${finalScore} = ${parseFloat(earnedCPXTB).toFixed(3)} CPXTB`,
       });
       
       // Create payload with correct data
@@ -431,7 +431,7 @@ export default function MemoryMatchGame() {
             
             <div className="text-sm text-muted-foreground flex items-center justify-between">
               <span>Moves: {moveCount}</span>
-              <span>CPXTB: {calculateCPXTB(score)}</span>
+              <span>CPXTB: {parseFloat(calculateCPXTB(score)).toFixed(3)}</span>
             </div>
           </CardContent>
         </Card>
@@ -503,7 +503,7 @@ export default function MemoryMatchGame() {
               <div className="flex flex-col items-center justify-center gap-4">
                 <div className="text-center">
                   <p className="text-lg">Final Score: <span className="font-bold">{score}</span> points</p>
-                  <p className="text-2xl font-bold text-primary mt-2">{calculateCPXTB(score)} CPXTB earned</p>
+                  <p className="text-2xl font-bold text-primary mt-2">{parseFloat(calculateCPXTB(score)).toFixed(3)} CPXTB earned</p>
                 </div>
                 
                 <div className="flex flex-wrap gap-3 justify-center mt-4">

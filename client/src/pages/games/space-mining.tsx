@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { GameInterstitialAd } from '@/components/ad-placement';
 
 interface Mineral {
   id: number;
@@ -576,6 +577,9 @@ export default function SpaceMiningGame() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Game Interstitial Ad */}
+        <GameInterstitialAd />
 
         <Card>
           <CardHeader>

@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Award, Brain, Clock, Coins, Shuffle } from 'lucide-react';
+import { GameInterstitialAd } from '@/components/ad-placement';
 
 // Constants
 const POINTS_PER_CPXTB = 1000; // 1000 points = 1 CPXTB (same as Space Mining)
@@ -642,6 +643,9 @@ export default function MemoryMatchGame() {
             ))}
           </motion.div>
         )}
+        
+        {/* Game Interstitial Ad */}
+        <GameInterstitialAd />
         
         {/* Game Instructions */}
         <Card>

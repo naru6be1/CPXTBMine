@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gamepad2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { HomePageTopAd, ContentBottomAd } from "@/components/ad-placement";
 
 // Add GameRecommendations component
 function GameRecommendations() {
@@ -116,10 +117,16 @@ export default function Home() {
         </div>
 
         <PriceDisplay />
+        
+        {/* Top Ad Banner */}
+        <HomePageTopAd />
 
         {/* Add GameRecommendations before MiningPlan */}
         <GameRecommendations />
         <MiningPlan />
+        
+        {/* Bottom Content Ad */}
+        <ContentBottomAd />
 
         <div className="max-w-md mx-auto">
           <ConnectWallet />

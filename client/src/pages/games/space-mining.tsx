@@ -183,17 +183,11 @@ export default function SpaceMiningGame() {
     setMinerals(newMinerals);
   };
 
-  // Completely rewritten mineral collection function for guaranteed functionality
+  // Optimized mineral collection function to prevent timer blocking
   const collectMineral = (mineral: Mineral) => {
     try {
-      // Heavy logging to diagnose issues
-      console.log('COLLECT MINERAL START', {
-        mineralId: mineral.id,
-        mineralValue: mineral.value,
-        position: { x: mineral.x, y: mineral.y },
-        timestamp: new Date().toISOString(),
-        currentScore: score
-      });
+      // Reduce logging to improve performance
+      console.log('Collecting mineral:', mineral.id);
       
       // Make sure we have a valid mineral with a value
       if (!mineral || typeof mineral.value !== 'number') {
@@ -204,65 +198,53 @@ export default function SpaceMiningGame() {
       // CRITICAL FIX: Use the actual mineral value with no minimum
       const mineralValue = mineral.value;
       
-      // Use a callback form of setState to ensure we're working with the latest state
-      setScore(prevScore => {
-        const newScore = prevScore + mineralValue;
-        
-        console.log('SCORE UPDATE', {
-          prevScore: prevScore,
-          mineralValue: mineralValue,
-          newScore: newScore,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Show toast with score update
-        toast({
-          title: `+${mineralValue} points!`,
-          description: `Score: ${newScore} (${calculateCPXTB(newScore)} CPXTB)`,
-          duration: 1500,
-        });
-        
-        return newScore;
-      });
-      
-      // Wait briefly before handling mineral replacement (reduces chances of race conditions)
-      setTimeout(() => {
-        // Using the callback form ensures we're working with the latest state
-        setMinerals(prevMinerals => {
-          // First filter out the collected mineral
-          const filteredMinerals = prevMinerals.filter(m => m.id !== mineral.id);
+      // Use requestAnimationFrame for smoother UI updates
+      // This prevents blocking the main thread during UI operations
+      requestAnimationFrame(() => {
+        // Update the score using the callback form to ensure latest state
+        setScore(prevScore => {
+          const newScore = prevScore + mineralValue;
           
-          // Create a new mineral with guaranteed value
-          const newMineral: Mineral = {
-            id: Date.now() + Math.random(), // More unique ID
-            x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-            y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-            value: Math.floor(Math.random() * 50) + (isMobile ? 25 : 15) // Higher values
-          };
-          
-          console.log('MINERAL REPLACED', {
-            removedMineralId: mineral.id,
-            newMineralId: newMineral.id,
-            newMineralValue: newMineral.value,
-            timestamp: new Date().toISOString()
+          // Show toast with score update - keep this minimal
+          toast({
+            title: `+${mineralValue}`,
+            description: `Score: ${newScore}`,
+            duration: 1000,
           });
           
-          // Return updated minerals array with the new mineral added
-          return [...filteredMinerals, newMineral];
+          return newScore;
         });
-      }, 50);
-      
-      // Flash animation for visual feedback
-      controls.start({
-        scale: [1, 1.2, 1],
-        transition: { duration: 0.3 }
+        
+        // Create a new mineral outside the setState callback
+        const newMineral: Mineral = {
+          id: Date.now() + Math.random(), // More unique ID
+          x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
+          y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
+          value: Math.floor(Math.random() * 50) + (isMobile ? 25 : 15) // Higher values
+        };
+        
+        // Use requestAnimationFrame again for the mineral update
+        requestAnimationFrame(() => {
+          // Update minerals state
+          setMinerals(prevMinerals => {
+            // Filter out the collected mineral
+            const filteredMinerals = prevMinerals.filter(m => m.id !== mineral.id);
+            // Add the new mineral
+            return [...filteredMinerals, newMineral];
+          });
+          
+          // Flash animation for visual feedback - use requestAnimationFrame for this too
+          requestAnimationFrame(() => {
+            controls.start({
+              scale: [1, 1.1, 1],
+              transition: { duration: 0.2 }
+            });
+          });
+        });
       });
-      
-      console.log('COLLECT MINERAL COMPLETED SUCCESSFULLY');
-      
     } catch (error) {
       console.error('ERROR IN COLLECT MINERAL:', error);
-      // Show error toast only for real errors, not for normal operation
+      // Show error toast only for real errors
       toast({
         title: "Collection Issue",
         description: "Please try clicking another mineral",
@@ -423,11 +405,8 @@ export default function SpaceMiningGame() {
     claimCPXTBMutation.mutate();
   };
 
-  // Game timer - improved to prevent multiple timers
+  // High-precision game timer using performance.now() and requestAnimationFrame
   useEffect(() => {
-    // Create a ref to store the timer ID so we can access it in the cleanup function
-    const timerRef = { current: null as any };
-    
     // Only start the timer if the game has started
     if (!gameStarted) return;
     
@@ -437,49 +416,73 @@ export default function SpaceMiningGame() {
       timestamp: new Date().toISOString()
     });
     
-    // Set up the timer with a precise 1000ms interval
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        // When time is up, clean up everything
-        if (prev <= 1) {
-          // Clear this interval immediately
-          if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
+    // Initialize high-precision timing variables
+    let timerId: number | null = null;
+    let startTime = performance.now();
+    let lastUpdateTime = startTime;
+    const updateInterval = 1000; // Update UI every 1000ms
+    
+    // This function runs the timer using requestAnimationFrame
+    // which is synchronized with the browser's rendering and won't be blocked by other operations
+    function runTimer(currentTime: number) {
+      // Calculate elapsed time since last update
+      const elapsedSinceLastUpdate = currentTime - lastUpdateTime;
+      
+      // Update the timer approximately once per second
+      if (elapsedSinceLastUpdate >= updateInterval) {
+        // Calculate how many seconds have actually passed (could be >1 if there was lag)
+        const secondsPassed = Math.floor(elapsedSinceLastUpdate / updateInterval);
+        lastUpdateTime = currentTime;
+        
+        // Update timeLeft state based on actual time passed
+        setTimeLeft(prev => {
+          // Get the new time value
+          const newTime = Math.max(0, prev - secondsPassed);
+          
+          // When time is up, end the game
+          if (newTime <= 0) {
+            // End the game
+            setGameStarted(false);
+            
+            // CRITICAL FIX: Save the current score in a local variable
+            // before it gets reset by setGameStarted(false)
+            const finalScore = score;
+            
+            console.log('GAME ABOUT TO END - CAPTURING FINAL SCORE:', {
+              finalScore,
+              directScoreState: score,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Only call handleGameEnd, don't save score directly here
+            // This avoids the duplicate score saving issue
+            handleGameEnd();
+            return 0;
           }
           
-          // End the game
-          setGameStarted(false);
-          
-          // CRITICAL FIX: Save the current score in a local variable
-          // before it gets reset by setGameStarted(false)
-          const finalScore = score;
-          
-          console.log('GAME ABOUT TO END - CAPTURING FINAL SCORE:', {
-            finalScore,
-            directScoreState: score,
-            timestamp: new Date().toISOString()
-          });
-          
-          // Only call handleGameEnd, don't save score directly here
-          // This avoids the duplicate score saving issue
-          handleGameEnd();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+          return newTime;
+        });
+      }
+      
+      // Continue the animation frame loop if the game is still active
+      if (gameStarted) {
+        timerId = requestAnimationFrame(runTimer);
+      }
+    }
     
-    // Cleanup function to clear the interval when component unmounts or dependencies change
+    // Start the timer loop
+    timerId = requestAnimationFrame(runTimer);
+    
+    // Cleanup function to cancel animation frame when component unmounts or dependencies change
     return () => {
       console.log('CLEANING UP TIMER', {
-        hasTimer: !!timerRef.current,
+        hasTimer: !!timerId,
         timestamp: new Date().toISOString()
       });
       
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
+      if (timerId !== null) {
+        cancelAnimationFrame(timerId);
+        timerId = null;
       }
     };
   }, [gameStarted, score, address, isConnected]);

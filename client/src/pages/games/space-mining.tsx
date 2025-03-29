@@ -126,7 +126,7 @@ export default function SpaceMiningGame() {
     return cpxtb;
   };
 
-  // Initialize game - allow playing without wallet connection using demo wallet
+  // Initialize game - completely separated from UI operations
   const startGame = () => {
     // Prevent multiple game starts - only start if not already running
     if (gameStarted) {
@@ -153,10 +153,61 @@ export default function SpaceMiningGame() {
       timestamp: new Date().toISOString()
     });
 
-    setGameStarted(true);
+    // Create a fixed game end time that won't change regardless of UI operations
+    const gameEndTime = Date.now() + 60000; // 60 seconds from now
+    
+    // Store the end time in a ref to access it from other functions
+    const gameEndTimeRef = { current: gameEndTime };
+    
+    // Reset all game state
     setScore(0);
+    
+    // Set the initial time left (this will be updated by our dedicated timer)
     setTimeLeft(60);
+    
+    // Start the game
+    setGameStarted(true);
+    
+    // Spawn initial minerals
     spawnMinerals();
+    
+    // Create a dedicated timer using setTimeout recursion
+    // This technique ensures the timer keeps running even if the UI is busy
+    function runGameTimer() {
+      // Calculate the remaining time
+      const now = Date.now();
+      const remainingMs = Math.max(0, gameEndTimeRef.current - now);
+      const remainingSec = Math.ceil(remainingMs / 1000);
+      
+      // Update the timeLeft (asynchronously)
+      setTimeLeft(remainingSec);
+      
+      // If time is up, end the game
+      if (remainingSec <= 0) {
+        console.log('GAME TIMER REACHED ZERO');
+        
+        // Set the final score
+        const finalScore = score; // Capture current score
+        
+        // End the game
+        setGameStarted(false);
+        
+        // Handle game end (after UI update)
+        setTimeout(() => {
+          handleGameEnd();
+        }, 100);
+        
+        return; // Stop the timer recursion
+      }
+      
+      // Continue the timer if the game is still running
+      // Using setTimeout instead of setInterval ensures each timer tick starts
+      // only after the previous one finishes, preventing timer drift
+      setTimeout(runGameTimer, 250); // Update 4 times per second for smooth countdown
+    }
+    
+    // Start the timer immediately
+    runGameTimer();
   };
 
   // Spawn minerals randomly with adjustments for mobile devices
@@ -405,87 +456,9 @@ export default function SpaceMiningGame() {
     claimCPXTBMutation.mutate();
   };
 
-  // High-precision game timer using performance.now() and requestAnimationFrame
-  useEffect(() => {
-    // Only start the timer if the game has started
-    if (!gameStarted) return;
-    
-    console.log('TIMER STARTING', {
-      gameStarted,
-      timeLeft,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Initialize high-precision timing variables
-    let timerId: number | null = null;
-    let startTime = performance.now();
-    let lastUpdateTime = startTime;
-    const updateInterval = 1000; // Update UI every 1000ms
-    
-    // This function runs the timer using requestAnimationFrame
-    // which is synchronized with the browser's rendering and won't be blocked by other operations
-    function runTimer(currentTime: number) {
-      // Calculate elapsed time since last update
-      const elapsedSinceLastUpdate = currentTime - lastUpdateTime;
-      
-      // Update the timer approximately once per second
-      if (elapsedSinceLastUpdate >= updateInterval) {
-        // Calculate how many seconds have actually passed (could be >1 if there was lag)
-        const secondsPassed = Math.floor(elapsedSinceLastUpdate / updateInterval);
-        lastUpdateTime = currentTime;
-        
-        // Update timeLeft state based on actual time passed
-        setTimeLeft(prev => {
-          // Get the new time value
-          const newTime = Math.max(0, prev - secondsPassed);
-          
-          // When time is up, end the game
-          if (newTime <= 0) {
-            // End the game
-            setGameStarted(false);
-            
-            // CRITICAL FIX: Save the current score in a local variable
-            // before it gets reset by setGameStarted(false)
-            const finalScore = score;
-            
-            console.log('GAME ABOUT TO END - CAPTURING FINAL SCORE:', {
-              finalScore,
-              directScoreState: score,
-              timestamp: new Date().toISOString()
-            });
-            
-            // Only call handleGameEnd, don't save score directly here
-            // This avoids the duplicate score saving issue
-            handleGameEnd();
-            return 0;
-          }
-          
-          return newTime;
-        });
-      }
-      
-      // Continue the animation frame loop if the game is still active
-      if (gameStarted) {
-        timerId = requestAnimationFrame(runTimer);
-      }
-    }
-    
-    // Start the timer loop
-    timerId = requestAnimationFrame(runTimer);
-    
-    // Cleanup function to cancel animation frame when component unmounts or dependencies change
-    return () => {
-      console.log('CLEANING UP TIMER', {
-        hasTimer: !!timerId,
-        timestamp: new Date().toISOString()
-      });
-      
-      if (timerId !== null) {
-        cancelAnimationFrame(timerId);
-        timerId = null;
-      }
-    };
-  }, [gameStarted, score, address, isConnected]);
+  // The timer is now entirely managed within the startGame function
+  // We've removed the separate useEffect timer to avoid any potential conflicts
+  // This ensures that there is only one authoritative source for the game timing
 
   return (
     <div className="container mx-auto px-4 py-8">

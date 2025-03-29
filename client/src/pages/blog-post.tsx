@@ -85,13 +85,10 @@ export default function BlogPost() {
     day: 'numeric'
   });
   
-  // Generate related posts based on keywords for cross-linking
-  const relatedPosts = post.keywords 
-    ? blogPosts.filter(p => 
-        p.id !== post.id && 
-        p.keywords?.some(k => post.keywords?.includes(k))
-      ).slice(0, 2) 
-    : [];
+  // Generate related posts based on other posts
+  const relatedPosts = blogPosts
+    .filter(p => p.id !== post.id)
+    .slice(0, 2);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -209,14 +206,15 @@ export default function BlogPost() {
               <h3 className="text-xl font-semibold mb-4">Related Articles</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {relatedPosts.map(relatedPost => (
-                  <Link key={relatedPost.id} href={`/blog/${relatedPost.slug}`}>
+                  <div key={relatedPost.id} onClick={() => window.location.href = `/blog/${relatedPost.slug}`}>
                     <Card className="h-full cursor-pointer hover:bg-accent/5 transition-all">
                       <CardContent className="p-4">
                         <h4 className="font-medium mb-2">{relatedPost.title}</h4>
                         <p className="text-sm text-muted-foreground">{relatedPost.summary.substring(0, 100)}...</p>
+                        <div className="mt-2 text-sm text-primary">Read article →</div>
                       </CardContent>
                     </Card>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>

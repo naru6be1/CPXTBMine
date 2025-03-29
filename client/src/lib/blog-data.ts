@@ -78,4 +78,5 @@ export const blogPosts = [
   }
 ] as const;
 
+// Export the blog post type
 export type BlogPost = typeof blogPosts[number];

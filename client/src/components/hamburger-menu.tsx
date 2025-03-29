@@ -72,6 +72,7 @@ export function HamburgerMenu() {
           </Link>
           
           <div className="border-t border-border my-2 pt-2">
+            <h3 className="px-4 py-2 text-sm font-medium text-muted-foreground">Legal & Information</h3>
             <Link href="/about-us">
               <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
                 <Info className="mr-2 h-4 w-4" />

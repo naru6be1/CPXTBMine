@@ -232,15 +232,17 @@ export default function BlogPost() {
               <h3 className="text-xl font-semibold mb-4">Related Educational Resources</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {relatedPosts.map(relatedPost => (
-                  <Link key={relatedPost.id} href={`/blog/${relatedPost.slug}`}>
-                    <Card className="h-full cursor-pointer hover:bg-accent/5 transition-all">
-                      <CardContent className="p-4">
-                        <h4 className="font-medium mb-2">{relatedPost.title}</h4>
-                        <p className="text-sm text-muted-foreground">{relatedPost.summary.substring(0, 100)}...</p>
-                        <div className="mt-2 text-sm text-primary">Read article →</div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                  <div key={relatedPost.id}>
+                    <Link href={`/blog/${relatedPost.slug}`}>
+                      <Card className="h-full cursor-pointer hover:bg-accent/5 transition-all">
+                        <CardContent className="p-4">
+                          <h4 className="font-medium mb-2">{relatedPost.title}</h4>
+                          <p className="text-sm text-muted-foreground">{relatedPost.summary.substring(0, 100)}...</p>
+                          <div className="mt-2 text-sm text-primary">Read article →</div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </div>
                 ))}
               </div>
             </div>

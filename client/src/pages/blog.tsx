@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import { blogPosts } from "@/lib/blog-data";
 import { HomePageTopAd, ContentBottomAd, SidebarAd } from "@/components/ad-placement";
 import { useEffect } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon, BookOpen, ShieldCheck } from "lucide-react";
 
 export default function BlogPage() {
   // Add meta tags for SEO optimization
@@ -39,22 +41,32 @@ export default function BlogPage() {
     { name: "Earn Crypto Playing Games", slug: "earn-crypto-playing-games" },
     { name: "Base Network Mining", slug: "base-network-mining-strategies" },
     { name: "Play-to-Earn Cryptocurrency", slug: "earn-crypto-playing-games" },
-    { name: "Hardware-Free Mining Solutions", slug: "crypto-mining-without-hardware" }
+    { name: "Hardware-Free Mining Solutions", slug: "crypto-mining-without-hardware" },
+    { name: "Blockchain Education", slug: "blockchain-technology-beginners-guide" },
+    { name: "Responsible Crypto Practices", slug: "responsible-crypto-participation" }
   ];
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-2">Crypto Mining Without Hardware: CPXTB Insights</h1>
-      <p className="text-muted-foreground mb-6">
-        Explore how to earn crypto playing games and participate in Base network mining without expensive hardware requirements.
+      <h1 className="text-3xl font-bold mb-2">Educational Resources: Crypto Technology & Base Network</h1>
+      <p className="text-muted-foreground mb-4">
+        Educational content about blockchain technology, with a focus on how to earn crypto playing games and participate in Base network mining without expensive hardware requirements.
       </p>
+      
+      {/* Educational disclaimer */}
+      <Alert className="mb-6 bg-blue-50 border border-blue-200">
+        <InfoIcon className="h-5 w-5 text-blue-500 mr-2" />
+        <AlertDescription className="text-blue-700">
+          This blog provides educational content about cryptocurrency and blockchain technology. All information presented is for learning purposes only and should not be considered financial advice. Always conduct thorough research and consult qualified professionals before making investment decisions.
+        </AlertDescription>
+      </Alert>
       
       {/* Top Ad Banner */}
       <HomePageTopAd />
       
       {/* SEO-optimized topic section */}
       <div className="my-6 p-4 bg-muted/10 rounded-lg">
-        <h2 className="text-xl font-semibold mb-3">Popular Mining & Gaming Topics</h2>
+        <h2 className="text-xl font-semibold mb-3">Educational Topics</h2>
         <div className="flex flex-wrap gap-2">
           {seoKeyTopics.map((topic, index) => (
             <Link key={index} href={`/blog/${topic.slug}`}>
@@ -69,6 +81,21 @@ export default function BlogPage() {
       <div className="flex flex-col lg:flex-row gap-8 mt-8">
         {/* Main Content */}
         <div className="lg:w-3/4">
+          {/* Education intro section */}
+          <div className="mb-8 p-6 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-start mb-4">
+              <BookOpen className="h-6 w-6 text-primary mr-3 mt-1" />
+              <div>
+                <h2 className="text-xl font-semibold mb-2">Blockchain Technology Education</h2>
+                <p className="text-slate-700">
+                  Our educational resources aim to help readers understand the fundamentals of blockchain technology, 
+                  cryptocurrency systems, and responsible participation in the digital asset ecosystem. 
+                  We believe that informed users make better decisions in this rapidly evolving space.
+                </p>
+              </div>
+            </div>
+          </div>
+          
           <div className="grid gap-8">
             {blogPosts.map((post, index) => (
               <div key={post.id}>
@@ -123,17 +150,28 @@ export default function BlogPage() {
             <ContentBottomAd />
           </div>
           
-          {/* SEO-enhanced conclusion section */}
+          {/* Educational disclaimer and resources section */}
           <div className="mt-10 p-6 bg-muted/5 rounded-lg border border-border">
-            <h2 className="text-xl font-semibold mb-3">Why Choose CPXTB for Crypto Mining Without Hardware?</h2>
-            <p className="mb-4">
-              Our platform provides innovative solutions for those looking to earn cryptocurrency without investing in expensive mining hardware. 
-              Through our Base network mining platform and play-to-earn games, anyone can start accumulating CPXTB tokens with minimal barriers to entry.
-            </p>
-            <p>
-              Whether you're interested in our structured mining plans or prefer to earn crypto playing games like Space Mining and Memory Match, 
-              CPXTB offers accessible options for all types of users on the Base blockchain network.
-            </p>
+            <div className="flex items-start mb-4">
+              <ShieldCheck className="h-6 w-6 text-green-600 mr-3 mt-1" />
+              <div>
+                <h2 className="text-xl font-semibold mb-3">Educational Resources on Blockchain Technology</h2>
+                <p className="mb-4">
+                  Our educational content aims to provide clear, accurate information about blockchain technology and cryptocurrency concepts.
+                  We strive to explain complex ideas in accessible language while maintaining factual accuracy.
+                </p>
+                <p className="mb-4">
+                  For those interested in learning about cryptocurrency systems without requiring technical expertise, 
+                  our articles cover a range of topics from fundamental blockchain concepts to specific applications 
+                  on networks like Base.
+                </p>
+                <p>
+                  We encourage readers to explore multiple sources of information and approach all cryptocurrency-related activities 
+                  with appropriate caution. Our educational goal is to help readers understand both the potential opportunities and 
+                  risks associated with blockchain technology.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -141,7 +179,7 @@ export default function BlogPage() {
         <div className="lg:w-1/4 space-y-8">
           <Card className="p-4 bg-muted/10">
             <CardHeader>
-              <CardTitle className="text-lg">Popular Topics</CardTitle>
+              <CardTitle className="text-lg">Educational Resources</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
@@ -155,12 +193,30 @@ export default function BlogPage() {
                   <Link href="/blog/base-network-mining-strategies">Base Network Mining</Link>
                 </li>
                 <li className="text-primary hover:underline cursor-pointer">
-                  <Link href="/blog/future-crypto-gaming-mining">Play-to-Earn Innovations</Link>
+                  <Link href="/blog/blockchain-technology-beginners-guide">Blockchain Technology Guide</Link>
                 </li>
                 <li className="text-primary hover:underline cursor-pointer">
-                  <Link href="/mining">CPXTB Mining Plans</Link>
+                  <Link href="/blog/responsible-crypto-participation">Responsible Crypto Practices</Link>
                 </li>
               </ul>
+            </CardContent>
+          </Card>
+          
+          {/* Risk Disclaimer */}
+          <Card className="p-4 bg-amber-50 border-amber-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg text-amber-800">Educational Notice</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-amber-700 mb-4">
+                The content provided in this blog is for informational and educational purposes only. It does not constitute 
+                financial advice, investment advice, or any other type of advice. Cryptocurrency and blockchain technologies 
+                involve significant risk and volatility.
+              </p>
+              <p className="text-sm text-amber-700">
+                Always conduct your own research and consider consulting with qualified professionals before 
+                making any financial decisions related to cryptocurrency or blockchain technologies.
+              </p>
             </CardContent>
           </Card>
           
@@ -169,11 +225,11 @@ export default function BlogPage() {
           
           <Card className="p-4 bg-muted/10">
             <CardHeader>
-              <CardTitle className="text-lg">Subscribe to Updates</CardTitle>
+              <CardTitle className="text-lg">Stay Updated</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Get the latest insights on crypto mining without hardware and play-to-earn opportunities.
+                Receive educational content about blockchain technology and updates on our platform.
               </p>
               <div className="flex gap-2">
                 <input 

@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Calendar, Tag, Share2 } from "lucide-react";
+import { ChevronLeft, Calendar, Tag, Share2, Info, BookOpen, ShieldCheck } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { blogPosts } from "@/lib/blog-data";
 import { useEffect } from "react";
 import { HomePageTopAd, ContentBottomAd } from "@/components/ad-placement";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function BlogPost() {
   const [, params] = useRoute<{ slug: string }>("/blog/:slug");
@@ -14,7 +15,7 @@ export default function BlogPost() {
   useEffect(() => {
     if (post) {
       // Set page title with targeted keywords
-      document.title = `${post.title} | CPXTB Mining Platform`;
+      document.title = `${post.title} | CPXTB Educational Resources`;
       
       // Set meta description
       const metaDescription = document.querySelector('meta[name="description"]');
@@ -92,11 +93,11 @@ export default function BlogPost() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8 flex justify-between items-center">
+      <div className="mb-4 flex justify-between items-center">
         <Link href="/blog">
           <Button variant="outline">
             <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Blog
+            Back to Educational Resources
           </Button>
         </Link>
         
@@ -105,12 +106,22 @@ export default function BlogPost() {
           <ol className="flex">
             <li><Link href="/">Home</Link></li>
             <li className="mx-2">/</li>
-            <li><Link href="/blog">Blog</Link></li>
+            <li><Link href="/blog">Educational Resources</Link></li>
             <li className="mx-2">/</li>
             <li aria-current="page">{post.title.substring(0, 20)}...</li>
           </ol>
         </nav>
       </div>
+      
+      {/* Educational disclaimer alert */}
+      <Alert className="mb-6 bg-blue-50 border border-blue-200">
+        <Info className="h-5 w-5 text-blue-500 mr-2" />
+        <AlertDescription className="text-blue-700">
+          This article is provided for educational and informational purposes only. The content does not constitute 
+          financial advice, investment advice, trading advice, or any other type of advice. Readers should conduct 
+          their own research and consult with qualified professionals before making any investment decisions.
+        </AlertDescription>
+      </Alert>
       
       {/* Top ad */}
       <HomePageTopAd />
@@ -133,7 +144,7 @@ export default function BlogPost() {
           
           <div className="flex items-center text-sm text-muted-foreground mb-2">
             <Calendar className="mr-2 h-4 w-4" />
-            <span>{postDate}</span>
+            <span>Published: {postDate} • Educational Resource</span>
           </div>
           
           <CardTitle className="text-3xl mb-4">{post.title}</CardTitle>
@@ -186,10 +197,25 @@ export default function BlogPost() {
             })}
           </article>
           
+          {/* Educational footnote */}
+          <div className="mt-8 p-5 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-start">
+              <BookOpen className="h-5 w-5 text-slate-700 mr-3 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="text-lg font-medium text-slate-800 mb-2">Educational Purpose</h3>
+                <p className="text-sm text-slate-700">
+                  This article aims to provide educational information about blockchain technology and cryptocurrency concepts. 
+                  The cryptocurrency market is highly volatile and speculative. Users should be aware that all cryptocurrency 
+                  activities involve risk, and should approach them with appropriate caution and only after doing thorough research.
+                </p>
+              </div>
+            </div>
+          </div>
+          
           {/* Social sharing section */}
           <div className="mt-8 p-4 bg-muted/10 rounded-lg">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Share this article</h3>
+              <h3 className="text-lg font-medium">Share this educational resource</h3>
               <div className="flex space-x-3">
                 <button className="p-2 rounded-full bg-primary/10 hover:bg-primary/20" 
                   aria-label="Share on Twitter"
@@ -203,10 +229,10 @@ export default function BlogPost() {
           {/* Related posts for internal linking */}
           {relatedPosts.length > 0 && (
             <div className="mt-8">
-              <h3 className="text-xl font-semibold mb-4">Related Articles</h3>
+              <h3 className="text-xl font-semibold mb-4">Related Educational Resources</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {relatedPosts.map(relatedPost => (
-                  <div key={relatedPost.id} onClick={() => window.location.href = `/blog/${relatedPost.slug}`}>
+                  <Link key={relatedPost.id} href={`/blog/${relatedPost.slug}`}>
                     <Card className="h-full cursor-pointer hover:bg-accent/5 transition-all">
                       <CardContent className="p-4">
                         <h4 className="font-medium mb-2">{relatedPost.title}</h4>
@@ -214,11 +240,27 @@ export default function BlogPost() {
                         <div className="mt-2 text-sm text-primary">Read article →</div>
                       </CardContent>
                     </Card>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
           )}
+          
+          {/* Risk disclaimer */}
+          <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start">
+              <ShieldCheck className="h-5 w-5 text-amber-700 mr-3 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="text-lg font-medium text-amber-800 mb-2">Important Notice</h3>
+                <p className="text-sm text-amber-700">
+                  Cryptocurrency markets are highly volatile and involve substantial risk. Past performance is not 
+                  indicative of future results. Before engaging with any cryptocurrency platform or making investment 
+                  decisions, readers should conduct thorough research and consider seeking advice from qualified financial professionals. 
+                  This content is educational in nature and should not be considered a recommendation to buy, sell, or hold any assets.
+                </p>
+              </div>
+            </div>
+          </div>
           
           {/* Bottom ad */}
           <div className="mt-8">
@@ -229,12 +271,12 @@ export default function BlogPost() {
             <Link href="/blog">
               <Button variant="outline" size="sm">
                 <ChevronLeft className="mr-2 h-4 w-4" />
-                Back to Blog
+                Back to Educational Resources
               </Button>
             </Link>
             
             <div className="text-sm text-muted-foreground">
-              CPXTB Mining Platform
+              CPXTB Educational Platform
             </div>
           </div>
         </CardContent>

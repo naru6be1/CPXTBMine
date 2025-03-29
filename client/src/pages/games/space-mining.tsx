@@ -128,6 +128,16 @@ export default function SpaceMiningGame() {
 
   // Initialize game - allow playing without wallet connection using demo wallet
   const startGame = () => {
+    // Prevent multiple game starts - only start if not already running
+    if (gameStarted) {
+      toast({
+        title: "Game Already Running",
+        description: "Please wait for current game to finish",
+        duration: 2000,
+      });
+      return;
+    }
+
     // Show wallet connection warning but continue anyway
     if (!address || !isConnected) {
       toast({
@@ -137,6 +147,11 @@ export default function SpaceMiningGame() {
       });
       // Continue with game start despite no wallet
     }
+
+    // Log game start to help with debugging
+    console.log('GAME STARTING', {
+      timestamp: new Date().toISOString()
+    });
 
     setGameStarted(true);
     setScore(0);
@@ -408,14 +423,32 @@ export default function SpaceMiningGame() {
     claimCPXTBMutation.mutate();
   };
 
-  // Game timer
+  // Game timer - improved to prevent multiple timers
   useEffect(() => {
+    // Create a ref to store the timer ID so we can access it in the cleanup function
+    const timerRef = { current: null as any };
+    
+    // Only start the timer if the game has started
     if (!gameStarted) return;
-
-    const timer = setInterval(() => {
+    
+    console.log('TIMER STARTING', {
+      gameStarted,
+      timeLeft,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Set up the timer with a precise 1000ms interval
+    timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
+        // When time is up, clean up everything
         if (prev <= 1) {
-          clearInterval(timer);
+          // Clear this interval immediately
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          
+          // End the game
           setGameStarted(false);
           
           // CRITICAL FIX: Save the current score in a local variable
@@ -436,8 +469,19 @@ export default function SpaceMiningGame() {
         return prev - 1;
       });
     }, 1000);
-
-    return () => clearInterval(timer);
+    
+    // Cleanup function to clear the interval when component unmounts or dependencies change
+    return () => {
+      console.log('CLEANING UP TIMER', {
+        hasTimer: !!timerRef.current,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [gameStarted, score, address, isConnected]);
 
   return (

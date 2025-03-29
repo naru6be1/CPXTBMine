@@ -126,7 +126,7 @@ export default function SpaceMiningGame() {
     return cpxtb;
   };
 
-  // Initialize game - completely separated from UI operations
+  // Complete rewrite with truly isolated timer using requestAnimationFrame
   const startGame = () => {
     // Prevent multiple game starts - only start if not already running
     if (gameStarted) {
@@ -153,61 +153,72 @@ export default function SpaceMiningGame() {
       timestamp: new Date().toISOString()
     });
 
-    // Create a fixed game end time that won't change regardless of UI operations
-    const gameEndTime = Date.now() + 60000; // 60 seconds from now
+    // CRITICAL FIX: Create a true high-precision timer with requestAnimationFrame
+    // This approach uses the browser's animation frame timing which has higher priority
+    // than setTimeout and is less susceptible to main thread blocking
     
-    // Store the end time in a ref to access it from other functions
-    const gameEndTimeRef = { current: gameEndTime };
+    // Record exact start time
+    const gameStartTime = performance.now();
+    // Calculate exact end time (60 seconds in ms)
+    const gameDuration = 60 * 1000; 
+    // Game should end at this exact timestamp
+    const gameEndTime = gameStartTime + gameDuration;
+    
+    // Create a cancellation token to stop the animation frame
+    let timerFrameId: number | null = null;
     
     // Reset all game state
     setScore(0);
-    
-    // Set the initial time left (this will be updated by our dedicated timer)
     setTimeLeft(60);
-    
-    // Start the game
     setGameStarted(true);
     
     // Spawn initial minerals
     spawnMinerals();
     
-    // Create a dedicated timer using setTimeout recursion
-    // This technique ensures the timer keeps running even if the UI is busy
-    function runGameTimer() {
-      // Calculate the remaining time
-      const now = Date.now();
-      const remainingMs = Math.max(0, gameEndTimeRef.current - now);
+    // Define the animation frame callback that will run at ~60fps
+    // This will have higher priority than setTimeout and be more resistant to UI blocking
+    function updateTimer(currentTime: number) {
+      // Calculate time remaining in milliseconds (high precision)
+      const timeElapsed = currentTime - gameStartTime;
+      const remainingMs = Math.max(0, gameDuration - timeElapsed);
       const remainingSec = Math.ceil(remainingMs / 1000);
       
-      // Update the timeLeft (asynchronously)
-      setTimeLeft(remainingSec);
+      // Update time display only when it changes to avoid unnecessary renders
+      if (remainingSec !== timeLeft) {
+        setTimeLeft(remainingSec);
+      }
       
-      // If time is up, end the game
-      if (remainingSec <= 0) {
-        console.log('GAME TIMER REACHED ZERO');
+      // Check if game should end
+      if (remainingMs <= 0) {
+        console.log('GAME TIMER REACHED ZERO', {
+          finalTimeLeft: remainingSec,
+          finalScore: score,
+          endTimestamp: new Date().toISOString()
+        });
         
-        // Set the final score
-        const finalScore = score; // Capture current score
+        // Cancel any future animation frames
+        if (timerFrameId !== null) {
+          cancelAnimationFrame(timerFrameId);
+          timerFrameId = null;
+        }
         
         // End the game
         setGameStarted(false);
         
-        // Handle game end (after UI update)
+        // Handle game end with a slight delay to ensure UI is updated
         setTimeout(() => {
           handleGameEnd();
         }, 100);
         
-        return; // Stop the timer recursion
+        return; // End animation frame recursion
       }
       
-      // Continue the timer if the game is still running
-      // Using setTimeout instead of setInterval ensures each timer tick starts
-      // only after the previous one finishes, preventing timer drift
-      setTimeout(runGameTimer, 250); // Update 4 times per second for smooth countdown
+      // Continue the animation frame loop
+      timerFrameId = requestAnimationFrame(updateTimer);
     }
     
-    // Start the timer immediately
-    runGameTimer();
+    // Start the animation frame loop immediately
+    timerFrameId = requestAnimationFrame(updateTimer);
   };
 
   // Spawn minerals randomly with adjustments for mobile devices
@@ -234,68 +245,62 @@ export default function SpaceMiningGame() {
     setMinerals(newMinerals);
   };
 
-  // Optimized mineral collection function to prevent timer blocking
+  // CRITICAL FIX: Completely revamped mineral collection to eliminate timer issues
   const collectMineral = (mineral: Mineral) => {
     try {
-      // Reduce logging to improve performance
-      console.log('Collecting mineral:', mineral.id);
+      // Skip excessive logging which can cause performance issues
       
-      // Make sure we have a valid mineral with a value
+      // Validate mineral data - must happen synchronously
       if (!mineral || typeof mineral.value !== 'number') {
         console.error('Invalid mineral data:', mineral);
         return; // Exit early if mineral data is invalid
       }
       
-      // CRITICAL FIX: Use the actual mineral value with no minimum
+      // Get the value immediately to avoid any async issues
       const mineralValue = mineral.value;
       
-      // Use requestAnimationFrame for smoother UI updates
-      // This prevents blocking the main thread during UI operations
-      requestAnimationFrame(() => {
-        // Update the score using the callback form to ensure latest state
-        setScore(prevScore => {
-          const newScore = prevScore + mineralValue;
-          
-          // Show toast with score update - keep this minimal
-          toast({
-            title: `+${mineralValue}`,
-            description: `Score: ${newScore}`,
-            duration: 1000,
-          });
-          
-          return newScore;
+      // Calculate the new score immediately (synchronously)
+      const currentScore = score;
+      const newScore = currentScore + mineralValue;
+      
+      // Create new mineral data synchronously before any async operations
+      const newMineral: Mineral = {
+        id: Date.now() + Math.random(),
+        x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
+        y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
+        value: Math.floor(Math.random() * 50) + (isMobile ? 25 : 15)
+      };
+      
+      // Use a single requestAnimationFrame to batch all UI updates
+      // This prevents the UI thread from being repeatedly blocked
+      window.requestAnimationFrame(() => {
+        // Update score using function form to ensure we're using latest state
+        setScore(newScore);
+        
+        // Immediately update minerals in the same animation frame
+        setMinerals(prevMinerals => {
+          // Only keep minerals that don't match the collected one
+          const remainingMinerals = prevMinerals.filter(m => m.id !== mineral.id);
+          // Add new mineral to the array
+          return [...remainingMinerals, newMineral];
         });
         
-        // Create a new mineral outside the setState callback
-        const newMineral: Mineral = {
-          id: Date.now() + Math.random(), // More unique ID
-          x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-          y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-          value: Math.floor(Math.random() * 50) + (isMobile ? 25 : 15) // Higher values
-        };
+        // Show minimal toast notification - limit to just +points
+        // This reduces the impact on performance
+        toast({
+          title: `+${mineralValue}`,
+          description: `Score: ${newScore}`,
+          duration: 800, // Shorter duration for better performance
+        });
         
-        // Use requestAnimationFrame again for the mineral update
-        requestAnimationFrame(() => {
-          // Update minerals state
-          setMinerals(prevMinerals => {
-            // Filter out the collected mineral
-            const filteredMinerals = prevMinerals.filter(m => m.id !== mineral.id);
-            // Add the new mineral
-            return [...filteredMinerals, newMineral];
-          });
-          
-          // Flash animation for visual feedback - use requestAnimationFrame for this too
-          requestAnimationFrame(() => {
-            controls.start({
-              scale: [1, 1.1, 1],
-              transition: { duration: 0.2 }
-            });
-          });
+        // Update animation in the same frame
+        controls.start({
+          scale: [1, 1.05, 1],
+          transition: { duration: 0.1 } // Shorter animation
         });
       });
     } catch (error) {
       console.error('ERROR IN COLLECT MINERAL:', error);
-      // Show error toast only for real errors
       toast({
         title: "Collection Issue",
         description: "Please try clicking another mineral",
@@ -558,10 +563,15 @@ export default function SpaceMiningGame() {
                       whileHover={{ scale: 1.3 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={(e) => {
+                        // Prevent any default browser behaviors
                         e.preventDefault();
+                        // Stop event bubbling to prevent parent elements from handling this event
                         e.stopPropagation();
-                        console.log(`Button click on mineral ${mineral.id} at (${mineral.x}, ${mineral.y})`);
-                        collectMineral(mineral);
+                        // Minimize logging during gameplay to improve performance
+                        // Avoid blocking the main thread with complex operations
+                        if (gameStarted) {
+                          collectMineral(mineral);
+                        }
                       }}
                     >
                       <div className="relative w-full h-full flex items-center justify-center">

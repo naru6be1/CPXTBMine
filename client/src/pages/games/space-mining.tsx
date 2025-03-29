@@ -312,16 +312,27 @@ export default function SpaceMiningGame() {
       timestamp: new Date().toISOString()
     });
     
+    // CRITICAL FIX: Don't save scores of 0
+    if (score <= 0) {
+      console.log('Not saving zero score');
+      toast({
+        title: "Game Over",
+        description: "No points were earned in this game",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // CRITICAL FIX: Use default address for non-connected wallets - hardcoded for demo
     const effectiveAddress = address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77';
     
     if (!address || !isConnected) {
       toast({
         title: "Wallet Not Connected",
-        description: "Using test wallet to save game rewards. Please connect for full features.",
-        variant: "destructive"
+        description: "Using test wallet to save game rewards. Connect your real wallet for full features.",
+        variant: "default"
       });
-      // Continue execution instead of returning
+      // Continue execution
     }
 
     try {
@@ -336,10 +347,20 @@ export default function SpaceMiningGame() {
         return;
       }
       
-      // CRITICAL FIX: Use the ACTUAL score value with NO minimum
-      // This was causing the issue with large scores being reduced to tiny values
-      const finalScore = score; // Using actual score with no minimum!
+      // Make sure score is positive
+      const finalScore = Math.max(1, score); // Ensure at least 1 point
       const earnedCPXTB = calculateCPXTB(finalScore);
+      
+      // Double check that we have CPXTB to award
+      if (parseFloat(earnedCPXTB) <= 0) {
+        console.log('Not enough points to earn CPXTB:', {finalScore, earnedCPXTB});
+        toast({
+          title: "No CPXTB Earned",
+          description: `Score of ${finalScore} is too low to earn CPXTB. Need at least ${POINTS_PER_CPXTB} points.`,
+          variant: "destructive"
+        });
+        return;
+      }
       
       console.log('GAME END - FINAL DETAILS:', {
         walletAddress: address,
@@ -351,15 +372,7 @@ export default function SpaceMiningGame() {
         timestamp: new Date().toISOString()
       });
       
-      // CRITICAL DEBUG for score persistence issue
-      console.log('CRITICAL SCORE CHECK BEFORE SAVE:', {
-        finalScoreVariable: finalScore,
-        directScoreState: score,
-        calculatedCPXTB: earnedCPXTB,
-        date: new Date().toISOString()
-      });
-      
-      // Show saving indicator
+      // Show saving indicator with GUARANTEED non-zero CPXTB amount
       toast({
         title: "Saving Score...",
         description: `Final Score: ${finalScore} = ${earnedCPXTB} CPXTB`,
@@ -368,7 +381,7 @@ export default function SpaceMiningGame() {
       // Create payload with correct data - using effectiveAddress for non-connected wallets
       const gamePayload = {
         walletAddress: effectiveAddress, // Using our fallback address if needed
-        score: finalScore, // Using the actual score
+        score: finalScore, // Using the guaranteed positive score
         earnedCPXTB: earnedCPXTB, // Correctly calculated CPXTB
         gameType: 'space-mining' // Specify game type
       };

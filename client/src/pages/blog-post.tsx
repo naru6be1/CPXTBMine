@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Calendar, Tag, Share2, Info, BookOpen, ShieldCheck } from "lucide-react";
 import { Link, useRoute } from "wouter";
-import { blogPosts } from "@/lib/blog-data";
+import { blogPosts, getRelatedPosts } from "@/lib/blog-data";
 import { useEffect } from "react";
 import { HomePageTopAd, ContentBottomAd } from "@/components/ad-placement";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -86,10 +86,8 @@ export default function BlogPost() {
     day: 'numeric'
   });
   
-  // Generate related posts based on other posts
-  const relatedPosts = blogPosts
-    .filter(p => p.id !== post.id)
-    .slice(0, 2);
+  // Get related posts based on shared keywords
+  const relatedPosts = getRelatedPosts(post.id, 3);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -232,10 +230,7 @@ export default function BlogPost() {
               <h3 className="text-xl font-semibold mb-4">Related Educational Resources</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {relatedPosts.map(relatedPost => (
-                  <a key={relatedPost.id} href={`/blog/${relatedPost.slug}`} onClick={(e) => {
-                    e.preventDefault();
-                    window.location.href = `/blog/${relatedPost.slug}`;
-                  }}>
+                  <a key={relatedPost.id} href={`/blog/${relatedPost.slug}`}>
                     <Card className="h-full cursor-pointer hover:bg-accent/5 transition-all">
                       <CardContent className="p-4">
                         <h4 className="font-medium mb-2">{relatedPost.title}</h4>

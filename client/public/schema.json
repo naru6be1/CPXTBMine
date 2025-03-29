@@ -1,42 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>CPXTBMining - CPXTB Mining and Investment Platform</title>
-    
-    <!-- Primary Meta Tags -->
-    <meta name="description" content="CPXTB Mining platform offers crypto mining without hardware requirements. Earn CPXTB tokens through mining plans, games, and referrals on the Base network." />
-    <meta name="keywords" content="crypto mining without hardware, earn crypto playing games, Base network mining, CPXTB, play-to-earn crypto, blockchain education" />
-    
-    <!-- Canonical URL -->
-    <meta name="canonical" content="https://cpxtbmining.com/" />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://cpxtbmining.com/" />
-    <meta property="og:title" content="CPXTB Mining - Crypto Mining Without Hardware" />
-    <meta property="og:description" content="CPXTB Mining platform offers crypto mining without hardware requirements. Earn CPXTB tokens through mining plans, games, and referrals on the Base network." />
-    <meta property="og:image" content="https://cpxtbmining.com/images/blog/mining-strategies.svg" />
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://cpxtbmining.com/" />
-    <meta property="twitter:title" content="CPXTB Mining - Crypto Mining Without Hardware" />
-    <meta property="twitter:description" content="CPXTB Mining platform offers crypto mining without hardware requirements. Earn CPXTB tokens through mining plans, games, and referrals on the Base network." />
-    <meta property="twitter:image" content="https://cpxtbmining.com/images/blog/mining-strategies.svg" />
-    
-    <!-- Indexing Control -->
-    <meta name="robots" content="index, follow" />
-    
-    <!-- Verification for Google Search Console -->
-    <meta name="google-site-verification" content="3fdd82c4e83e1cd8" />
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
-    
-    <!-- SEO-related Structured Data -->
-    <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
@@ -97,6 +58,48 @@
       }]
     },
     {
+      "@type": "BlogPosting",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://cpxtbmining.com/blog/blockchain-technology-beginners-guide"
+      },
+      "headline": "Blockchain Technology: A Beginner's Guide",
+      "description": "Learn the fundamentals of blockchain technology, how it works, and why it's important for the future of finance and digital ownership.",
+      "image": "https://cpxtbmining.com/images/blog/blockchain-beginners-guide.jpg",
+      "author": {
+        "@type": "Organization",
+        "name": "CPXTB Team",
+        "@id": "https://cpxtbmining.com/#organization"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://cpxtbmining.com/#organization"
+      },
+      "datePublished": "2025-03-25",
+      "dateModified": "2025-03-28"
+    },
+    {
+      "@type": "BlogPosting",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://cpxtbmining.com/blog/responsible-crypto-participation"
+      },
+      "headline": "Responsible Crypto Participation: Best Practices",
+      "description": "Discover the best practices for responsible participation in cryptocurrency projects and investments to ensure a sustainable ecosystem.",
+      "image": "https://cpxtbmining.com/images/blog/responsible-crypto.jpg",
+      "author": {
+        "@type": "Organization",
+        "name": "CPXTB Team",
+        "@id": "https://cpxtbmining.com/#organization"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://cpxtbmining.com/#organization"
+      },
+      "datePublished": "2025-03-24",
+      "dateModified": "2025-03-28"
+    },
+    {
       "@type": "FAQPage",
       "mainEntity": [
         {
@@ -135,10 +138,3 @@
     }
   ]
 }
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>

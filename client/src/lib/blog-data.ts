@@ -1,5 +1,16 @@
+// Define blog post type
+interface BlogPostData {
+  id: number;
+  title: string;
+  summary: string;
+  slug: string;
+  keywords: string[];
+  image: string;
+  content: string;
+}
+
 // Blog post data with keyword-optimized content
-export const blogPosts = [
+export const blogPosts: BlogPostData[] = [
   {
     id: 1,
     title: "Crypto Mining Without Hardware: CPXTB's Revolutionary Approach",
@@ -122,7 +133,37 @@ export const blogPosts = [
       This educational content aims to promote responsible participation in the cryptocurrency ecosystem. By adopting these best practices, you'll not only protect yourself but also contribute to the long-term sustainability and legitimacy of the broader blockchain community. Remember that educated users make the strongest community members.
     `
   }
-] as const;
+];
+
+// Get related posts for a given post ID (exclude the current post)
+export function getRelatedPosts(currentPostId: number, count: number = 3) {
+  // Get posts with similar keywords (exclude current post)
+  const currentPost = blogPosts.find(post => post.id === currentPostId);
+  
+  if (!currentPost) {
+    return blogPosts.slice(0, count); // Return some default posts if current post not found
+  }
+
+  // Find posts that share keywords with the current post
+  const postsWithSimilarKeywords = blogPosts
+    .filter(post => post.id !== currentPostId)
+    .map(post => {
+      // Count how many keywords match
+      const sharedKeywords = post.keywords.filter(keyword => 
+        currentPost.keywords.includes(keyword)
+      ).length;
+      
+      return {
+        post,
+        relevanceScore: sharedKeywords
+      };
+    })
+    .sort((a, b) => b.relevanceScore - a.relevanceScore) // Sort by most relevant first
+    .map(item => item.post)
+    .slice(0, count);
+
+  return postsWithSimilarKeywords;
+}
 
 // Export the blog post type
 export type BlogPost = typeof blogPosts[number];

@@ -139,9 +139,33 @@ export default function PrivacyPolicyPage() {
               <p>
                 If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:
               </p>
-              <p>
-                Email: privacy@cpxtb-platform.com<br />
-                Address: CPXTB Platform, 123 Blockchain Street, Suite 456, Crypto City, CC 78901
+              <p className="space-y-2">
+                <a 
+                  href="mailto:info@coinpredictiontool.com" 
+                  className="flex items-center hover:text-primary transition-colors"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <span className="mr-2">📧</span>Email: info@coinpredictiontool.com
+                </a>
+                <br />
+                <a 
+                  href="https://t.me/CPXTBase" 
+                  className="flex items-center hover:text-primary transition-colors"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <span className="mr-2">💬</span>Telegram Support: @CPXTBase
+                </a>
+                <br />
+                <a 
+                  href="https://twitter.com/cpxtbofficial" 
+                  className="flex items-center hover:text-primary transition-colors"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <span className="mr-2">🐦</span>Twitter: @cpxtbofficial
+                </a>
               </p>
             </section>
           </CardContent>

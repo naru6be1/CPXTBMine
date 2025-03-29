@@ -18,11 +18,11 @@ export function HamburgerMenu() {
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[300px]">
+      <SheetContent side="left" className="w-[300px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>CPXTB Mining</SheetTitle>
         </SheetHeader>
-        <div className="flex flex-col gap-4 mt-8">
+        <div className="flex flex-col gap-4 mt-8 pb-8">
           <Link href="/">
             <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
               Home

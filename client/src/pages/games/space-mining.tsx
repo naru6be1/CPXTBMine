@@ -18,7 +18,7 @@ interface Mineral {
 }
 
 // Constants
-const POINTS_PER_CPXTB = 1000; // Changed from 10 to 1000 - 1000 points = 1 CPXTB
+const POINTS_PER_CPXTB = 100; // SIGNIFICANTLY REDUCED - now only 100 points = 1 CPXTB to make it easier to earn rewards
 const DEBUG_MODE = false; // Set to false for production
 
 export default function SpaceMiningGame() {
@@ -238,8 +238,8 @@ export default function SpaceMiningGame() {
         // More spread out minerals for mobile
         x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
         y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-        // Higher value minerals on mobile
-        value: Math.floor(Math.random() * 50) + (isMobile ? 20 : 10)
+        // MUCH higher value minerals to make it easier to earn CPXTB
+        value: Math.floor(Math.random() * 70) + (isMobile ? 50 : 30)
       });
     }
     setMinerals(newMinerals);
@@ -268,7 +268,8 @@ export default function SpaceMiningGame() {
         id: Date.now() + Math.random(),
         x: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
         y: Math.random() * (isMobile ? 70 : 80) + (isMobile ? 15 : 10),
-        value: Math.floor(Math.random() * 50) + (isMobile ? 25 : 15)
+        // MUCH higher value replacement minerals to make it easier to earn CPXTB
+        value: Math.floor(Math.random() * 70) + (isMobile ? 50 : 30)
       };
       
       // Use a single requestAnimationFrame to batch all UI updates
@@ -631,9 +632,9 @@ export default function SpaceMiningGame() {
           <CardContent>
             <ul className="list-disc list-inside space-y-2">
               <li>Click the glowing minerals to collect them</li>
-              <li>Each mineral has a random value between 10-60 points</li>
+              <li>Each mineral has a random value between 30-100 points</li>
               <li>Collect as many minerals as possible in 60 seconds</li>
-              <li>Every 1000 points equals 1 CPXTB reward</li>
+              <li>Every 100 points equals 1 CPXTB reward (10x easier than before!)</li>
               <li>Accumulate 1000 CPXTB to claim your rewards</li>
               <li>The game ends when the timer reaches zero</li>
               <li>Try to get the highest score possible!</li>

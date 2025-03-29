@@ -318,13 +318,12 @@ export default function SpaceMiningGame() {
       timestamp: new Date().toISOString()
     });
     
-    // CRITICAL FIX: Always guarantee a minimum score of 100 points
-    // This ensures users always get at least 1 CPXTB even if the score calculation fails
-    let finalGameScore = Math.max(100, score);
+    // CRITICAL FIX: We will apply a minimum score of 100 points
+    // This ensures users always get at least 1 CPXTB even if their score is low
     
-    console.log('Using guaranteed minimum score:', {
+    console.log('Will apply guaranteed minimum score:', {
       originalScore: score,
-      guaranteedScore: finalGameScore,
+      guaranteedMinimum: 100,
       timestamp: new Date().toISOString()
     });
     
@@ -341,12 +340,13 @@ export default function SpaceMiningGame() {
     }
 
     try {
-      // EMERGENCY FIX: Always use our guaranteed score - ignore validation errors
-      // The finalGameScore is already set to at least 100 points (enough for 1 CPXTB)
-      console.log('USING GUARANTEED MINIMUM SCORE FOR CPXTB CALCULATION');
+      // EMERGENCY FIX: Always apply a minimum score of 100 points
+      // This ensures players always get at least 1 CPXTB regardless of their actual score
+      console.log('APPLYING GUARANTEED MINIMUM SCORE FOR CPXTB CALCULATION');
       
-      // Use our guaranteed score that is at least 100 points
-      const finalScore = finalGameScore;
+      // CRITICAL BUGFIX: Always use guaranteed minimum score of 100 points
+      // This ensures even if a player scores less than 100 points, they still get 1 CPXTB
+      const finalScore = Math.max(100, score);
       const earnedCPXTB = calculateCPXTB(finalScore);
       
       // EMERGENCY FIX: No validation or CPXTB check needed since we're guaranteeing a minimum score of 100
@@ -366,7 +366,8 @@ export default function SpaceMiningGame() {
       // Show saving indicator with GUARANTEED non-zero CPXTB amount
       toast({
         title: "Saving Score...",
-        description: `Final Score: ${finalScore} = ${earnedCPXTB} CPXTB`,
+        description: `Final Score: ${finalScore} points = ${earnedCPXTB} CPXTB` + 
+                    (score < 100 ? " (Minimum Guaranteed Score)" : ""),
       });
       
       // Create payload with correct data - using effectiveAddress for non-connected wallets
@@ -421,10 +422,12 @@ export default function SpaceMiningGame() {
       // Refresh game stats
       await refetchGameStats();
 
-      // Show success message with actual earned amount
+      // Show success message with actual earned amount and explanation if minimum score was applied
       toast({
         title: `Score Saved: ${finalScore} points!`,
-        description: `You earned ${earnedCPXTB} CPXTB! Keep playing to earn more rewards.`
+        description: `You earned ${earnedCPXTB} CPXTB!` + 
+                     (score < 100 ? " (Minimum score guarantee applied)" : "") +
+                     " Keep playing to earn more rewards."
       });
     } catch (error) {
       console.error('CRITICAL ERROR SAVING SCORE:', error);
@@ -486,11 +489,12 @@ export default function SpaceMiningGame() {
               </div>
               <div className={`flex items-center ${isMobile ? 'flex-wrap justify-center mt-2' : ''} gap-4`}>
                 <div className="text-xl flex items-center">
-                  <span className="font-semibold mr-1">Score:</span> {score}
+                  <span className="font-semibold mr-1">Score:</span> {score} 
+                  {score < 100 && <span className="text-sm text-muted-foreground ml-1">(Min: 100)</span>}
                 </div>
                 <div className="text-xl flex items-center gap-1">
                   <Coins className="h-5 w-5 text-yellow-500" />
-                  <span className="font-semibold">{calculateCPXTB(score)}</span>
+                  <span className="font-semibold">{calculateCPXTB(Math.max(100, score))}</span>
                 </div>
                 <div className="text-xl flex items-center">
                   <span className="font-semibold mr-1">Time:</span> {timeLeft}s
@@ -506,10 +510,10 @@ export default function SpaceMiningGame() {
                 </h2>
                 {timeLeft === 0 && (
                   <div className="space-y-2 mb-4">
-                    <p className="text-xl">Final Score: {score} points</p>
+                    <p className="text-xl">Final Score: {Math.max(100, score)} points</p>
                     <p className="text-xl flex items-center justify-center gap-2">
                       <Coins className="h-5 w-5 text-yellow-500" />
-                      Earned: {calculateCPXTB(score)} CPXTB
+                      Earned: {calculateCPXTB(Math.max(100, score))} CPXTB
                     </p>
                   </div>
                 )}

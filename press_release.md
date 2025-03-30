@@ -113,7 +113,7 @@ For more information, support, and inquiries, please reach out through our offic
 The following high-resolution images are available for media use:
 
 1. **CPXTBMining Platform Logo** - Our official platform logo in full color and monochrome variants
-   ![CPXTB Logo](/favicon.png)
+   ![CPXTB Logo](cpxtb-logo.png)
 
 2. **Mining Plan Tiers Infographic** - Visual comparison of Bronze, Silver, and Gold mining plans
    [Mining Plans - Bronze, Silver, and Gold tiers with daily rewards]

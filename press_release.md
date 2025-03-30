@@ -15,7 +15,7 @@ Schema.org JSON-LD Structured Data:
   "author": {
     "@type": "Organization",
     "name": "CPXTBMining",
-    "url": "https://cpxtbmining.com"
+    "url": "https://coinpredictiontool.com"
   }
 }
 -->
@@ -105,7 +105,8 @@ For more information, support, and inquiries, please reach out through our offic
 - **Email**: info@coinpredictiontool.com
 - **Telegram**: [@CPXTBase](https://t.me/CPXTBase)
 - **Twitter**: [@cpxtbofficial](https://twitter.com/cpxtbofficial)
-- **Website**: [cpxtbmining.com](https://cpxtbmining.com)
+- **Main Website**: [coinpredictiontool.com](https://coinpredictiontool.com)
+- **Platform Website**: [cpxtbmining.com](https://cpxtbmining.com)
 
 ## Multimedia Assets
 
@@ -139,6 +140,7 @@ The following high-resolution images are available for media use:
 - crypto mining investment
 - CPXTB mining rewards
 - blockchain DApp
+- coinpredictiontool.com
 
 ### Secondary Keywords
 - play-to-earn crypto games
@@ -171,4 +173,5 @@ The following high-resolution images are available for media use:
 ### Media Contact:
 Email: info@coinpredictiontool.com  
 Telegram: [@CPXTBase](https://t.me/CPXTBase)  
-Twitter: [@cpxtbofficial](https://twitter.com/cpxtbofficial)
+Twitter: [@cpxtbofficial](https://twitter.com/cpxtbofficial)  
+Website: [coinpredictiontool.com](https://coinpredictiontool.com)

@@ -32,6 +32,8 @@ export default function SpaceMiningGame() {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const gameAreaRef = useRef<HTMLDivElement>(null);
+  // Critical: Add ref to track score independently of React's state batching
+  const scoreRef = useRef<number>(0);
 
   // Query for user data and registration
   const { data: userData } = useQuery({
@@ -169,6 +171,8 @@ export default function SpaceMiningGame() {
     
     // Reset all game state
     setScore(0);
+    // Reset score ref to ensure it starts at 0
+    scoreRef.current = 0;
     setTimeLeft(60);
     setGameStarted(true);
     
@@ -190,13 +194,15 @@ export default function SpaceMiningGame() {
       
       // Check if game should end
       if (remainingMs <= 0) {
-        // CRITICAL FIX: Capture the exact score at game end BEFORE any state updates
-        const finalScoreAtEnd = score;
+        // CRITICAL FIX: Capture scores from all possible sources at game end BEFORE any state updates
+        const finalScoreFromState = score;
+        const finalScoreFromRef = scoreRef.current;
         
         console.log('GAME TIMER REACHED ZERO', {
           finalTimeLeft: remainingSec,
-          finalScore: finalScoreAtEnd,
-          scoreFromState: score,
+          finalScoreFromState,
+          finalScoreFromRef,
+          scoreMatch: finalScoreFromState === finalScoreFromRef ? 'MATCH' : 'MISMATCH',
           endTimestamp: new Date().toISOString()
         });
         
@@ -209,9 +215,10 @@ export default function SpaceMiningGame() {
         // End the game
         setGameStarted(false);
         
-        // Handle game end immediately with the captured score
-        // This guarantees we use the score value from the exact moment the game ended
-        handleGameEnd(finalScoreAtEnd);
+        // Handle game end immediately with BOTH scores
+        // We'll let handleGameEnd determine which one to use
+        // When in doubt, use the higher value to favor the player
+        handleGameEnd(Math.max(finalScoreFromState, finalScoreFromRef));
         
         return; // End animation frame recursion
       }
@@ -263,8 +270,20 @@ export default function SpaceMiningGame() {
       const mineralValue = mineral.value;
       
       // Calculate the new score immediately (synchronously)
+      // Use both the React state and our stable ref to ensure we have a reliable score value
       const currentScore = score;
       const newScore = currentScore + mineralValue;
+      
+      // CRITICAL FIX: Update our ref to track the score independently of React state batching
+      scoreRef.current = scoreRef.current + mineralValue;
+      
+      console.log('COLLECT MINERAL - TRACKING:', {
+        mineralValue,
+        scoreStateValue: newScore,
+        scoreRefValue: scoreRef.current,
+        scoreMatch: newScore === scoreRef.current ? 'MATCH' : 'MISMATCH',
+        timestamp: new Date().toISOString()
+      });
       
       // Create new mineral data synchronously before any async operations
       const newMineral: Mineral = {
@@ -315,13 +334,22 @@ export default function SpaceMiningGame() {
 
   // COMPLETE REWRITE: Direct, minimal, non-async score calculation and storage approach
   const handleGameEnd = async (finalScoreAtEnd?: number) => {
-    // CRITICAL FIX: Use the score passed from the timer function or fall back to state
-    // This guarantees we're using the score at the exact moment the game ended
-    const currentScoreSnapshot = finalScoreAtEnd !== undefined ? finalScoreAtEnd : score;
+    // CRITICAL FIX: Always use our ref scoreRef.current as the single source of truth for the score
+    // This avoids any potential state batching or update issues in React
+    // We'll also log all possible score values for debugging
+    const scoreFromRef = scoreRef.current;
+    const scoreFromState = score;
+    const scoreFromParam = finalScoreAtEnd;
+    
+    // Always use the ref score as our primary source of truth
+    // If refs and state don't match, take the higher value to ensure players aren't penalized
+    const currentScoreSnapshot = Math.max(scoreFromRef, scoreFromState, finalScoreAtEnd || 0);
     
     console.log('FINAL SNAPSHOT AT GAME END:', {
-      scoreSnapshot: currentScoreSnapshot,
-      originalStateScore: score,
+      scoreFromRef,
+      scoreFromState,
+      scoreFromParam,
+      finalScoreUsed: currentScoreSnapshot,
       hasWallet: !!address && isConnected,
       timestamp: new Date().toISOString()
     });

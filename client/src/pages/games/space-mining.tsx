@@ -329,11 +329,11 @@ export default function SpaceMiningGame() {
     // Use demo wallet if no real wallet is connected
     const effectiveAddress = address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77';
     
-    // Calculate final score (apply minimum guarantee)
-    const finalScore = Math.max(guaranteedMinimumScore, currentScoreSnapshot);
+    // Use the exact score without minimum guarantee
+    const finalScore = currentScoreSnapshot;
     
-    // Always calculate CPXTB using the guaranteed final score
-    // With 100 points per CPXTB, even a score of 100 guarantees at least 1 CPXTB
+    // Calculate CPXTB using the actual score
+    // With 100 points per CPXTB conversion rate
     const earnedCPXTB = (finalScore / POINTS_PER_CPXTB).toFixed(3);
     
     // Debug log the exact values used for calculations
@@ -480,11 +480,10 @@ export default function SpaceMiningGame() {
               <div className={`flex items-center ${isMobile ? 'flex-wrap justify-center mt-2' : ''} gap-4`}>
                 <div className="text-xl flex items-center">
                   <span className="font-semibold mr-1">Score:</span> {score} 
-                  {score < 100 && <span className="text-sm text-muted-foreground ml-1">(Min: 100)</span>}
                 </div>
                 <div className="text-xl flex items-center gap-1">
                   <Coins className="h-5 w-5 text-yellow-500" />
-                  <span className="font-semibold">{calculateCPXTB(Math.max(100, score))}</span>
+                  <span className="font-semibold">{calculateCPXTB(score)}</span>
                 </div>
                 <div className="text-xl flex items-center">
                   <span className="font-semibold mr-1">Time:</span> {timeLeft}s
@@ -500,10 +499,10 @@ export default function SpaceMiningGame() {
                 </h2>
                 {timeLeft === 0 && (
                   <div className="space-y-2 mb-4">
-                    <p className="text-xl">Final Score: {Math.max(100, score)} points</p>
+                    <p className="text-xl">Final Score: {score} points</p>
                     <p className="text-xl flex items-center justify-center gap-2">
                       <Coins className="h-5 w-5 text-yellow-500" />
-                      Earned: {calculateCPXTB(Math.max(100, score))} CPXTB
+                      Earned: {calculateCPXTB(score)} CPXTB
                     </p>
                   </div>
                 )}

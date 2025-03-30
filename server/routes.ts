@@ -706,8 +706,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Force numeric conversion for all numeric values
       // This prevents any type conversion issues that could be causing the bug
-      const numericScore = Math.max(100, Number(score) || 0); // Minimum 100 points guaranteed
-      const numericCPXTB = Math.max(1, Number(earnedCPXTB) || 0); // Minimum 1 CPXTB guaranteed
+      const numericScore = Number(score) || 0; // Use actual score without minimum
+      const numericCPXTB = Number(earnedCPXTB) || 0; // Use actual CPXTB without minimum
       
       // Validate game type
       if (gameType !== 'space-mining' && gameType !== 'memory-match') {

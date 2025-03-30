@@ -370,15 +370,37 @@ export default function SpaceMiningGame() {
                     (score < 100 ? " (Minimum Guaranteed Score)" : ""),
       });
       
-      // Create payload with correct data - using effectiveAddress for non-connected wallets
+      // BUGFIX: Ensure proper numeric values in payload
+      // Convert finalScore to a numeric value before sending to ensure it's treated as a number
+      // This fixes the issue where the score was potentially being converted to a string
+      const numericFinalScore = parseInt(finalScore.toString(), 10);
+      const numericCPXTB = parseFloat(earnedCPXTB);
+      
+      console.log('SCORE CONVERSION CHECK:', {
+        originalFinalScore: finalScore,
+        numericFinalScore,
+        originalEarnedCPXTB: earnedCPXTB,
+        numericCPXTB,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Create payload with correct data and proper numeric types
       const gamePayload = {
         walletAddress: effectiveAddress, // Using our fallback address if needed
-        score: finalScore, // Using the guaranteed positive score
-        earnedCPXTB: earnedCPXTB, // Correctly calculated CPXTB
+        score: numericFinalScore, // Using the guaranteed positive score as a number
+        earnedCPXTB: numericCPXTB, // Correctly calculated CPXTB as a number
         gameType: 'space-mining' // Specify game type
       };
       
-      console.log('SENDING PAYLOAD TO SERVER:', gamePayload);
+      // Additional debug logging - explicitly log all values
+      console.log('SENDING PAYLOAD TO SERVER:', {
+        payload: gamePayload,
+        originalScore: score,
+        calculatedScore: Math.max(100, score),
+        finalScore,
+        earnedCPXTB,
+        timestamp: new Date().toISOString()
+      });
       
       // Send score to server with multiple retry
       let response;
@@ -422,7 +444,16 @@ export default function SpaceMiningGame() {
       // Refresh game stats
       await refetchGameStats();
 
-      // Show success message with actual earned amount and explanation if minimum score was applied
+      // Show success message with actual earned amount
+      // Debug logs for checking why score was wrong
+      console.log('SCORE SUCCESS TOAST DETAILS:', {
+        originalScore: score,
+        finalScore: finalScore,
+        minScore: Math.max(100, score),
+        earnedCPXTB,
+        response: result
+      });
+      
       toast({
         title: `Score Saved: ${finalScore} points!`,
         description: `You earned ${earnedCPXTB} CPXTB!` + 

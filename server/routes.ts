@@ -698,12 +698,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Skip if score is zero
-      if (score <= 0) {
-        console.log('Zero score submitted - skipping update');
+      // BUGFIX: Ensure the score is treated as a proper number
+      // Convert to number if it's a string
+      const numericScore = typeof score === 'number' ? score : parseFloat(score);
+      
+      console.log('SCORE VALIDATION:', {
+        originalScore: score,
+        numericScore,
+        isScoreZero: numericScore <= 0,
+        originalType: typeof score,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Skip if score is zero or NaN
+      if (isNaN(numericScore) || numericScore <= 0) {
+        console.log('Zero or invalid score submitted - skipping update');
         res.json({
           success: true,
-          message: "Zero score - no update needed",
+          message: "Zero or invalid score - no update needed",
           accumulatedCPXTB: "0.000"
         });
         return;
@@ -726,11 +738,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Log the submission to a dedicated table for debugging
-      await db.execute(sql`
-        INSERT INTO game_scores (wallet_address, score, earned_cpxtb, game_type)
-        VALUES (${walletAddress.toLowerCase()}, ${score}, ${earnedAmount}, ${gameType})
-      `);
+      // BUGFIX: Enhanced logging for game scores database insertion 
+      console.log('GAME SCORES DB INSERT - PRE-INSERT VALUES:', {
+        walletAddress: walletAddress.toLowerCase(),
+        originalScore: score,
+        score: typeof score === 'number' ? score : parseInt(score, 10),
+        earnedAmount,
+        earnedAmountString: earnedAmount.toString(),
+        gameType
+      });
+
+      try {
+        // BUGFIX: Use explicit numeric casting for the score to ensure it's handled properly
+        // This ensures the score is always recorded as an integer regardless of input type
+        await db.execute(sql`
+          INSERT INTO game_scores (wallet_address, score, earned_cpxtb, game_type)
+          VALUES (
+            ${walletAddress.toLowerCase()}, 
+            CAST(${numericScore} AS INTEGER), 
+            ${earnedAmount}, 
+            ${gameType}
+          )
+        `);
+        
+        console.log('GAME SCORES DB INSERT - SUCCESS:', {
+          walletAddress: walletAddress.toLowerCase(),
+          score: numericScore,
+          earnedCPXTB: earnedAmount,
+          gameType: gameType,
+          timestamp: new Date().toISOString()
+        });
+      } catch (dbError) {
+        console.error('GAME SCORES DB INSERT - ERROR:', dbError);
+        // Don't throw here, we still want to update the user's CPXTB even if logging fails
+      }
 
       // Get user's current CPXTB balance with proper numeric handling
       const [user] = await db

@@ -501,48 +501,108 @@ export default function SpaceMiningGame() {
           <h1 className="text-3xl font-bold">Space Mining Adventure</h1>
         </div>
 
-        <Card className="mb-6">
-          <CardHeader>
+        <Card className="mb-6 border-0 shadow-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-500/10 to-indigo-500/5 border-b">
             <CardTitle className={`flex items-center ${isMobile ? 'flex-col' : 'justify-between'}`}>
               <div className="flex items-center gap-2">
-                <Rocket className="h-6 w-6 text-primary" />
-                Game Status
+                <Rocket className="h-6 w-6 text-primary animate-pulse" />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 font-bold">
+                  Space Mining HQ
+                </span>
               </div>
-              <div className={`flex items-center ${isMobile ? 'flex-wrap justify-center mt-2' : ''} gap-4`}>
-                <div className="text-xl flex items-center">
-                  <span className="font-semibold mr-1">Score:</span> {score} 
+              
+              <div className={`${isMobile ? 'w-full mt-4' : 'flex gap-6'}`}>
+                {/* Score Card */}
+                <div className={`${isMobile ? 'mb-3' : ''} px-4 py-2 bg-gradient-to-r from-blue-500/20 to-blue-500/10 rounded-lg border border-blue-500/20 shadow-sm`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-medium text-muted-foreground">Current Score</div>
+                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{score.toLocaleString()}</div>
+                  </div>
+                  <div className="w-full bg-blue-100/20 dark:bg-blue-900/20 h-1.5 rounded-full mt-1.5">
+                    <div 
+                      className="bg-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out" 
+                      style={{ width: `${Math.min(100, (score / 4000) * 100)}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="text-xl flex items-center gap-1">
-                  <Coins className="h-5 w-5 text-yellow-500" />
-                  <span className="font-semibold">{calculateCPXTB(score)}</span>
+                
+                {/* CPXTB Card */}
+                <div className={`${isMobile ? 'mb-3' : ''} px-4 py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 rounded-lg border border-amber-500/20 shadow-sm`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-medium text-muted-foreground">CPXTB Earned</div>
+                    <div className="flex items-center text-lg font-bold text-amber-600 dark:text-amber-400">
+                      <Coins className="h-4 w-4 mr-1 text-amber-500" />
+                      {calculateCPXTB(score)}
+                    </div>
+                  </div>
+                  <div className="w-full bg-amber-100/20 dark:bg-amber-900/20 h-1.5 rounded-full mt-1.5">
+                    <div 
+                      className="bg-amber-500 h-1.5 rounded-full transition-all duration-500 ease-out" 
+                      style={{ width: `${Math.min(100, (Number(calculateCPXTB(score)) / 10) * 100)}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="text-xl flex items-center">
-                  <span className="font-semibold mr-1">Time:</span> {timeLeft}s
+                
+                {/* Time Card */}
+                <div className={`${isMobile ? 'mb-3' : ''} px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-green-500/10 rounded-lg border border-emerald-500/20 shadow-sm`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs font-medium text-muted-foreground">Time Remaining</div>
+                    <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{timeLeft}s</div>
+                  </div>
+                  <div className="w-full bg-emerald-100/20 dark:bg-emerald-900/20 h-1.5 rounded-full mt-1.5">
+                    <div 
+                      className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500 ease-out" 
+                      style={{ width: `${(timeLeft / 60) * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {!gameStarted ? (
-              <div className="text-center py-8">
-                <h2 className="text-2xl font-bold mb-4">
-                  {timeLeft === 0 ? 'Game Over!' : 'Ready to Mine?'}
-                </h2>
-                {timeLeft === 0 && (
-                  <div className="space-y-2 mb-4">
-                    <p className="text-xl">Final Score: {score} points</p>
-                    <p className="text-xl flex items-center justify-center gap-2">
-                      <Coins className="h-5 w-5 text-yellow-500" />
-                      Earned: {calculateCPXTB(score)} CPXTB
+              <div className="text-center py-12 px-4 bg-gradient-to-b from-background to-muted/30">
+                {timeLeft === 0 ? (
+                  <div className="space-y-8">
+                    <div className="inline-block animate-bounce bg-blue-600/10 dark:bg-blue-400/10 rounded-full p-6 mb-2">
+                      <Star className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-6">
+                      Mission Complete!
+                    </h2>
+                    <div className="grid grid-cols-2 gap-6 max-w-md mx-auto mb-8">
+                      <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/10 rounded-xl p-4 border border-blue-500/20 shadow-sm">
+                        <p className="text-sm text-muted-foreground mb-1">Final Score</p>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{score.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-amber-500/20 to-yellow-500/10 rounded-xl p-4 border border-amber-500/20 shadow-sm">
+                        <p className="text-sm text-muted-foreground mb-1">CPXTB Earned</p>
+                        <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                          <Coins className="h-5 w-5 mr-1 text-amber-500" />
+                          {calculateCPXTB(score)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="inline-block animate-bounce bg-blue-600/10 dark:bg-blue-400/10 rounded-full p-6 mb-2">
+                      <Rocket className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-4">
+                      Ready to Mine?
+                    </h2>
+                    <p className="text-lg text-muted-foreground max-w-md mx-auto mb-6">
+                      Collect space minerals to earn CPXTB tokens. The more you mine, the more you earn!
                     </p>
                   </div>
                 )}
                 <Button
                   size="lg"
                   onClick={startGame}
-                  className="gap-2"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 mt-4"
                 >
-                  <Rocket className="h-5 w-5" />
+                  <Rocket className="h-5 w-5 mr-2" />
                   {timeLeft === 0 ? 'Play Again' : 'Start Mining'}
                 </Button>
               </div>
@@ -601,30 +661,68 @@ export default function SpaceMiningGame() {
         </Card>
 
         {/* Accumulated CPXTB Card - Show to everyone but require wallet only for claiming */}
-        <Card className="mb-6">
-          <CardHeader>
+        <Card className="mb-6 border-0 shadow-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-amber-500/10 to-yellow-500/5 border-b">
             <CardTitle className="flex items-center gap-2">
-              <Coins className="h-6 w-6 text-yellow-500" />
-              Accumulated CPXTB
+              <Coins className="h-6 w-6 text-amber-500 animate-pulse" />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-yellow-600 dark:from-amber-400 dark:to-yellow-400 font-bold">
+                Accumulated CPXTB Rewards
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <p className="text-lg">
-                  Total Accumulated: <span className="font-bold">{gameStats?.accumulatedCPXTB || '0'} CPXTB</span>
-                </p>
+          <CardContent className="p-6">
+            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row items-center justify-between'} gap-6`}>
+              <div className="space-y-4 flex-grow">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm text-muted-foreground">Current Balance</span>
+                    {parseFloat(gameStats?.accumulatedCPXTB || '0') >= 1000 && (
+                      <span className="px-2 py-0.5 bg-green-500/20 text-green-600 dark:text-green-400 text-xs font-medium rounded-full animate-pulse">
+                        Ready to Claim!
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                      {gameStats?.accumulatedCPXTB || '0'}
+                    </span>
+                    <span className="text-xl font-semibold text-muted-foreground">CPXTB</span>
+                  </div>
+                </div>
+                
+                <div className="w-full">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">Progress to claim</span>
+                    <span className="font-medium">{Math.min(100, (parseFloat(gameStats?.accumulatedCPXTB || '0') / 1000) * 100).toFixed(0)}%</span>
+                  </div>
+                  <div className="w-full bg-amber-100/20 dark:bg-amber-900/20 h-2.5 rounded-full">
+                    <div 
+                      className="bg-gradient-to-r from-amber-500 to-yellow-500 h-2.5 rounded-full transition-all duration-700 ease-out"
+                      style={{ width: `${Math.min(100, (parseFloat(gameStats?.accumulatedCPXTB || '0') / 1000) * 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
                 <p className="text-sm text-muted-foreground">
-                  {!isConnected && 'Connect wallet to claim rewards'}
-                  {isConnected && 'Claim available at 1000 CPXTB'}
+                  {!isConnected && 'Connect your wallet to claim your CPXTB rewards directly to your wallet.'}
+                  {isConnected && parseFloat(gameStats?.accumulatedCPXTB || '0') < 1000 && 
+                    `Need ${(1000 - parseFloat(gameStats?.accumulatedCPXTB || '0')).toFixed(3)} more CPXTB to claim rewards.`
+                  }
+                  {isConnected && parseFloat(gameStats?.accumulatedCPXTB || '0') >= 1000 && 
+                    'You can now claim your CPXTB rewards!'
+                  }
                 </p>
               </div>
+              
               <Button
                 onClick={handleClaimCPXTB}
                 disabled={!isConnected || !gameStats || parseFloat(gameStats?.accumulatedCPXTB || '0') < 1000}
-                className="gap-2"
+                className={`${isMobile ? 'w-full' : 'min-w-[150px]'} bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 ${
+                  parseFloat(gameStats?.accumulatedCPXTB || '0') >= 1000 ? 'animate-pulse' : ''
+                }`}
+                size="lg"
               >
-                <Coins className="h-4 w-4" />
+                <Coins className="h-5 w-5 mr-2" />
                 {!isConnected ? 'Connect Wallet' : 'Claim CPXTB'}
               </Button>
             </div>
@@ -634,20 +732,71 @@ export default function SpaceMiningGame() {
         {/* Game Interstitial Ad */}
         <GameInterstitialAd />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>How to Play</CardTitle>
+        <Card className="border-0 shadow-xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-indigo-500/10 to-blue-500/5 border-b">
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-6 w-6 text-indigo-500" />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-400 dark:to-blue-400 font-bold">
+                How to Play
+              </span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="list-disc list-inside space-y-2">
-              <li>Click the glowing minerals to collect them</li>
-              <li>Each mineral has a random value between 30-100 points</li>
-              <li>Collect as many minerals as possible in 60 seconds</li>
-              <li>Every 4000 points equals 1 CPXTB reward</li>
-              <li>Accumulate 1000 CPXTB to claim your rewards</li>
-              <li>The game ends when the timer reaches zero</li>
-              <li>Try to get the highest score possible!</li>
-            </ul>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-xl p-4 border border-blue-500/10 shadow-sm">
+                <div className="flex flex-col items-center mb-3">
+                  <div className="h-12 w-12 flex items-center justify-center rounded-full bg-blue-500/20 mb-2">
+                    <Star className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="font-bold text-center">Collect Minerals</h3>
+                </div>
+                <p className="text-sm text-center text-muted-foreground">
+                  Click on the glowing star minerals to collect points. Each has a random value between 30-100 points.
+                </p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/5 rounded-xl p-4 border border-emerald-500/10 shadow-sm">
+                <div className="flex flex-col items-center mb-3">
+                  <div className="h-12 w-12 flex items-center justify-center rounded-full bg-emerald-500/20 mb-2">
+                    <div className="font-bold text-emerald-600 dark:text-emerald-400">60s</div>
+                  </div>
+                  <h3 className="font-bold text-center">Beat the Clock</h3>
+                </div>
+                <p className="text-sm text-center text-muted-foreground">
+                  You have 60 seconds to collect as many minerals as possible. Keep an eye on the timer!
+                </p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-amber-500/10 to-yellow-500/5 rounded-xl p-4 border border-amber-500/10 shadow-sm">
+                <div className="flex flex-col items-center mb-3">
+                  <div className="h-12 w-12 flex items-center justify-center rounded-full bg-amber-500/20 mb-2">
+                    <Coins className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <h3 className="font-bold text-center">Earn CPXTB</h3>
+                </div>
+                <p className="text-sm text-center text-muted-foreground">
+                  Every 4000 points equals 1 CPXTB reward. Accumulate 1000 CPXTB to claim rewards to your wallet.
+                </p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-purple-500/10 to-violet-500/5 rounded-xl p-4 border border-purple-500/10 shadow-sm">
+                <div className="flex flex-col items-center mb-3">
+                  <div className="h-12 w-12 flex items-center justify-center rounded-full bg-purple-500/20 mb-2">
+                    <div className="font-bold text-purple-600 dark:text-purple-400">🏆</div>
+                  </div>
+                  <h3 className="font-bold text-center">High Scores</h3>
+                </div>
+                <p className="text-sm text-center text-muted-foreground">
+                  Try to achieve the highest score possible! Challenge yourself to beat your personal best each game.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-6 px-4 py-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-sm text-center text-muted-foreground">
+                <span className="font-semibold text-foreground">Pro Tip:</span> Use quick taps and keep an eye on the entire screen to catch minerals as they appear.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

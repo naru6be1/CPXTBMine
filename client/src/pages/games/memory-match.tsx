@@ -16,7 +16,7 @@ import {
 import { GameInterstitialAd } from '@/components/ad-placement';
 
 // Constants
-const POINTS_PER_CPXTB = 1000; // 1000 points = 1 CPXTB (same as Space Mining)
+const POINTS_PER_CPXTB = 4000; // 4000 points = 1 CPXTB (same as Space Mining)
 const DIFFICULTY_LEVELS = {
   easy: { pairs: 6, timeLimit: 60, multiplier: 1 },
   medium: { pairs: 8, timeLimit: 45, multiplier: 1.5 },

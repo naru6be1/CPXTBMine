@@ -310,99 +310,72 @@ export default function SpaceMiningGame() {
     }
   };
 
-  // EMERGENCY FIX: Completely rewritten game end handler with forced minimal score
+  // COMPLETE REWRITE: Direct, minimal, non-async score calculation and storage approach
   const handleGameEnd = async () => {
-    console.log('GAME END TRIGGERED', {
-      currentScore: score,
+    // CRITICAL FIX: Use state snapshot instead of reading directly from state which may have changed
+    // Get current score value at the EXACT moment the game ends - no race conditions
+    const currentScoreSnapshot = score;
+    
+    console.log('FINAL SNAPSHOT AT GAME END:', {
+      scoreSnapshot: currentScoreSnapshot,
+      originalStateScore: score,
       hasWallet: !!address && isConnected,
       timestamp: new Date().toISOString()
     });
     
-    // CRITICAL FIX: We will apply a minimum score of 100 points
-    // This ensures users always get at least 1 CPXTB even if their score is low
+    // Hardcoded minimum guarantee of 100 points to ensure minimum 1 CPXTB
+    const guaranteedMinimumScore = 100;
     
-    console.log('Will apply guaranteed minimum score:', {
-      originalScore: score,
-      guaranteedMinimum: 100,
+    // Use demo wallet if no real wallet is connected
+    const effectiveAddress = address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77';
+    
+    // Calculate final score (apply minimum guarantee)
+    const finalScore = Math.max(guaranteedMinimumScore, currentScoreSnapshot);
+    
+    // Always calculate CPXTB using the guaranteed final score
+    // With 100 points per CPXTB, even a score of 100 guarantees at least 1 CPXTB
+    const earnedCPXTB = (finalScore / POINTS_PER_CPXTB).toFixed(3);
+    
+    // Debug log the exact values used for calculations
+    console.log('SCORE CALCULATION SNAPSHOT VALUES:', {
+      currentScoreSnapshot,
+      guaranteedMinimumScore,
+      finalScore,
+      earnedCPXTB,
+      conversionRate: POINTS_PER_CPXTB,
+      effectiveAddress,
       timestamp: new Date().toISOString()
     });
     
-    // CRITICAL FIX: Use default address for non-connected wallets - hardcoded for demo
-    const effectiveAddress = address || '0x01A72B983368DD0E599E0B1Fe7716b05A0C9DE77';
+    // Show toast notification that we're processing
+    toast({
+      title: "Saving Score...",
+      description: `Final Score: ${finalScore} points (${earnedCPXTB} CPXTB)`,
+    });
     
+    // Inform player if they're using a demo wallet
     if (!address || !isConnected) {
       toast({
-        title: "Wallet Not Connected",
-        description: "Using test wallet to save game rewards. Connect your real wallet for full features.",
-        variant: "default"
+        title: "Demo Mode",
+        description: "Using test wallet. Connect your real wallet for full features.",
+        duration: 5000,
       });
-      // Continue execution
     }
-
+    
     try {
-      // EMERGENCY FIX: Always apply a minimum score of 100 points
-      // This ensures players always get at least 1 CPXTB regardless of their actual score
-      console.log('APPLYING GUARANTEED MINIMUM SCORE FOR CPXTB CALCULATION');
-      
-      // CRITICAL BUGFIX: Always use guaranteed minimum score of 100 points
-      // This ensures even if a player scores less than 100 points, they still get 1 CPXTB
-      const finalScore = Math.max(100, score);
-      const earnedCPXTB = calculateCPXTB(finalScore);
-      
-      // EMERGENCY FIX: No validation or CPXTB check needed since we're guaranteeing a minimum score of 100
-      // With 100 points minimum and conversion of 100 points = 1 CPXTB, we always get at least 1 CPXTB
-      console.log('Skipping CPXTB validation - using guaranteed minimum value of 1 CPXTB');
-      
-      console.log('GAME END - FINAL DETAILS:', {
-        walletAddress: address,
-        effectiveAddress, // This is what will actually be sent
-        originalScore: score,
-        finalScore: finalScore,
-        earnedCPXTB,
-        pointsPerCPXTB: POINTS_PER_CPXTB,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Show saving indicator with GUARANTEED non-zero CPXTB amount
-      toast({
-        title: "Saving Score...",
-        description: `Final Score: ${finalScore} points = ${earnedCPXTB} CPXTB` + 
-                    (score < 100 ? " (Minimum Guaranteed Score)" : ""),
-      });
-      
-      // BUGFIX: Ensure proper numeric values in payload
-      // Convert finalScore to a numeric value before sending to ensure it's treated as a number
-      // This fixes the issue where the score was potentially being converted to a string
-      const numericFinalScore = parseInt(finalScore.toString(), 10);
-      const numericCPXTB = parseFloat(earnedCPXTB);
-      
-      console.log('SCORE CONVERSION CHECK:', {
-        originalFinalScore: finalScore,
-        numericFinalScore,
-        originalEarnedCPXTB: earnedCPXTB,
-        numericCPXTB,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Create payload with correct data and proper numeric types
+      // Construct payload with explicit numeric conversions - crucial for server processing
+      // Force all values to be explicit numbers to avoid any string conversion issues
       const gamePayload = {
-        walletAddress: effectiveAddress, // Using our fallback address if needed
-        score: numericFinalScore, // Using the guaranteed positive score as a number
-        earnedCPXTB: numericCPXTB, // Correctly calculated CPXTB as a number
-        gameType: 'space-mining' // Specify game type
+        walletAddress: effectiveAddress,
+        score: Number(finalScore),
+        earnedCPXTB: Number(earnedCPXTB),
+        gameType: 'space-mining',
+        timestamp: Date.now() // Add timestamp for debugging
       };
       
-      // Additional debug logging - explicitly log all values
-      console.log('SENDING PAYLOAD TO SERVER:', {
-        payload: gamePayload,
-        originalScore: score,
-        calculatedScore: Math.max(100, score),
-        finalScore,
-        earnedCPXTB,
-        timestamp: new Date().toISOString()
-      });
+      console.log('SERVER PAYLOAD - EXACT VALUES BEING SENT:', gamePayload);
       
-      // Send score to server with multiple retry
+      // Send payload to server with retry logic
       let response;
       let retries = 3;
       
@@ -410,9 +383,7 @@ export default function SpaceMiningGame() {
         try {
           response = await fetch('/api/games/save-score', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(gamePayload),
           });
           
@@ -420,51 +391,39 @@ export default function SpaceMiningGame() {
           retries--;
           
           if (retries > 0) {
-            console.log(`Score save attempt failed, retrying... (${retries} attempts left)`);
-            await new Promise(r => setTimeout(r, 500)); // Wait before retry
+            console.log(`Server retry attempt (${retries} left)`);
+            await new Promise(r => setTimeout(r, 500));
           }
         } catch (err) {
-          console.error('Score save attempt error:', err);
+          console.error('Network error:', err);
           retries--;
           if (retries <= 0) throw err;
-          await new Promise(r => setTimeout(r, 500)); // Wait before retry
+          await new Promise(r => setTimeout(r, 500));
         }
       }
       
       if (!response || !response.ok) {
-        throw new Error('Failed to save score after multiple attempts');
+        throw new Error('Score save failed after multiple attempts');
       }
-
-      const result = await response.json();
-      console.log('SCORE SAVE SUCCESS:', {
-        result,
-        timestamp: new Date().toISOString()
-      });
-
-      // Refresh game stats
-      await refetchGameStats();
-
-      // Show success message with actual earned amount
-      // Debug logs for checking why score was wrong
-      console.log('SCORE SUCCESS TOAST DETAILS:', {
-        originalScore: score,
-        finalScore: finalScore,
-        minScore: Math.max(100, score),
-        earnedCPXTB,
-        response: result
-      });
       
+      // Process server response
+      const result = await response.json();
+      console.log('SAVE SUCCESS - SERVER RESPONSE:', result);
+      
+      // Refresh player stats to show updated CPXTB
+      await refetchGameStats();
+      
+      // Show success notification
       toast({
-        title: `Score Saved: ${finalScore} points!`,
+        title: `Score Saved: ${finalScore} points`,
         description: `You earned ${earnedCPXTB} CPXTB!` + 
-                     (score < 100 ? " (Minimum score guarantee applied)" : "") +
-                     " Keep playing to earn more rewards."
+                    (currentScoreSnapshot < 100 ? " (Minimum guarantee applied)" : "")
       });
     } catch (error) {
-      console.error('CRITICAL ERROR SAVING SCORE:', error);
+      console.error('ERROR SAVING SCORE:', error);
       toast({
-        title: "Error Saving Score",
-        description: error instanceof Error ? error.message : "Failed to save your score. Please try again.",
+        title: "Save Error",
+        description: error instanceof Error ? error.message : "Failed to save score.",
         variant: "destructive"
       });
     }

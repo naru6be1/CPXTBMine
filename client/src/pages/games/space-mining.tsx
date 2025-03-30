@@ -190,9 +190,13 @@ export default function SpaceMiningGame() {
       
       // Check if game should end
       if (remainingMs <= 0) {
+        // CRITICAL FIX: Capture the exact score at game end BEFORE any state updates
+        const finalScoreAtEnd = score;
+        
         console.log('GAME TIMER REACHED ZERO', {
           finalTimeLeft: remainingSec,
-          finalScore: score,
+          finalScore: finalScoreAtEnd,
+          scoreFromState: score,
           endTimestamp: new Date().toISOString()
         });
         
@@ -205,10 +209,9 @@ export default function SpaceMiningGame() {
         // End the game
         setGameStarted(false);
         
-        // Handle game end with a slight delay to ensure UI is updated
-        setTimeout(() => {
-          handleGameEnd();
-        }, 100);
+        // Handle game end immediately with the captured score
+        // This guarantees we use the score value from the exact moment the game ended
+        handleGameEnd(finalScoreAtEnd);
         
         return; // End animation frame recursion
       }
@@ -311,10 +314,10 @@ export default function SpaceMiningGame() {
   };
 
   // COMPLETE REWRITE: Direct, minimal, non-async score calculation and storage approach
-  const handleGameEnd = async () => {
-    // CRITICAL FIX: Use state snapshot instead of reading directly from state which may have changed
-    // Get current score value at the EXACT moment the game ends - no race conditions
-    const currentScoreSnapshot = score;
+  const handleGameEnd = async (finalScoreAtEnd?: number) => {
+    // CRITICAL FIX: Use the score passed from the timer function or fall back to state
+    // This guarantees we're using the score at the exact moment the game ended
+    const currentScoreSnapshot = finalScoreAtEnd !== undefined ? finalScoreAtEnd : score;
     
     console.log('FINAL SNAPSHOT AT GAME END:', {
       scoreSnapshot: currentScoreSnapshot,

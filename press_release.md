@@ -113,19 +113,19 @@ For more information, support, and inquiries, please reach out through our offic
 The following high-resolution images are available for media use:
 
 1. **CPXTBMining Platform Logo** - Our official platform logo in full color and monochrome variants
-   ![CPXTB Logo](/favicon.png)
+   ![CPXTB Logo](https://cpxtbmining.com/favicon.png)
 
 2. **Mining Plan Tiers Infographic** - Visual comparison of Bronze, Silver, and Gold mining plans
-   ![Mining Plans](/images/blog/mining-tiers.svg)
+   ![Mining Plans](https://cpxtbmining.com/images/mining-plans-tiers.png)
 
-3. **Mining Strategies Visualization** - Illustrating optimal strategies for CPXTB mining
-   ![Mining Strategies](/images/blog/mining-strategies.svg)
+3. **Space Mining Game Screenshot** - Engaging gameplay from our popular Space Mining game
+   ![Space Mining](https://cpxtbmining.com/images/space-mining-game.png)
 
-4. **Gaming Rewards System** - Visualization of the play-to-earn ecosystem
-   ![Gaming Rewards](/images/blog/gaming-rewards.svg)
+4. **Memory Match Game Screenshot** - Cryptocurrency-themed memory challenge game
+   ![Memory Match](https://cpxtbmining.com/images/memory-match-game.png)
 
-5. **Future Roadmap** - Technical illustration of platform development milestones
-   ![Platform Roadmap](/images/blog/future-roadmap.svg)
+5. **Base Network Integration Diagram** - Technical illustration of CPXTB token on Base network
+   ![Base Network](https://cpxtbmining.com/images/base-network-integration.png)
 
 *For high-resolution versions of these images or additional visual assets, please contact our media relations team.*
 

@@ -103,7 +103,7 @@ Looking ahead, CPXTBMining's development roadmap includes:
 For more information, support, and inquiries, please reach out through our official channels:
 
 - **Email**: info@coinpredictiontool.com
-- **Telegram**: [@CPXTBase](https://t.me/CPXTBase)
+- **Telegram**: [@CPXTBOfficial](https://t.me/CPXTBOfficial)
 - **Twitter**: [@cpxtbofficial](https://twitter.com/cpxtbofficial)
 - **Main Website**: [coinpredictiontool.com](https://coinpredictiontool.com)
 - **Platform Website**: [cpxtbmining.com](https://cpxtbmining.com)
@@ -172,6 +172,6 @@ The following high-resolution images are available for media use:
 
 ### Media Contact:
 Email: info@coinpredictiontool.com  
-Telegram: [@CPXTBase](https://t.me/CPXTBase)  
+Telegram: [@CPXTBOfficial](https://t.me/CPXTBOfficial)  
 Twitter: [@cpxtbofficial](https://twitter.com/cpxtbofficial)  
 Website: [coinpredictiontool.com](https://coinpredictiontool.com)

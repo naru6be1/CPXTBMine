@@ -1015,13 +1015,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
+  // Track connected users
+  let connectedUsers = 0;
+  
+  // Function to broadcast user count to all clients
+  const broadcastUserCount = () => {
+    const message = JSON.stringify({ 
+      type: 'liveUserCount', 
+      count: connectedUsers 
+    });
+    
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  };
+  
   // Setup WebSocket connection handling
   wss.on('connection', (ws) => {
-    console.log('WebSocket client connected');
+    // Increment user count
+    connectedUsers++;
+    console.log(`WebSocket client connected. Total users: ${connectedUsers}`);
     
-    // Send a welcome message
+    // Send a welcome message with current user count
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'connection', message: 'Connected to CPXTB platform' }));
+      ws.send(JSON.stringify({ 
+        type: 'connection', 
+        message: 'Connected to CPXTB platform',
+        liveUserCount: connectedUsers
+      }));
+      
+      // Broadcast updated user count to all clients
+      broadcastUserCount();
     }
     
     // Handle incoming messages
@@ -1030,9 +1056,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const data = JSON.parse(message.toString());
         console.log('Received WebSocket message:', data);
         
-        // Echo back the message as confirmation
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'echo', data }));
+        // If client requests user count update
+        if (data.type === 'getUserCount') {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ 
+              type: 'liveUserCount', 
+              count: connectedUsers 
+            }));
+          }
+        } else {
+          // Echo back other messages as confirmation
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'echo', data }));
+          }
         }
       } catch (error) {
         console.error('Error processing WebSocket message:', error);
@@ -1041,7 +1077,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Handle disconnection
     ws.on('close', () => {
-      console.log('WebSocket client disconnected');
+      // Decrement user count
+      connectedUsers--;
+      console.log(`WebSocket client disconnected. Total users: ${connectedUsers}`);
+      
+      // Broadcast updated user count to all clients
+      broadcastUserCount();
     });
   });
 

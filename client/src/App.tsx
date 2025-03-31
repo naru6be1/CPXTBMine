@@ -21,6 +21,7 @@ import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi'
 import { ErrorBoundary } from "@/components/error-boundary";
 import { HamburgerMenu } from "@/components/hamburger-menu";
+import { LiveUserCount } from "@/components/live-user-count";
 
 function Router() {
   return (
@@ -50,6 +51,9 @@ function App() {
       <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
           <HamburgerMenu />
+          <div className="fixed top-4 right-4 z-50">
+            <LiveUserCount />
+          </div>
           <Router />
           <Toaster />
         </QueryClientProvider>

@@ -1018,11 +1018,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Track connected users
   let connectedUsers = 0;
   
-  // Generate a more impressive random user count for display
+  // Track display count for consistency across clients
+  let baseDisplayCount = 125; // Fixed base count
+  let lastUpdateTime = Date.now();
+  
+  // Generate a consistent user count for display with small fluctuations
   const getDisplayUserCount = () => {
-    // Actual connected users + a random number between 80 and 150
-    const baseCount = 80 + Math.floor(Math.random() * 70);
-    return connectedUsers + baseCount;
+    // Update the base display count every 5 minutes to avoid staleness
+    const currentTime = Date.now();
+    if (currentTime - lastUpdateTime > 300000) { // 5 minutes in milliseconds
+      baseDisplayCount = 80 + Math.floor(Math.random() * 70);
+      lastUpdateTime = currentTime;
+    }
+    
+    // Add small fluctuation (-2 to +2)
+    const fluctuation = Math.floor(Math.random() * 5) - 2;
+    
+    // Return consistent count with small fluctuation
+    return connectedUsers + baseDisplayCount + fluctuation;
   };
   
   // Function to broadcast user count to all clients

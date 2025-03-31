@@ -1018,11 +1018,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Track connected users
   let connectedUsers = 0;
   
+  // Generate a more impressive random user count for display
+  const getDisplayUserCount = () => {
+    // Actual connected users + a random number between 80 and 150
+    const baseCount = 80 + Math.floor(Math.random() * 70);
+    return connectedUsers + baseCount;
+  };
+  
   // Function to broadcast user count to all clients
   const broadcastUserCount = () => {
     const message = JSON.stringify({ 
       type: 'liveUserCount', 
-      count: connectedUsers 
+      count: getDisplayUserCount() 
     });
     
     wss.clients.forEach(client => {
@@ -1038,12 +1045,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     connectedUsers++;
     console.log(`WebSocket client connected. Total users: ${connectedUsers}`);
     
-    // Send a welcome message with current user count
+    // Send a welcome message with enhanced user count
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ 
         type: 'connection', 
         message: 'Connected to CPXTB platform',
-        liveUserCount: connectedUsers
+        liveUserCount: getDisplayUserCount()
       }));
       
       // Broadcast updated user count to all clients
@@ -1061,7 +1068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ 
               type: 'liveUserCount', 
-              count: connectedUsers 
+              count: getDisplayUserCount() 
             }));
           }
         } else {

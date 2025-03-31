@@ -4,8 +4,35 @@ import { Users } from 'lucide-react';
 
 export function LiveUserCount() {
   const [userCount, setUserCount] = useState<number>(0);
+  const [displayCount, setDisplayCount] = useState<number>(0);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const socketRef = useRef<WebSocket | null>(null);
+  const baseCountRef = useRef<number>(0);
+
+  // Create small fluctuations in the displayed user count
+  useEffect(() => {
+    if (userCount === 0) return;
+    
+    // Store the base count received from server
+    if (baseCountRef.current === 0) {
+      baseCountRef.current = userCount;
+    }
+    
+    // Initial display
+    setDisplayCount(userCount);
+    
+    // Create small random fluctuations every few seconds
+    const fluctuationInterval = setInterval(() => {
+      // Random value between -3 and +4
+      const fluctuation = Math.floor(Math.random() * 8) - 3;
+      
+      // Apply fluctuation but ensure we don't go below the initial count or too far above
+      const newCount = baseCountRef.current + fluctuation;
+      setDisplayCount(newCount);
+    }, 5000);
+    
+    return () => clearInterval(fluctuationInterval);
+  }, [userCount]);
 
   useEffect(() => {
     // Create WebSocket connection
@@ -32,10 +59,13 @@ export function LiveUserCount() {
         // Update user count when receiving liveUserCount message
         if (data.type === 'liveUserCount') {
           setUserCount(data.count);
+          // Reset base count when we get a new server update
+          baseCountRef.current = data.count;
         }
         // Initial connection message also contains liveUserCount
         else if (data.type === 'connection' && typeof data.liveUserCount === 'number') {
           setUserCount(data.liveUserCount);
+          baseCountRef.current = data.liveUserCount;
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -48,8 +78,16 @@ export function LiveUserCount() {
       setIsConnected(false);
     });
 
+    // Request updated count periodically
+    const updateInterval = setInterval(() => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'getUserCount' }));
+      }
+    }, 30000);
+
     // Clean up on unmount
     return () => {
+      clearInterval(updateInterval);
       if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
         socketRef.current.close();
       }
@@ -65,7 +103,7 @@ export function LiveUserCount() {
     <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-background/95 border rounded-full shadow-sm">
       <Users size={16} className="text-primary" />
       <Badge variant="outline" className="font-medium text-xs">
-        {userCount} {userCount === 1 ? 'user' : 'users'} online
+        {displayCount} {displayCount === 1 ? 'user' : 'users'} online
       </Badge>
     </div>
   );

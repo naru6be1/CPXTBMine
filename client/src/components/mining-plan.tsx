@@ -418,6 +418,89 @@ function SocialShareButtons({ amount, type }: { amount: string, type: 'claim' | 
 
 
 // Update mining plan selection UI
+// Plan Availability Countdown Timer Component
+function SlotCountdownTimer({ planType }: { planType: PlanType }) {
+  const [countdown, setCountdown] = useState<string>("");
+  const [availableSlots, setAvailableSlots] = useState<number>(0);
+  
+  // Generate a random number of slots based on plan type
+  // Use consistent values based on the plan type
+  useEffect(() => {
+    const getRandomSlots = () => {
+      // Make gold more scarce, bronze more abundant
+      if (planType === 'gold') {
+        return Math.floor(Math.random() * 4) + 2; // 2-5 slots
+      } else if (planType === 'silver') {
+        return Math.floor(Math.random() * 6) + 5; // 5-10 slots
+      } else {
+        return Math.floor(Math.random() * 10) + 10; // 10-19 slots
+      }
+    };
+    
+    setAvailableSlots(getRandomSlots());
+    
+    // Set a random expiration time (3-12 hours from now)
+    const hourMultiplier = planType === 'gold' ? 3 : planType === 'silver' ? 6 : 12;
+    const expiryTime = new Date();
+    expiryTime.setHours(expiryTime.getHours() + hourMultiplier);
+    
+    const updateCountdown = () => {
+      const now = new Date();
+      const diff = expiryTime.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        setCountdown("Restocking soon!");
+        // Reset slots after expiry
+        setTimeout(() => {
+          setAvailableSlots(getRandomSlots());
+          expiryTime.setHours(expiryTime.getHours() + hourMultiplier);
+        }, 5000);
+        return;
+      }
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setCountdown(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+    
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(timer);
+  }, [planType]);
+  
+  const slotColor = availableSlots <= 3 ? "text-red-500" : 
+                    availableSlots <= 8 ? "text-yellow-500" : 
+                    "text-green-500";
+  
+  return (
+    <div className="mt-2 pt-2 border-t border-border/50">
+      <div className="flex items-center justify-between text-xs">
+        <span className={`font-semibold ${slotColor}`}>
+          {availableSlots} {availableSlots === 1 ? 'slot' : 'slots'} left
+        </span>
+        <span className="font-medium text-muted-foreground">
+          Resets in: {countdown}
+        </span>
+      </div>
+      
+      {/* Progress bar showing slots availability */}
+      <div className="w-full h-1.5 bg-background rounded-full mt-1.5 overflow-hidden">
+        <div 
+          className={cn("h-full rounded-full", {
+            "bg-red-500": availableSlots <= 3,
+            "bg-yellow-500": availableSlots > 3 && availableSlots <= 8,
+            "bg-green-500": availableSlots > 8
+          })}
+          style={{ width: `${Math.min(100, (availableSlots / 20) * 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -431,7 +514,7 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
           })}
           onClick={() => onSelect(type)}
         >
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Server className={cn({
                 "text-amber-600": type === "bronze",
@@ -450,6 +533,9 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
                 <p className="text-sm">✓ Daily Reward: {type === 'silver' ? '6' : type === 'gold' ? '20' : '0.15'} USD</p>
                 <p className="text-sm text-muted-foreground">({(plan.rewardUSD / 0.002529).toFixed(2)} CPXTB total)</p>
               </div>
+              
+              {/* Limited slots countdown timer */}
+              <SlotCountdownTimer planType={type} />
             </div>
           </CardContent>
         </Card>

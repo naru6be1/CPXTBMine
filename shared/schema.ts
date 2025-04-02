@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   lastClaimIp: text("last_claim_ip"),
   ipClaimTime: timestamp("ip_claim_time"),
   accumulatedCPXTB: numeric("accumulated_cpxtb", { precision: 10, scale: 3 }).default("0"), // Changed to numeric for better precision
+  hasUsedDiscount: boolean("has_used_discount").default(false).notNull(),
 });
 
 export const miningPlans = pgTable("mining_plans", {
@@ -61,7 +62,10 @@ export const insertUserSchema = createInsertSchema(users)
     lastCPXTBClaimTime: z.date().nullable().optional(),
     lastClaimIp: z.string().nullable().optional(),
     ipClaimTime: z.date().nullable().optional(),
-    accumulatedCPXTB: z.number().default(0), 
+    accumulatedCPXTB: z.union([z.string(), z.number()]).transform(val => 
+      typeof val === 'number' ? val.toString() : val
+    ).default("0"),
+    hasUsedDiscount: z.boolean().default(false),
   });
 
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)

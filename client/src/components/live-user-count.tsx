@@ -8,29 +8,13 @@ export function LiveUserCount() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const socketRef = useRef<WebSocket | null>(null);
   const baseCountRef = useRef<number>(0);
-  // Using a clientId to ensure consistent count for the same user across devices
-  const clientIdRef = useRef<string>(
-    localStorage.getItem('cpxtb_client_id') || 
-    `client_${Math.random().toString(36).substring(2, 12)}`
-  );
 
-  // Store client ID in localStorage for persistence across page refreshes
-  useEffect(() => {
-    if (!localStorage.getItem('cpxtb_client_id')) {
-      localStorage.setItem('cpxtb_client_id', clientIdRef.current);
-    }
-  }, []);
-
-  // Apply small fluctuations to keep the display lively but consistent
+  // Display the count from server with minimal client-side changes
   useEffect(() => {
     if (userCount === 0) return;
     
-    // Apply a small fluctuation based on client ID for consistency
-    const fluctuationSeed = clientIdRef.current.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    const fluctuation = ((fluctuationSeed % 5) - 2); // Range -2 to +2
-    
-    // Set display count with the small fluctuation for liveliness
-    setDisplayCount(userCount + fluctuation);
+    // Just set the display count to what the server sent
+    setDisplayCount(userCount);
   }, [userCount]);
 
   useEffect(() => {
@@ -46,11 +30,8 @@ export function LiveUserCount() {
       console.log('WebSocket connection established');
       setIsConnected(true);
       
-      // Request current user count with client ID for tracking
-      socket.send(JSON.stringify({ 
-        type: 'getUserCount',
-        clientId: clientIdRef.current 
-      }));
+      // Request current user count
+      socket.send(JSON.stringify({ type: 'getUserCount' }));
     });
 
     // Listen for messages
@@ -80,15 +61,12 @@ export function LiveUserCount() {
       setIsConnected(false);
     });
 
-    // Request updated count periodically (every 5 minutes to match server update frequency)
+    // Request updated count periodically
     const updateInterval = setInterval(() => {
       if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ 
-          type: 'getUserCount',
-          clientId: clientIdRef.current 
-        }));
+        socket.send(JSON.stringify({ type: 'getUserCount' }));
       }
-    }, 300000); // 5 minutes
+    }, 30000);
 
     // Clean up on unmount
     return () => {

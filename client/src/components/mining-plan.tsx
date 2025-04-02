@@ -418,140 +418,6 @@ function SocialShareButtons({ amount, type }: { amount: string, type: 'claim' | 
 
 
 // Update mining plan selection UI
-// Plan Availability Countdown Timer Component
-function SlotCountdownTimer({ planType }: { planType: PlanType }) {
-  const [countdown, setCountdown] = useState<string>("");
-  const [availableSlots, setAvailableSlots] = useState<number>(0);
-  const [pulsing, setPulsing] = useState<boolean>(false);
-  
-  // Generate a random number of slots based on plan type
-  // Use consistent values based on the plan type
-  useEffect(() => {
-    const getRandomSlots = () => {
-      // Make gold more scarce, bronze more abundant
-      if (planType === 'gold') {
-        return Math.floor(Math.random() * 4) + 2; // 2-5 slots
-      } else if (planType === 'silver') {
-        return Math.floor(Math.random() * 6) + 5; // 5-10 slots
-      } else {
-        return Math.floor(Math.random() * 10) + 10; // 10-19 slots
-      }
-    };
-    
-    // Get sales intensity factor for today (different each day based on date)
-    const getTodaySalesIntensity = () => {
-      const today = new Date();
-      const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
-      // Create a predictable but seemingly random pattern based on day of year
-      return (Math.sin(dayOfYear * 0.7) + 1) / 2; // Returns value between 0-1
-    };
-    
-    // Simulate "hot" sales periods
-    const salesIntensity = getTodaySalesIntensity();
-    const isSalesPeriod = salesIntensity > 0.7; // High intensity period
-    
-    // Adjust slot count based on sales intensity
-    const baseSlots = getRandomSlots();
-    const adjustedSlots = isSalesPeriod 
-      ? Math.max(1, Math.floor(baseSlots * 0.6)) // Fewer slots during hot sales
-      : baseSlots;
-    
-    setAvailableSlots(adjustedSlots);
-    
-    // Set a random expiration time with shorter timeframes during hot sales periods
-    const hourBase = planType === 'gold' ? 3 : planType === 'silver' ? 6 : 12;
-    // Reduce time by up to 70% during hot sales periods
-    const hourMultiplier = isSalesPeriod ? hourBase * (0.3 + (0.7 * (1 - salesIntensity))) : hourBase;
-    
-    const expiryTime = new Date();
-    expiryTime.setHours(expiryTime.getHours() + hourMultiplier);
-    
-    const updateCountdown = () => {
-      const now = new Date();
-      const diff = expiryTime.getTime() - now.getTime();
-      
-      if (diff <= 0) {
-        setCountdown("Restocking soon!");
-        // Reset slots after expiry
-        setTimeout(() => {
-          setAvailableSlots(getRandomSlots());
-          expiryTime.setHours(expiryTime.getHours() + hourMultiplier);
-        }, 5000);
-        return;
-      }
-      
-      // Make timer pulse when time is running low (less than 30 minutes)
-      if (diff < 1800000) { // 30 minutes in milliseconds
-        setPulsing(true);
-      } else {
-        setPulsing(false);
-      }
-      
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      
-      setCountdown(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-    };
-    
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 1000);
-    
-    return () => clearInterval(timer);
-  }, [planType]);
-  
-  const slotColor = availableSlots <= 3 ? "text-red-500" : 
-                    availableSlots <= 8 ? "text-yellow-500" : 
-                    "text-green-500";
-  
-  const isAlmostGone = availableSlots <= 3;
-  
-  return (
-    <div className="mt-3 pt-3 border-t border-border/50">
-      {/* Urgent message when almost sold out */}
-      {isAlmostGone && (
-        <div className="mb-2 text-center">
-          <span className="inline-block bg-red-500/10 text-red-500 px-2 py-1 rounded-md text-xs font-semibold animate-pulse">
-            Almost sold out! Act fast!
-          </span>
-        </div>
-      )}
-      
-      <div className="flex items-center justify-between text-xs">
-        <span className={`font-semibold ${slotColor}`}>
-          {availableSlots} {availableSlots === 1 ? 'slot' : 'slots'} left
-        </span>
-        <span className={cn(
-          "font-medium flex items-center gap-1", 
-          pulsing ? "text-red-500 animate-pulse" : "text-muted-foreground",
-          { "font-semibold": pulsing }
-        )}>
-          {pulsing && <AlertCircle size={12} />}
-          Resets in: {countdown}
-        </span>
-      </div>
-      
-      {/* Progress bar showing slots availability */}
-      <div className="w-full h-2 bg-background rounded-full mt-1.5 overflow-hidden">
-        <div 
-          className={cn("h-full rounded-full transition-all duration-500", {
-            "bg-red-500 animate-pulse": availableSlots <= 3,
-            "bg-yellow-500": availableSlots > 3 && availableSlots <= 8,
-            "bg-green-500": availableSlots > 8
-          })}
-          style={{ width: `${Math.min(100, (availableSlots / 20) * 100)}%` }}
-        />
-      </div>
-      
-      {/* Purchase urgency message */}
-      <p className="text-xs text-center mt-2 text-muted-foreground">
-        {planType === 'gold' ? 'Premium slots' : planType === 'silver' ? 'Popular choice' : 'Best for beginners'} 
-        {availableSlots < 10 ? ' • Limited availability' : ''}
-      </p>
-    </div>
-  );
-}
-
 function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -565,7 +431,7 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
           })}
           onClick={() => onSelect(type)}
         >
-          <CardHeader className="pb-3">
+          <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Server className={cn({
                 "text-amber-600": type === "bronze",
@@ -584,9 +450,6 @@ function MiningPlanSelection({ onSelect }: { onSelect: (plan: PlanType) => void 
                 <p className="text-sm">✓ Daily Reward: {type === 'silver' ? '6' : type === 'gold' ? '20' : '0.15'} USD</p>
                 <p className="text-sm text-muted-foreground">({(plan.rewardUSD / 0.002529).toFixed(2)} CPXTB total)</p>
               </div>
-              
-              {/* Limited slots countdown timer */}
-              <SlotCountdownTimer planType={type} />
             </div>
           </CardContent>
         </Card>
@@ -841,17 +704,8 @@ export function MiningPlan() {
         });
 
         if (!response.ok) {
-          // First check if the response is JSON by checking content-type
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to save mining plan');
-          } else {
-            // If not JSON, just return the status text or a generic error
-            const errorText = await response.text();
-            console.error('Non-JSON error response:', errorText);
-            throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}`);
-          }
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to save mining plan');
         }
 
         await refetchActivePlans();
@@ -1028,18 +882,8 @@ export function MiningPlan() {
         body: JSON.stringify({ withdrawalAddress: address }),
       });
 
-      if (!response.ok) {
-        // First check if the response is JSON by checking content-type
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to claim CPXTB');
-        } else {
-          // If not JSON, just return the status text or a generic error
-          const errorText = await response.text();
-          console.error('Non-JSON error response:', errorText);
-          throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}`);
-        }
+      if (!response.ok) {        const error = await response.json();
+        throw new Error(error.message);
       }
 
       // Using IP-based tracking on the server-side now
@@ -1083,17 +927,8 @@ export function MiningPlan() {
       });
 
       if (!response.ok) {
-        // First check if the response is JSON by checking content-type
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to distribute rewards');
-        } else {
-          // If not JSON, just return the status text or a generic error
-          const errorText = await response.text();
-          console.error('Non-JSON error response:', errorText);
-          throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}`);
-        }
+        const error = await response.json();
+        throw new Error(error.message);
       }
 
       const data = await response.json();
@@ -1365,22 +1200,11 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         body: JSON.stringify({ withdrawalAddress: address }),
       });
 
-      if (!response.ok) {
-        // First check if the response is JSON by checking content-type
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to claim CPXTB');
-        } else {
-          // If not JSON, just return the status text or a generic error
-          const errorText = await response.text();
-          console.error('Non-JSON error response:', errorText);
-          throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}`);
-        }
-      }
-      
-      // Parse the successful response
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to claim CPXTB');
+      }
 
       await onClaim();
       await refetchUser();

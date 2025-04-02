@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import Image from "@/components/ui/image"
 
 interface LogoProps {
   className?: string;
@@ -18,11 +19,8 @@ export function Logo({ className, size = "md" }: LogoProps) {
       className
     )}>
       <img 
-        src="/assets/optimized/logo.webp"
+        src="/assets/logo.png"
         alt="CPXTB Mining Logo"
-        loading="lazy"
-        width={size === "lg" ? 64 : size === "md" ? 48 : 32}
-        height={size === "lg" ? 64 : size === "md" ? 48 : 32}
         className={cn(
           "rounded-full",
           sizes[size]

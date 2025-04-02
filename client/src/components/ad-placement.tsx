@@ -56,9 +56,9 @@ export function AdPlacement({
         <ins
           className="adsbygoogle"
           style={adStyle}
-          data-ad-client="ca-pub-5267025968316280"
+          data-ad-client="ca-pub-REPLACE-WITH-YOUR-ADSENSE-ID"
           data-ad-slot={adSlot}
-          data-ad-format={format}
+          data-ad-format={format === 'auto' ? 'auto' : 'rectangle'}
           data-full-width-responsive={responsive ? 'true' : 'false'}
         />
       </div>
@@ -66,23 +66,22 @@ export function AdPlacement({
   );
 }
 
-// For Home Page Top Banner (728x90)
+// For Home Page Top Banner
 export function HomePageTopAd() {
-  return <AdPlacement adSlot="3851018642" format="horizontal" className="mb-8 mt-4" />;
+  return <AdPlacement adSlot="1234567890" format="horizontal" className="mb-8 mt-4" />;
 }
 
-// For Sidebar (160x600)
+// For Sidebar
 export function SidebarAd() {
-  return <AdPlacement adSlot="7804672448" format="vertical" className="mb-6" />;
+  return <AdPlacement adSlot="2345678901" format="vertical" className="mb-6" />;
 }
 
-// For Bottom of Content Pages (336x280)
+// For Bottom of Content Pages
 export function ContentBottomAd() {
-  return <AdPlacement adSlot="5147935856" format="rectangle" className="mt-8 mb-6" />;
+  return <AdPlacement adSlot="3456789012" format="rectangle" className="mt-8 mb-6" />;
 }
 
-// For Game Ad - Note: For AdSense compliance, this is positioned as a standard display ad (336x280)
-// rather than a true interstitial since AdSense has restrictions on interstitial formats
+// For Game Interstitial
 export function GameInterstitialAd() {
-  return <AdPlacement adSlot="9673815264" format="rectangle" className="max-w-md mx-auto my-8" />;
+  return <AdPlacement adSlot="4567890123" format="rectangle" className="max-w-md mx-auto my-8" />;
 }

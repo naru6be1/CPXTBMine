@@ -11,7 +11,6 @@ import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { createCheckoutSession, handleWebhook } from "./stripe";
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
@@ -251,8 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: 'not-used', // OAuth-based auth, password not used
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           referredBy: referredBy,
-          accumulatedCPXTB: "0", // Make sure to set initial CPXTB
-          hasUsedDiscount: false // Set initial discount status
+          accumulatedCPXTB: 0 // Make sure to set initial CPXTB
         };
 
         console.log('Creating new user with data:', {
@@ -877,8 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               username: address.toLowerCase(),
               password: 'not-used',
               referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-              accumulatedCPXTB: "0.000",
-              hasUsedDiscount: false
+              accumulatedCPXTB: "0.000"
             })
             .returning();
             
@@ -1012,10 +1009,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
-  // Stripe payment routes
-  app.post("/api/create-checkout-session", createCheckoutSession);
-  app.post("/api/webhook", handleWebhook);
 
   const httpServer = createServer(app);
 

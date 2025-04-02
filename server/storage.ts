@@ -12,7 +12,6 @@ export interface IStorage {
     totalReferrals: number;
     totalRewards: string;
   }>;
-  markDiscountAsUsed(userId: number): Promise<User>;
 
   // Mining plan methods
   createMiningPlan(plan: InsertMiningPlan): Promise<MiningPlan>;
@@ -69,21 +68,13 @@ export class DatabaseStorage implements IStorage {
       insertUser.referralCode = `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     }
 
-    // Create user values explicitly
-    const userValues = {
-      username: normalizedUsername,
-      password: insertUser.password,
-      referralCode: insertUser.referralCode,
-      referredBy: insertUser.referredBy,
-      accumulatedCPXTB: typeof insertUser.accumulatedCPXTB === 'number' ? 
-        String(insertUser.accumulatedCPXTB) : (insertUser.accumulatedCPXTB || "0"),
-      hasUsedDiscount: insertUser.hasUsedDiscount || false,
-      // Add other fields as needed
-    };
-    
+    // Create new user with normalized username
     const [user] = await db
       .insert(users)
-      .values(userValues)
+      .values({
+        ...insertUser,
+        username: normalizedUsername
+      })
       .returning();
 
     return user;
@@ -119,15 +110,6 @@ export class DatabaseStorage implements IStorage {
       totalReferrals,
       totalRewards: totalRewards.toFixed(2)
     };
-  }
-  
-  async markDiscountAsUsed(userId: number): Promise<User> {
-    const [updatedUser] = await db
-      .update(users)
-      .set({ hasUsedDiscount: true })
-      .where(eq(users.id, userId))
-      .returning();
-    return updatedUser;
   }
 
   // Mining plan methods
@@ -172,7 +154,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(miningPlans.isActive, true),
-          sql`CURRENT_TIMESTAMP >= ${miningPlans.expiresAt}`
+          gte(new Date(), miningPlans.expiresAt)
         )
       );
   }
@@ -204,7 +186,7 @@ export class DatabaseStorage implements IStorage {
           eq(miningPlans.walletAddress, walletAddress),
           eq(miningPlans.hasWithdrawn, false),
           eq(miningPlans.isActive, true),
-          sql`CURRENT_TIMESTAMP >= ${miningPlans.expiresAt}`  // Only return truly expired plans
+          gte(currentTime, miningPlans.expiresAt)  // Only return truly expired plans
         )
       );
 

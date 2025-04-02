@@ -841,8 +841,17 @@ export function MiningPlan() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to save mining plan');
+          // First check if the response is JSON by checking content-type
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to save mining plan');
+          } else {
+            // If not JSON, just return the status text or a generic error
+            const errorText = await response.text();
+            console.error('Non-JSON error response:', errorText);
+            throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}`);
+          }
         }
 
         await refetchActivePlans();
@@ -1019,8 +1028,18 @@ export function MiningPlan() {
         body: JSON.stringify({ withdrawalAddress: address }),
       });
 
-      if (!response.ok) {        const error = await response.json();
-        throw new Error(error.message);
+      if (!response.ok) {
+        // First check if the response is JSON by checking content-type
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to claim CPXTB');
+        } else {
+          // If not JSON, just return the status text or a generic error
+          const errorText = await response.text();
+          console.error('Non-JSON error response:', errorText);
+          throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}`);
+        }
       }
 
       // Using IP-based tracking on the server-side now
@@ -1064,8 +1083,17 @@ export function MiningPlan() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
+        // First check if the response is JSON by checking content-type
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to distribute rewards');
+        } else {
+          // If not JSON, just return the status text or a generic error
+          const errorText = await response.text();
+          console.error('Non-JSON error response:', errorText);
+          throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}`);
+        }
       }
 
       const data = await response.json();
@@ -1337,11 +1365,22 @@ function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
         body: JSON.stringify({ withdrawalAddress: address }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to claim CPXTB');
+        // First check if the response is JSON by checking content-type
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to claim CPXTB');
+        } else {
+          // If not JSON, just return the status text or a generic error
+          const errorText = await response.text();
+          console.error('Non-JSON error response:', errorText);
+          throw new Error(`Server error (${response.status}): ${response.statusText || 'Unknown error'}`);
+        }
       }
+      
+      // Parse the successful response
+      const data = await response.json();
 
       await onClaim();
       await refetchUser();

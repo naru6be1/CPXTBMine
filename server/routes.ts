@@ -1015,14 +1015,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
-  // Track connected users
-  let connectedUsers = 0;
+  // Track connected clients by ID to avoid counting the same user multiple times
+  const connectedClients = new Map<string, WebSocket>();
   
   // Track display count for consistency across clients
   let baseDisplayCount = 125; // Fixed base count
   let lastUpdateTime = Date.now();
   
-  // Generate a consistent user count for display with small fluctuations
+  // Generate a consistent user count for display
   const getDisplayUserCount = () => {
     // Update the base display count every 5 minutes to avoid staleness
     const currentTime = Date.now();
@@ -1031,11 +1031,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       lastUpdateTime = currentTime;
     }
     
-    // Add small fluctuation (-2 to +2)
-    const fluctuation = Math.floor(Math.random() * 5) - 2;
-    
-    // Return consistent count with small fluctuation
-    return connectedUsers + baseDisplayCount + fluctuation;
+    // Use client count instead of connection count for more accurate numbers
+    return connectedClients.size + baseDisplayCount;
   };
   
   // Function to broadcast user count to all clients
@@ -1054,27 +1051,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup WebSocket connection handling
   wss.on('connection', (ws) => {
-    // Increment user count
-    connectedUsers++;
-    console.log(`WebSocket client connected. Total users: ${connectedUsers}`);
+    // Initial clientId - will be updated when the client sends its ID
+    let clientId = `temp_${Math.random().toString(36).substring(2, 12)}`;
     
-    // Send a welcome message with enhanced user count
+    console.log(`WebSocket client connected. Temporary ID: ${clientId}`);
+    
+    // Send a welcome message with user count
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ 
         type: 'connection', 
         message: 'Connected to CPXTB platform',
         liveUserCount: getDisplayUserCount()
       }));
-      
-      // Broadcast updated user count to all clients
-      broadcastUserCount();
     }
     
     // Handle incoming messages
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
-        console.log('Received WebSocket message:', data);
+        
+        // If client sends its clientId, use it for tracking
+        if (data.clientId) {
+          // If this is a new client ID, add it to our tracking
+          if (!connectedClients.has(data.clientId)) {
+            // Remove the temporary connection if it exists
+            if (connectedClients.has(clientId)) {
+              connectedClients.delete(clientId);
+            }
+            
+            // Store the client with its proper ID
+            clientId = data.clientId;
+            connectedClients.set(clientId, ws);
+            
+            console.log(`Client identified with ID: ${clientId}. Total unique clients: ${connectedClients.size}`);
+            
+            // Broadcast updated user count to all clients
+            broadcastUserCount();
+          }
+        }
         
         // If client requests user count update
         if (data.type === 'getUserCount') {
@@ -1084,7 +1098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               count: getDisplayUserCount() 
             }));
           }
-        } else {
+        } else if (data.type !== 'undefined') {
           // Echo back other messages as confirmation
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'echo', data }));
@@ -1097,12 +1111,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Handle disconnection
     ws.on('close', () => {
-      // Decrement user count
-      connectedUsers--;
-      console.log(`WebSocket client disconnected. Total users: ${connectedUsers}`);
-      
-      // Broadcast updated user count to all clients
-      broadcastUserCount();
+      // Remove this client from our tracking
+      if (connectedClients.has(clientId)) {
+        connectedClients.delete(clientId);
+        console.log(`Client disconnected: ${clientId}. Total unique clients: ${connectedClients.size}`);
+        
+        // Broadcast updated user count to all clients
+        broadcastUserCount();
+      }
     });
   });
 

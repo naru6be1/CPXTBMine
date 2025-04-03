@@ -258,7 +258,8 @@ export default function SpaceMiningGame() {
   };
 
   // CRITICAL FIX: Completely revamped mineral collection to eliminate timer issues
-  const collectMineral = (mineral: Mineral) => {
+  // Using useCallback to memoize the function outside of the render loop
+  const collectMineral = useCallback((mineral: Mineral) => {
     try {
       // Skip excessive logging which can cause performance issues
       
@@ -332,7 +333,7 @@ export default function SpaceMiningGame() {
         variant: "destructive"
       });
     }
-  };
+  }, [score, scoreRef, toast, setScore, setMinerals, controls, isMobile]);
 
   // COMPLETE REWRITE: Direct, minimal, non-async score calculation and storage approach
   const handleGameEnd = async (finalScoreAtEnd?: number) => {
@@ -623,12 +624,6 @@ export default function SpaceMiningGame() {
                   style={{ touchAction: 'manipulation' }}
                 >
                   {minerals.map((mineral) => {
-                    // Throttle click handler to improve performance
-                    const handleMineralClick = useCallback(
-                      throttle(() => collectMineral(mineral), 150),
-                      [mineral.id]
-                    );
-                    
                     return (
                       <motion.button
                         key={`mineral-${mineral.id}`}
@@ -638,35 +633,32 @@ export default function SpaceMiningGame() {
                           left: `${mineral.x}%`,
                           top: `${mineral.y}%`,
                           transform: 'translate(-50%, -50%)',
-                          width: isMobile ? '60px' : '50px', // Much larger hit area
+                          width: isMobile ? '60px' : '50px',
                           height: isMobile ? '60px' : '50px',
-                          willChange: 'transform, opacity', // Performance hint for browser
+                          willChange: 'transform, opacity',
                           outline: 'none'
                         }}
                         whileHover={{ scale: 1.3 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => {
-                          // Prevent any default browser behaviors
                           e.preventDefault();
-                          // Stop event bubbling to prevent parent elements from handling this event
                           e.stopPropagation();
-                          // Use the throttled click handler for better performance
                           if (gameStarted) {
-                            handleMineralClick();
+                            collectMineral(mineral);
                           }
                         }}
-                    >
-                      <div className="relative w-full h-full flex items-center justify-center">
-                        <Star
-                          className="h-12 w-12 text-yellow-400 animate-pulse"
-                          style={{ 
-                            filter: 'drop-shadow(0 0 12px rgba(250, 204, 21, 0.7))'
-                          }}
-                        />
-                      </div>
-                    </motion.button>
-                  );
-                })}
+                      >
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          <Star
+                            className="h-12 w-12 text-yellow-400 animate-pulse"
+                            style={{ 
+                              filter: 'drop-shadow(0 0 12px rgba(250, 204, 21, 0.7))'
+                            }}
+                          />
+                        </div>
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { useWallet } from "@/hooks/use-wallet";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { GameInterstitialAd } from '@/components/ad-placement';
+import { OptimizedImage } from '@/components/ui/optimized-image';
+import { throttle, clearMemoryCache } from '@/lib/performance-optimizations';
 
 interface Mineral {
   id: number;
@@ -460,8 +462,8 @@ export default function SpaceMiningGame() {
     }
   };
   
-  // Handle claiming accumulated CPXTB
-  const handleClaimCPXTB = () => {
+  // Handle claiming accumulated CPXTB with performance optimization
+  const handleClaimCPXTB = useCallback(() => {
     if (!address || !isConnected) {
       // Show wallet connection error since we can't directly connect from here
       toast({
@@ -471,6 +473,9 @@ export default function SpaceMiningGame() {
       });
       return;
     }
+    
+    // Trigger memory cleanup before the intensive operation
+    clearMemoryCache();
     
     if (!gameStats || parseFloat(gameStats.accumulatedCPXTB) < 1000) {
       toast({
@@ -482,7 +487,7 @@ export default function SpaceMiningGame() {
     }
     
     claimCPXTBMutation.mutate();
-  };
+  }, [address, isConnected, gameStats, toast, claimCPXTBMutation]);
 
   // The timer is now entirely managed within the startGame function
   // We've removed the separate useEffect timer to avoid any potential conflicts
@@ -611,49 +616,57 @@ export default function SpaceMiningGame() {
                 className="relative w-full h-[400px] bg-black rounded-lg overflow-hidden"
                 style={{ background: 'linear-gradient(to bottom, #0f172a, #1e293b)' }}
               >
-                {/* Game area with significantly improved click targets */}
+                {/* Game area with optimized rendering for better performance */}
                 <div 
                   ref={gameAreaRef}
                   className="absolute inset-0"
                   style={{ touchAction: 'manipulation' }}
                 >
-                  {minerals.map(mineral => (
-                    <motion.button
-                      key={mineral.id}
-                      type="button"
-                      className="absolute cursor-pointer z-10 bg-transparent border-0 p-0"
-                      style={{
-                        left: `${mineral.x}%`,
-                        top: `${mineral.y}%`,
-                        transform: 'translate(-50%, -50%)',
-                        width: isMobile ? '60px' : '50px', // Much larger hit area
-                        height: isMobile ? '60px' : '50px',
-                        outline: 'none',
-                      }}
-                      whileHover={{ scale: 1.3 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={(e) => {
-                        // Prevent any default browser behaviors
-                        e.preventDefault();
-                        // Stop event bubbling to prevent parent elements from handling this event
-                        e.stopPropagation();
-                        // Minimize logging during gameplay to improve performance
-                        // Avoid blocking the main thread with complex operations
-                        if (gameStarted) {
-                          collectMineral(mineral);
-                        }
-                      }}
+                  {minerals.map((mineral) => {
+                    // Throttle click handler to improve performance
+                    const handleMineralClick = useCallback(
+                      throttle(() => collectMineral(mineral), 150),
+                      [mineral.id]
+                    );
+                    
+                    return (
+                      <motion.button
+                        key={`mineral-${mineral.id}`}
+                        type="button"
+                        className="absolute cursor-pointer z-10 bg-transparent border-0 p-0"
+                        style={{
+                          left: `${mineral.x}%`,
+                          top: `${mineral.y}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: isMobile ? '60px' : '50px', // Much larger hit area
+                          height: isMobile ? '60px' : '50px',
+                          willChange: 'transform, opacity', // Performance hint for browser
+                          outline: 'none'
+                        }}
+                        whileHover={{ scale: 1.3 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={(e) => {
+                          // Prevent any default browser behaviors
+                          e.preventDefault();
+                          // Stop event bubbling to prevent parent elements from handling this event
+                          e.stopPropagation();
+                          // Use the throttled click handler for better performance
+                          if (gameStarted) {
+                            handleMineralClick();
+                          }
+                        }}
                     >
                       <div className="relative w-full h-full flex items-center justify-center">
                         <Star
                           className="h-12 w-12 text-yellow-400 animate-pulse"
                           style={{ 
-                            filter: 'drop-shadow(0 0 12px rgba(250, 204, 21, 0.7))',
+                            filter: 'drop-shadow(0 0 12px rgba(250, 204, 21, 0.7))'
                           }}
                         />
                       </div>
                     </motion.button>
-                  ))}
+                  );
+                })}
                 </div>
               </div>
             )}

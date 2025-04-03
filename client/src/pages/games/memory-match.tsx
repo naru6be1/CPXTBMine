@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'wouter';
 import { motion, useAnimation } from 'framer-motion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import {
   Gamepad, Zap, Flame, Trophy, Sparkles 
 } from 'lucide-react';
 import { GameInterstitialAd } from '@/components/ad-placement';
+import { clearMemoryCache } from '@/lib/performance-optimizations';
 
 // Constants
 const POINTS_PER_CPXTB = 4000; // 4000 points = 1 CPXTB (same as Space Mining)
@@ -432,8 +433,8 @@ export default function MemoryMatchGame() {
     };
   }, []);
   
-  // Handle claiming accumulated CPXTB
-  const handleClaimCPXTB = () => {
+  // Handle claiming accumulated CPXTB with performance optimization
+  const handleClaimCPXTB = useCallback(() => {
     if (!address || !isConnected) {
       toast({
         title: "Wallet Not Connected",
@@ -442,6 +443,9 @@ export default function MemoryMatchGame() {
       });
       return;
     }
+    
+    // Trigger memory cleanup before the intensive operation
+    clearMemoryCache();
     
     if (!gameStats || parseFloat(gameStats.accumulatedCPXTB) < 1000) {
       toast({
@@ -453,7 +457,7 @@ export default function MemoryMatchGame() {
     }
     
     claimCPXTBMutation.mutate();
-  };
+  }, [address, isConnected, gameStats, toast, claimCPXTBMutation]);
   
   // Get card theme data by themeId
   const getCardTheme = (themeId: number) => {

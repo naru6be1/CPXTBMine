@@ -10,27 +10,27 @@ export default function BlogPage() {
   // Add meta tags for SEO optimization
   useEffect(() => {
     // Set the page title
-    document.title = "CPXTB Mining Blog: Crypto Mining Without Hardware & Play-to-Earn";
+    document.title = "CPXTB Mining Blog: Crypto Mining Without Hardware on Base Network";
     
     // Set meta description
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute("content", "Learn about crypto mining without hardware, earn crypto playing games, and Base network mining strategies with CPXTB's innovative platform.");
+      metaDescription.setAttribute("content", "Learn about crypto mining without hardware and Base network mining strategies with CPXTB's innovative platform.");
     } else {
       const newMetaDescription = document.createElement('meta');
       newMetaDescription.name = "description";
-      newMetaDescription.content = "Learn about crypto mining without hardware, earn crypto playing games, and Base network mining strategies with CPXTB's innovative platform.";
+      newMetaDescription.content = "Learn about crypto mining without hardware and Base network mining strategies with CPXTB's innovative platform.";
       document.head.appendChild(newMetaDescription);
     }
     
     // Add keywords meta tag
     const metaKeywords = document.querySelector('meta[name="keywords"]');
     if (metaKeywords) {
-      metaKeywords.setAttribute("content", "crypto mining without hardware, earn crypto playing games, Base network mining, play-to-earn crypto, no hardware mining, CPXTB");
+      metaKeywords.setAttribute("content", "crypto mining without hardware, Base network mining, hardware-free mining, no hardware mining, CPXTB");
     } else {
       const newMetaKeywords = document.createElement('meta');
       newMetaKeywords.name = "keywords";
-      newMetaKeywords.content = "crypto mining without hardware, earn crypto playing games, Base network mining, play-to-earn crypto, no hardware mining, CPXTB";
+      newMetaKeywords.content = "crypto mining without hardware, Base network mining, hardware-free mining, no hardware mining, CPXTB";
       document.head.appendChild(newMetaKeywords);
     }
   }, []);
@@ -38,10 +38,9 @@ export default function BlogPage() {
   // Group key topics for SEO emphasis
   const seoKeyTopics = [
     { name: "Crypto Mining Without Hardware", slug: "crypto-mining-without-hardware" },
-    { name: "Earn Crypto Playing Games", slug: "earn-crypto-playing-games" },
     { name: "Base Network Mining", slug: "base-network-mining-strategies" },
-    { name: "Play-to-Earn Cryptocurrency", slug: "earn-crypto-playing-games" },
     { name: "Hardware-Free Mining Solutions", slug: "crypto-mining-without-hardware" },
+    { name: "CPXTB Token Mining", slug: "crypto-mining-without-hardware" },
     { name: "Blockchain Education", slug: "blockchain-technology-beginners-guide" },
     { name: "Responsible Crypto Practices", slug: "responsible-crypto-participation" }
   ];
@@ -50,7 +49,7 @@ export default function BlogPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-2">Educational Resources: Crypto Technology & Base Network</h1>
       <p className="text-muted-foreground mb-4">
-        Educational content about blockchain technology, with a focus on how to earn crypto playing games and participate in Base network mining without expensive hardware requirements.
+        Educational content about blockchain technology, with a focus on Base network mining without expensive hardware requirements and maximizing rewards through the CPXTB platform.
       </p>
       
       {/* Educational disclaimer */}

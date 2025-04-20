@@ -4,7 +4,7 @@ import { MiningPlan } from "@/components/mining-plan";
 import { useWallet } from "@/hooks/use-wallet";
 import { Logo } from "@/components/ui/logo";
 import { Link } from "wouter";
-import { HomePageTopAd, ContentBottomAd } from "@/components/ad-placement";
+
 
 
 export default function Home() {
@@ -24,14 +24,12 @@ export default function Home() {
 
         <PriceDisplay />
         
-        {/* Top Ad Banner */}
-        <HomePageTopAd />
+        {/* Banner space */}
 
         {/* Mining Plan Section */}
         <MiningPlan />
         
-        {/* Bottom Content Ad */}
-        <ContentBottomAd />
+
 
         <div className="max-w-md mx-auto">
           <ConnectWallet />

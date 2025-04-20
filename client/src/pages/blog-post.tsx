@@ -4,7 +4,7 @@ import { ChevronLeft, Calendar, Tag, Share2, Info, BookOpen, ShieldCheck } from 
 import { Link, useRoute } from "wouter";
 import { blogPosts, getRelatedPosts } from "@/lib/blog-data";
 import { useEffect } from "react";
-import { HomePageTopAd, ContentBottomAd } from "@/components/ad-placement";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function BlogPost() {
@@ -121,8 +121,7 @@ export default function BlogPost() {
         </AlertDescription>
       </Alert>
       
-      {/* Top ad */}
-      <HomePageTopAd />
+      {/* Banner space */}
       
       <Card className="border-t-4 border-t-primary mt-8">
         <CardHeader className="pb-0">
@@ -260,10 +259,7 @@ export default function BlogPost() {
             </div>
           </div>
           
-          {/* Bottom ad */}
-          <div className="mt-8">
-            <ContentBottomAd />
-          </div>
+
           
           <div className="mt-8 pt-4 border-t border-border flex justify-between items-center">
             <Link href="/blog">

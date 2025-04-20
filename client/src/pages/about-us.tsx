@@ -70,14 +70,14 @@ export default function AboutUsPage() {
             <section className="space-y-4">
               <h2 className="text-2xl font-bold">Our Team</h2>
               <p>
-                Our diverse team brings together expertise from blockchain development, game design, 
+                Our diverse team brings together expertise from blockchain development, mining technology, 
                 financial technology, and user experience design. Led by a group of seasoned 
                 entrepreneurs with backgrounds in crypto ventures, our team is committed to 
                 innovation and excellence in every aspect of the platform.
               </p>
               <ul className="list-disc pl-6 mt-2 space-y-2">
                 <li><strong>Blockchain Development Team:</strong> Specialists in smart contract development and blockchain integration</li>
-                <li><strong>Game Design Team:</strong> Creative minds focused on building engaging and rewarding game experiences</li>
+                <li><strong>Mining Solutions Team:</strong> Technical experts focused on optimizing mining rewards and platform performance</li>
                 <li><strong>Marketing & Community:</strong> Dedicated to growing our vibrant community and fostering engagement</li>
                 <li><strong>Support Team:</strong> Available to assist users with any questions or issues</li>
               </ul>
@@ -88,7 +88,7 @@ export default function AboutUsPage() {
               <ul className="list-disc pl-6 mt-2 space-y-2">
                 <li><strong>Accessibility:</strong> Making cryptocurrency rewards available to everyone</li>
                 <li><strong>Transparency:</strong> Open and honest communication about our platform and rewards</li>
-                <li><strong>Innovation:</strong> Constantly improving our platform with new features and games</li>
+                <li><strong>Innovation:</strong> Constantly improving our platform with new features and mining solutions</li>
                 <li><strong>Community:</strong> Building a supportive environment for all crypto enthusiasts</li>
                 <li><strong>Security:</strong> Prioritizing the protection of user assets and information</li>
               </ul>
@@ -110,12 +110,12 @@ export default function AboutUsPage() {
                 </a>
                 <br />
                 <a 
-                  href="https://t.me/CPXTBase" 
+                  href="https://t.me/CPXTBOfficial" 
                   className="flex items-center hover:text-primary transition-colors"
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  <span className="mr-2">💬</span>Telegram Support: @CPXTBase
+                  <span className="mr-2">💬</span>Telegram Support: @CPXTBOfficial
                 </a>
                 <br />
                 <a 

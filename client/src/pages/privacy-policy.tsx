@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
                 <li>To improve our platform and user experience</li>
                 <li>To communicate with you about updates and promotions</li>
                 <li>To enforce IP-based restrictions for free CPXTB claims</li>
-                <li>To track game performance and distribute rewards accurately</li>
+                <li>To track mining performance and distribute rewards accurately</li>
               </ul>
             </section>
             
@@ -150,12 +150,12 @@ export default function PrivacyPolicyPage() {
                 </a>
                 <br />
                 <a 
-                  href="https://t.me/CPXTBase" 
+                  href="https://t.me/CPXTBOfficial" 
                   className="flex items-center hover:text-primary transition-colors"
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  <span className="mr-2">💬</span>Telegram Support: @CPXTBase
+                  <span className="mr-2">💬</span>Telegram Support: @CPXTBOfficial
                 </a>
                 <br />
                 <a 

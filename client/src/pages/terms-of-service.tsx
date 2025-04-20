@@ -33,7 +33,7 @@ export default function TermsOfServicePage() {
             <section className="space-y-4">
               <p>
                 Welcome to CPXTB Platform. These Terms of Service ("Terms") govern your use of our website, 
-                applications, games, and services (collectively, the "Platform"). By accessing or using our 
+                applications, mining solutions, and services (collectively, the "Platform"). By accessing or using our 
                 Platform, you agree to be bound by these Terms. If you do not agree, please do not use our Platform.
               </p>
             </section>
@@ -69,7 +69,7 @@ export default function TermsOfServicePage() {
               <h2 className="text-2xl font-bold">4. CPXTB Token and Mining Plans</h2>
               <p>
                 CPXTB is the native utility token of our Platform. CPXTB tokens are distributed as rewards for 
-                participating in our games, activating mining plans, and using our referral program.
+                activating mining plans and using our referral program.
               </p>
               <h3 className="text-xl font-semibold">4.1 Mining Plans</h3>
               <p>
@@ -193,8 +193,15 @@ export default function TermsOfServicePage() {
                 If you have any questions about these Terms, please contact us at:
               </p>
               <p>
-                Email: legal@cpxtb-platform.com<br />
-                Address: CPXTB Platform, 123 Blockchain Street, Suite 456, Crypto City, CC 78901
+                Email: info@coinpredictiontool.com<br />
+                <a 
+                  href="https://t.me/CPXTBOfficial" 
+                  className="flex items-center hover:text-primary transition-colors"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <span className="mr-2">💬</span>Telegram Support: @CPXTBOfficial
+                </a>
               </p>
             </section>
           </CardContent>

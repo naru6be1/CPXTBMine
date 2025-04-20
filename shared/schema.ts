@@ -31,15 +31,6 @@ export const miningPlans = pgTable("mining_plans", {
   referralRewardPaid: boolean("referral_reward_paid").default(false),
 });
 
-export const gameScores = pgTable("game_scores", {
-  id: serial("id").primaryKey(),
-  walletAddress: text("wallet_address").notNull(),
-  score: integer("score").notNull(),
-  earnedCPXTB: numeric("earned_cpxtb", { precision: 10, scale: 3 }).notNull(),
-  gameType: varchar("game_type", { length: 30 }).default("space-mining"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").notNull(),
@@ -87,23 +78,8 @@ export const insertMiningPlanSchema = createInsertSchema(miningPlans)
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-export const insertGameScoreSchema = createInsertSchema(gameScores)
-  .omit({
-    id: true,
-    createdAt: true,
-  })
-  .extend({
-    walletAddress: z.string(),
-    score: z.number().int().positive(),
-    earnedCPXTB: z.number().positive(),
-    gameType: z.enum(['space-mining', 'memory-match']).default('space-mining'),
-  });
-
 export type InsertMiningPlan = z.infer<typeof insertMiningPlanSchema>;
 export type MiningPlan = typeof miningPlans.$inferSelect;
-
-export type InsertGameScore = z.infer<typeof insertGameScoreSchema>;
-export type GameScore = typeof gameScores.$inferSelect;
 
 export const insertRecommendationSchema = createInsertSchema(recommendations)
   .omit({

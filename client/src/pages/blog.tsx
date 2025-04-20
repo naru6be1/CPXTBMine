@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
 import { blogPosts } from "@/lib/blog-data";
-import { HomePageTopAd, ContentBottomAd, SidebarAd } from "@/components/ad-placement";
+
 import { useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, BookOpen, ShieldCheck } from "lucide-react";
@@ -60,8 +60,7 @@ export default function BlogPage() {
         </AlertDescription>
       </Alert>
       
-      {/* Top Ad Banner */}
-      <HomePageTopAd />
+      {/* Banner space */}
       
       {/* SEO-optimized topic section */}
       <div className="my-6 p-4 bg-muted/10 rounded-lg">
@@ -136,18 +135,12 @@ export default function BlogPage() {
                   </Card>
                 </Link>
                 
-                {/* Insert ad after every 3rd post */}
-                {(index + 1) % 3 === 0 && index < blogPosts.length - 1 && (
-                  <ContentBottomAd key={`ad-${index}`} />
-                )}
+
               </div>
             ))}
           </div>
           
-          {/* Bottom Content Ad */}
-          <div className="mt-10">
-            <ContentBottomAd />
-          </div>
+
           
           {/* Educational disclaimer and resources section */}
           <div className="mt-10 p-6 bg-muted/5 rounded-lg border border-border">
@@ -174,7 +167,7 @@ export default function BlogPage() {
           </div>
         </div>
         
-        {/* Sidebar with Ads */}
+        {/* Sidebar */}
         <div className="lg:w-1/4 space-y-8">
           <Card className="p-4 bg-muted/10">
             <CardHeader>
@@ -219,8 +212,7 @@ export default function BlogPage() {
             </CardContent>
           </Card>
           
-          {/* Sidebar Ad */}
-          <SidebarAd />
+
           
           <Card className="p-4 bg-muted/10">
             <CardHeader>
@@ -244,8 +236,7 @@ export default function BlogPage() {
             </CardContent>
           </Card>
           
-          {/* Second Sidebar Ad */}
-          <SidebarAd />
+
         </div>
       </div>
     </div>

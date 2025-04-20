@@ -3,13 +3,13 @@ import { Link } from 'wouter';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SidebarAd, ContentBottomAd } from '@/components/ad-placement';
+
 
 export default function AboutUsPage() {
   return (
     <div className="container mx-auto max-w-7xl p-4 grid grid-cols-1 md:grid-cols-4 gap-6">
       <div className="col-span-1 hidden md:block">
-        <SidebarAd />
+        {/* Sidebar space */}
       </div>
       
       <div className="col-span-1 md:col-span-3 space-y-6">
@@ -131,7 +131,7 @@ export default function AboutUsPage() {
           </CardContent>
         </Card>
         
-        <ContentBottomAd />
+
       </div>
     </div>
   );

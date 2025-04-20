@@ -27,8 +27,3 @@ export function SidebarAd() {
 export function ContentBottomAd() {
   return null;
 }
-
-// For Game Interstitial
-export function GameInterstitialAd() {
-  return null;
-}

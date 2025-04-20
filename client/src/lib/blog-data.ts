@@ -30,29 +30,11 @@ export const blogPosts: BlogPostData[] = [
       Educational considerations for potential participants include understanding that while traditional mining requires significant electricity and hardware costs, our model utilizes smart contracts to distribute rewards based on token holdings. It's important to research and understand the blockchain technology underlying this process before participating in any mining activity.
     `
   },
-  {
-    id: 2,
-    title: "Earn Crypto Playing Games: CPXTB's Play-to-Earn Ecosystem",
-    summary: "Learn how to earn real cryptocurrency by playing engaging games on our platform - no mining hardware required.",
-    slug: "earn-crypto-playing-games",
-    keywords: ["earn crypto playing games", "play-to-earn crypto", "gaming for cryptocurrency"],
-    image: "/images/blog/gaming-rewards.svg",
-    content: `
-      The CPXTB platform offers multiple ways to earn crypto by playing games, going beyond traditional mining plans. Our integrated gaming ecosystem allows users to accumulate CPXTB tokens through entertaining gameplay, making crypto rewards accessible to everyone regardless of investment capability.
 
-      Our flagship Space Mining game challenges players to navigate a spacecraft through asteroid fields, collecting valuable minerals that convert directly to CPXTB tokens. With precise controls and increasing difficulty levels, the game rewards skill and persistence. The current conversion rate of 1000 game points equals 1 CPXTB, striking a perfect balance between entertainment and crypto earnings through gameplay.
-
-      We've recently added the Memory Match card game as a second earning option, providing a more relaxed but equally rewarding experience. This classic matching game tests your memory while offering substantial CPXTB rewards for completed matches. By playing games to earn crypto, you can gradually build your token holdings without any specialized hardware or technical knowledge.
-
-      Both games integrate seamlessly with the platform's wallet system, allowing you to accumulate CPXTB tokens during casual gameplay and then claim them when you're ready to connect your Web3 wallet. This play-to-earn approach democratizes access to cryptocurrency on the Base network, allowing anyone to participate in the CPXTB ecosystem.
-
-      For educational purposes, it's important to understand that play-to-earn gaming represents an innovative intersection of entertainment and blockchain technology. Players should be aware that cryptocurrency values fluctuate, and gameplay earnings should be viewed as a supplementary activity rather than a primary income source. Always play responsibly and within your means.
-    `
-  },
   {
     id: 3,
     title: "Base Network Mining: Maximizing Your CPXTB Rewards",
-    summary: "Master advanced Base network mining strategies to optimize your CPXTB rewards through referrals and combined mining-gaming approaches.",
+    summary: "Master advanced Base network mining strategies to optimize your CPXTB rewards through referrals and strategic approaches.",
     slug: "base-network-mining-strategies",
     keywords: ["Base network mining", "CPXTB mining strategy", "optimize crypto mining"],
     image: "/images/blog/mining-strategies.svg",
@@ -61,28 +43,26 @@ export const blogPosts: BlogPostData[] = [
 
       Our platform's referral system adds another powerful dimension to your Base network mining potential. By sharing your unique referral code with others, you earn a percentage of their mining rewards without affecting their earnings. This creates a win-win situation where both parties benefit from network growth while mining crypto without hardware investments.
 
-      For optimal results in Base network mining, we recommend a hybrid approach that combines traditional mining plans with active gameplay. By diversifying your CPXTB earning methods, you can maintain a steady income stream while enjoying the platform's entertainment value. Many successful users start with free daily CPXTB claims, progress to gaming rewards, and ultimately invest in mining plans as their token holdings grow.
+      For optimal results in Base network mining, we recommend taking advantage of our tiered mining plans structure. By strategically selecting plans that match your investment comfort level, you can maintain a steady income stream while gradually expanding your portfolio. Many successful users start with the Bronze plan to learn the ecosystem before progressing to Silver and Gold plans as their confidence and token holdings grow.
 
-      The platform's transparent analytics help you track your Base network mining performance across all earning methods, allowing you to fine-tune your strategy based on real-time data. This data-driven approach ensures you can make informed decisions about where to focus your efforts in the CPXTB ecosystem.
+      The platform's transparent analytics help you track your Base network mining performance, allowing you to fine-tune your strategy based on real-time data. This data-driven approach ensures you can make informed decisions about where to focus your efforts in the CPXTB ecosystem.
 
       As an educational resource for our community, we emphasize that crypto mining involves financial considerations. Users should only participate with funds they can afford to risk, as cryptocurrency values are subject to market fluctuations. Our transparent reward structure aims to provide clear expectations, but all participants should conduct their own research before engaging in any mining activities.
     `
   },
   {
     id: 4,
-    title: "The Future of Crypto Gaming: CPXTB's Innovative Roadmap",
-    summary: "Explore how CPXTB is revolutionizing both crypto mining without hardware and play-to-earn gaming on the Base network.",
-    slug: "future-crypto-gaming-mining",
-    keywords: ["crypto gaming future", "hardware-free mining", "Base network innovations"],
+    title: "CPXTB's Innovative Roadmap: The Future of Mining on Base",
+    summary: "Explore how CPXTB is revolutionizing crypto mining without hardware on the Base network.",
+    slug: "future-crypto-mining",
+    keywords: ["hardware-free mining", "Base network innovations", "CPXTB roadmap"],
     image: "/images/blog/future-roadmap.svg",
     content: `
-      The CPXTB platform continues to evolve with an ambitious roadmap focused on expanding ways to earn crypto playing games and enhancing hardware-free mining options on the Base network. Our development team is working on several exciting features set to launch in the coming months.
+      The CPXTB platform continues to evolve with an ambitious roadmap focused on enhancing hardware-free mining options on the Base network. Our development team is working on several exciting features set to launch in the coming months.
 
-      One of our most anticipated additions is an expanded gaming ecosystem with more titles offering varied gameplay experiences while maintaining our consistent CPXTB reward structure. These new games will provide additional opportunities to earn crypto through gameplay, with different skill requirements and strategies, ensuring there's something for every type of player in our community.
+      We're enhancing our Base network mining infrastructure to improve scalability and efficiency. This includes optimized smart contracts that reduce gas fees during claim operations and more flexible plan structures that allow for customized investment strategies tailored to individual risk preferences, all without requiring physical mining hardware.
 
-      We're also enhancing our Base network mining infrastructure to improve scalability and efficiency. This includes optimized smart contracts that reduce gas fees during claim operations and more flexible plan structures that allow for customized investment strategies tailored to individual risk preferences, all without requiring physical mining hardware.
-
-      Security remains a top priority for both our crypto gaming and mining operations, with ongoing improvements to our IP-based verification system and additional layers of protection for user wallets and accounts. Our goal is to create the most secure and transparent mining platform on the Base network while maintaining user-friendly accessibility.
+      Security remains a top priority for our mining operations, with ongoing improvements to our IP-based verification system and additional layers of protection for user wallets and accounts. Our goal is to create the most secure and transparent mining platform on the Base network while maintaining user-friendly accessibility.
 
       For educational purposes, we want to highlight that blockchain technology continues to evolve rapidly. The Base network represents an important scaling solution in the ecosystem, and users should stay informed about technological developments. We're committed to providing regular updates and educational materials to help our community understand the underlying technology powering our platform.
     `
@@ -99,11 +79,11 @@ export const blogPosts: BlogPostData[] = [
 
       The Base network is an Ethereum Layer 2 solution designed to provide faster transaction speeds and lower fees while maintaining the security guarantees of the Ethereum mainnet. Developed by Coinbase, Base leverages optimistic rollup technology to batch multiple transactions together before submitting them to the Ethereum mainnet, significantly reducing gas fees and increasing throughput. This makes applications built on Base, like our CPXTB platform, more accessible and cost-effective for users.
 
-      For those new to blockchain concepts, think of Base as a highway built on top of the Ethereum foundation. While Ethereum serves as the secure and trusted foundation, Base provides faster lanes for traffic (transactions) to move efficiently. This architecture enables platforms like CPXTB to offer features such as crypto mining without hardware and play-to-earn gaming experiences at minimal costs.
+      For those new to blockchain concepts, think of Base as a highway built on top of the Ethereum foundation. While Ethereum serves as the secure and trusted foundation, Base provides faster lanes for traffic (transactions) to move efficiently. This architecture enables platforms like CPXTB to offer features such as crypto mining without hardware at minimal costs.
 
-      Smart contracts, which are self-executing contracts with the terms directly written into code, power the core functionality of applications on Base. These contracts automatically enforce and execute the agreed-upon terms when certain conditions are met. For example, on the CPXTB platform, smart contracts handle the distribution of mining rewards, game point conversions, and referral commissions without requiring intermediaries.
+      Smart contracts, which are self-executing contracts with the terms directly written into code, power the core functionality of applications on Base. These contracts automatically enforce and execute the agreed-upon terms when certain conditions are met. For example, on the CPXTB platform, smart contracts handle the distribution of mining rewards and referral commissions without requiring intermediaries.
 
-      For those interested in participating in the blockchain ecosystem, it's important to understand that while technologies like Base make blockchain more accessible, there are still considerations regarding market volatility, regulatory environments, and technological developments. We encourage all users to approach blockchain participation as an educational journey, starting with small activities like our free-to-play games before progressing to more involved options.
+      For those interested in participating in the blockchain ecosystem, it's important to understand that while technologies like Base make blockchain more accessible, there are still considerations regarding market volatility, regulatory environments, and technological developments. We encourage all users to approach blockchain participation as an educational journey, starting with small activities before progressing to more involved options.
 
       This educational content aims to demystify blockchain technology and the Base network specifically. We believe that informed participants create a stronger ecosystem, and we're committed to providing resources that help our community understand the technology underpinning our platform. Remember that blockchain technology is still evolving, and staying informed about new developments is part of the exciting journey into this innovative space.
     `
@@ -118,13 +98,13 @@ export const blogPosts: BlogPostData[] = [
     content: `
       Participating in cryptocurrency ecosystems like CPXTB offers exciting opportunities, but also comes with responsibilities. This educational guide provides important perspectives and best practices for all users engaging with cryptocurrency platforms, with specific focus on our CPXTB ecosystem.
 
-      Risk management should be a priority for anyone engaging with cryptocurrencies. We recommend that users only allocate funds they can afford to lose, as cryptocurrency values can be volatile. Start with free activities like our games to learn about the ecosystem before considering any mining plans. Think of your cryptocurrency activities as an educational experience first and a potential reward system second.
+      Risk management should be a priority for anyone engaging with cryptocurrencies. We recommend that users only allocate funds they can afford to lose, as cryptocurrency values can be volatile. Start with small mining plans to learn about the ecosystem before considering larger investments. Think of your cryptocurrency activities as an educational experience first and a potential reward system second.
 
       Security hygiene is essential when interacting with blockchain applications. Always use strong, unique passwords for your accounts, enable two-factor authentication where available, and be extremely cautious about sharing account information. When connecting your wallet to our platform or any other, verify you're on the correct website and understand the permissions you're granting.
 
       Understanding the technology fundamentals will greatly enhance your experience. Take time to learn about blockchain basics, smart contracts, and specifically how the Base network operates. Our platform provides educational resources, but we also encourage users to diversify their learning sources. Knowledgeable participants make better decisions and contribute to a healthier ecosystem.
 
-      For those participating in our mining or gaming activities, it's important to maintain realistic expectations. Crypto mining without hardware through our platform offers a different risk-reward profile compared to traditional mining. Similarly, while our games provide opportunities to earn crypto through play, they should be enjoyed primarily for their entertainment value rather than viewed as a reliable income source.
+      For those participating in our mining activities, it's important to maintain realistic expectations. Crypto mining without hardware through our platform offers a different risk-reward profile compared to traditional mining. While our plans provide opportunities to earn CPXTB tokens, mining should be approached with a balanced perspective rather than viewed as a reliable income source.
 
       Tax considerations vary by jurisdiction, but cryptocurrency activities typically have tax implications. We recommend consulting with a tax professional familiar with digital assets to understand your obligations. Maintaining good records of your activities on our platform will make this process easier.
 

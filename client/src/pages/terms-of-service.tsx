@@ -90,13 +90,13 @@ export default function TermsOfServicePage() {
             </section>
             
             <section className="space-y-4">
-              <h2 className="text-2xl font-bold">5. Games and Activities</h2>
+              <h2 className="text-2xl font-bold">5. Mining and Activities</h2>
               <p>
-                Our Platform offers various games and activities that allow users to earn CPXTB tokens. When 
-                participating in these activities, you agree to follow the specific rules and conditions for each game.
+                Our Platform offers various mining plans that allow users to earn CPXTB tokens. When 
+                participating in these activities, you agree to follow the specific rules and conditions for each plan.
               </p>
               <p>
-                Attempting to manipulate games, exploit bugs, or use automated tools to gain an unfair advantage is 
+                Attempting to manipulate the system, exploit bugs, or use automated tools to gain an unfair advantage is 
                 strictly prohibited and may result in the forfeiture of rewards and termination of access to the Platform.
               </p>
             </section>
@@ -125,7 +125,7 @@ export default function TermsOfServicePage() {
                 <li>Use the Platform to engage in fraudulent activities</li>
                 <li>Attempt to gain unauthorized access to any part of the Platform</li>
                 <li>Use bots, scripts, or automated tools to interact with the Platform</li>
-                <li>Attempt to manipulate or exploit game mechanics</li>
+                <li>Attempt to manipulate or exploit mining plan mechanisms</li>
                 <li>Create multiple accounts to bypass restrictions</li>
                 <li>Engage in activities that could damage or overburden the Platform</li>
               </ul>

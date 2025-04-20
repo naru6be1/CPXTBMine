@@ -186,9 +186,6 @@ export default function BlogPage() {
                   <Link href="/blog/crypto-mining-without-hardware">Crypto Mining Without Hardware</Link>
                 </li>
                 <li className="text-primary hover:underline cursor-pointer">
-                  <Link href="/blog/earn-crypto-playing-games">Earn Crypto Playing Games</Link>
-                </li>
-                <li className="text-primary hover:underline cursor-pointer">
                   <Link href="/blog/base-network-mining-strategies">Base Network Mining</Link>
                 </li>
                 <li className="text-primary hover:underline cursor-pointer">
@@ -196,6 +193,9 @@ export default function BlogPage() {
                 </li>
                 <li className="text-primary hover:underline cursor-pointer">
                   <Link href="/blog/responsible-crypto-participation">Responsible Crypto Practices</Link>
+                </li>
+                <li className="text-primary hover:underline cursor-pointer">
+                  <Link href="/blog/cpxtb-token-on-base-network">CPXTB Token on Base Network</Link>
                 </li>
               </ul>
             </CardContent>

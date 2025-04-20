@@ -21,8 +21,6 @@ const BlogPage = lazy(() => import("@/pages/blog"));
 const BlogPost = lazy(() => import("@/pages/blog-post"));
 const AboutPage = lazy(() => import("@/pages/about"));
 const ContactPage = lazy(() => import("@/pages/contact"));
-const SpaceMiningGame = lazy(() => import("@/pages/games/space-mining"));
-const MemoryMatchGame = lazy(() => import("@/pages/games/memory-match"));
 const AboutUsPage = lazy(() => import("@/pages/about-us"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
@@ -52,11 +50,7 @@ function Router() {
       if (location === '/') {
         // Preload most common navigations from home page
         import("@/pages/mining");
-        import("@/pages/games/space-mining");
         preloadImages(["/assets/mining-plan-bg.svg"]);
-      } else if (location.includes('/games')) {
-        // Preload relevant game assets
-        preloadImages(["/assets/game-complete.svg"]);
       }
     };
     
@@ -81,8 +75,6 @@ function Router() {
         <Route path="/about" component={AboutPage} />
         <Route path="/about-us" component={AboutUsPage} />
         <Route path="/contact" component={ContactPage} />
-        <Route path="/games/space-mining" component={SpaceMiningGame} />
-        <Route path="/games/memory-match" component={MemoryMatchGame} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route component={NotFound} />

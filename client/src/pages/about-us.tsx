@@ -44,14 +44,14 @@ export default function AboutUsPage() {
               <h2 className="text-2xl font-bold">Our Story</h2>
               <p>
                 Established in 2023, CPXTB Platform emerged from the vision of a team of blockchain 
-                enthusiasts and gaming developers who recognized the need for a more engaging and 
+                enthusiasts and developers who recognized the need for a more accessible and 
                 rewarding cryptocurrency experience. We saw that traditional mining had become 
                 inaccessible to average users due to hardware requirements and technical barriers.
               </p>
               <p>
-                By combining gamification elements with blockchain rewards, we've created a unique 
-                ecosystem where users can earn real cryptocurrency through enjoyable activities and 
-                subscription-based mining plans, without needing specialized equipment.
+                By creating an innovative mining ecosystem, we've developed a unique 
+                platform where users can earn real cryptocurrency through subscription-based 
+                mining plans, without needing specialized equipment or technical expertise.
               </p>
             </section>
             
@@ -60,7 +60,7 @@ export default function AboutUsPage() {
               <p>
                 The CPXTB token is the native reward token of our platform, designed to provide utility 
                 across our ecosystem. Based on the Base network, CPXTB (Crypto Points Extended Base) 
-                represents a bridge between gaming achievements and blockchain rewards.
+                represents a bridge between mining achievements and blockchain rewards.
               </p>
               <p>
                 Contract Address: 0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b

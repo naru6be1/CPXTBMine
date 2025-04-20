@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Gift, Pickaxe, Users, Wallet, Clock, Gamepad2, Trophy, Rocket, LineChart, Share2, Coins } from "lucide-react";
+import { Shield, Gift, Pickaxe, Users, Wallet, Clock, BarChart, Rocket, LineChart, Share2, Coins } from "lucide-react";
 
 export default function FeaturesPage() {
   const features = [
@@ -9,9 +9,9 @@ export default function FeaturesPage() {
       description: "Choose from Bronze, Silver, and Gold mining plans with increasing reward rates. Each tier offers optimized CPXTB earning based on your investment level, with our smart contract ensuring transparent reward distribution."
     },
     {
-      icon: <Gamepad2 className="h-6 w-6" />,
-      title: "Play-to-Earn Gaming",
-      description: "Earn CPXTB tokens by playing our integrated games. Navigate through asteroid fields in Space Mining or test your memory in our Memory Match game - both offering CPXTB rewards based on your skill level."
+      icon: <BarChart className="h-6 w-6" />,
+      title: "Optimized Mining Rewards",
+      description: "Earn CPXTB tokens through our optimized mining system that delivers consistent returns. Our advanced algorithms ensure fair reward distribution based on your selected mining plan tier."
     },
     {
       icon: <Gift className="h-6 w-6" />,
@@ -36,22 +36,17 @@ export default function FeaturesPage() {
     {
       icon: <Wallet className="h-6 w-6" />,
       title: "Flexible Wallet Integration",
-      description: "Connect with popular Web3 wallets via WalletConnect or browser injections. The platform allows gameplay without connection and only requires wallet authorization when claiming rewards."
+      description: "Connect with popular Web3 wallets via WalletConnect or browser injections. The platform requires wallet authorization only when needed for transactions and claiming rewards."
     },
     {
       icon: <LineChart className="h-6 w-6" />,
       title: "Real-time Analytics",
-      description: "Track your mining progress, game earnings, and referral statistics through our intuitive dashboard. Real-time CPXTB price feeds from Uniswap keep you informed on current token values."
-    },
-    {
-      icon: <Trophy className="h-6 w-6" />,
-      title: "Game Score Tracking",
-      description: "Our platform maintains detailed records of your gaming achievements across different game types. The unified reward system converts all game points at 1000:1 ratio to CPXTB tokens."
+      description: "Track your mining progress and referral statistics through our intuitive dashboard. Real-time CPXTB price feeds from Uniswap keep you informed on current token values."
     },
     {
       icon: <Share2 className="h-6 w-6" />,
       title: "Social Integration",
-      description: "Share your mining successes and game achievements directly to social media platforms. Our integrated sharing tools help you grow your referral network and showcase your accomplishments."
+      description: "Share your mining successes directly to social media platforms. Our integrated sharing tools help you grow your referral network and showcase your accomplishments."
     },
     {
       icon: <Clock className="h-6 w-6" />,
@@ -61,7 +56,7 @@ export default function FeaturesPage() {
     {
       icon: <Coins className="h-6 w-6" />,
       title: "Multi-Revenue Streams",
-      description: "Maximize your earnings through multiple channels simultaneously: active mining plans, gaming rewards, referral commissions, and free daily claims all contribute to your CPXTB balance."
+      description: "Maximize your earnings through multiple channels simultaneously: active mining plans, referral commissions, and free daily claims all contribute to your CPXTB balance."
     }
   ];
 
@@ -69,7 +64,7 @@ export default function FeaturesPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Platform Features</h1>
       <p className="text-lg text-muted-foreground mb-8">
-        Our CPXTB ecosystem combines traditional cryptocurrency mining with innovative play-to-earn mechanics, 
+        Our CPXTB ecosystem provides a revolutionary approach to cryptocurrency mining,
         creating multiple pathways to earn tokens regardless of technical expertise or investment capacity.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

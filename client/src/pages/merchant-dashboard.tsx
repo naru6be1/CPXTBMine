@@ -56,10 +56,14 @@ export default function MerchantDashboard() {
   // Create merchant mutation
   const createMerchantMutation = useMutation({
     mutationFn: async (formData: typeof merchantForm) => {
-      const res = await apiRequest("POST", "/api/merchants", {
+      // Convert empty website to null to pass validation
+      const dataToSend = {
         ...formData,
+        website: formData.website || null,
         userId: userData?.id
-      });
+      };
+      
+      const res = await apiRequest("POST", "/api/merchants", dataToSend);
       return await res.json();
     },
     onSuccess: () => {
@@ -139,7 +143,8 @@ export default function MerchantDashboard() {
     
     createPaymentMutation.mutate({
       ...paymentForm,
-      amountUsd: paymentForm.amountUsd,
+      // Ensure amountUsd is sent as a string to match the schema
+      amountUsd: String(paymentForm.amountUsd),
       merchantId: selectedMerchant.id
     });
   };
@@ -287,8 +292,16 @@ export default function MerchantDashboard() {
                       name="website"
                       placeholder="https://yourbusiness.com"
                       value={merchantForm.website}
-                      onChange={handleMerchantFormChange}
+                      onChange={(e) => {
+                        // Ensure URL has protocol if not empty
+                        let value = e.target.value;
+                        if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
+                          value = 'https://' + value;
+                        }
+                        setMerchantForm(prev => ({ ...prev, website: value }));
+                      }}
                     />
+                    <p className="text-xs text-muted-foreground">URL must include https:// or http://</p>
                   </div>
                   
                   <div className="space-y-2">

@@ -238,6 +238,181 @@ export class DatabaseStorage implements IStorage {
       .from(miningPlans)
       .where(eq(miningPlans.referralCode, referralCode));
   }
+  
+  // Merchant methods
+  async createMerchant(merchant: InsertMerchant): Promise<Merchant> {
+    // Generate a unique API key for the merchant
+    const apiKey = crypto.randomBytes(32).toString('hex');
+    
+    // Create the merchant with the API key
+    const [newMerchant] = await db
+      .insert(merchants)
+      .values({
+        ...merchant,
+        apiKey,
+        updatedAt: new Date(),
+      })
+      .returning();
+      
+    return newMerchant;
+  }
+  
+  async getMerchant(id: number): Promise<Merchant | undefined> {
+    const [merchant] = await db
+      .select()
+      .from(merchants)
+      .where(eq(merchants.id, id));
+      
+    return merchant;
+  }
+  
+  async getMerchantByApiKey(apiKey: string): Promise<Merchant | undefined> {
+    const [merchant] = await db
+      .select()
+      .from(merchants)
+      .where(eq(merchants.apiKey, apiKey));
+      
+    return merchant;
+  }
+  
+  async getMerchantsByUserId(userId: number): Promise<Merchant[]> {
+    return await db
+      .select()
+      .from(merchants)
+      .where(eq(merchants.userId, userId))
+      .orderBy(desc(merchants.createdAt));
+  }
+  
+  async updateMerchant(id: number, updates: Partial<InsertMerchant>): Promise<Merchant> {
+    const [updatedMerchant] = await db
+      .update(merchants)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(merchants.id, id))
+      .returning();
+      
+    return updatedMerchant;
+  }
+  
+  async deleteMerchant(id: number): Promise<void> {
+    await db
+      .delete(merchants)
+      .where(eq(merchants.id, id));
+  }
+  
+  // Payment methods
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [newPayment] = await db
+      .insert(payments)
+      .values({
+        ...payment,
+        updatedAt: new Date(),
+      })
+      .returning();
+      
+    return newPayment;
+  }
+  
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.id, id));
+      
+    return payment;
+  }
+  
+  async getPaymentByReference(paymentReference: string): Promise<Payment | undefined> {
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.paymentReference, paymentReference));
+      
+    return payment;
+  }
+  
+  async getPaymentsByMerchant(merchantId: number): Promise<Payment[]> {
+    return await db
+      .select()
+      .from(payments)
+      .where(eq(payments.merchantId, merchantId))
+      .orderBy(desc(payments.createdAt));
+  }
+  
+  async updatePaymentStatus(paymentId: number, status: string, transactionHash?: string): Promise<Payment> {
+    const updates: any = { 
+      status, 
+      updatedAt: new Date() 
+    };
+    
+    // If payment is completed, add completion timestamp
+    if (status === 'completed') {
+      updates.completedAt = new Date();
+    }
+    
+    // If transaction hash is provided, update it
+    if (transactionHash) {
+      updates.transactionHash = transactionHash;
+    }
+    
+    const [updatedPayment] = await db
+      .update(payments)
+      .set(updates)
+      .where(eq(payments.id, paymentId))
+      .returning();
+      
+    return updatedPayment;
+  }
+  
+  async getExpiredPayments(): Promise<Payment[]> {
+    return await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.status, 'pending'),
+          lt(payments.expiresAt, new Date())
+        )
+      );
+  }
+  
+  async getMerchantReport(merchantId: number, startDate: Date, endDate: Date): Promise<{
+    totalPayments: number;
+    successfulPayments: number;
+    totalAmountUsd: number;
+    totalAmountCpxtb: string;
+  }> {
+    const allPayments = await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.merchantId, merchantId),
+          gte(payments.createdAt, startDate),
+          lt(payments.createdAt, endDate)
+        )
+      );
+      
+    const successfulPayments = allPayments.filter(p => p.status === 'completed');
+    
+    // Calculate totals
+    const totalAmountUsd = successfulPayments.reduce((sum, p) => {
+      return sum + Number(p.amountUsd);
+    }, 0);
+    
+    const totalAmountCpxtb = successfulPayments.reduce((sum, p) => {
+      return sum + Number(p.amountCpxtb);
+    }, 0);
+    
+    return {
+      totalPayments: allPayments.length,
+      successfulPayments: successfulPayments.length,
+      totalAmountUsd,
+      totalAmountCpxtb: totalAmountCpxtb.toString()
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();

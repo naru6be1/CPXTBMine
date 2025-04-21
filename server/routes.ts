@@ -1,10 +1,15 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMiningPlanSchema, miningPlans, users } from "@shared/schema";
+import { 
+  insertMiningPlanSchema, miningPlans, users, merchants, payments,
+  insertMerchantSchema, insertPaymentSchema 
+} from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { eq, gte, and, sql, lte } from "drizzle-orm";
 import { db } from "./db";
+import { z } from "zod";
+import crypto from "crypto";
 import { TREASURY_ADDRESS } from "./constants";
 import { WebSocketServer, WebSocket } from "ws";
 import { createPublicClient, http, parseAbi } from "viem";
@@ -195,6 +200,77 @@ async function checkAndDistributeMaturedPlans() {
     console.error('Error checking matured plans:', error);
   }
 }
+
+// Authentication middleware for merchant API endpoints
+const authenticateMerchant = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const apiKey = req.headers['x-api-key'] as string;
+    if (!apiKey) {
+      return res.status(401).json({ message: 'API key required' });
+    }
+    
+    const merchant = await storage.getMerchantByApiKey(apiKey);
+    if (!merchant) {
+      return res.status(401).json({ message: 'Invalid API key' });
+    }
+    
+    // Attach merchant to request for later use
+    (req as any).merchant = merchant;
+    next();
+  } catch (error: any) {
+    console.error('Merchant authentication error:', error);
+    res.status(500).json({ message: 'Authentication error: ' + error.message });
+  }
+};
+
+// Utility to generate a payment reference
+const generatePaymentReference = () => {
+  return `CPXTB-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+};
+
+// Function to calculate CPXTB amount based on USD amount and current exchange rate
+const calculateCpxtbAmount = (usdAmount: number, exchangeRate: number) => {
+  return usdAmount / exchangeRate;
+};
+
+// Get current CPXTB price from our price display API
+const getCurrentCpxtbPrice = async (): Promise<number> => {
+  // This is a placeholder - we'll use the current price from our existing price system
+  // For now, returning a fixed price for example purposes
+  return 0.002022; // Current price seen in the logs
+};
+
+// Helper function to verify a CPXTB token transaction on the blockchain
+const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, toAddress: string) => {
+  try {
+    // Create Base network client
+    const baseClient = createPublicClient({
+      chain: base,
+      transport: http(BASE_RPC_URL)
+    });
+    
+    // Get transaction receipt
+    const receipt = await baseClient.getTransactionReceipt({ 
+      hash: txHash as `0x${string}` 
+    });
+    
+    // Check if transaction was successful
+    if (receipt.status !== 'success') {
+      return { verified: false, reason: 'Transaction failed' };
+    }
+    
+    // Additional verification logic would go here
+    // In a production environment, we would:
+    // 1. Verify this is an ERC20 transfer of CPXTB tokens
+    // 2. Verify the recipient address matches the merchant's wallet
+    // 3. Verify the amount transferred matches the expected amount
+    
+    return { verified: true, receipt };
+  } catch (error: any) {
+    console.error('Transaction verification error:', error);
+    return { verified: false, reason: error.message };
+  }
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Update user endpoint with additional logging and error handling
@@ -530,6 +606,321 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // =====================================================
+  // MERCHANT PAYMENT API ENDPOINTS
+  // =====================================================
+  
+  // Register a new merchant
+  app.post("/api/merchants", async (req, res) => {
+    try {
+      // Validate the merchant data
+      const merchantData = insertMerchantSchema.parse(req.body);
+      
+      // Normalize wallet address
+      merchantData.walletAddress = merchantData.walletAddress.toLowerCase();
+      
+      // Create the merchant
+      const merchant = await storage.createMerchant(merchantData);
+      
+      console.log('New merchant registered:', {
+        merchantId: merchant.id,
+        businessName: merchant.businessName,
+        walletAddress: merchant.walletAddress,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.status(201).json({ 
+        merchant: {
+          ...merchant,
+          apiKey: merchant.apiKey.substring(0, 8) + '...' // Mask the API key in the response
+        },
+        message: "Merchant created successfully. Save your API key, it won't be displayed again." 
+      });
+    } catch (error: any) {
+      console.error("Error creating merchant:", error);
+      
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        res.status(400).json({
+          message: "Invalid merchant data: " + validationError.message
+        });
+        return;
+      }
+      
+      res.status(500).json({
+        message: "Error creating merchant: " + error.message
+      });
+    }
+  });
+  
+  // Get merchant details for a user
+  app.get("/api/users/:userId/merchants", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const merchants = await storage.getMerchantsByUserId(userId);
+      
+      // Mask the API keys in the response
+      const maskedMerchants = merchants.map(merchant => ({
+        ...merchant,
+        apiKey: merchant.apiKey.substring(0, 8) + '...'
+      }));
+      
+      res.json({ merchants: maskedMerchants });
+    } catch (error: any) {
+      console.error("Error fetching merchants:", error);
+      res.status(500).json({
+        message: "Error fetching merchants: " + error.message
+      });
+    }
+  });
+  
+  // Create a new payment request
+  app.post("/api/payments", authenticateMerchant, async (req, res) => {
+    try {
+      const merchant = (req as any).merchant;
+      const { amountUsd, orderId, description, customerWalletAddress } = req.body;
+      
+      // Validate inputs
+      if (!amountUsd || !orderId) {
+        return res.status(400).json({ message: 'Amount in USD and orderId are required' });
+      }
+      
+      // Get current CPXTB price
+      const cpxtbPrice = await getCurrentCpxtbPrice();
+      
+      // Calculate CPXTB amount
+      const amountCpxtb = calculateCpxtbAmount(amountUsd, cpxtbPrice);
+      
+      // Generate a unique payment reference
+      const paymentReference = generatePaymentReference();
+      
+      // Set expiration time (15 minutes from now)
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      
+      // Create payment record
+      const payment = await storage.createPayment({
+        merchantId: merchant.id,
+        orderId,
+        amountUsd,
+        amountCpxtb,
+        customerWalletAddress: customerWalletAddress?.toLowerCase(),
+        paymentReference,
+        description,
+        exchangeRate: cpxtbPrice,
+        expiresAt
+      });
+      
+      // Format the response
+      res.status(201).json({
+        payment: {
+          id: payment.id,
+          reference: payment.paymentReference,
+          amountUsd,
+          amountCpxtb,
+          exchangeRate: cpxtbPrice,
+          merchantWalletAddress: merchant.walletAddress,
+          expiresAt,
+          status: payment.status
+        },
+        qrCodeData: JSON.stringify({
+          action: "pay",
+          recipient: merchant.walletAddress,
+          amount: amountCpxtb.toString(),
+          reference: payment.paymentReference,
+          currency: "CPXTB",
+          expiresAt: expiresAt.toISOString()
+        })
+      });
+    } catch (error: any) {
+      console.error("Error creating payment:", error);
+      res.status(500).json({
+        message: "Error creating payment: " + error.message
+      });
+    }
+  });
+  
+  // Verify payment
+  app.post("/api/payments/:reference/verify", authenticateMerchant, async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const { transactionHash } = req.body;
+      
+      if (!transactionHash) {
+        return res.status(400).json({ message: 'Transaction hash is required' });
+      }
+      
+      // Find payment by reference
+      const payment = await storage.getPaymentByReference(reference);
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+      
+      // Verify payment on blockchain
+      const merchant = (req as any).merchant;
+      const verificationResult = await verifyCpxtbTransaction(
+        transactionHash, 
+        payment.amountCpxtb.toString(), 
+        merchant.walletAddress
+      );
+      
+      if (!verificationResult.verified) {
+        return res.status(400).json({ 
+          verified: false, 
+          message: `Transaction verification failed: ${verificationResult.reason}` 
+        });
+      }
+      
+      // Update payment status
+      const updatedPayment = await storage.updatePaymentStatus(
+        payment.id, 
+        'completed',
+        transactionHash
+      );
+      
+      // Send notification about the completed payment
+      const message = JSON.stringify({
+        type: 'paymentCompleted',
+        paymentId: payment.id,
+        merchantId: payment.merchantId,
+        reference: payment.paymentReference,
+        transactionHash,
+        timestamp: new Date().toISOString()
+      });
+      
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+      
+      // If merchant has a webhook URL, trigger it
+      if (merchant.webhookUrl) {
+        try {
+          // Implementation of webhook call would go here
+          // For now, just log it
+          console.log('Would trigger webhook to:', merchant.webhookUrl, {
+            event: 'payment.completed',
+            data: {
+              payment_id: payment.id,
+              reference: payment.paymentReference,
+              amount_usd: payment.amountUsd.toString(),
+              amount_cpxtb: payment.amountCpxtb.toString(),
+              transaction_hash: transactionHash,
+              timestamp: new Date().toISOString()
+            }
+          });
+        } catch (error) {
+          console.error('Webhook error:', error);
+          // Continue with response even if webhook fails
+        }
+      }
+      
+      res.json({ 
+        verified: true, 
+        payment: updatedPayment,
+        message: 'Payment verified successfully' 
+      });
+    } catch (error: any) {
+      console.error("Error verifying payment:", error);
+      res.status(500).json({
+        message: "Error verifying payment: " + error.message
+      });
+    }
+  });
+  
+  // Get payment status
+  app.get("/api/payments/:reference", authenticateMerchant, async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const payment = await storage.getPaymentByReference(reference);
+      
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+      
+      // Check if payment belongs to authenticated merchant
+      const merchant = (req as any).merchant;
+      if (payment.merchantId !== merchant.id) {
+        return res.status(403).json({ message: 'Unauthorized access to payment' });
+      }
+      
+      res.json({ payment });
+    } catch (error: any) {
+      console.error("Error fetching payment:", error);
+      res.status(500).json({
+        message: "Error fetching payment: " + error.message
+      });
+    }
+  });
+  
+  // Get merchant payment history
+  app.get("/api/merchants/payments", authenticateMerchant, async (req, res) => {
+    try {
+      const merchant = (req as any).merchant;
+      const payments = await storage.getPaymentsByMerchant(merchant.id);
+      
+      res.json({ payments });
+    } catch (error: any) {
+      console.error("Error fetching merchant payments:", error);
+      res.status(500).json({
+        message: "Error fetching merchant payments: " + error.message
+      });
+    }
+  });
+  
+  // Get merchant payment statistics
+  app.get("/api/merchants/stats", authenticateMerchant, async (req, res) => {
+    try {
+      const merchant = (req as any).merchant;
+      
+      // Default to last 30 days if not specified
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      
+      // Parse start and end dates from query params if provided
+      if (req.query.startDate) {
+        startDate.setTime(Date.parse(req.query.startDate as string));
+      }
+      
+      if (req.query.endDate) {
+        endDate.setTime(Date.parse(req.query.endDate as string));
+      }
+      
+      const stats = await storage.getMerchantReport(merchant.id, startDate, endDate);
+      
+      res.json({
+        ...stats,
+        period: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching merchant stats:", error);
+      res.status(500).json({
+        message: "Error fetching merchant stats: " + error.message
+      });
+    }
+  });
+
+  // Automatically clear expired pending payments
+  const clearExpiredPayments = async () => {
+    try {
+      const expiredPayments = await storage.getExpiredPayments();
+      
+      for (const payment of expiredPayments) {
+        await storage.updatePaymentStatus(payment.id, 'expired');
+        console.log(`Payment ${payment.id} (${payment.paymentReference}) marked as expired`);
+      }
+    } catch (error) {
+      console.error('Error clearing expired payments:', error);
+    }
+  };
+  
+  // Schedule regular cleanup of expired payments
+  setInterval(clearExpiredPayments, 5 * 60 * 1000); // Every 5 minutes
+  
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time updates

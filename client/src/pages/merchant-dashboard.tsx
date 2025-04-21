@@ -174,15 +174,14 @@ export default function MerchantDashboard() {
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
 
   useEffect(() => {
-    if (merchantData?.merchants?.length > 0) {
+    if (merchantData?.merchants && merchantData.merchants.length > 0) {
       setSelectedMerchant(merchantData.merchants[0]);
     }
   }, [merchantData]);
 
-  // Redirect if not authenticated
-  if (userData === null) {
-    return <Redirect to="/auth" />;
-  }
+  // The ProtectedRoute component will now handle the authentication check
+  // We don't need the manual redirect anymore since the component will only render
+  // if the user is authenticated
 
   return (
     <div className="container my-8">
@@ -426,7 +425,7 @@ export default function MerchantDashboard() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreatePayment} className="space-y-4">
-                  {merchantData?.merchants?.length > 1 && (
+                  {merchantData?.merchants && merchantData.merchants.length > 1 && (
                     <div className="space-y-2">
                       <Label htmlFor="merchantSelect">Select Business</Label>
                       <select
@@ -435,8 +434,10 @@ export default function MerchantDashboard() {
                         value={selectedMerchant?.id}
                         onChange={(e) => {
                           const id = parseInt(e.target.value);
-                          const merchant = merchantData.merchants.find((m: any) => m.id === id);
-                          setSelectedMerchant(merchant);
+                          const merchant = merchantData.merchants?.find((m: any) => m.id === id);
+                          if (merchant) {
+                            setSelectedMerchant(merchant);
+                          }
                         }}
                       >
                         {merchantData.merchants.map((merchant: any) => (

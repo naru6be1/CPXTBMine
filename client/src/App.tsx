@@ -8,6 +8,7 @@ import { HamburgerMenu } from "@/components/hamburger-menu";
 import { LiveUserCount } from "@/components/live-user-count";
 import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi';
+import { ProtectedRoute } from "./lib/protected-route";
 import { scheduleMemoryCleanup, preloadImages } from "./lib/performance-optimizations";
 
 // Lazy-loaded components for better performance
@@ -78,7 +79,7 @@ function Router() {
         <Route path="/contact" component={ContactPage} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
-        <Route path="/merchant" component={MerchantDashboard} />
+        <ProtectedRoute path="/merchant" component={MerchantDashboard} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

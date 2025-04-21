@@ -25,6 +25,7 @@ const ContactPage = lazy(() => import("@/pages/contact"));
 const AboutUsPage = lazy(() => import("@/pages/about-us"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
+const AuthPage = lazy(() => import("@/pages/auth-page"));
 const MerchantDashboard = lazy(() => import("@/pages/merchant-dashboard"));
 
 // Loading component for Suspense fallback
@@ -79,6 +80,7 @@ function Router() {
         <Route path="/contact" component={ContactPage} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
+        <Route path="/auth" component={AuthPage} />
         <ProtectedRoute path="/merchant" component={MerchantDashboard} />
         <Route component={NotFound} />
       </Switch>

@@ -11,12 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function MerchantDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { isConnected, walletAddress, connect } = useWallet();
+  const { isConnected, address: walletAddress, connect } = useWallet();
   const [activeTab, setActiveTab] = useState("business");
 
   // Get user data
@@ -523,10 +523,11 @@ export default function MerchantDashboard() {
                 </CardHeader>
                 <CardContent className="flex flex-col items-center justify-center">
                   <div className="bg-white p-6 rounded-lg mb-4">
-                    <QRCode 
+                    <QRCodeSVG 
                       value={currentPayment.qrCodeData}
                       size={200}
                       level="H"
+                      className="w-full h-auto"
                     />
                   </div>
                   

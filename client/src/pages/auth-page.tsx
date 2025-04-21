@@ -28,7 +28,7 @@ export default function AuthPage() {
   });
   
   // Form handlers
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     loginMutation.mutate({
       username: loginForm.username,
@@ -36,7 +36,7 @@ export default function AuthPage() {
     });
   };
   
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (registerForm.password !== registerForm.confirmPassword) {
@@ -65,7 +65,7 @@ export default function AuthPage() {
     setRegisterForm(prev => ({ ...prev, [name]: value }));
   };
   
-  // Redirect if already logged in - moved here to avoid hook rule violations
+  // Redirect if already logged in
   if (user && !isLoading) {
     return <Redirect to="/merchant" />;
   }

@@ -96,10 +96,18 @@ export default function MerchantDashboard() {
   // Create payment mutation
   const createPaymentMutation = useMutation({
     mutationFn: async (formData: typeof paymentForm & { merchantId: number }) => {
+      console.log("Creating payment with merchant:", selectedMerchant);
+      console.log("Payment form data:", formData);
+      
       // Add API key as header
       const headers = new Headers({
         'Content-Type': 'application/json',
         'X-API-Key': selectedMerchant?.apiKey || ""
+      });
+      
+      console.log("Request headers:", {
+        'Content-Type': 'application/json',
+        'X-API-Key': selectedMerchant?.apiKey ? `${selectedMerchant.apiKey.substring(0, 4)}...` : "missing"
       });
       
       const res = await fetch("/api/payments", {
@@ -108,8 +116,11 @@ export default function MerchantDashboard() {
         body: JSON.stringify(formData)
       });
       
+      console.log("Response status:", res.status);
+      
       if (!res.ok) {
         const error = await res.json();
+        console.error("Payment creation error:", error);
         throw new Error(error.message || "Failed to create payment");
       }
       

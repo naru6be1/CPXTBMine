@@ -204,15 +204,29 @@ async function checkAndDistributeMaturedPlans() {
 // Authentication middleware for merchant API endpoints
 const authenticateMerchant = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log('Merchant authentication attempt with headers:', {
+      headers: Object.keys(req.headers),
+      'x-api-key': req.headers['x-api-key'] ? 'present' : 'missing'
+    });
+    
     const apiKey = req.headers['x-api-key'] as string;
     if (!apiKey) {
+      console.log('API key missing in request headers');
       return res.status(401).json({ message: 'API key required' });
     }
     
+    console.log('Looking up merchant with API key:', apiKey.substring(0, 4) + '...');
     const merchant = await storage.getMerchantByApiKey(apiKey);
+    
     if (!merchant) {
+      console.log('No merchant found with provided API key');
       return res.status(401).json({ message: 'Invalid API key' });
     }
+    
+    console.log('Merchant authenticated successfully:', {
+      id: merchant.id,
+      businessName: merchant.businessName
+    });
     
     // Attach merchant to request for later use
     (req as any).merchant = merchant;

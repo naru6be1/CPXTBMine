@@ -767,15 +767,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:userId/merchants", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const merchants = await storage.getMerchantsByUserId(userId);
+      console.log(`Fetching merchants for user ID: ${userId}`);
       
-      // Mask the API keys in the response
-      const maskedMerchants = merchants.map(merchant => ({
-        ...merchant,
-        apiKey: merchant.apiKey.substring(0, 8) + '...'
-      }));
-      
-      res.json({ merchants: maskedMerchants });
+      // Check if the user is authenticated and if they are requesting their own merchants
+      if (req.isAuthenticated() && req.user && req.user.id === userId) {
+        console.log("User is authenticated and requesting their own merchants");
+        const merchants = await storage.getMerchantsByUserId(userId);
+        console.log(`Found ${merchants.length} merchants for user ID: ${userId}`);
+        
+        // Return full API keys for the authenticated user's own merchants
+        res.json({ merchants });
+      } else {
+        console.log("User requesting merchants is not authenticated or not the owner");
+        // For security, mask the API keys when not authenticated or requesting someone else's merchants
+        const merchants = await storage.getMerchantsByUserId(userId);
+        
+        const maskedMerchants = merchants.map(merchant => ({
+          ...merchant,
+          apiKey: merchant.apiKey.substring(0, 8) + '...'
+        }));
+        
+        res.json({ merchants: maskedMerchants });
+      }
     } catch (error: any) {
       console.error("Error fetching merchants:", error);
       res.status(500).json({

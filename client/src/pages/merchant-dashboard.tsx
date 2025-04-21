@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
@@ -96,24 +97,39 @@ export default function MerchantDashboard() {
   // Create payment mutation
   const createPaymentMutation = useMutation({
     mutationFn: async (formData: typeof paymentForm & { merchantId: number }) => {
-      console.log("Creating payment with merchant:", selectedMerchant);
+      if (!selectedMerchant || !selectedMerchant.apiKey) {
+        throw new Error("No merchant account selected or missing API key");
+      }
+      
+      console.log("Creating payment with merchant:", {
+        id: selectedMerchant.id,
+        businessName: selectedMerchant.businessName,
+        hasApiKey: !!selectedMerchant.apiKey
+      });
       console.log("Payment form data:", formData);
       
-      // Add API key as header
+      // Add API key as header - ensure it's coming from selectedMerchant directly
+      const apiKey = selectedMerchant.apiKey;
       const headers = new Headers({
         'Content-Type': 'application/json',
-        'X-API-Key': selectedMerchant?.apiKey || ""
+        'X-API-Key': apiKey
       });
       
       console.log("Request headers:", {
         'Content-Type': 'application/json',
-        'X-API-Key': selectedMerchant?.apiKey ? `${selectedMerchant.apiKey.substring(0, 4)}...` : "missing"
+        'X-API-Key': apiKey ? `${apiKey.substring(0, 4)}...` : "missing"
       });
+      
+      // Make sure we're sending the correct merchantId from the selected merchant
+      const dataToSend = {
+        ...formData,
+        merchantId: selectedMerchant.id
+      };
       
       const res = await fetch("/api/payments", {
         method: "POST",
         headers,
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
       
       console.log("Response status:", res.status);
@@ -153,6 +169,7 @@ export default function MerchantDashboard() {
   const handleCreatePayment = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Enhanced validation for selected merchant
     if (!selectedMerchant) {
       toast({
         title: "Select a merchant",
@@ -163,6 +180,23 @@ export default function MerchantDashboard() {
       setActiveTab("business");
       return;
     }
+    
+    // Validate API key presence
+    if (!selectedMerchant.apiKey) {
+      toast({
+        title: "Invalid merchant account",
+        description: "The selected merchant account has no API key",
+        variant: "destructive",
+      });
+      // Redirect to business tab to select a different merchant
+      setActiveTab("business");
+      return;
+    }
+    
+    console.log("Submitting payment with selected merchant:", {
+      id: selectedMerchant.id,
+      businessName: selectedMerchant.businessName
+    });
     
     createPaymentMutation.mutate({
       ...paymentForm,
@@ -467,27 +501,38 @@ export default function MerchantDashboard() {
                   </div>
                 )}
                 <form onSubmit={handleCreatePayment} className="space-y-4">
-                  {merchantData?.merchants && merchantData.merchants.length > 1 && (
+                  {merchantData?.merchants && merchantData.merchants.length > 0 && (
                     <div className="space-y-2">
                       <Label htmlFor="merchantSelect">Select Business</Label>
-                      <select
-                        id="merchantSelect"
-                        className="w-full p-2 border rounded-md"
-                        value={selectedMerchant?.id}
-                        onChange={(e) => {
-                          const id = parseInt(e.target.value);
-                          const merchant = merchantData.merchants?.find((m: any) => m.id === id);
+                      <Select 
+                        value={selectedMerchant?.id.toString() || ""} 
+                        onValueChange={(value) => {
+                          const merchant = merchantData.merchants.find((m: any) => m.id.toString() === value);
                           if (merchant) {
+                            console.log(`Selected merchant: ${merchant.businessName} (ID: ${merchant.id})`);
+                            console.log(`API Key available: ${!!merchant.apiKey}`);
                             setSelectedMerchant(merchant);
                           }
                         }}
                       >
-                        {merchantData.merchants.map((merchant: any) => (
-                          <option key={merchant.id} value={merchant.id}>
-                            {merchant.businessName}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a business" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {merchantData.merchants.map((merchant: any) => (
+                            <SelectItem key={merchant.id} value={merchant.id.toString()}>
+                              {merchant.businessName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        API Key: {selectedMerchant?.apiKey ? 
+                          (selectedMerchant.apiKey.length > 15 ? 
+                            `${selectedMerchant.apiKey.substring(0, 15)}...` : 
+                            selectedMerchant.apiKey) : 
+                          "None - please register a business with valid API key"}
+                      </p>
                     </div>
                   )}
                   

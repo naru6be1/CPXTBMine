@@ -12,6 +12,7 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
+import { User } from "@shared/schema";
 
 export default function MerchantDashboard() {
   const { toast } = useToast();
@@ -20,13 +21,13 @@ export default function MerchantDashboard() {
   const [activeTab, setActiveTab] = useState("business");
 
   // Get user data
-  const { data: userData } = useQuery({
+  const { data: userData } = useQuery<User>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
   // Get merchant accounts for the user
-  const { data: merchantData, isLoading: isMerchantLoading, refetch: refetchMerchants } = useQuery({
+  const { data: merchantData, isLoading: isMerchantLoading, refetch: refetchMerchants } = useQuery<{ merchants: any[] }>({
     queryKey: ["/api/users", userData?.id, "merchants"], 
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!userData?.id,
@@ -56,13 +57,22 @@ export default function MerchantDashboard() {
   // Create merchant mutation
   const createMerchantMutation = useMutation({
     mutationFn: async (formData: typeof merchantForm) => {
-      // Convert empty website to null to pass validation
+      // Make sure we have user data
+      if (!userData?.id) {
+        throw new Error("User not authenticated. Please log in.");
+      }
+      
+      // Convert empty website to undefined (not null) to pass validation
+      // and ensure userId is a number
       const dataToSend = {
         ...formData,
-        website: formData.website || null,
-        userId: userData?.id
+        // If website is empty or just whitespace, don't send it at all
+        ...(formData.website && formData.website.trim() ? { website: formData.website } : {}),
+        // Ensure userId is a number
+        userId: Number(userData.id)
       };
       
+      console.log("Sending merchant data:", dataToSend);
       const res = await apiRequest("POST", "/api/merchants", dataToSend);
       return await res.json();
     },

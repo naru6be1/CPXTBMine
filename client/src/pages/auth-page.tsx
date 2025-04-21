@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Redirect, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Redirect } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function AuthPage() {
-  const [location] = useLocation();
   const [activeTab, setActiveTab] = useState<string>("login");
   const { toast } = useToast();
+  
+  // Get auth context
+  const { user, isLoading, loginMutation, registerMutation } = useAuth();
   
   // Form states
   const [loginForm, setLoginForm] = useState({
@@ -24,74 +25,6 @@ export default function AuthPage() {
     username: "",
     password: "",
     confirmPassword: ""
-  });
-  
-  // Check if user is already logged in
-  const { data: user, isLoading } = useQuery({
-    queryKey: ["/api/user"],
-    queryFn: async ({ queryKey }) => {
-      try {
-        const res = await fetch(queryKey[0] as string, {
-          credentials: "include",
-        });
-        
-        if (res.status === 401) {
-          return null;
-        }
-        
-        return await res.json();
-      } catch (error) {
-        return null;
-      }
-    },
-  });
-  
-  // Redirect if already logged in
-  if (user && !isLoading) {
-    return <Redirect to="/merchant" />;
-  }
-  
-  // Mutations
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Login successful",
-        description: "You are now logged in",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  const registerMutation = useMutation({
-    mutationFn: async (userData: { username: string; password: string; referralCode: string }) => {
-      const res = await apiRequest("POST", "/api/register", userData);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Registration successful",
-        description: "Your account has been created and you are now logged in",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
   
   // Form handlers
@@ -131,6 +64,11 @@ export default function AuthPage() {
     const { name, value } = e.target;
     setRegisterForm(prev => ({ ...prev, [name]: value }));
   };
+  
+  // Redirect if already logged in - moved here to avoid hook rule violations
+  if (user && !isLoading) {
+    return <Redirect to="/merchant" />;
+  }
   
   return (
     <div className="flex min-h-screen">

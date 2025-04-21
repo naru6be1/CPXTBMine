@@ -10,6 +10,7 @@ import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi';
 import { ProtectedRoute } from "./lib/protected-route";
 import { scheduleMemoryCleanup, preloadImages } from "./lib/performance-optimizations";
+import { AuthProvider } from "./hooks/use-auth";
 
 // Lazy-loaded components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -107,12 +108,14 @@ function App() {
     <ErrorBoundary>
       <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
-          <HamburgerMenu />
-          <div className="fixed top-4 right-4 z-50">
-            <LiveUserCount />
-          </div>
-          <Router />
-          <Toaster />
+          <AuthProvider>
+            <HamburgerMenu />
+            <div className="fixed top-4 right-4 z-50">
+              <LiveUserCount />
+            </div>
+            <Router />
+            <Toaster />
+          </AuthProvider>
         </QueryClientProvider>
       </WagmiConfig>
     </ErrorBoundary>

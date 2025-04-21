@@ -790,10 +790,16 @@ export default function MerchantDashboard() {
                   <div className="bg-white p-6 rounded-lg mb-4">
                     <QRCodeSVG 
                       value={currentPayment.qrCodeData}
-                      size={200}
+                      size={240}
                       level="H"
                       className="w-full h-auto"
                     />
+                  </div>
+                  <div className="text-center mb-4">
+                    <span className="text-xs bg-muted px-2 py-1 rounded flex items-center justify-center gap-1">
+                      <AlertCircle className="h-3 w-3 text-yellow-500" />
+                      Scan with any Ethereum wallet to pay
+                    </span>
                   </div>
                   
                   <div className="w-full space-y-4">
@@ -898,9 +904,25 @@ export default function MerchantDashboard() {
                     <p className="text-sm text-muted-foreground">
                       The customer sends exactly {Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB to your wallet address:
                     </p>
-                    <code className="text-xs bg-muted p-2 rounded block break-all">
-                      {selectedMerchant?.walletAddress}
-                    </code>
+                    <div className="flex items-center">
+                      <code className="text-xs bg-muted p-2 rounded-l block break-all w-full">
+                        {currentPayment.payment.merchantWalletAddress}
+                      </code>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        className="h-8 rounded-l-none"
+                        onClick={() => {
+                          navigator.clipboard.writeText(currentPayment.payment.merchantWalletAddress);
+                          toast({
+                            title: "Copied",
+                            description: "Wallet address copied to clipboard",
+                          });
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">

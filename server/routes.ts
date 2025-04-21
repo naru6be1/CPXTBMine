@@ -885,7 +885,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Payment created successfully: ID ${payment.id}, Reference ${payment.paymentReference}`);
       
-      // Format the response
+      // Format the response with wallet-compatible QR code
+      // Create a blockchain wallet URI format that most wallets can recognize
+      // Use Ethereum address format with amount information
+      const walletAddress = merchant.walletAddress.toLowerCase();
+      
+      // Make sure the address is properly formatted (starts with 0x)
+      const formattedAddress = walletAddress.startsWith('0x') ? walletAddress : `0x${walletAddress}`;
+      
+      // Format for most wallets is: ethereum:0xADDRESS@BASE?value=AMOUNT&memo=REFERENCE
+      const walletUri = `ethereum:${formattedAddress}@8453?value=${amountCpxtb}&memo=${payment.paymentReference}`;
+      
+      console.log("Generated wallet URI for QR code:", walletUri);
+      
       res.status(201).json({
         payment: {
           id: payment.id,
@@ -897,14 +909,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           expiresAt,
           status: payment.status
         },
-        qrCodeData: JSON.stringify({
+        // Include both formats for compatibility
+        qrCodeData: walletUri,
+        paymentDetails: {
           action: "pay",
-          recipient: merchant.walletAddress,
+          recipient: formattedAddress,
           amount: amountCpxtb.toString(),
           reference: payment.paymentReference,
           currency: "CPXTB",
+          networkId: 8453, // Base chain ID
           expiresAt: expiresAt.toISOString()
-        })
+        }
       });
     } catch (error: any) {
       console.error("Error creating payment:", error);

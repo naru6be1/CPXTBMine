@@ -148,6 +148,8 @@ export default function MerchantDashboard() {
         description: "Please select a merchant account first",
         variant: "destructive",
       });
+      // Redirect to business tab if no merchant is selected
+      setActiveTab("business");
       return;
     }
     
@@ -173,11 +175,25 @@ export default function MerchantDashboard() {
   // Selected merchant for payment
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
 
+  // This useEffect will run when merchant data loads
   useEffect(() => {
     if (merchantData?.merchants && merchantData.merchants.length > 0) {
+      // Always set the selected merchant when data loads
       setSelectedMerchant(merchantData.merchants[0]);
     }
   }, [merchantData]);
+  
+  // This useEffect redirects to business tab if no merchants are found when trying to create payment
+  useEffect(() => {
+    if (activeTab === "payments" && merchantData && merchantData.merchants && merchantData.merchants.length === 0) {
+      setActiveTab("business");
+      toast({
+        title: "No merchant account found",
+        description: "Please register a business account first",
+        variant: "default",
+      });
+    }
+  }, [activeTab, merchantData, toast]);
 
   // The ProtectedRoute component will now handle the authentication check
   // We don't need the manual redirect anymore since the component will only render
@@ -424,6 +440,21 @@ export default function MerchantDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Current Selected Business Display */}
+                {selectedMerchant && (
+                  <div className="mb-4 p-3 border rounded-md bg-muted/20">
+                    <div className="flex flex-col">
+                      <h3 className="text-lg font-medium">{selectedMerchant.businessName}</h3>
+                      <p className="text-sm text-muted-foreground">{selectedMerchant.businessType}</p>
+                    </div>
+                    <div className="mt-2 text-xs flex items-center">
+                      <span className="text-muted-foreground mr-2">Receiving wallet:</span>
+                      <code className="bg-muted p-1 rounded">
+                        {selectedMerchant.walletAddress.substring(0, 8)}...{selectedMerchant.walletAddress.substring(selectedMerchant.walletAddress.length - 8)}
+                      </code>
+                    </div>
+                  </div>
+                )}
                 <form onSubmit={handleCreatePayment} className="space-y-4">
                   {merchantData?.merchants && merchantData.merchants.length > 1 && (
                     <div className="space-y-2">

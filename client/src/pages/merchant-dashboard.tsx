@@ -30,9 +30,55 @@ export default function MerchantDashboard() {
   // Get merchant accounts for the user
   const { data: merchantData, isLoading: isMerchantLoading, refetch: refetchMerchants } = useQuery<{ merchants: any[] }>({
     queryKey: ["/api/users", userData?.id, "merchants"], 
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    // Custom fetch function to force authentication check
+    queryFn: async ({ queryKey }) => {
+      console.log("Fetching merchant data with key:", queryKey);
+      
+      if (!userData) {
+        console.error("Cannot fetch merchants - user not logged in");
+        toast({
+          title: "Authentication required",
+          description: "Please log in to access your merchant accounts",
+          variant: "destructive",
+        });
+        return { merchants: [] };
+      }
+      
+      try {
+        const response = await fetch(`/api/users/${userData.id}/merchants`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch merchant data: " + response.statusText);
+        }
+        
+        const data = await response.json();
+        console.log(`Loaded ${data.merchants?.length || 0} merchants`);
+        return data;
+      } catch (error) {
+        console.error("Error fetching merchants:", error);
+        toast({
+          title: "Error loading merchants",
+          description: "Please try refreshing the page",
+          variant: "destructive",
+        });
+        return { merchants: [] };
+      }
+    },
     enabled: !!userData?.id,
+    // Ensure we get fresh data on each mount
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
+  
+  // Debug merchant data
+  useEffect(() => {
+    if (merchantData) {
+      console.log("Merchant data loaded:", {
+        merchantCount: merchantData?.merchants?.length || 0,
+        merchantIds: merchantData?.merchants?.map(m => m.id) || []
+      });
+    }
+  }, [merchantData]);
 
   // Merchant registration state
   const [merchantForm, setMerchantForm] = useState({

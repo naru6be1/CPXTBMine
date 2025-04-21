@@ -767,25 +767,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/:userId/merchants", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      console.log(`Fetching merchants for user ID: ${userId}`);
+      
+      console.log(`Fetching merchants for user ID: ${userId}`, {
+        isAuthenticated: req.isAuthenticated(),
+        userIdFromAuth: req.user ? (req.user as any).id : 'none',
+        requestedUserId: userId
+      });
       
       // Check if the user is authenticated and if they are requesting their own merchants
       // Note: We're checking if the authenticated user's ID matches the requested userId
-      if (req.isAuthenticated() && req.user && (req.user as any).id === userId) {
-        console.log("User is authenticated and requesting their own merchants");
+      if (req.isAuthenticated() && req.user) {
+        const authenticatedUserId = (req.user as any).id;
+        
+        // For debugging
+        if (authenticatedUserId !== userId) {
+          console.log(`Auth mismatch: Authenticated as user ${authenticatedUserId} but requesting merchants for user ${userId}`);
+        }
+        
+        // Get merchants for the requested user ID
         const merchants = await storage.getMerchantsByUserId(userId);
         console.log(`Found ${merchants.length} merchants for user ID: ${userId}`);
         
-        // Return full API keys for the authenticated user's own merchants
-        res.json({ merchants });
+        // Whether viewing own merchants or others, provide the data
+        // with API keys appropriately handled
+        if (authenticatedUserId === userId) {
+          // Return full API keys for the authenticated user's own merchants
+          console.log("User is viewing their own merchants - returning full API keys");
+          res.json({ merchants });
+        } else {
+          // For security, mask the API keys when viewing someone else's merchants
+          console.log("User is viewing someone else's merchants - masking API keys");
+          const maskedMerchants = merchants.map(merchant => ({
+            ...merchant,
+            apiKey: merchant.apiKey ? merchant.apiKey.substring(0, 8) + '...' : null
+          }));
+          res.json({ merchants: maskedMerchants });
+        }
       } else {
-        console.log("User requesting merchants is not authenticated or not the owner");
-        // For security, mask the API keys when not authenticated or requesting someone else's merchants
+        // Not authenticated at all, but still return masked data
+        console.log("User not authenticated - returning masked merchant data");
         const merchants = await storage.getMerchantsByUserId(userId);
         
         const maskedMerchants = merchants.map(merchant => ({
           ...merchant,
-          apiKey: merchant.apiKey.substring(0, 8) + '...'
+          apiKey: merchant.apiKey ? merchant.apiKey.substring(0, 8) + '...' : null
         }));
         
         res.json({ merchants: maskedMerchants });
@@ -802,18 +827,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/payments", authenticateMerchant, async (req, res) => {
     try {
       const merchant = (req as any).merchant;
+      
+      console.log("Payment creation request received:", {
+        merchantId: merchant.id,
+        merchantName: merchant.businessName,
+        requestBody: {
+          ...req.body,
+          // Don't log full API key
+          apiKey: req.headers['x-api-key'] ? 'present' : 'missing'
+        } 
+      });
+      
       const { amountUsd, orderId, description, customerWalletAddress } = req.body;
       
       // Validate inputs
       if (!amountUsd || !orderId) {
+        console.log("Payment validation failed: missing required fields");
         return res.status(400).json({ message: 'Amount in USD and orderId are required' });
       }
       
       // Get current CPXTB price
       const cpxtbPrice = await getCurrentCpxtbPrice();
+      console.log(`Current CPXTB price: ${cpxtbPrice}`);
       
       // Calculate CPXTB amount
       const amountCpxtb = calculateCpxtbAmount(amountUsd, cpxtbPrice);
+      console.log(`Calculated payment amount: $${amountUsd} USD = ${amountCpxtb} CPXTB`);
       
       // Generate a unique payment reference
       const paymentReference = generatePaymentReference();
@@ -821,18 +860,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set expiration time (15 minutes from now)
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
       
-      // Create payment record
-      const payment = await storage.createPayment({
+      // Prepare payment data
+      const paymentData = {
         merchantId: merchant.id,
         orderId,
         amountUsd,
         amountCpxtb,
-        customerWalletAddress: customerWalletAddress?.toLowerCase(),
+        // Only include customerWalletAddress if it exists
+        ...(customerWalletAddress ? { customerWalletAddress: customerWalletAddress.toLowerCase() } : {}),
         paymentReference,
         description,
         exchangeRate: cpxtbPrice,
         expiresAt
+      };
+      
+      console.log("Creating payment with data:", {
+        ...paymentData,
+        // Format for better readability in logs
+        expiresAt: expiresAt.toISOString()
       });
+      
+      // Create payment record
+      const payment = await storage.createPayment(paymentData);
+      
+      console.log(`Payment created successfully: ID ${payment.id}, Reference ${payment.paymentReference}`);
       
       // Format the response
       res.status(201).json({

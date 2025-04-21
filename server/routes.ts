@@ -770,7 +770,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Fetching merchants for user ID: ${userId}`);
       
       // Check if the user is authenticated and if they are requesting their own merchants
-      if (req.isAuthenticated() && req.user && req.user.id === userId) {
+      // Note: We're checking if the authenticated user's ID matches the requested userId
+      if (req.isAuthenticated() && req.user && (req.user as any).id === userId) {
         console.log("User is authenticated and requesting their own merchants");
         const merchants = await storage.getMerchantsByUserId(userId);
         console.log(`Found ${merchants.length} merchants for user ID: ${userId}`);

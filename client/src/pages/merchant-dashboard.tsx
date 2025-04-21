@@ -97,50 +97,59 @@ export default function MerchantDashboard() {
   // Create payment mutation
   const createPaymentMutation = useMutation({
     mutationFn: async (formData: typeof paymentForm & { merchantId: number }) => {
-      if (!selectedMerchant || !selectedMerchant.apiKey) {
-        throw new Error("No merchant account selected or missing API key");
+      // Validate merchant selection
+      if (!selectedMerchant) {
+        throw new Error("Please select a merchant account first");
+      }
+
+      // Extract full API key (not masked) from the selected merchant
+      const apiKey = selectedMerchant.apiKey;
+      if (!apiKey || apiKey.includes('...')) {
+        throw new Error("Invalid API key - please refresh the page to get full API keys");
       }
       
-      console.log("Creating payment with merchant:", {
-        id: selectedMerchant.id,
-        businessName: selectedMerchant.businessName,
-        hasApiKey: !!selectedMerchant.apiKey
-      });
-      console.log("Payment form data:", formData);
+      console.log("Creating payment for merchant:", selectedMerchant.businessName);
+      console.log("Using merchant ID:", selectedMerchant.id);
       
-      // Add API key as header - ensure it's coming from selectedMerchant directly
-      const apiKey = selectedMerchant.apiKey;
-      const headers = new Headers({
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey
-      });
-      
-      console.log("Request headers:", {
-        'Content-Type': 'application/json',
-        'X-API-Key': apiKey ? `${apiKey.substring(0, 4)}...` : "missing"
-      });
-      
-      // Make sure we're sending the correct merchantId from the selected merchant
-      const dataToSend = {
-        ...formData,
+      // Define data to send - explicitly extract from form data and selectedMerchant
+      const paymentData = {
+        amountUsd: formData.amountUsd,
+        orderId: formData.orderId,
+        description: formData.description,
+        // Only include customerWalletAddress if it exists in the form
+        ...(formData.customerWalletAddress && { customerWalletAddress: formData.customerWalletAddress }),
         merchantId: selectedMerchant.id
       };
       
-      const res = await fetch("/api/payments", {
+      // Add API key header
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey
+      };
+      
+      // Use direct fetch with explicit headers
+      const response = await fetch("/api/payments", {
         method: "POST",
-        headers,
-        body: JSON.stringify(dataToSend)
+        headers: headers,
+        body: JSON.stringify(paymentData)
       });
       
-      console.log("Response status:", res.status);
-      
-      if (!res.ok) {
-        const error = await res.json();
-        console.error("Payment creation error:", error);
-        throw new Error(error.message || "Failed to create payment");
+      // Enhanced error handling
+      if (!response.ok) {
+        let errorText = "Failed to create payment request";
+        try {
+          const errorData = await response.json();
+          errorText = errorData.message || errorText;
+          console.error("Payment error details:", errorData);
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        throw new Error(errorText);
       }
       
-      return await res.json();
+      const data = await response.json();
+      console.log("Payment created successfully:", data);
+      return data;
     },
     onSuccess: (data) => {
       toast({
@@ -504,10 +513,13 @@ export default function MerchantDashboard() {
                   {merchantData?.merchants && merchantData.merchants.length > 0 && (
                     <div className="space-y-2">
                       <Label htmlFor="merchantSelect">Select Business</Label>
-                      <Select 
-                        value={selectedMerchant?.id.toString() || ""} 
-                        onValueChange={(value) => {
-                          const merchant = merchantData.merchants.find((m: any) => m.id.toString() === value);
+                      <select
+                        id="merchantSelect"
+                        className="w-full p-2 border rounded-md"
+                        value={selectedMerchant?.id || ""}
+                        onChange={(e) => {
+                          const id = parseInt(e.target.value);
+                          const merchant = merchantData.merchants.find((m: any) => m.id === id);
                           if (merchant) {
                             console.log(`Selected merchant: ${merchant.businessName} (ID: ${merchant.id})`);
                             console.log(`API Key available: ${!!merchant.apiKey}`);
@@ -515,17 +527,12 @@ export default function MerchantDashboard() {
                           }
                         }}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a business" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {merchantData.merchants.map((merchant: any) => (
-                            <SelectItem key={merchant.id} value={merchant.id.toString()}>
-                              {merchant.businessName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {merchantData.merchants.map((merchant: any) => (
+                          <option key={merchant.id} value={merchant.id}>
+                            {merchant.businessName}
+                          </option>
+                        ))}
+                      </select>
                       <p className="text-xs text-muted-foreground">
                         API Key: {selectedMerchant?.apiKey ? 
                           (selectedMerchant.apiKey.length > 15 ? 

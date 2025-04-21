@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Redirect, useLocation } from "wouter";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw } from "lucide-react";
+import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
@@ -311,6 +311,20 @@ export default function MerchantDashboard() {
   // Selected merchant for payment
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
 
+  // This effect runs once when component mounts to ensure merchant data is loaded
+  useEffect(() => {
+    if (userData?.id) {
+      console.log("Component mounted with user ID:", userData.id);
+      // Force a fresh reload of merchant data on mount
+      refetchMerchants().then((result) => {
+        console.log("Initial merchant data fetch complete:", {
+          success: !result.isError,
+          merchantCount: result.data?.merchants?.length || 0
+        });
+      });
+    }
+  }, [userData?.id, refetchMerchants]);
+  
   // This useEffect will run when merchant data loads
   useEffect(() => {
     if (merchantData?.merchants && merchantData.merchants.length > 0) {
@@ -497,11 +511,28 @@ export default function MerchantDashboard() {
             
             {/* Business Accounts List */}
             <Card>
-              <CardHeader>
-                <CardTitle>Your Business Accounts</CardTitle>
-                <CardDescription>
-                  Manage your registered businesses
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle>Your Business Accounts</CardTitle>
+                  <CardDescription>
+                    Manage your registered businesses
+                  </CardDescription>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    console.log("Manual refresh of merchant data requested");
+                    refetchMerchants();
+                    toast({
+                      title: "Refreshing",
+                      description: "Updating business accounts list",
+                    });
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent>
                 {isMerchantLoading ? (

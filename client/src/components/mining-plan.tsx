@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Coins, MessageCircle, Server, Cpu, Gift, Share2, AlertCircle } from "lucide-react";
+import { Coins, MessageCircle, Server, Cpu, Share2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAccount, useContractRead, useNetwork, useSwitchNetwork, usePublicClient, useWalletClient } from 'wagmi';
@@ -241,7 +241,7 @@ function ActivePlanDisplay({
           <h3 className="text-xl font-semibold text-primary mb-2 flex items-center gap-2">
             {isFreeClaimPlan ? (
               <>
-                <Gift className="h-6 w-6" />
+                <Coins className="h-6 w-6" />
                 Free CPXTB Claim
               </>
             ) : (
@@ -260,7 +260,7 @@ function ActivePlanDisplay({
               )}>
                 {isFreeClaimPlan ? (
                   <>
-                    <Gift className="h-5 w-5" />
+                    <Coins className="h-5 w-5" />
                     {hasWithdrawn ? "Claimed" : "Ready to Claim"}
                   </>
                 ) : (
@@ -948,52 +948,7 @@ export function MiningPlan() {
     }
   };
 
-  // Handle free CPXTB claim using IP-based restrictions
-  const handleClaimFreeCPXTB = async () => {
-    if (!address || !isConnected) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to claim free CPXTB"
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ withdrawalAddress: address }),
-      });
-
-      if (!response.ok) {        const error = await response.json();
-        throw new Error(error.message);
-      }
-
-      // Using IP-based tracking on the server-side now
-
-      await refetchUser();
-      await refetchActivePlans();
-
-      toast({
-        title: "Success!",
-        description: (
-          <div className="space-y-2">
-            <p>Your free 10 CPXTB tokens have been claimed successfully!</p>
-            <SocialShareButtons amount="10" type="claim" />
-          </div>
-        )
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to claim",
-        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
-      });
-    }
-  };
+  // Free CPXTB claim functionality has been removed
 
   // Update the handleDistributeAll function
   const handleDistributeAll = async () => {
@@ -1068,12 +1023,6 @@ export function MiningPlan() {
   return (
     <div className="space-y-6">
       <ReferralStats />
-      {isConnected && (
-        <div>
-          {/* Replaced with the new FreeCPXTBClaim component */}
-          <FreeCPXTBClaim onClaim={handleClaimFreeCPXTB} />
-        </div>
-      )}
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -1239,133 +1188,4 @@ export function MiningPlan() {
     </div>
   );
 }
-function FreeCPXTBClaim({ onClaim }: { onClaim: () => void }) {
-  const { isConnected, address } = useWallet();
-  const { toast } = useToast();
-  const [isClaimInProgress, setIsClaimInProgress] = useState(false);
-
-  const { data: user, refetch: refetchUser } = useQuery({
-    queryKey: ['user', address],
-    queryFn: async () => {
-      if (!address) return null;
-      console.log('Fetching user data for address:', address);
-      const response = await fetch(`/api/users/${address}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch user');
-      }
-      const data = await response.json();
-      console.log('Received user data:', data);
-      return data.user;
-    },
-    enabled: !!address
-  });
-
-  const handleClaim = async () => {
-    if (!address || !isConnected) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to claim free CPXTB"
-      });
-      return;
-    }
-
-    if (isClaimInProgress) {
-      return; // Prevent multiple clicks while claiming
-    }
-
-    try {
-      setIsClaimInProgress(true);
-
-      const response = await fetch(`/api/users/${address}/claim-free-cpxtb`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ withdrawalAddress: address }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to claim CPXTB');
-      }
-
-      await onClaim();
-      await refetchUser();
-
-      toast({
-        title: "Success!",
-        description: (
-          <div className="space-y-2">
-            <p>Your free 10 CPXTB tokens have been claimed successfully!</p>
-            <SocialShareButtons amount="10" type="claim" />
-          </div>
-        )
-      });
-
-    } catch (error) {
-      console.error('Claim error:', error);
-      toast({
-        variant: "destructive",
-        title: "Failed to Claim",
-        description: error instanceof Error ? error.message : "Failed to claim free CPXTB"
-      });
-    } finally {
-      setIsClaimInProgress(false);
-    }
-  };
-
-  if (!isConnected || !address) {
-    return (
-      <Card className="w-full max-w-2xl mx-auto mb-6">
-        <CardContent className="p-6">
-          <p className="text-sm text-muted-foreground text-center">
-            Please connect your wallet to claim free CPXTB.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="w-full max-w-2xl mx-auto mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Gift className="h-6 w-6 text-primary" />
-          Daily Free CPXTB Claim
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="bg-primary/10 rounded-lg p-4">
-          <p className="text-lg font-semibold">Get 10 CPXTB Daily!</p>
-          <p className="text-sm text-muted-foreground">
-            Claim 10 CPXTB tokens every 24 hours. Your connected wallet address will be used to receive the tokens.
-          </p>
-          <p className="text-sm font-medium text-primary mt-2">
-            <AlertCircle className="h-4 w-4 inline-block mr-1" />
-            Only one claim per IP address is allowed every 24 hours.
-          </p>
-        </div>
-        <Button
-          className="w-full"
-          onClick={handleClaim}
-          disabled={isClaimInProgress}
-        >
-          {isClaimInProgress ? (
-            <>
-              <span className="animate-spin mr-2">⌛</span>
-              Processing...
-            </>
-          ) : (
-            <>
-              <Gift className="mr-2 h-4 w-4" />
-              Claim Free CPXTB
-            </>
-          )}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
+// Free CPXTB claim component has been removed

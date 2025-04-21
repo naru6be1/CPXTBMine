@@ -1,6 +1,13 @@
-import { users, miningPlans, type User, type InsertUser, type MiningPlan, type InsertMiningPlan } from "@shared/schema";
+import { 
+  users, miningPlans, merchants, payments,
+  type User, type InsertUser, 
+  type MiningPlan, type InsertMiningPlan,
+  type Merchant, type InsertMerchant,
+  type Payment, type InsertPayment 
+} from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, sql, desc } from "drizzle-orm";
+import { eq, and, gte, sql, desc, lt, asc } from "drizzle-orm";
+import crypto from "crypto";
 
 export interface IStorage {
   // User methods
@@ -22,6 +29,28 @@ export interface IStorage {
   getExpiredUnwithdrawnPlans(walletAddress: string): Promise<MiningPlan[]>;
   markReferralRewardPaid(planId: number): Promise<MiningPlan>;
   getReferralPlans(referralCode: string): Promise<MiningPlan[]>;
+  
+  // Merchant methods
+  createMerchant(merchant: InsertMerchant): Promise<Merchant>;
+  getMerchant(id: number): Promise<Merchant | undefined>;
+  getMerchantByApiKey(apiKey: string): Promise<Merchant | undefined>;
+  getMerchantsByUserId(userId: number): Promise<Merchant[]>;
+  updateMerchant(id: number, updates: Partial<InsertMerchant>): Promise<Merchant>;
+  deleteMerchant(id: number): Promise<void>;
+  
+  // Payment methods
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPayment(id: number): Promise<Payment | undefined>;
+  getPaymentByReference(paymentReference: string): Promise<Payment | undefined>;
+  getPaymentsByMerchant(merchantId: number): Promise<Payment[]>;
+  updatePaymentStatus(paymentId: number, status: string, transactionHash?: string): Promise<Payment>;
+  getExpiredPayments(): Promise<Payment[]>;
+  getMerchantReport(merchantId: number, startDate: Date, endDate: Date): Promise<{
+    totalPayments: number;
+    successfulPayments: number;
+    totalAmountUsd: number;
+    totalAmountCpxtb: string;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {

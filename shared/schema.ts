@@ -1,5 +1,6 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, numeric, varchar, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, numeric, varchar, jsonb, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 export const users = pgTable("users", {
@@ -97,3 +98,109 @@ export const insertRecommendationSchema = createInsertSchema(recommendations)
 
 export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
 export type Recommendation = typeof recommendations.$inferSelect;
+
+// Merchant tables for CPXTB payment processing
+export const merchants = pgTable("merchants", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  businessName: text("business_name").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  businessType: text("business_type").notNull(),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
+  website: text("website"),
+  description: text("description"),
+  apiKey: text("api_key").notNull().unique(),
+  logoUrl: text("logo_url"),
+  isVerified: boolean("is_verified").default(false),
+  webhookUrl: text("webhook_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  merchantId: integer("merchant_id").notNull().references(() => merchants.id),
+  orderId: text("order_id").notNull(),
+  amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
+  amountCpxtb: numeric("amount_cpxtb", { precision: 20, scale: 8 }).notNull(),
+  customerWalletAddress: text("customer_wallet_address"),
+  status: text("status").notNull().default("pending"),
+  transactionHash: text("transaction_hash"),
+  paymentReference: text("payment_reference").notNull().unique(),
+  description: text("description"),
+  callbackStatus: text("callback_status"),
+  callbackResponse: text("callback_response"),
+  exchangeRate: numeric("exchange_rate", { precision: 20, scale: 8 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Define relations
+export const merchantsRelations = relations(merchants, ({ one, many }) => ({
+  user: one(users, {
+    fields: [merchants.userId],
+    references: [users.id],
+  }),
+  payments: many(payments),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  merchant: one(merchants, {
+    fields: [payments.merchantId],
+    references: [merchants.id],
+  }),
+}));
+
+// Create insert schemas
+export const insertMerchantSchema = createInsertSchema(merchants)
+  .omit({
+    id: true,
+    isVerified: true,
+    apiKey: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    businessName: z.string().min(2),
+    walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Ethereum address"),
+    businessType: z.string(),
+    contactEmail: z.string().email(),
+    contactPhone: z.string().optional(),
+    website: z.string().url().optional(),
+    description: z.string().optional(),
+    logoUrl: z.string().url().optional(),
+    webhookUrl: z.string().url().optional(),
+  });
+
+export const insertPaymentSchema = createInsertSchema(payments)
+  .omit({
+    id: true,
+    status: true,
+    transactionHash: true,
+    callbackStatus: true,
+    callbackResponse: true,
+    createdAt: true,
+    updatedAt: true,
+    completedAt: true,
+  })
+  .extend({
+    orderId: z.string(),
+    amountUsd: z.number().positive(),
+    amountCpxtb: z.number().positive(),
+    customerWalletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Ethereum address").optional(),
+    paymentReference: z.string(),
+    description: z.string().optional(),
+    exchangeRate: z.number().positive(),
+    expiresAt: z.union([z.date(), z.string()]).transform(val => 
+      val instanceof Date ? val : new Date(val)
+    ),
+  });
+
+export type InsertMerchant = z.infer<typeof insertMerchantSchema>;
+export type Merchant = typeof merchants.$inferSelect;
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;

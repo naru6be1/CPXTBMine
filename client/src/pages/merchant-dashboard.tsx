@@ -116,8 +116,6 @@ export default function MerchantDashboard() {
         amountUsd: formData.amountUsd,
         orderId: formData.orderId,
         description: formData.description,
-        // Only include customerWalletAddress if it exists in the form
-        ...(formData.customerWalletAddress && { customerWalletAddress: formData.customerWalletAddress }),
         merchantId: selectedMerchant.id
       };
       
@@ -178,20 +176,37 @@ export default function MerchantDashboard() {
   const handleCreatePayment = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Debug information about form submission
+    console.log("Payment form submission. Current state:", {
+      hasSelectedMerchant: !!selectedMerchant,
+      merchantId: selectedMerchant?.id,
+      merchantName: selectedMerchant?.businessName,
+      hasApiKey: !!selectedMerchant?.apiKey,
+      formData: paymentForm
+    });
+    
     // Enhanced validation for selected merchant
     if (!selectedMerchant) {
+      console.error("No merchant selected during payment submission");
       toast({
         title: "Select a merchant",
         description: "Please select a merchant account first",
         variant: "destructive",
       });
-      // Redirect to business tab if no merchant is selected
-      setActiveTab("business");
+      // Try to set a merchant if available but not selected
+      if (merchantData?.merchants && merchantData.merchants.length > 0) {
+        console.log("Attempting to select the first available merchant");
+        setSelectedMerchant(merchantData.merchants[0]);
+      } else {
+        // Redirect to business tab if no merchant is available
+        setActiveTab("business");
+      }
       return;
     }
     
     // Validate API key presence
     if (!selectedMerchant.apiKey) {
+      console.error("Selected merchant has no API key:", selectedMerchant.id);
       toast({
         title: "Invalid merchant account",
         description: "The selected merchant account has no API key",
@@ -202,9 +217,30 @@ export default function MerchantDashboard() {
       return;
     }
     
-    console.log("Submitting payment with selected merchant:", {
+    // Amount validation
+    if (!paymentForm.amountUsd || parseFloat(paymentForm.amountUsd) <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid payment amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Order ID validation
+    if (!paymentForm.orderId || paymentForm.orderId.trim() === '') {
+      toast({
+        title: "Missing order ID",
+        description: "Please enter an order ID for this payment",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log("Submitting payment with validated merchant:", {
       id: selectedMerchant.id,
-      businessName: selectedMerchant.businessName
+      businessName: selectedMerchant.businessName,
+      apiKeyPresent: !!selectedMerchant.apiKey
     });
     
     createPaymentMutation.mutate({
@@ -233,7 +269,15 @@ export default function MerchantDashboard() {
   useEffect(() => {
     if (merchantData?.merchants && merchantData.merchants.length > 0) {
       // Always set the selected merchant when data loads
-      setSelectedMerchant(merchantData.merchants[0]);
+      const firstMerchant = merchantData.merchants[0];
+      console.log("Setting initial merchant:", {
+        id: firstMerchant.id,
+        businessName: firstMerchant.businessName,
+        hasApiKey: !!firstMerchant.apiKey
+      });
+      setSelectedMerchant(firstMerchant);
+    } else {
+      console.log("No merchants available to select");
     }
   }, [merchantData]);
   
@@ -511,35 +555,61 @@ export default function MerchantDashboard() {
                 )}
                 <form onSubmit={handleCreatePayment} className="space-y-4">
                   {merchantData?.merchants && merchantData.merchants.length > 0 && (
-                    <div className="space-y-2">
-                      <Label htmlFor="merchantSelect">Select Business</Label>
-                      <select
-                        id="merchantSelect"
-                        className="w-full p-2 border rounded-md"
-                        value={selectedMerchant?.id || ""}
-                        onChange={(e) => {
-                          const id = parseInt(e.target.value);
-                          const merchant = merchantData.merchants.find((m: any) => m.id === id);
-                          if (merchant) {
-                            console.log(`Selected merchant: ${merchant.businessName} (ID: ${merchant.id})`);
-                            console.log(`API Key available: ${!!merchant.apiKey}`);
-                            setSelectedMerchant(merchant);
-                          }
-                        }}
-                      >
-                        {merchantData.merchants.map((merchant: any) => (
-                          <option key={merchant.id} value={merchant.id}>
-                            {merchant.businessName}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-muted-foreground">
-                        API Key: {selectedMerchant?.apiKey ? 
-                          (selectedMerchant.apiKey.length > 15 ? 
-                            `${selectedMerchant.apiKey.substring(0, 15)}...` : 
-                            selectedMerchant.apiKey) : 
-                          "None - please register a business with valid API key"}
-                      </p>
+                    <div className="space-y-2 border-b pb-4 mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <Label htmlFor="merchantSelect" className="text-base font-medium">Select Business Account</Label>
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setActiveTab("business")}
+                        >
+                          Manage Businesses
+                        </Button>
+                      </div>
+                      
+                      <div className="bg-muted/30 p-4 rounded-md">
+                        <select
+                          id="merchantSelect"
+                          className="w-full p-3 border border-input rounded-md bg-background mb-2"
+                          value={selectedMerchant?.id || ""}
+                          onChange={(e) => {
+                            const id = parseInt(e.target.value);
+                            const merchant = merchantData.merchants.find((m: any) => m.id === id);
+                            if (merchant) {
+                              console.log(`Selected merchant: ${merchant.businessName} (ID: ${merchant.id})`);
+                              console.log(`API Key available: ${!!merchant.apiKey}`);
+                              setSelectedMerchant(merchant);
+                            }
+                          }}
+                        >
+                          <option value="" disabled>-- Select Business --</option>
+                          {merchantData.merchants.map((merchant: any) => (
+                            <option key={merchant.id} value={merchant.id}>
+                              {merchant.businessName} - {merchant.businessType}
+                            </option>
+                          ))}
+                        </select>
+                        
+                        {selectedMerchant && (
+                          <div className="mt-2 text-sm space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Merchant ID:</span>
+                              <span className="font-medium">{selectedMerchant.id}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">API Key Status:</span>
+                              <span className={`font-medium ${selectedMerchant.apiKey ? 'text-green-500' : 'text-red-500'}`}>
+                                {selectedMerchant.apiKey ? 'Available' : 'Missing'}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Wallet Address:</span>
+                              <span className="font-mono text-xs">{selectedMerchant.walletAddress.substring(0, 6)}...{selectedMerchant.walletAddress.substring(selectedMerchant.walletAddress.length - 4)}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                   

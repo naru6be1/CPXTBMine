@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, Loader2 } from "lucide-react";
+import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, Loader2, ExternalLink } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
@@ -23,6 +23,9 @@ export default function MerchantDashboard() {
   const [, setLocation] = useLocation();
   const { isConnected, address: walletAddress, connect } = useWallet();
   const [activeTab, setActiveTab] = useState("business");
+
+  // Selected merchant for payment
+  const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
 
   // Get user data
   const { data: userData } = useQuery<User>({
@@ -103,6 +106,57 @@ export default function MerchantDashboard() {
 
   // QR Code and payment data
   const [currentPayment, setCurrentPayment] = useState<any>(null);
+  
+  // Payment history state
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  // Fetch payment history
+  const fetchPaymentHistory = useCallback(async () => {
+    if (!selectedMerchant) {
+      console.error("Cannot fetch payment history - no merchant selected");
+      return;
+    }
+    
+    const apiKey = selectedMerchant.apiKey;
+    if (!apiKey || apiKey.includes('...')) {
+      toast({
+        title: "Error loading payment history",
+        description: "Invalid API key - please refresh the page",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsLoadingHistory(true);
+      
+      // Fetch payments for the selected merchant
+      const response = await fetch(`/api/merchants/${selectedMerchant.id}/payments`, {
+        headers: {
+          'X-API-Key': apiKey
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to load payment history");
+      }
+      
+      const data = await response.json();
+      console.log("Payment history loaded:", data);
+      setPaymentHistory(data.payments || []);
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
+      toast({
+        title: "Failed to load payment history",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+      setPaymentHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [selectedMerchant, toast]);
 
   // Create merchant mutation
   const createMerchantMutation = useMutation({
@@ -442,6 +496,14 @@ export default function MerchantDashboard() {
       });
     }
   }, [activeTab, merchantData, toast]);
+  
+  // This useEffect fetches payment history when the history tab is active
+  useEffect(() => {
+    if (activeTab === "history" && selectedMerchant) {
+      console.log("History tab activated, fetching payment history...");
+      fetchPaymentHistory();
+    }
+  }, [activeTab, selectedMerchant, fetchPaymentHistory]);
 
   // The ProtectedRoute component will now handle the authentication check
   // We don't need the manual redirect anymore since the component will only render
@@ -1160,23 +1222,83 @@ export default function MerchantDashboard() {
                 </div>
               </div>
 
-              {/* Empty state */}
-              <div className="text-center space-y-4 py-6">
-                <div className="mx-auto bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center">
-                  <Clock className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium">No payment history yet</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Your completed payment transactions will appear here. Create a new payment in the Payments tab to get started.
-                </p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setActiveTab("payments")}
-                  className="mt-2"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create New Payment
-                </Button>
+              {/* Payment history data */}
+              <div className="mt-8">
+                {paymentHistory.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Reference</TableHead>
+                          <TableHead>Amount (USD)</TableHead>
+                          <TableHead>Amount (CPXTB)</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Transaction</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paymentHistory.map((payment) => (
+                          <TableRow key={payment.id}>
+                            <TableCell>
+                              {new Date(payment.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {payment.paymentReference}
+                            </TableCell>
+                            <TableCell>${Number(payment.amountUsd).toFixed(2)}</TableCell>
+                            <TableCell>{Number(payment.amountCpxtb).toFixed(6)}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                payment.status === 'completed' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : payment.status === 'expired'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {payment.transactionHash ? (
+                                <a 
+                                  href={`https://basescan.org/tx/${payment.transactionHash}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center text-blue-600 hover:text-blue-800 underline"
+                                >
+                                  View
+                                  <ExternalLink className="h-3 w-3 ml-1" />
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  /* Empty state */
+                  <div className="text-center space-y-4 py-6">
+                    <div className="mx-auto bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center">
+                      <Clock className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-medium">No payment history yet</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      Your completed payment transactions will appear here. Create a new payment in the Payments tab to get started.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setActiveTab("payments")}
+                      className="mt-2"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create New Payment
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

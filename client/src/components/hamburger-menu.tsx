@@ -1,6 +1,6 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Gift, Pickaxe, Users, Award, Shield, BookOpen, MessageCircle, Info, FileText, AlertTriangle, Store, Gamepad2, Rocket, Brain } from "lucide-react";
+import { Menu, Gift, Pickaxe, Users, Award, Shield, BookOpen, MessageCircle, Info, FileText, AlertTriangle, Store } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 
@@ -77,21 +77,7 @@ export function HamburgerMenu() {
             </Button>
           </Link>
           
-          <div className="border-t border-border my-2 pt-2">
-            <h3 className="px-4 py-2 text-sm font-medium text-muted-foreground">Fun & Games</h3>
-            <Link href="/games/space-mining">
-              <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
-                <Rocket className="mr-2 h-4 w-4" />
-                Space Mining Game
-              </Button>
-            </Link>
-            <Link href="/games/memory-match">
-              <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
-                <Brain className="mr-2 h-4 w-4" />
-                Memory Match Game
-              </Button>
-            </Link>
-          </div>
+          {/* Games section removed */}
           
           <div className="border-t border-border my-2 pt-2">
             <h3 className="px-4 py-2 text-sm font-medium text-muted-foreground">Legal & Information</h3>

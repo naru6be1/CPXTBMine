@@ -313,6 +313,93 @@ export default function MerchantDashboard() {
 
   // Selected merchant for payment
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
+  
+  // Payment verification form state
+  const [verificationForm, setVerificationForm] = useState({
+    reference: "",
+    transactionHash: ""
+  });
+  
+  // Verify payment mutation
+  const verifyPaymentMutation = useMutation({
+    mutationFn: async (data: typeof verificationForm) => {
+      if (!selectedMerchant) {
+        throw new Error("Please select a merchant account first");
+      }
+      
+      const apiKey = selectedMerchant.apiKey;
+      if (!apiKey || apiKey.includes('...')) {
+        throw new Error("Invalid API key - please refresh the page to get full API keys");
+      }
+      
+      // Call the verification API endpoint
+      const response = await fetch(`/api/payments/${data.reference}/verify`, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey
+        },
+        body: JSON.stringify({ transactionHash: data.transactionHash })
+      });
+      
+      if (!response.ok) {
+        let errorText = "Failed to verify payment";
+        try {
+          const errorData = await response.json();
+          errorText = errorData.message || errorText;
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        throw new Error(errorText);
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Payment verified",
+        description: "Payment has been verified and marked as completed.",
+      });
+      // Reset form
+      setVerificationForm({
+        reference: "",
+        transactionHash: ""
+      });
+      // Refresh merchant data to show updated payment status
+      refetchMerchants();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Verification failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handle payment verification
+  const handleVerifyPayment = () => {
+    if (!verificationForm.reference || !verificationForm.transactionHash) {
+      toast({
+        title: "Missing information",
+        description: "Please enter both payment reference and transaction hash",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate transaction hash format
+    if (!verificationForm.transactionHash.startsWith('0x')) {
+      toast({
+        title: "Invalid transaction hash",
+        description: "Transaction hash must start with '0x'",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    verifyPaymentMutation.mutate(verificationForm);
+  };
 
   // This effect runs once when component mounts to ensure merchant data is loaded
   useEffect(() => {

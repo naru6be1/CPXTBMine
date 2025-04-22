@@ -15,6 +15,9 @@ import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
 
+// CPXTB token address for displaying in UI
+const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
+
 export default function MerchantDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -895,8 +898,12 @@ export default function MerchantDashboard() {
                   <div className="space-y-2">
                     <h3 className="font-medium">2. Customer Scans QR Code</h3>
                     <p className="text-sm text-muted-foreground">
-                      The customer should scan the QR code with their wallet app that supports CPXTB token on Base network.
+                      The customer should scan the QR code with any wallet app supporting ERC-20 tokens on Base network (Coinbase Wallet, MetaMask, etc).
                     </p>
+                    <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded p-2 text-xs flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                      <span>The QR code is specifically formatted to transfer CPXTB tokens (contract: {CPXTB_TOKEN_ADDRESS.substring(0, 6)}...{CPXTB_TOKEN_ADDRESS.substring(CPXTB_TOKEN_ADDRESS.length - 4)}) on Base network.</span>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">

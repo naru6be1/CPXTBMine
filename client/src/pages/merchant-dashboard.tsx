@@ -810,11 +810,11 @@ export default function MerchantDashboard() {
                       <AlertCircle className="h-5 w-5" />
                       WARNING: Send CPXTB tokens, NOT ETH/BASE coins!
                     </div>
-                    <div className="text-sm font-medium border-2 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 dark:border-yellow-700 p-3 rounded-lg">
-                      Send exactly <span className="font-bold text-base underline">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB tokens</span> to this address
+                    <div className="text-base font-medium border-2 border-yellow-500 bg-yellow-100 dark:bg-yellow-900 dark:border-yellow-600 p-3 rounded-lg text-black dark:text-white shadow-md">
+                      Send exactly <span className="font-bold text-lg underline text-black dark:text-white">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB tokens</span> to this address
                     </div>
-                    <div className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded italic">
-                      Sending any other token or incorrect amount will result in lost funds
+                    <div className="text-sm text-black dark:text-white bg-red-100 dark:bg-red-950 p-3 rounded-lg border border-red-300 dark:border-red-700 font-medium shadow-md">
+                      ⚠️ WARNING: Sending any other token or incorrect amount will result in lost funds!
                     </div>
                   </div>
                   

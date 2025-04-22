@@ -29,6 +29,10 @@ const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
 const MerchantDashboard = lazy(() => import("@/pages/merchant-dashboard"));
 
+// Games
+const SpaceMiningGame = lazy(() => import("@/pages/games/space-mining"));
+const MemoryMatchGame = lazy(() => import("@/pages/games/memory-match"));
+
 // Loading component for Suspense fallback
 function PageLoader() {
   return (
@@ -83,6 +87,11 @@ function Router() {
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route path="/auth" component={AuthPage} />
         <ProtectedRoute path="/merchant" component={MerchantDashboard} />
+        
+        {/* Games */}
+        <Route path="/games/space-mining" component={SpaceMiningGame} />
+        <Route path="/games/memory-match" component={MemoryMatchGame} />
+        
         <Route component={NotFound} />
       </Switch>
     </Suspense>

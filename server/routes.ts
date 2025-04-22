@@ -885,8 +885,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Payment created successfully: ID ${payment.id}, Reference ${payment.paymentReference}`);
       
-      // Import constants
-      const { CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID } = require("./constants");
+      // Import constants from the module scope
+      // ESM-style import - these should be imported at the top of the file, not inside a function
+      // For now, access them directly from the imported constants
       
       // Format the response with wallet-compatible QR code
       // Create a blockchain wallet URI format that most wallets can recognize

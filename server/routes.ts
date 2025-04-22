@@ -903,6 +903,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the simplest format for maximum compatibility
       const walletUri = simpleWalletUri;
       
+      // Create payment instructions message
+      const paymentInstructions = `CPXTB PAYMENT: Send ${amountCpxtb.toFixed(6)} CPXTB tokens to this address on Base network`;
+      
       console.log("Generated wallet URI for QR code:", walletUri);
       
       res.status(201).json({
@@ -918,6 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         // Include both formats for compatibility
         qrCodeData: walletUri,
+        paymentInstructions,
         paymentDetails: {
           action: "pay",
           recipient: formattedAddress,

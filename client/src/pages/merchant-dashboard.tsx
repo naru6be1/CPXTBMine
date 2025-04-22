@@ -790,21 +790,28 @@ export default function MerchantDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center justify-center">
-                  <div className="bg-white p-6 rounded-lg mb-4">
-                    <QRCodeSVG 
-                      value={currentPayment.qrCodeData}
-                      size={240}
-                      level="H"
-                      className="w-full h-auto"
-                    />
+                  <div className="space-y-2">
+                    <div className="bg-white p-6 rounded-lg">
+                      <QRCodeSVG 
+                        value={currentPayment.qrCodeData}
+                        size={240}
+                        level="H"
+                        className="w-full h-auto"
+                      />
+                    </div>
+                    {currentPayment.paymentInstructions && (
+                      <p className="text-sm text-center font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+                        {currentPayment.paymentInstructions}
+                      </p>
+                    )}
                   </div>
                   <div className="text-center mb-4 space-y-2">
-                    <span className="text-xs bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center justify-center gap-1">
+                    <span className="text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 px-2 py-1 rounded flex items-center justify-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      QR code contains wallet address - scan with any wallet app
+                      IMPORTANT: Send CPXTB tokens, not ETH/BASE
                     </span>
-                    <div className="text-xs text-muted-foreground">
-                      Amount to send: <span className="font-medium">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span>
+                    <div className="text-sm font-medium border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/30 dark:border-yellow-800 p-2 rounded">
+                      Send exactly <span className="font-bold">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB tokens</span> to this address
                     </div>
                   </div>
                   

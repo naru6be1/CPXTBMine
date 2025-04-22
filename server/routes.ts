@@ -895,19 +895,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Make sure the address is properly formatted (starts with 0x)
       const formattedAddress = walletAddress.startsWith('0x') ? walletAddress : `0x${walletAddress}`;
       
-      // For token transfers, we need to specify the token contract address
-      // Two formats to try:
-      // 1. wallet-specific format: ethereum:{recipient}@{chainId}/transfer?address={tokenContract}&uint256={amount}
-      // 2. EIP-681 format with token transfer: ethereum:{tokenContract}/transfer?address={recipient}&uint256={amount}
+      // Use the most basic and widely supported QR code format
+      // Simple format: Just the wallet address
+      const simpleWalletUri = formattedAddress;
       
-      // Primary format with token contract address
-      const primaryWalletUri = `ethereum:${CPXTB_TOKEN_ADDRESS}/transfer?address=${formattedAddress}&uint256=${amountCpxtb}`;
-      
-      // Create plain address fallback
-      const fallbackWalletUri = `ethereum:${formattedAddress}@${BASE_CHAIN_ID}`;
-      
-      // Use the primary format
-      const walletUri = primaryWalletUri;
+      // Use the simplest format for maximum compatibility
+      const walletUri = simpleWalletUri;
       
       console.log("Generated wallet URI for QR code:", walletUri);
       

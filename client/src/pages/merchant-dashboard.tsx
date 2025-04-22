@@ -798,11 +798,14 @@ export default function MerchantDashboard() {
                       className="w-full h-auto"
                     />
                   </div>
-                  <div className="text-center mb-4">
-                    <span className="text-xs bg-muted px-2 py-1 rounded flex items-center justify-center gap-1">
-                      <AlertCircle className="h-3 w-3 text-yellow-500" />
-                      Scan with any Ethereum wallet to pay
+                  <div className="text-center mb-4 space-y-2">
+                    <span className="text-xs bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded flex items-center justify-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      QR code contains wallet address - scan with any wallet app
                     </span>
+                    <div className="text-xs text-muted-foreground">
+                      Amount to send: <span className="font-medium">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span>
+                    </div>
                   </div>
                   
                   <div className="w-full space-y-4">
@@ -898,11 +901,11 @@ export default function MerchantDashboard() {
                   <div className="space-y-2">
                     <h3 className="font-medium">2. Customer Scans QR Code</h3>
                     <p className="text-sm text-muted-foreground">
-                      The customer should scan the QR code with any wallet app supporting ERC-20 tokens on Base network (Coinbase Wallet, MetaMask, etc).
+                      The customer should scan the QR code with any wallet app to get your wallet address (or copy the address below).
                     </p>
-                    <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded p-2 text-xs flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                      <span>The QR code is specifically formatted to transfer CPXTB tokens (contract: {CPXTB_TOKEN_ADDRESS.substring(0, 6)}...{CPXTB_TOKEN_ADDRESS.substring(CPXTB_TOKEN_ADDRESS.length - 4)}) on Base network.</span>
+                    <div className="bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-900 rounded p-2 text-xs flex items-start gap-2">
+                      <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <span>After scanning, the customer needs to send the exact amount of <strong>{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</strong> tokens to your address.</span>
                     </div>
                   </div>
                   
@@ -937,6 +940,47 @@ export default function MerchantDashboard() {
                     <p className="text-sm text-muted-foreground">
                       After the customer completes the payment, they should provide you with the transaction hash. You can enter this hash in your payment history to verify the payment.
                     </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h3 className="font-medium">CPXTB Token Details</h3>
+                    <p className="text-sm text-muted-foreground">
+                      If the customer needs to add the CPXTB token to their wallet:
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">Token Contract:</span>
+                        <div className="flex items-center">
+                          <code className="text-xs bg-muted px-2 py-1 rounded-l">{CPXTB_TOKEN_ADDRESS}</code>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            className="h-6 w-6 rounded-l-none"
+                            onClick={() => {
+                              navigator.clipboard.writeText(CPXTB_TOKEN_ADDRESS);
+                              toast({
+                                title: "Copied",
+                                description: "Token contract address copied",
+                              });
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">Network:</span>
+                        <span className="text-xs">Base (Chain ID: 8453)</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">Token Symbol:</span>
+                        <span className="text-xs">CPXTB</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">Decimals:</span>
+                        <span className="text-xs">18</span>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">

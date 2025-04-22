@@ -800,18 +800,21 @@ export default function MerchantDashboard() {
                       />
                     </div>
                     {currentPayment.paymentInstructions && (
-                      <p className="text-sm text-center font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+                      <p className="text-sm text-center font-medium text-black dark:text-white bg-amber-100 dark:bg-amber-800 p-2 rounded-md border border-amber-300 dark:border-amber-700 shadow-sm">
                         {currentPayment.paymentInstructions}
                       </p>
                     )}
                   </div>
-                  <div className="text-center mb-4 space-y-2">
-                    <span className="text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 px-2 py-1 rounded flex items-center justify-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      IMPORTANT: Send CPXTB tokens, not ETH/BASE
-                    </span>
-                    <div className="text-sm font-medium border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/30 dark:border-yellow-800 p-2 rounded">
-                      Send exactly <span className="font-bold">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB tokens</span> to this address
+                  <div className="text-center mb-4 space-y-3">
+                    <div className="text-sm px-3 py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border-2 border-red-300 dark:border-red-800 rounded-lg flex items-center justify-center gap-2 font-semibold">
+                      <AlertCircle className="h-5 w-5" />
+                      WARNING: Send CPXTB tokens, NOT ETH/BASE coins!
+                    </div>
+                    <div className="text-sm font-medium border-2 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 dark:border-yellow-700 p-3 rounded-lg">
+                      Send exactly <span className="font-bold text-base underline">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB tokens</span> to this address
+                    </div>
+                    <div className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded italic">
+                      Sending any other token or incorrect amount will result in lost funds
                     </div>
                   </div>
                   
@@ -910,9 +913,13 @@ export default function MerchantDashboard() {
                     <p className="text-sm text-muted-foreground">
                       The customer should scan the QR code with any wallet app to get your wallet address (or copy the address below).
                     </p>
-                    <div className="bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-900 rounded p-2 text-xs flex items-start gap-2">
-                      <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <span>After scanning, the customer needs to send the exact amount of <strong>{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</strong> tokens to your address.</span>
+                    <div className="bg-red-50 dark:bg-red-950 border-2 border-red-200 dark:border-red-900 rounded p-3 text-sm flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-red-700 dark:text-red-400 mb-1">IMPORTANT: CPXTB TOKENS ONLY!</p>
+                        <p>After scanning, the customer needs to send the exact amount of <strong className="underline">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</strong> tokens to your address.</p>
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">Do NOT send ETH or BASE coins - they will be lost!</p>
+                      </div>
                     </div>
                   </div>
                   

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw } from "lucide-react";
+import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
@@ -1025,9 +1025,23 @@ export default function MerchantDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="mb-6 text-center">
-                Payment history will be displayed here when you create payments.
-              </p>
+              <div className="text-center space-y-4 py-6">
+                <div className="mx-auto bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center">
+                  <Clock className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium">No payment history yet</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Your completed payment transactions will appear here. Create a new payment in the Payments tab to get started.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setActiveTab("payments")}
+                  className="mt-2"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create New Payment
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

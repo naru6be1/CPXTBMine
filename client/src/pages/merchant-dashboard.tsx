@@ -913,20 +913,20 @@ export default function MerchantDashboard() {
                     <p className="text-sm text-muted-foreground">
                       The customer should scan the QR code with any wallet app to get your wallet address (or copy the address below).
                     </p>
-                    <div className="bg-red-50 dark:bg-red-950 border-2 border-red-200 dark:border-red-900 rounded p-3 text-sm flex items-start gap-2">
+                    <div className="bg-red-100 dark:bg-red-950 border-2 border-red-400 dark:border-red-900 rounded p-3 text-sm flex items-start gap-2 shadow-md">
                       <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-bold text-red-700 dark:text-red-400 mb-1">IMPORTANT: CPXTB TOKENS ONLY!</p>
-                        <p>After scanning, the customer needs to send the exact amount of <strong className="underline">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</strong> tokens to your address.</p>
-                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">Do NOT send ETH or BASE coins - they will be lost!</p>
+                        <p className="font-bold text-black dark:text-red-400 mb-1">⚠️ IMPORTANT: CPXTB TOKENS ONLY!</p>
+                        <p className="text-black dark:text-white font-medium">After scanning, the customer needs to send the exact amount of <strong className="text-black dark:text-white bg-yellow-200 dark:bg-yellow-800 px-1 py-0.5 rounded-sm underline">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</strong> tokens to your address.</p>
+                        <p className="mt-1 text-xs font-bold text-black dark:text-red-400">Do NOT send ETH or BASE coins - they will be lost!</p>
                       </div>
                     </div>
                   </div>
                   
                   <div className="space-y-2">
                     <h3 className="font-medium">3. Customer Sends CPXTB</h3>
-                    <p className="text-sm text-muted-foreground">
-                      The customer sends exactly {Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB to your wallet address:
+                    <p className="text-sm font-medium text-black dark:text-white">
+                      The customer sends exactly <span className="bg-yellow-200 dark:bg-yellow-800 px-1 py-0.5 rounded font-bold">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span> to your wallet address:
                     </p>
                     <div className="flex items-center">
                       <code className="text-xs bg-muted p-2 rounded-l block break-all w-full">
@@ -998,12 +998,17 @@ export default function MerchantDashboard() {
                   </div>
                   
                   <div className="space-y-2">
-                    <h3 className="font-medium">Important Notes</h3>
-                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                      <li>This payment request will expire in 15 minutes.</li>
-                      <li>The CPXTB amount is calculated based on the current exchange rate.</li>
-                      <li>Make sure the customer sends the exact amount of CPXTB.</li>
-                    </ul>
+                    <h3 className="font-medium flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4 text-orange-500" />
+                      Important Notes
+                    </h3>
+                    <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-900 rounded-md p-3">
+                      <ul className="text-sm text-black dark:text-white list-disc pl-5 space-y-2">
+                        <li><strong>Time limit:</strong> This payment request will expire in <span className="font-bold underline">15 minutes</span>.</li>
+                        <li><strong>Exchange rate:</strong> The CPXTB amount is calculated based on the current exchange rate.</li>
+                        <li><strong>Exact amount:</strong> Make sure the customer sends <span className="font-bold text-orange-700 dark:text-orange-400">exactly {Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span> - no more, no less.</li>
+                      </ul>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

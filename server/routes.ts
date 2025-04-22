@@ -10,7 +10,7 @@ import { eq, gte, and, sql, lte } from "drizzle-orm";
 import { db } from "./db";
 import { z } from "zod";
 import crypto from "crypto";
-import { TREASURY_ADDRESS } from "./constants";
+import { TREASURY_ADDRESS, CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID } from "./constants";
 import { WebSocketServer, WebSocket } from "ws";
 import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "wagmi/chains";

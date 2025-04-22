@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus } from "lucide-react";
+import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, Loader2 } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
@@ -1025,6 +1025,55 @@ export default function MerchantDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Payment verification form */}
+              <div className="mb-8 border border-border p-4 rounded-md bg-muted/20">
+                <h3 className="text-lg font-medium mb-3">Verify Payment by Transaction Hash</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  When a customer provides you with the transaction hash after sending CPXTB tokens, enter it below to verify the payment.
+                </p>
+                <div className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="payment-reference">Payment Reference</Label>
+                    <Input
+                      id="payment-reference"
+                      placeholder="e.g., CPXTB-5055F86C53B93DDB"
+                      value={verificationForm.reference}
+                      onChange={(e) => setVerificationForm({...verificationForm, reference: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="transaction-hash">Transaction Hash</Label>
+                    <Input
+                      id="transaction-hash"
+                      placeholder="0x..."
+                      value={verificationForm.transactionHash}
+                      onChange={(e) => setVerificationForm({...verificationForm, transactionHash: e.target.value})}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      The transaction hash starts with "0x" and is provided by the customer after they make the payment.
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleVerifyPayment}
+                    disabled={verifyPaymentMutation.isPending || !verificationForm.reference || !verificationForm.transactionHash}
+                    className="w-full"
+                  >
+                    {verifyPaymentMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Verify Payment
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Empty state */}
               <div className="text-center space-y-4 py-6">
                 <div className="mx-auto bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center">
                   <Clock className="h-8 w-8 text-muted-foreground" />

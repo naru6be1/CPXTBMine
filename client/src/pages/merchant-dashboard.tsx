@@ -132,7 +132,7 @@ export default function MerchantDashboard() {
       setIsLoadingHistory(true);
       
       // Fetch payments for the selected merchant
-      const response = await fetch(`/api/merchants/${selectedMerchant.id}/payments`, {
+      const response = await fetch('/api/merchants/payments', {
         headers: {
           'X-API-Key': apiKey
         }
@@ -364,9 +364,6 @@ export default function MerchantDashboard() {
     const { name, value } = e.target;
     setPaymentForm(prev => ({ ...prev, [name]: value }));
   };
-
-  // Selected merchant for payment
-  const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
   
   // Payment verification form state
   const [verificationForm, setVerificationForm] = useState({

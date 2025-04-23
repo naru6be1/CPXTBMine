@@ -27,7 +27,7 @@ const AboutUsPage = lazy(() => import("@/pages/about-us"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
-const MerchantDashboard = lazy(() => import("@/pages/merchant-dashboard-new"));
+const MerchantDashboard = lazy(() => import("@/pages/merchant-dashboard"));
 
 // No games
 

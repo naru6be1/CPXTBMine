@@ -42,9 +42,7 @@ function PageLoader() {
 
 // Preload critical images for the home page
 const criticalImages = [
-  "/assets/logo.png",
-  "/assets/token-logo.png",
-  "/assets/mining-illustration.svg"
+  "/assets/logo.png"
 ];
 
 function Router() {
@@ -56,7 +54,8 @@ function Router() {
       if (location === '/') {
         // Preload most common navigations from home page
         import("@/pages/mining");
-        preloadImages(["/assets/mining-plan-bg.svg"]);
+        // Only preload images that exist
+        // preloadImages(["/assets/mining-plan-bg.svg"]);
       }
     };
     

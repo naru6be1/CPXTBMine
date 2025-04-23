@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, Loader2, ExternalLink } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
@@ -962,6 +963,9 @@ export default function MerchantDashboard() {
                     <div className="text-sm text-black dark:text-white bg-red-100 dark:bg-red-950 p-3 rounded-lg border border-red-300 dark:border-red-700 font-medium shadow-md">
                       ⚠️ WARNING: Sending any other token or incorrect amount will result in lost funds!
                     </div>
+                    <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border border-green-300 dark:border-green-700 font-medium shadow-md">
+                      ✅ Payment will be automatically verified once detected on the blockchain
+                    </div>
                   </div>
                   
                   <div className="w-full space-y-4">
@@ -1171,6 +1175,13 @@ export default function MerchantDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <Alert className="mb-4 bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle>Automatic Payment Detection Active</AlertTitle>
+                <AlertDescription>
+                  Payments are automatically verified when detected on the blockchain. Manual verification is available as a backup option.
+                </AlertDescription>
+              </Alert>
               {/* Payment verification form */}
               <div className="mb-8 border border-border p-4 rounded-md bg-muted/20">
                 <h3 className="text-lg font-medium mb-3">Verify Payment by Transaction Hash</h3>

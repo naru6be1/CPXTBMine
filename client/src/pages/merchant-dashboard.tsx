@@ -963,8 +963,13 @@ export default function MerchantDashboard() {
                     <div className="text-sm text-black dark:text-white bg-red-100 dark:bg-red-950 p-3 rounded-lg border border-red-300 dark:border-red-700 font-medium shadow-md">
                       ⚠️ WARNING: Sending any other token or incorrect amount will result in lost funds!
                     </div>
-                    <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border border-green-300 dark:border-green-700 font-medium shadow-md">
-                      ✅ Payment will be automatically verified once detected on the blockchain
+                    <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border border-green-300 dark:border-green-700 font-medium shadow-md flex items-center gap-2">
+                      <div className="flex-shrink-0">
+                        <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                      </div>
+                      <div>
+                        ✅ Payment monitoring active: Transaction will be automatically verified once detected on the blockchain
+                      </div>
                     </div>
                   </div>
                   
@@ -1102,8 +1107,17 @@ export default function MerchantDashboard() {
                   <div className="space-y-2">
                     <h3 className="font-medium">4. Payment Verification</h3>
                     <p className="text-sm text-muted-foreground">
-                      After the customer completes the payment, they should provide you with the transaction hash. You can enter this hash in your payment history to verify the payment.
+                      After the customer completes the payment, keep this application open to automatically detect and verify the transaction. 
                     </p>
+                    <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-300">
+                        <div className="relative">
+                          <div className="h-3 w-3 bg-blue-500 rounded-full animate-ping absolute"></div>
+                          <div className="h-3 w-3 bg-blue-500 rounded-full relative"></div>
+                        </div>
+                        <span className="font-medium">IMPORTANT: Keep this window open while waiting for payment</span>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -1179,14 +1193,14 @@ export default function MerchantDashboard() {
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 <AlertTitle>Automatic Payment Detection Active</AlertTitle>
                 <AlertDescription>
-                  Payments are automatically verified when detected on the blockchain. Manual verification is available as a backup option.
+                  Payment transactions are automatically monitored and verified in real-time. Keep this application open while waiting for payments. Manual verification is available as a backup option.
                 </AlertDescription>
               </Alert>
               {/* Payment verification form */}
               <div className="mb-8 border border-border p-4 rounded-md bg-muted/20">
-                <h3 className="text-lg font-medium mb-3">Verify Payment by Transaction Hash</h3>
+                <h3 className="text-lg font-medium mb-3">Manual Verification (Backup Option)</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  When a customer provides you with the transaction hash after sending CPXTB tokens, enter it below to verify the payment.
+                  <span className="font-medium text-amber-700 dark:text-amber-500">Note: Payments should be verified automatically.</span> Use this form only if automatic verification fails and the customer provides you with the transaction hash after sending CPXTB tokens.
                 </p>
                 <div className="space-y-4">
                   <div className="grid gap-2">

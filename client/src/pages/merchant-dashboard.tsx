@@ -520,6 +520,36 @@ export default function MerchantDashboard() {
     setCompletedPaymentRef(payment.paymentReference);
     setShowSuccessNotification(true);
     
+    // Play success sound
+    try {
+      const audio = new Audio('/sound/payment-success.mp3');
+      audio.volume = 0.5;
+      audio.play().catch(err => console.log('Could not play notification sound', err));
+    } catch (err) {
+      console.error('Error playing notification sound:', err);
+    }
+    
+    // Update current payment status if this is the active payment
+    if (currentPayment && 
+        currentPayment.payment && 
+        currentPayment.payment.reference === payment.paymentReference) {
+      
+      console.log('Updating current payment status to completed');
+      
+      // Create updated payment object with completed status
+      const updatedPayment = {
+        ...currentPayment,
+        payment: {
+          ...currentPayment.payment,
+          status: 'completed',
+          transactionHash: payment.transactionHash
+        }
+      };
+      
+      // Update the current payment
+      setCurrentPayment(updatedPayment);
+    }
+    
     // Refresh payment history
     fetchPaymentHistory();
   };
@@ -990,14 +1020,36 @@ export default function MerchantDashboard() {
                     <div className="text-sm text-black dark:text-white bg-red-100 dark:bg-red-950 p-3 rounded-lg border border-red-300 dark:border-red-700 font-medium shadow-md">
                       ⚠️ WARNING: Sending any other token or incorrect amount will result in lost funds!
                     </div>
-                    <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border border-green-300 dark:border-green-700 font-medium shadow-md flex items-center gap-2">
-                      <div className="flex-shrink-0">
-                        <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                    
+                    {currentPayment.payment.status === 'completed' ? (
+                      <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border-2 border-green-500 dark:border-green-600 font-medium shadow-md flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <div className="flex-1">
+                          <span className="font-bold">✅ PAYMENT COMPLETED!</span>
+                          <p className="text-xs mt-1">Transaction has been verified on the blockchain</p>
+                        </div>
+                        {currentPayment.payment.transactionHash && (
+                          <a 
+                            href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs bg-green-200 dark:bg-green-800 p-1 rounded flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            View
+                          </a>
+                        )}
                       </div>
-                      <div>
-                        ✅ Payment monitoring active: Transaction will be automatically verified once detected on the blockchain
+                    ) : (
+                      <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border border-green-300 dark:border-green-700 font-medium shadow-md flex items-center gap-2">
+                        <div className="flex-shrink-0">
+                          <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                        </div>
+                        <div>
+                          ✅ Payment monitoring active: Transaction will be automatically verified once detected on the blockchain
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                   
                   <div className="w-full space-y-4">
@@ -1043,16 +1095,33 @@ export default function MerchantDashboard() {
                     
                     <div className="space-y-2">
                       <Label>Status</Label>
-                      <div className="flex items-center gap-2">
-                        <div className={`h-3 w-3 rounded-full ${
-                          currentPayment.payment.status === 'completed' 
-                            ? 'bg-green-500' 
-                            : currentPayment.payment.status === 'expired'
-                              ? 'bg-red-500'
-                              : 'bg-yellow-500'
-                        }`} />
-                        <span className="capitalize">{currentPayment.payment.status}</span>
-                      </div>
+                      {currentPayment.payment.status === 'completed' ? (
+                        <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
+                          <div className="h-3 w-3 bg-green-500 rounded-full" />
+                          <span className="font-semibold text-green-700 dark:text-green-300">Payment Completed!</span>
+                          {currentPayment.payment.transactionHash && (
+                            <a 
+                              href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-auto text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded flex items-center gap-1 text-green-800 dark:text-green-200"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              View Transaction
+                            </a>
+                          )}
+                        </div>
+                      ) : currentPayment.payment.status === 'expired' ? (
+                        <div className="bg-red-100 dark:bg-red-900 p-3 rounded-lg border border-red-300 dark:border-red-700 flex items-center gap-2">
+                          <div className="h-3 w-3 bg-red-500 rounded-full" />
+                          <span className="font-semibold text-red-700 dark:text-red-300">Payment Expired</span>
+                        </div>
+                      ) : (
+                        <div className="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-lg border border-yellow-300 dark:border-yellow-700 flex items-center gap-2">
+                          <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse" />
+                          <span className="font-semibold text-yellow-700 dark:text-yellow-300">Payment Pending</span>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="space-y-2">

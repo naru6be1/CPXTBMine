@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import Image from "@/components/ui/image"
 
 interface LogoProps {
   className?: string;
@@ -17,14 +18,14 @@ export function Logo({ className, size = "md" }: LogoProps) {
       "flex items-center gap-3",
       className
     )}>
-      <div 
+      <img 
+        src="/assets/logo.png"
+        alt="CPXTB Mining Logo"
         className={cn(
-          "rounded-full bg-primary/30 flex items-center justify-center",
+          "rounded-full",
           sizes[size]
         )}
-      >
-        <span className="text-primary font-bold">CP</span>
-      </div>
+      />
       <span className="font-semibold text-xl text-foreground">CPXTBMining</span>
     </div>
   );

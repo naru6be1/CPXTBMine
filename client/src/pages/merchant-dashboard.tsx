@@ -755,14 +755,6 @@ export default function MerchantDashboard() {
         </TabsContent>
 
         <TabsContent value="payments">
-          <Alert className="mb-4 border-green-500 bg-green-50 dark:bg-green-900/20">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle className="text-green-800 dark:text-green-400">Automatic Payment Detection Active</AlertTitle>
-            <AlertDescription className="text-green-700 dark:text-green-300">
-              Our system automatically detects CPXTB payments sent to your wallet address. No need for manual verification.
-            </AlertDescription>
-          </Alert>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Payment Creation Form */}
             <Card>
@@ -935,14 +927,6 @@ export default function MerchantDashboard() {
         </TabsContent>
 
         <TabsContent value="qrcode">
-          <Alert className="mb-4 border-green-500 bg-green-50 dark:bg-green-900/20">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle className="text-green-800 dark:text-green-400">Automatic Payment Detection Active</AlertTitle>
-            <AlertDescription className="text-green-700 dark:text-green-300">
-              When your customer completes payment, our system will automatically detect and verify the transaction.
-            </AlertDescription>
-          </Alert>
-          
           {currentPayment && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <Card>
@@ -1191,10 +1175,10 @@ export default function MerchantDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert className="mb-4 border-green-500 bg-green-50 dark:bg-green-900/20">
-                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                <AlertTitle className="text-green-800 dark:text-green-400">Automatic Payment Detection Active</AlertTitle>
-                <AlertDescription className="text-green-700 dark:text-green-300">
+              <Alert className="mb-4 bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle>Automatic Payment Detection Active</AlertTitle>
+                <AlertDescription>
                   Payments are automatically verified when detected on the blockchain. Manual verification is available as a backup option.
                 </AlertDescription>
               </Alert>

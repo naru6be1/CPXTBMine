@@ -4,6 +4,8 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { lazy, Suspense, useEffect } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { HamburgerMenu } from "@/components/hamburger-menu";
+import { LiveUserCount } from "@/components/live-user-count";
 import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi';
 import { ProtectedRoute } from "./lib/protected-route";
@@ -40,7 +42,9 @@ function PageLoader() {
 
 // Preload critical images for the home page
 const criticalImages = [
-  "/assets/logo.png"
+  "/assets/logo.png",
+  "/assets/token-logo.png",
+  "/assets/mining-illustration.svg"
 ];
 
 function Router() {
@@ -52,8 +56,7 @@ function Router() {
       if (location === '/') {
         // Preload most common navigations from home page
         import("@/pages/mining");
-        // Only preload images that exist
-        // preloadImages(["/assets/mining-plan-bg.svg"]);
+        preloadImages(["/assets/mining-plan-bg.svg"]);
       }
     };
     
@@ -81,7 +84,7 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route path="/auth" component={AuthPage} />
-        <ProtectedRoute path="/merchant-dashboard" component={MerchantDashboard} />
+        <ProtectedRoute path="/merchant" component={MerchantDashboard} />
         
         {/* No Games */}
         
@@ -111,6 +114,10 @@ function App() {
       <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+            <HamburgerMenu />
+            <div className="fixed top-4 right-4 z-50">
+              <LiveUserCount />
+            </div>
             <Router />
             <Toaster />
           </AuthProvider>

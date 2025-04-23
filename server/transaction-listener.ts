@@ -38,18 +38,12 @@ async function processTransferEvent(
     const fromAddress = ethers.getAddress(from.toLowerCase());
     const toAddress = ethers.getAddress(to.toLowerCase());
     
-    // Get all pending payments from all merchants
-    // We need to query all payments because a transaction could be for any merchant
-    const allPayments = await db.query.payments.findMany({
-      where: eq(payments.status, 'pending')
-    });
-    
-    console.log(`Checking transaction against ${allPayments.length} pending payments`);
+    // Get pending payments sent to this merchant
+    const pendingPayments = await storage.getExpiredPayments();
     
     // Check if any pending payment matches this transaction
-    for (const payment of allPayments) {
-      // All payments should be pending since we filtered in the query
-      // But add an extra check just to be safe
+    for (const payment of pendingPayments) {
+      // Skip payments that are not pending
       if (payment.status !== 'pending') continue;
       
       // Get merchant info

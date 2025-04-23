@@ -38,8 +38,8 @@ async function processTransferEvent(
     const fromAddress = ethers.getAddress(from.toLowerCase());
     const toAddress = ethers.getAddress(to.toLowerCase());
     
-    // Get pending payments sent to this merchant
-    const pendingPayments = await storage.getExpiredPayments();
+    // Get all pending payments that haven't expired yet
+    const pendingPayments = await storage.getPendingPayments();
     
     // Check if any pending payment matches this transaction
     for (const payment of pendingPayments) {

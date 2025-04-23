@@ -45,6 +45,7 @@ export interface IStorage {
   getPaymentsByMerchant(merchantId: number): Promise<Payment[]>;
   updatePaymentStatus(paymentId: number, status: string, transactionHash?: string): Promise<Payment>;
   getExpiredPayments(): Promise<Payment[]>;
+  getPendingPayments(): Promise<Payment[]>;
   getMerchantReport(merchantId: number, startDate: Date, endDate: Date): Promise<{
     totalPayments: number;
     successfulPayments: number;
@@ -374,6 +375,18 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(payments.status, 'pending'),
           lt(payments.expiresAt, new Date())
+        )
+      );
+  }
+  
+  async getPendingPayments(): Promise<Payment[]> {
+    return await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.status, 'pending'),
+          gte(payments.expiresAt, new Date())
         )
       );
   }

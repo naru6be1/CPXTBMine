@@ -16,6 +16,7 @@ import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { startPaymentMonitoring } from "./transaction-listener";
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
@@ -1220,6 +1221,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Run the check every 15 seconds
   setInterval(checkAndDistributeMaturedPlans, 15000);
+  
+  // Start automatic payment transaction monitoring
+  startPaymentMonitoring().catch(error => {
+    console.error("Failed to start payment monitoring:", error);
+  });
+  
+  console.log("Payment monitoring service activated - automatically detecting blockchain transactions");
 
   return httpServer;
 }

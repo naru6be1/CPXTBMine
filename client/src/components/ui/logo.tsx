@@ -17,14 +17,14 @@ export function Logo({ className, size = "md" }: LogoProps) {
       "flex items-center gap-3",
       className
     )}>
-      <img 
-        src="/assets/logo.png"
-        alt="CPXTB Mining Logo"
+      <div 
         className={cn(
-          "rounded-full",
+          "rounded-full bg-primary/30 flex items-center justify-center",
           sizes[size]
         )}
-      />
+      >
+        <span className="text-primary font-bold">CP</span>
+      </div>
       <span className="font-semibold text-xl text-foreground">CPXTBMining</span>
     </div>
   );

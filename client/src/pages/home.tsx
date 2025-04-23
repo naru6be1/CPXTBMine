@@ -1,11 +1,6 @@
-import { ConnectWallet } from "@/components/connect-wallet";
-import { useWallet } from "@/hooks/use-wallet";
 import { Link } from "wouter";
 
-
 export default function Home() {
-  const { isConnected, address } = useWallet();
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-4xl mx-auto text-center space-y-8">
@@ -14,34 +9,23 @@ export default function Home() {
             <h1 className="text-4xl font-bold text-primary">CPXTB Platform</h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Connect your wallet and view real-time CPXTB/WETH prices
+            The premier platform for cryptocurrency mining and payments
           </p>
         </div>
 
         {/* Banner space */}
-        <div className="p-4 bg-primary/10 rounded-lg">
-          <h2 className="text-xl font-semibold">Welcome to CPXTB Platform</h2>
-          <p>The premier platform for cryptocurrency mining and payments</p>
-        </div>
-        
-
-
-        <div className="max-w-md mx-auto">
-          <ConnectWallet />
-        </div>
-
-        {isConnected && address && (
-          <div className="animate-fade-in">
-            <div className="bg-primary/5 rounded-lg p-6 mt-8">
-              <h2 className="text-2xl font-semibold text-foreground mb-2">
-                🎉 Successfully Connected!
-              </h2>
-              <p className="text-muted-foreground">
-                Your wallet ({address.slice(0, 6)}...{address.slice(-4)}) is now connected to our DApp
-              </p>
-            </div>
+        <div className="p-6 bg-primary/10 rounded-lg">
+          <h2 className="text-xl font-semibold mb-2">Welcome to CPXTB Platform</h2>
+          <p className="mb-4">Earn rewards through our tiered mining plans</p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-4">
+            <Link href="/mining" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+              Start Mining
+            </Link>
+            <Link href="/auth" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2">
+              Login / Register
+            </Link>
           </div>
-        )}
+        </div>
       </div>
       
       {/* Footer with links */}

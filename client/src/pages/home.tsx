@@ -1,10 +1,6 @@
 import { ConnectWallet } from "@/components/connect-wallet";
-import { PriceDisplay } from "@/components/price-display";
-import { MiningPlan } from "@/components/mining-plan";
 import { useWallet } from "@/hooks/use-wallet";
-import { Logo } from "@/components/ui/logo";
 import { Link } from "wouter";
-
 
 
 export default function Home() {
@@ -15,19 +11,18 @@ export default function Home() {
       <div className="w-full max-w-4xl mx-auto text-center space-y-8">
         <div className="space-y-4">
           <div className="flex justify-center">
-            <Logo size="lg" />
+            <h1 className="text-4xl font-bold text-primary">CPXTB Platform</h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Connect your wallet and view real-time CPXTB/WETH prices
           </p>
         </div>
 
-        <PriceDisplay />
-        
         {/* Banner space */}
-
-        {/* Mining Plan Section */}
-        <MiningPlan />
+        <div className="p-4 bg-primary/10 rounded-lg">
+          <h2 className="text-xl font-semibold">Welcome to CPXTB Platform</h2>
+          <p>The premier platform for cryptocurrency mining and payments</p>
+        </div>
         
 
 

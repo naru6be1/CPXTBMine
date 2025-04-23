@@ -70,7 +70,7 @@ export function HamburgerMenu() {
               Contact Us
             </Button>
           </Link>
-          <Link href="/merchant">
+          <Link href="/merchant-dashboard">
             <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
               <Store className="mr-2 h-4 w-4" />
               Merchant Dashboard

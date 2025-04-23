@@ -4,8 +4,6 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { lazy, Suspense, useEffect } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { HamburgerMenu } from "@/components/hamburger-menu";
-import { LiveUserCount } from "@/components/live-user-count";
 import { config } from "./lib/web3";
 import { WagmiConfig } from 'wagmi';
 import { ProtectedRoute } from "./lib/protected-route";
@@ -113,10 +111,6 @@ function App() {
       <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <HamburgerMenu />
-            <div className="fixed top-4 right-4 z-50">
-              <LiveUserCount />
-            </div>
             <Router />
             <Toaster />
           </AuthProvider>

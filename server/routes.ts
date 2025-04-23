@@ -1128,6 +1128,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
+  // Make WebSocket server available to other modules (like transaction-listener)
+  (global as any).wss = wss;
+  
   // Track connected users
   let connectedUsers = 0;
   

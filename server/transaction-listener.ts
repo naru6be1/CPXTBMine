@@ -4,6 +4,7 @@ import { CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID } from './constants';
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 import { payments } from '@shared/schema';
+import WebSocket from 'ws';
 
 // ABI for ERC20 token - we only need the Transfer event
 const ERC20_ABI = [
@@ -83,6 +84,37 @@ async function processTransferEvent(
                 completedAt: new Date()
               })
               .where(eq(payments.id, payment.id));
+              
+            // Broadcast payment status update to all WebSocket clients
+            try {
+              // Access the WebSocket server from the global scope
+              const wss = (global as any).wss;
+              
+              if (wss) {
+                // Create notification payload
+                const notificationPayload = {
+                  type: 'paymentStatusUpdate',
+                  paymentId: payment.id,
+                  paymentReference: payment.paymentReference,
+                  status: 'completed',
+                  transactionHash: txHash,
+                  timestamp: new Date().toISOString()
+                };
+                
+                console.log('📢 Broadcasting payment update to WebSocket clients:', notificationPayload);
+                
+                // Send to all connected clients
+                wss.clients.forEach(client => {
+                  if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(notificationPayload));
+                  }
+                });
+              } else {
+                console.log('No WebSocket server available to broadcast update');
+              }
+            } catch (wsError) {
+              console.error('Error broadcasting payment update via WebSocket:', wsError);
+            }
           } catch (updateError) {
             console.error(`Error updating payment status: ${updateError}`);
           }

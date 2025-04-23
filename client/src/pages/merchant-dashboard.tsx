@@ -15,6 +15,7 @@ import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Cl
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
+import { PaymentNotification, PaymentSuccessNotification } from "@/components/payment-notification";
 
 // CPXTB token address for displaying in UI
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
@@ -107,6 +108,10 @@ export default function MerchantDashboard() {
 
   // QR Code and payment data
   const [currentPayment, setCurrentPayment] = useState<any>(null);
+  
+  // Payment notification state
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [completedPaymentRef, setCompletedPaymentRef] = useState('');
   
   // Payment history state
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);

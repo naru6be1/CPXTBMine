@@ -40,7 +40,7 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
           toast({
             title: "Payment Received! 🎉",
             description: `Payment ${data.paymentReference} has been completed successfully.`,
-            variant: "success",
+            variant: "default",
           });
           
           // Play success sound

@@ -40,39 +40,65 @@ async function processTransferEvent(
     
     // Get all pending payments that haven't expired yet
     const pendingPayments = await storage.getPendingPayments();
+    console.log(`Found ${pendingPayments.length} pending payments to check against this transaction`);
     
     // Check if any pending payment matches this transaction
     for (const payment of pendingPayments) {
       // Skip payments that are not pending
-      if (payment.status !== 'pending') continue;
+      if (payment.status !== 'pending') {
+        console.log(`Skipping payment ${payment.id} as it's not pending (status: ${payment.status})`);
+        continue;
+      }
       
       // Get merchant info
       const merchant = await storage.getMerchant(payment.merchantId);
-      if (!merchant) continue;
+      if (!merchant) {
+        console.log(`Merchant not found for payment ${payment.id} (merchant id: ${payment.merchantId})`);
+        continue;
+      }
+      
+      const merchantAddress = ethers.getAddress(merchant.wallet_address?.toLowerCase() || merchant.walletAddress?.toLowerCase());
+      console.log(`Checking merchant ${merchant.id} (${merchant.business_name || 'Unknown'}): Wallet=${merchantAddress}, Transaction to=${toAddress}`);
       
       // Check if this transaction is a payment to this merchant
-      if (ethers.getAddress(merchant.walletAddress.toLowerCase()) === toAddress) {
-        // Verify amount within 1% tolerance (to account for gas/slippage)
-        const expectedAmount = BigInt(payment.amountCpxtb);
+      if (merchantAddress === toAddress) {
+        // Convert the decimal string to a BigInt by removing the decimal point
+        // First, convert to string to ensure we're dealing with a string
+        const amountStr = payment.amountCpxtb.toString();
+        // Remove the decimal point and convert to BigInt
+        const amountInt = BigInt(Math.floor(parseFloat(amountStr) * 10**18));
+        // Use this as our expected amount for token comparison (tokens typically have 18 decimals)
+        const expectedAmount = amountInt;
         const minAmount = expectedAmount - (expectedAmount / BigInt(100));
+        
+        console.log(`Payment ${payment.id} amount check: Expected=${expectedAmount}, Received=${value}, Minimum=${minAmount}`);
         
         if (value >= minAmount) {
           console.log(`Payment match found! Payment ID: ${payment.id}, Reference: ${payment.paymentReference}`);
           
-          // Update payment status
-          await storage.updatePaymentStatus(payment.id, 'completed', txHash);
-          
-          // Also update in the database directly to be extra safe
-          await db.update(payments)
-            .set({ 
-              status: 'completed',
-              transactionHash: txHash,
-              updatedAt: new Date()
-            })
-            .where(eq(payments.id, payment.id));
+          try {
+            // Update payment status
+            await storage.updatePaymentStatus(payment.id, 'completed', txHash);
             
-          console.log(`Payment ${payment.id} marked as completed with transaction hash ${txHash}`);
+            // Also update in the database directly to be extra safe
+            await db.update(payments)
+              .set({ 
+                status: 'completed',
+                transactionHash: txHash,
+                updatedAt: new Date(),
+                completedAt: new Date()
+              })
+              .where(eq(payments.id, payment.id));
+              
+            console.log(`Payment ${payment.id} marked as completed with transaction hash ${txHash}`);
+          } catch (updateError) {
+            console.error(`Error updating payment status: ${updateError}`);
+          }
+        } else {
+          console.log(`Payment amount doesn't match. Expected: ${expectedAmount}, Received: ${value}`);
         }
+      } else {
+        console.log(`Merchant wallet doesn't match transaction recipient. Merchant: ${merchantAddress}, Recipient: ${toAddress}`);
       }
     }
   } catch (error) {

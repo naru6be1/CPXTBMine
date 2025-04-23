@@ -31,10 +31,34 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
     socket.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
         
         // Check if this is a payment status update
         if (data.type === 'paymentStatusUpdate' && data.status === 'completed') {
-          console.log('Received payment update notification:', data);
+          console.log('🔔 Received payment update notification:', data);
+          
+          // Play success sound - try multiple times if it fails
+          try {
+            const audio = new Audio('/sound/payment-success.mp3');
+            audio.volume = 0.7; // Increased volume
+            
+            // Create a promise to play with multiple attempts
+            const attemptPlay = (remainingAttempts = 3) => {
+              audio.play().catch(err => {
+                console.warn(`Attempt to play sound failed (${remainingAttempts} attempts left):`, err);
+                if (remainingAttempts > 0) {
+                  setTimeout(() => attemptPlay(remainingAttempts - 1), 300);
+                }
+              });
+            };
+            
+            attemptPlay();
+            
+            // Preload the sound for faster playback next time
+            audio.preload = 'auto';
+          } catch (err) {
+            console.error('Error creating audio object:', err);
+          }
           
           // Show toast notification
           toast({
@@ -42,11 +66,6 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
             description: `Payment ${data.paymentReference} has been completed successfully.`,
             variant: "default",
           });
-          
-          // Play success sound
-          const audio = new Audio('/sound/payment-success.mp3');
-          audio.volume = 0.5;
-          audio.play().catch(err => console.log('Could not play notification sound', err));
           
           // Call the callback if provided
           if (onPaymentUpdate) {
@@ -92,12 +111,12 @@ export function PaymentSuccessNotification({
   reference: string;
   onClose: () => void;
 }) {
-  // Auto-close after 10 seconds
+  // Auto-close after 20 seconds (extended time)
   useEffect(() => {
     if (isVisible) {
       const timer = setTimeout(() => {
         onClose();
-      }, 10000);
+      }, 20000);
       
       return () => clearTimeout(timer);
     }
@@ -106,37 +125,73 @@ export function PaymentSuccessNotification({
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
-          className="fixed top-4 right-4 z-50 max-w-md"
-          initial={{ opacity: 0, y: -50, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -50, scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 350, damping: 25 }}
-        >
-          <div className="bg-green-100 dark:bg-green-900 p-4 rounded-lg shadow-lg border-2 border-green-300 dark:border-green-700">
-            <div className="flex items-start gap-3">
-              <div className="bg-green-500 rounded-full p-1 mt-0.5">
-                <CheckCircle2 className="h-5 w-5 text-white" />
+        <>
+          {/* Overlay with slight blur to draw attention */}
+          <motion.div
+            className="fixed inset-0 bg-black/5 backdrop-blur-[2px] z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          
+          {/* Notification popup */}
+          <motion.div
+            className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 max-w-md w-full"
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ 
+              opacity: 1, 
+              y: 0, 
+              scale: 1,
+              transition: { type: "spring", stiffness: 350, damping: 25 }
+            }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+          >
+            <motion.div 
+              className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-2xl border-2 border-green-400 dark:border-green-600"
+              animate={{ 
+                boxShadow: ["0 0 0 rgba(34, 197, 94, 0.2)", "0 0 20px rgba(34, 197, 94, 0.6)", "0 0 0 rgba(34, 197, 94, 0.2)"]
+              }}
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                repeatType: "loop"
+              }}
+            >
+              <div className="text-center mb-4">
+                <motion.div 
+                  className="inline-block bg-green-100 dark:bg-green-900 p-3 rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <CheckCircle2 className="h-10 w-10 text-green-500" />
+                </motion.div>
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-green-900 dark:text-green-100">Payment Received! 🎉</h3>
-                <p className="text-sm text-green-800 dark:text-green-200 mt-1">
-                  Payment <span className="font-medium">{reference}</span> has been completed successfully.
+              
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-green-700 dark:text-green-400 mb-2">
+                  Payment Successful! 🎉
+                </h2>
+                <p className="text-gray-700 dark:text-gray-300 mb-4">
+                  Payment <span className="font-medium text-black dark:text-white">{reference}</span> has been verified on the blockchain.
                 </p>
-                <div className="mt-3 flex justify-end">
+                <div className="bg-green-50 dark:bg-green-900/40 p-3 rounded-md text-sm text-green-800 dark:text-green-300 mb-6">
+                  The payment has been processed and will appear in your transaction history.
+                </div>
+                <div className="flex justify-center">
                   <button
                     onClick={onClose}
-                    className="text-xs bg-green-200 dark:bg-green-800 px-3 py-1 rounded-full 
-                             text-green-800 dark:text-green-100 font-medium hover:bg-green-300 dark:hover:bg-green-700 
-                             transition-colors"
+                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-md 
+                             transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                   >
                     Dismiss
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

@@ -520,15 +520,6 @@ export default function MerchantDashboard() {
     setCompletedPaymentRef(payment.paymentReference);
     setShowSuccessNotification(true);
     
-    // Play success sound
-    try {
-      const audio = new Audio('/sound/payment-success.mp3');
-      audio.volume = 0.5;
-      audio.play().catch(err => console.log('Could not play notification sound', err));
-    } catch (err) {
-      console.error('Error playing notification sound:', err);
-    }
-    
     // Update current payment status if this is the active payment
     if (currentPayment && 
         currentPayment.payment && 
@@ -548,6 +539,22 @@ export default function MerchantDashboard() {
       
       // Update the current payment
       setCurrentPayment(updatedPayment);
+      
+      // Switch to QR code tab if not already there
+      if (activeTab !== "qrcode") {
+        toast({
+          title: "Payment Completed! 🎉",
+          description: "Switch to QR tab to see payment details",
+          action: (
+            <div 
+              className="bg-green-600 text-white hover:bg-green-700 cursor-pointer p-1 rounded"
+              onClick={() => setActiveTab("qrcode")}
+            >
+              View
+            </div>
+          )
+        });
+      }
     }
     
     // Refresh payment history

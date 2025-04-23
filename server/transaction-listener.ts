@@ -4,7 +4,7 @@ import { CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID } from './constants';
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 import { payments } from '@shared/schema';
-import WebSocket from 'ws';
+import { WebSocket } from 'ws';
 
 // ABI for ERC20 token - we only need the Transfer event
 const ERC20_ABI = [
@@ -104,7 +104,7 @@ async function processTransferEvent(
                 console.log('📢 Broadcasting payment update to WebSocket clients:', notificationPayload);
                 
                 // Send to all connected clients
-                wss.clients.forEach(client => {
+                wss.clients.forEach((client: any) => {
                   if (client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify(notificationPayload));
                   }

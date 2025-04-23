@@ -512,8 +512,30 @@ export default function MerchantDashboard() {
   // We don't need the manual redirect anymore since the component will only render
   // if the user is authenticated
 
+  // Handle payment update notifications
+  const handlePaymentUpdate = (payment: any) => {
+    console.log("Payment update received:", payment);
+    
+    // Show the success notification
+    setCompletedPaymentRef(payment.paymentReference);
+    setShowSuccessNotification(true);
+    
+    // Refresh payment history
+    fetchPaymentHistory();
+  };
+
   return (
     <div className="container my-8">
+      {/* Real-time payment notification listener */}
+      <PaymentNotification onPaymentUpdate={handlePaymentUpdate} />
+      
+      {/* Animated success notification */}
+      <PaymentSuccessNotification 
+        isVisible={showSuccessNotification}
+        reference={completedPaymentRef}
+        onClose={() => setShowSuccessNotification(false)}
+      />
+      
       <h1 className="text-3xl font-bold mb-6">Merchant Dashboard</h1>
       <p className="mb-8 text-muted-foreground">
         Accept CPXTB token payments for your business

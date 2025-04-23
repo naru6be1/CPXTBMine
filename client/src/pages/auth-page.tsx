@@ -67,7 +67,7 @@ export default function AuthPage() {
   
   // Redirect if already logged in
   if (user && !isLoading) {
-    return <Redirect to="/merchant" />;
+    return <Redirect to="/merchant-dashboard" />;
   }
   
   return (

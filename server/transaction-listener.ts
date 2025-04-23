@@ -34,71 +34,63 @@ async function processTransferEvent(
   console.log(`Processing transfer event: ${from} -> ${to}, value: ${value.toString()}, txHash: ${txHash}`);
   
   try {
-    // Convert addresses to checksum format for consistent comparison
-    const fromAddress = ethers.getAddress(from.toLowerCase());
-    const toAddress = ethers.getAddress(to.toLowerCase());
-    
     // Get all pending payments that haven't expired yet
     const pendingPayments = await storage.getPendingPayments();
     console.log(`Found ${pendingPayments.length} pending payments to check against this transaction`);
     
-    // Check if any pending payment matches this transaction
+    // If no pending payments, exit early
+    if (pendingPayments.length === 0) {
+      return;
+    }
+    
+    // Format the receiving address in a consistent way
+    const recipientAddress = to.toLowerCase();
+    
+    // Loop through each pending payment to see if it matches this transaction
     for (const payment of pendingPayments) {
-      // Skip payments that are not pending
-      if (payment.status !== 'pending') {
-        console.log(`Skipping payment ${payment.id} as it's not pending (status: ${payment.status})`);
-        continue;
-      }
-      
-      // Get merchant info
-      const merchant = await storage.getMerchant(payment.merchantId);
-      if (!merchant) {
-        console.log(`Merchant not found for payment ${payment.id} (merchant id: ${payment.merchantId})`);
-        continue;
-      }
-      
-      const merchantAddress = ethers.getAddress(merchant.wallet_address?.toLowerCase() || merchant.walletAddress?.toLowerCase());
-      console.log(`Checking merchant ${merchant.id} (${merchant.business_name || 'Unknown'}): Wallet=${merchantAddress}, Transaction to=${toAddress}`);
-      
-      // Check if this transaction is a payment to this merchant
-      if (merchantAddress === toAddress) {
-        // Convert the decimal string to a BigInt by removing the decimal point
-        // First, convert to string to ensure we're dealing with a string
-        const amountStr = payment.amountCpxtb.toString();
-        // Remove the decimal point and convert to BigInt
-        const amountInt = BigInt(Math.floor(parseFloat(amountStr) * 10**18));
-        // Use this as our expected amount for token comparison (tokens typically have 18 decimals)
-        const expectedAmount = amountInt;
-        const minAmount = expectedAmount - (expectedAmount / BigInt(100));
+      try {
+        console.log(`Checking pending payment ID: ${payment.id}, Reference: ${payment.paymentReference}`);
         
-        console.log(`Payment ${payment.id} amount check: Expected=${expectedAmount}, Received=${value}, Minimum=${minAmount}`);
+        // Get the merchant for this payment
+        const merchant = await storage.getMerchant(payment.merchantId);
+        if (!merchant) {
+          console.log(`Could not find merchant ${payment.merchantId} for payment ${payment.id}`);
+          continue;
+        }
         
-        if (value >= minAmount) {
-          console.log(`Payment match found! Payment ID: ${payment.id}, Reference: ${payment.paymentReference}`);
+        // Get merchant's wallet address and normalize it
+        const merchantAddress = merchant.walletAddress.toLowerCase();
+        
+        // Log for debugging
+        console.log(`Payment ${payment.id}: Merchant=${payment.merchantId}, Merchant Address=${merchantAddress}, Transaction To=${recipientAddress}`);
+        
+        // Check if this transaction is going to the merchant's wallet
+        if (merchantAddress === recipientAddress) {
+          console.log(`✅ Wallet address match for payment ${payment.id}!`);
           
           try {
-            // Update payment status
+            // Mark the payment as completed
             await storage.updatePaymentStatus(payment.id, 'completed', txHash);
             
-            // Also update in the database directly to be extra safe
+            console.log(`✅ Payment ${payment.id} (${payment.paymentReference}) marked as completed with tx hash ${txHash}`);
+            
+            // Extra safety - update directly in database too
             await db.update(payments)
-              .set({ 
+              .set({
                 status: 'completed',
                 transactionHash: txHash,
                 updatedAt: new Date(),
                 completedAt: new Date()
               })
               .where(eq(payments.id, payment.id));
-              
-            console.log(`Payment ${payment.id} marked as completed with transaction hash ${txHash}`);
           } catch (updateError) {
             console.error(`Error updating payment status: ${updateError}`);
           }
         } else {
-          console.log(`Payment amount doesn't match. Expected: ${expectedAmount}, Received: ${value}`);
+          console.log(`❌ Merchant wallet (${merchantAddress}) doesn't match transaction recipient (${recipientAddress})`);
         }
-      } else {
-        console.log(`Merchant wallet doesn't match transaction recipient. Merchant: ${merchantAddress}, Recipient: ${toAddress}`);
+      } catch (paymentError) {
+        console.error(`Error processing payment ${payment.id}:`, paymentError);
       }
     }
   } catch (error) {

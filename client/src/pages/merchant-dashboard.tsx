@@ -594,9 +594,13 @@ export default function MerchantDashboard() {
         title: "Template applied",
         description: "Payment page theme template has been applied successfully.",
       });
+      
+      console.log("Theme template applied successfully:", data.merchant);
+      
       // Update form state with the new theme values from the template
       if (data.merchant) {
-        setThemeForm({
+        // Update theme form explicitly with all the values from the server
+        const updatedThemeForm = {
           primaryColor: data.merchant.primaryColor || "#3b82f6",
           secondaryColor: data.merchant.secondaryColor || "#10b981",
           accentColor: data.merchant.accentColor || "#f59e0b",
@@ -606,22 +610,39 @@ export default function MerchantDashboard() {
           customCss: data.merchant.customCss || "",
           customHeader: data.merchant.customHeader || "",
           customFooter: data.merchant.customFooter || "",
-        });
+        };
         
-        // Update selected merchant with the new theme data
-        if (selectedMerchant) {
-          setSelectedMerchant({
-            ...selectedMerchant,
-            ...data.merchant
-          });
-        }
+        setThemeForm(updatedThemeForm);
+        console.log("Theme form updated:", updatedThemeForm);
+        
+        // Immediately update the selected merchant with the new theme data
+        setSelectedMerchant((prevMerchant: any) => {
+          if (!prevMerchant) return null;
+          const updatedMerchant = {
+            ...prevMerchant,
+            ...data.merchant,
+            primaryColor: data.merchant.primaryColor,
+            secondaryColor: data.merchant.secondaryColor,
+            accentColor: data.merchant.accentColor,
+            fontFamily: data.merchant.fontFamily,
+            borderRadius: data.merchant.borderRadius,
+            darkMode: data.merchant.darkMode,
+            themeTemplate: data.merchant.themeTemplate
+          };
+          console.log("Updated selected merchant with new theme:", updatedMerchant);
+          return updatedMerchant;
+        });
       }
       
+      // Reset the applying state
       setApplyingTemplate(false);
+      
+      // Refresh merchant data from server
       refetchMerchants();
     },
     onError: (error: Error) => {
       setApplyingTemplate(false);
+      console.error("Template application error:", error);
       toast({
         title: "Template application failed",
         description: error.message,
@@ -1767,60 +1788,88 @@ export default function MerchantDashboard() {
                     {/* Template Options */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div
-                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
+                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative 
+                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
+                          ${selectedMerchant?.themeTemplate === 'default' ? 'ring-2 ring-primary border-transparent' : ''}`}
                         onClick={() => {
                           setApplyingTemplate(true);
                           applyTemplateMutation.mutate("default");
                         }}
                       >
+                        {selectedMerchant?.themeTemplate === 'default' && (
+                          <div className="absolute -top-2 -right-2 bg-primary text-white rounded-full p-1">
+                            <Check className="h-4 w-4" />
+                          </div>
+                        )}
                         <div className="flex flex-col h-full">
                           <div className="flex-none h-24 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 mb-3"></div>
-                          <h3 className="text-sm font-medium mb-1">Modern Blue</h3>
+                          <h3 className="text-sm font-medium text-foreground mb-1">Modern Blue</h3>
                           <p className="text-xs text-muted-foreground mb-auto">Professional, clean design with blue accents</p>
                           <Badge variant="outline" className="self-start mt-2">Modern</Badge>
                         </div>
                       </div>
                       
                       <div
-                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
+                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
+                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
+                          ${selectedMerchant?.themeTemplate === 'bold' ? 'ring-2 ring-primary border-transparent' : ''}`}
                         onClick={() => {
                           setApplyingTemplate(true);
                           applyTemplateMutation.mutate("bold");
                         }}
                       >
+                        {selectedMerchant?.themeTemplate === 'bold' && (
+                          <div className="absolute -top-2 -right-2 bg-primary text-white rounded-full p-1">
+                            <Check className="h-4 w-4" />
+                          </div>
+                        )}
                         <div className="flex flex-col h-full">
                           <div className="flex-none h-24 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 mb-3"></div>
-                          <h3 className="text-sm font-medium mb-1">Crypto Gold</h3>
+                          <h3 className="text-sm font-medium text-foreground mb-1">Crypto Gold</h3>
                           <p className="text-xs text-muted-foreground mb-auto">Bold design with crypto-inspired amber coloring</p>
                           <Badge variant="outline" className="self-start mt-2">Crypto</Badge>
                         </div>
                       </div>
                       
                       <div
-                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
+                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
+                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
+                          ${selectedMerchant?.themeTemplate === 'minimal' ? 'ring-2 ring-primary border-transparent' : ''}`}
                         onClick={() => {
                           setApplyingTemplate(true);
                           applyTemplateMutation.mutate("minimal");
                         }}
                       >
+                        {selectedMerchant?.themeTemplate === 'minimal' && (
+                          <div className="absolute -top-2 -right-2 bg-primary text-white rounded-full p-1">
+                            <Check className="h-4 w-4" />
+                          </div>
+                        )}
                         <div className="flex flex-col h-full">
                           <div className="flex-none h-24 rounded-md bg-gradient-to-r from-gray-100 to-gray-200 mb-3"></div>
-                          <h3 className="text-sm font-medium mb-1">Minimalist</h3>
+                          <h3 className="text-sm font-medium text-foreground mb-1">Minimalist</h3>
                           <p className="text-xs text-muted-foreground mb-auto">Simple, clean design with focus on content</p>
                           <Badge variant="outline" className="self-start mt-2">Minimal</Badge>
                         </div>
                       </div>
                       
                       <div
-                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
+                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
+                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
+                          ${selectedMerchant?.themeTemplate === 'tech' ? 'ring-2 ring-primary border-transparent' : ''}`}
                         onClick={() => {
                           setApplyingTemplate(true);
                           applyTemplateMutation.mutate("tech");
                         }}
                       >
+                        {selectedMerchant?.themeTemplate === 'tech' && (
+                          <div className="absolute -top-2 -right-2 bg-primary text-white rounded-full p-1">
+                            <Check className="h-4 w-4" />
+                          </div>
+                        )}
                         <div className="flex flex-col h-full">
                           <div className="flex-none h-24 rounded-md bg-gradient-to-r from-gray-800 to-gray-900 mb-3"></div>
-                          <h3 className="text-sm font-medium mb-1">Dark Mode</h3>
+                          <h3 className="text-sm font-medium text-foreground mb-1">Dark Mode</h3>
                           <p className="text-xs text-muted-foreground mb-auto">Sleek dark theme with high contrast</p>
                           <Badge variant="outline" className="self-start mt-2">Dark</Badge>
                         </div>

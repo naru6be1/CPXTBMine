@@ -93,7 +93,8 @@ export default function MerchantDashboard() {
     customHeader: "",
     customFooter: "",
   });
-  const [applyingTemplate, setApplyingTemplate] = useState(false);
+  // Track applying template state - can be false, true, or template name for more detailed UX 
+  const [applyingTemplate, setApplyingTemplate] = useState<boolean | string>(false);
 
   // Get user data
   const { data: userData } = useQuery<User>({
@@ -1842,14 +1843,34 @@ export default function MerchantDashboard() {
                     </p>
                     
                     {/* Template Options */}
+                    {/* Current Theme Banner */}
+                    <div className="p-4 mb-4 rounded-lg bg-muted">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="text-sm font-medium">Current Theme</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedMerchant?.themeTemplate 
+                              ? renderTemplateName(selectedMerchant.themeTemplate)
+                              : "No theme applied yet"}
+                          </p>
+                        </div>
+                        {selectedMerchant?.themeTemplate && (
+                          <Badge>{renderTemplateName(selectedMerchant.themeTemplate)}</Badge>
+                        )}
+                      </div>
+                    </div>
+                    
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative 
-                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
-                          ${selectedMerchant?.themeTemplate === 'default' ? 'ring-2 ring-primary border-transparent' : ''}`}
+                          ${applyingTemplate === true ? 'opacity-50 pointer-events-none' : ''}
+                          ${selectedMerchant?.themeTemplate === 'default' ? 'ring-2 ring-primary border-transparent bg-blue-50 dark:bg-blue-950/20' : ''}`}
                         onClick={() => {
-                          setApplyingTemplate(true);
-                          applyTemplateMutation.mutate("default");
+                          if (!applyingTemplate) {
+                            console.log("Applying default theme template");
+                            setApplyingTemplate('default');
+                            applyTemplateMutation.mutate("default");
+                          }
                         }}
                       >
                         {selectedMerchant?.themeTemplate === 'default' && (
@@ -1867,11 +1888,14 @@ export default function MerchantDashboard() {
                       
                       <div
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
-                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
-                          ${selectedMerchant?.themeTemplate === 'bold' ? 'ring-2 ring-primary border-transparent' : ''}`}
+                          ${applyingTemplate === true ? 'opacity-50 pointer-events-none' : ''}
+                          ${selectedMerchant?.themeTemplate === 'bold' ? 'ring-2 ring-primary border-transparent bg-amber-50 dark:bg-amber-950/20' : ''}`}
                         onClick={() => {
-                          setApplyingTemplate(true);
-                          applyTemplateMutation.mutate("bold");
+                          if (!applyingTemplate) {
+                            console.log("Applying bold theme template");
+                            setApplyingTemplate('bold');
+                            applyTemplateMutation.mutate("bold");
+                          }
                         }}
                       >
                         {selectedMerchant?.themeTemplate === 'bold' && (
@@ -1889,11 +1913,14 @@ export default function MerchantDashboard() {
                       
                       <div
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
-                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
-                          ${selectedMerchant?.themeTemplate === 'minimal' ? 'ring-2 ring-primary border-transparent' : ''}`}
+                          ${applyingTemplate === true ? 'opacity-50 pointer-events-none' : ''}
+                          ${selectedMerchant?.themeTemplate === 'minimal' ? 'ring-2 ring-primary border-transparent bg-slate-50 dark:bg-slate-950/20' : ''}`}
                         onClick={() => {
-                          setApplyingTemplate(true);
-                          applyTemplateMutation.mutate("minimal");
+                          if (!applyingTemplate) {
+                            console.log("Applying minimal theme template");
+                            setApplyingTemplate(true);
+                            applyTemplateMutation.mutate("minimal");
+                          }
                         }}
                       >
                         {selectedMerchant?.themeTemplate === 'minimal' && (
@@ -1911,16 +1938,24 @@ export default function MerchantDashboard() {
                       
                       <div
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
-                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
-                          ${selectedMerchant?.themeTemplate === 'tech' ? 'ring-2 ring-primary border-transparent' : ''}`}
+                          ${applyingTemplate === true ? 'opacity-50 pointer-events-none' : ''}
+                          ${selectedMerchant?.themeTemplate === 'tech' ? 'ring-2 ring-primary border-transparent bg-slate-800/10 dark:bg-slate-900/50' : ''}`}
                         onClick={() => {
-                          setApplyingTemplate(true);
-                          applyTemplateMutation.mutate("tech");
+                          if (!applyingTemplate) {
+                            console.log("Applying tech theme template");
+                            setApplyingTemplate(true);
+                            applyTemplateMutation.mutate("tech");
+                          }
                         }}
                       >
                         {selectedMerchant?.themeTemplate === 'tech' && (
                           <div className="absolute -top-2 -right-2 bg-primary text-white rounded-full p-1">
                             <Check className="h-4 w-4" />
+                          </div>
+                        )}
+                        {applyingTemplate === true && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
+                            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
                           </div>
                         )}
                         <div className="flex flex-col h-full">
@@ -1932,11 +1967,11 @@ export default function MerchantDashboard() {
                       </div>
                     </div>
                     
-                    {/* Loading State */}
+                    {/* Loading State - keeping this for overall status indication */}
                     {applyingTemplate && (
-                      <div className="flex items-center justify-center gap-2 mt-4">
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Applying theme...</span>
+                      <div className="flex items-center justify-center gap-2 mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                        <RefreshCw className="h-4 w-4 animate-spin text-blue-500 dark:text-blue-400" />
+                        <span className="text-sm text-blue-700 dark:text-blue-300">Applying {typeof applyingTemplate === 'string' ? renderTemplateName(applyingTemplate) : ''} theme...</span>
                       </div>
                     )}
                   </div>

@@ -64,6 +64,19 @@ export default function MerchantDashboard() {
   const [, setLocation] = useLocation();
   const { isConnected, address: walletAddress, connect } = useWallet();
   const [activeTab, setActiveTab] = useState("business");
+  
+  // Helper function to convert template code to display name
+  const renderTemplateName = (templateCode?: string) => {
+    if (!templateCode) return "Default";
+    
+    switch (templateCode) {
+      case 'default': return "Modern Blue";
+      case 'bold': return "Crypto Gold";
+      case 'minimal': return "Minimalist";
+      case 'tech': return "Dark Mode";
+      default: return templateCode.charAt(0).toUpperCase() + templateCode.slice(1);
+    }
+  };
 
   // Selected merchant for payment
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
@@ -601,61 +614,59 @@ export default function MerchantDashboard() {
       // Store received merchant data for debugging
       const receivedMerchant = data.merchant;
       console.log("Received merchant from API:", {
+        id: receivedMerchant.id,
         themeTemplate: receivedMerchant.themeTemplate,
         primaryColor: receivedMerchant.primaryColor,
         secondaryColor: receivedMerchant.secondaryColor
       });
       
-      toast({
-        title: "Template applied",
-        description: "Payment page theme template has been applied successfully.",
-      });
-      
-      // IMPORTANT: Force an immediate refresh of merchants data first
-      refetchMerchants().then((result) => {
-        console.log("Merchants refetched after template update:", {
-          success: !result.isError,
-          count: result.data?.merchants?.length || 0,
-          firstMerchant: result.data?.merchants?.[0] ? {
-            id: result.data.merchants[0].id,
-            template: result.data.merchants[0].themeTemplate
-          } : null
+      // Step 1: Immediately update the local selected merchant state
+      // This provides immediate feedback to the user while we do a full refresh
+      setSelectedMerchant(prevMerchant => {
+        if (!prevMerchant) return receivedMerchant;
+        
+        const updatedMerchant = {
+          ...prevMerchant,
+          themeTemplate: receivedMerchant.themeTemplate,
+          primaryColor: receivedMerchant.primaryColor,
+          secondaryColor: receivedMerchant.secondaryColor,
+          accentColor: receivedMerchant.accentColor,
+          fontFamily: receivedMerchant.fontFamily,
+          borderRadius: receivedMerchant.borderRadius,
+          darkMode: receivedMerchant.darkMode,
+        };
+        
+        console.log("Updated local merchant data immediately:", {
+          id: updatedMerchant.id,
+          themeTemplate: updatedMerchant.themeTemplate
         });
         
-        // Then update the local state with the freshly fetched data
-        if (result.data?.merchants?.length > 0) {
-          // Find the merchant that was updated
-          const refreshedMerchant = result.data.merchants.find(
-            (m: any) => m.id === receivedMerchant.id
-          );
-          
-          if (refreshedMerchant) {
-            console.log("Found refreshed merchant:", {
-              id: refreshedMerchant.id,
-              template: refreshedMerchant.themeTemplate,
-              primaryColor: refreshedMerchant.primaryColor
-            });
-            
-            // Update selected merchant with the refreshed data
-            setSelectedMerchant(refreshedMerchant);
-            
-            // Update theme form with the refreshed values
-            setThemeForm({
-              primaryColor: refreshedMerchant.primaryColor || "#3b82f6",
-              secondaryColor: refreshedMerchant.secondaryColor || "#10b981",
-              accentColor: refreshedMerchant.accentColor || "#f59e0b",
-              fontFamily: refreshedMerchant.fontFamily || "Inter",
-              borderRadius: refreshedMerchant.borderRadius || 8,
-              darkMode: refreshedMerchant.darkMode || false,
-              customCss: refreshedMerchant.customCss || "",
-              customHeader: refreshedMerchant.customHeader || "",
-              customFooter: refreshedMerchant.customFooter || ""
-            });
-          }
-        }
+        return updatedMerchant;
       });
       
-      // Reset applying flag
+      // Step 2: Also update the theme form immediately with new values
+      setThemeForm({
+        primaryColor: receivedMerchant.primaryColor || "#3b82f6",
+        secondaryColor: receivedMerchant.secondaryColor || "#10b981",
+        accentColor: receivedMerchant.accentColor || "#f59e0b",
+        fontFamily: receivedMerchant.fontFamily || "Inter",
+        borderRadius: receivedMerchant.borderRadius || 8,
+        darkMode: receivedMerchant.darkMode || false,
+        customCss: receivedMerchant.customCss || "",
+        customHeader: receivedMerchant.customHeader || "",
+        customFooter: receivedMerchant.customFooter || ""
+      });
+      
+      // Step 3: Show success toast
+      toast({
+        title: "Template applied successfully",
+        description: `The "${renderTemplateName(receivedMerchant.themeTemplate)}" template has been applied to your payment page.`,
+      });
+      
+      // Step 4: As a backup measure, still refresh from server (but we don't need to wait for this)
+      refetchMerchants();
+      
+      // Step 5: Reset applying flag
       setApplyingTemplate(false);
     },
     onError: (error: Error) => {
@@ -772,13 +783,40 @@ export default function MerchantDashboard() {
       console.log("Setting initial merchant:", {
         id: firstMerchant.id,
         businessName: firstMerchant.businessName,
-        hasApiKey: !!firstMerchant.apiKey
+        hasApiKey: !!firstMerchant.apiKey,
+        themeTemplate: firstMerchant.themeTemplate,
+        primaryColor: firstMerchant.primaryColor
       });
       setSelectedMerchant(firstMerchant);
     } else {
       console.log("No merchants available to select");
     }
   }, [merchantData]);
+  
+  // This useEffect will update the theme form whenever the selected merchant changes
+  useEffect(() => {
+    if (selectedMerchant) {
+      console.log("Updating theme form from selected merchant:", {
+        id: selectedMerchant.id,
+        template: selectedMerchant.themeTemplate,
+        primaryColor: selectedMerchant.primaryColor,
+        darkMode: selectedMerchant.darkMode
+      });
+      
+      // Populate form with merchant's theme settings
+      setThemeForm({
+        primaryColor: selectedMerchant.primaryColor || "#3b82f6",
+        secondaryColor: selectedMerchant.secondaryColor || "#10b981",
+        accentColor: selectedMerchant.accentColor || "#f59e0b",
+        fontFamily: selectedMerchant.fontFamily || "Inter",
+        borderRadius: selectedMerchant.borderRadius || 8,
+        darkMode: selectedMerchant.darkMode || false,
+        customCss: selectedMerchant.customCss || "",
+        customHeader: selectedMerchant.customHeader || "",
+        customFooter: selectedMerchant.customFooter || ""
+      });
+    }
+  }, [selectedMerchant]);
   
   // This useEffect redirects to business tab if no merchants are found when trying to create payment
   useEffect(() => {

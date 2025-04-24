@@ -1863,7 +1863,7 @@ export default function MerchantDashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative 
-                          ${applyingTemplate === true ? 'opacity-50 pointer-events-none' : ''}
+                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
                           ${selectedMerchant?.themeTemplate === 'default' ? 'ring-2 ring-primary border-transparent bg-blue-50 dark:bg-blue-950/20' : ''}`}
                         onClick={() => {
                           if (!applyingTemplate) {
@@ -1878,6 +1878,11 @@ export default function MerchantDashboard() {
                             <Check className="h-4 w-4" />
                           </div>
                         )}
+                        {applyingTemplate === 'default' && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
+                            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                          </div>
+                        )}
                         <div className="flex flex-col h-full">
                           <div className="flex-none h-24 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 mb-3"></div>
                           <h3 className="text-sm font-medium text-foreground mb-1">Modern Blue</h3>
@@ -1888,7 +1893,7 @@ export default function MerchantDashboard() {
                       
                       <div
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
-                          ${applyingTemplate === true ? 'opacity-50 pointer-events-none' : ''}
+                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
                           ${selectedMerchant?.themeTemplate === 'bold' ? 'ring-2 ring-primary border-transparent bg-amber-50 dark:bg-amber-950/20' : ''}`}
                         onClick={() => {
                           if (!applyingTemplate) {
@@ -1901,6 +1906,11 @@ export default function MerchantDashboard() {
                         {selectedMerchant?.themeTemplate === 'bold' && (
                           <div className="absolute -top-2 -right-2 bg-primary text-white rounded-full p-1">
                             <Check className="h-4 w-4" />
+                          </div>
+                        )}
+                        {applyingTemplate === 'bold' && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
+                            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
                           </div>
                         )}
                         <div className="flex flex-col h-full">
@@ -1918,7 +1928,7 @@ export default function MerchantDashboard() {
                         onClick={() => {
                           if (!applyingTemplate) {
                             console.log("Applying minimal theme template");
-                            setApplyingTemplate(true);
+                            setApplyingTemplate('minimal');
                             applyTemplateMutation.mutate("minimal");
                           }
                         }}
@@ -1926,6 +1936,11 @@ export default function MerchantDashboard() {
                         {selectedMerchant?.themeTemplate === 'minimal' && (
                           <div className="absolute -top-2 -right-2 bg-primary text-white rounded-full p-1">
                             <Check className="h-4 w-4" />
+                          </div>
+                        )}
+                        {applyingTemplate === 'minimal' && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
+                            <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
                           </div>
                         )}
                         <div className="flex flex-col h-full">
@@ -1943,7 +1958,7 @@ export default function MerchantDashboard() {
                         onClick={() => {
                           if (!applyingTemplate) {
                             console.log("Applying tech theme template");
-                            setApplyingTemplate(true);
+                            setApplyingTemplate('tech');
                             applyTemplateMutation.mutate("tech");
                           }
                         }}
@@ -1953,7 +1968,7 @@ export default function MerchantDashboard() {
                             <Check className="h-4 w-4" />
                           </div>
                         )}
-                        {applyingTemplate === true && (
+                        {applyingTemplate === 'tech' && (
                           <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
                             <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
                           </div>

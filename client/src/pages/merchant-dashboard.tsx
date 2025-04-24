@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -203,6 +204,8 @@ export default function MerchantDashboard() {
         ...formData,
         // If website is empty or just whitespace, don't send it at all
         ...(formData.website && formData.website.trim() ? { website: formData.website } : {}),
+        // Add legalAgreementAccepted from the legalAgreement checkbox
+        legalAgreementAccepted: formData.legalAgreement,
         // Ensure userId is a number
         userId: Number(userData.id)
       };
@@ -916,6 +919,43 @@ export default function MerchantDashboard() {
                       value={merchantForm.description}
                       onChange={handleMerchantFormChange}
                     />
+                  </div>
+                  
+                  <div className="space-y-4 my-4 border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="legalAgreement" 
+                        name="legalAgreement"
+                        checked={merchantForm.legalAgreement}
+                        onCheckedChange={(checked: boolean) => {
+                          setMerchantForm(prev => ({ 
+                            ...prev, 
+                            legalAgreement: checked === true 
+                          }));
+                        }}
+                      />
+                      <Label 
+                        htmlFor="legalAgreement" 
+                        className="text-sm font-semibold cursor-pointer"
+                      >
+                        I accept the Terms and Conditions for accepting CPXTB payments
+                      </Label>
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground space-y-2 pl-6">
+                      <p>By accepting these terms, I agree to:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Process CPXTB token payments for goods and services in compliance with all applicable laws and regulations</li>
+                        <li>Accept responsibility for properly reporting any crypto payments for tax purposes</li>
+                        <li>Understand the risks associated with cryptocurrency price volatility</li>
+                        <li>Implement proper security measures to protect customer and payment data</li>
+                        <li>Not use CPXTB payments for illegal goods, services, or activities</li>
+                        <li>Provide customers with clear information about payment processing times and fees</li>
+                      </ul>
+                      <p className="mt-2">
+                        <span className="font-medium">Note:</span> Failure to comply with these terms may result in suspension or termination of your merchant account.
+                      </p>
+                    </div>
                   </div>
                   
                   <Button 

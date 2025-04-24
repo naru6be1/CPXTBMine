@@ -114,6 +114,8 @@ export const merchants = pgTable("merchants", {
   logoUrl: text("logo_url"),
   isVerified: boolean("is_verified").default(false),
   webhookUrl: text("webhook_url"),
+  // Legal agreement
+  legalAgreementAccepted: boolean("legal_agreement_accepted").default(false).notNull(),
   // Theme customization options
   primaryColor: text("primary_color").default("#3b82f6"), // Default blue
   secondaryColor: text("secondary_color").default("#10b981"), // Default green
@@ -185,6 +187,10 @@ export const insertMerchantSchema = createInsertSchema(merchants)
     description: z.string().optional(),
     logoUrl: z.string().url().optional(),
     webhookUrl: z.string().url().optional(),
+    // Legal agreement validation
+    legalAgreementAccepted: z.boolean().refine(val => val === true, {
+      message: "You must accept the legal agreement to register as a merchant"
+    }),
     // Theme customization options
     primaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
     secondaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),

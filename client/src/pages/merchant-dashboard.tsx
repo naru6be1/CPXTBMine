@@ -1597,7 +1597,7 @@ export default function MerchantDashboard() {
                       Show the QR code to your customer or share the direct payment link. The payment page will automatically reflect your business theme.
                     </p>
                     <div className="bg-blue-100 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 rounded p-3 text-sm flex items-start gap-2">
-                      <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <Info className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="font-medium text-black dark:text-blue-300">NEW FEATURE: Direct Payment Page</p>
                         <p className="text-muted-foreground mt-1">Share the direct payment link with your customers for a professional checkout experience that reflects your business theme.</p>

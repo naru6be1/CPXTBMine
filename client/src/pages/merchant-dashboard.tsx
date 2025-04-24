@@ -1610,22 +1610,22 @@ export default function MerchantDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert className="mb-4 bg-green-50 border-green-200">
+              <Alert className="mb-4 bg-green-50 border-green-200 text-foreground">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertTitle>Automatic Payment Detection Active</AlertTitle>
-                <AlertDescription>
+                <AlertTitle className="text-foreground font-medium">Automatic Payment Detection Active</AlertTitle>
+                <AlertDescription className="text-foreground dark:text-foreground">
                   Payment transactions are automatically monitored and verified in real-time. Keep this application open while waiting for payments. Manual verification is available as a backup option.
                 </AlertDescription>
               </Alert>
               {/* Payment verification form */}
               <div className="mb-8 border border-border p-4 rounded-md bg-muted/20">
-                <h3 className="text-lg font-medium mb-3">Manual Verification (Backup Option)</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <h3 className="text-lg font-medium mb-3 text-foreground">Manual Verification (Backup Option)</h3>
+                <p className="text-sm text-foreground mb-4">
                   <span className="font-medium text-amber-700 dark:text-amber-500">Note: Payments should be verified automatically.</span> Use this form only if automatic verification fails and the customer provides you with the transaction hash after sending CPXTB tokens.
                 </p>
                 <div className="space-y-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="payment-reference">Payment Reference</Label>
+                    <Label htmlFor="payment-reference" className="text-foreground">Payment Reference</Label>
                     <Input
                       id="payment-reference"
                       placeholder="e.g., CPXTB-5055F86C53B93DDB"
@@ -1634,14 +1634,14 @@ export default function MerchantDashboard() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="transaction-hash">Transaction Hash</Label>
+                    <Label htmlFor="transaction-hash" className="text-foreground">Transaction Hash</Label>
                     <Input
                       id="transaction-hash"
                       placeholder="0x..."
                       value={verificationForm.transactionHash}
                       onChange={(e) => setVerificationForm({...verificationForm, transactionHash: e.target.value})}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-foreground">
                       The transaction hash starts with "0x" and is provided by the customer after they make the payment.
                     </p>
                   </div>
@@ -1671,26 +1671,26 @@ export default function MerchantDashboard() {
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Reference</TableHead>
-                          <TableHead>Amount (USD)</TableHead>
-                          <TableHead>Amount (CPXTB)</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Transaction</TableHead>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-foreground font-semibold">Date</TableHead>
+                          <TableHead className="text-foreground font-semibold">Reference</TableHead>
+                          <TableHead className="text-foreground font-semibold">Amount (USD)</TableHead>
+                          <TableHead className="text-foreground font-semibold">Amount (CPXTB)</TableHead>
+                          <TableHead className="text-foreground font-semibold">Status</TableHead>
+                          <TableHead className="text-foreground font-semibold">Transaction</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {paymentHistory.map((payment) => (
-                          <TableRow key={payment.id}>
-                            <TableCell>
+                          <TableRow key={payment.id} className="hover:bg-muted/50">
+                            <TableCell className="text-foreground">
                               {new Date(payment.createdAt).toLocaleDateString()}
                             </TableCell>
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium text-foreground">
                               {payment.paymentReference}
                             </TableCell>
-                            <TableCell>${Number(payment.amountUsd).toFixed(2)}</TableCell>
-                            <TableCell>{Number(payment.amountCpxtb).toFixed(6)}</TableCell>
+                            <TableCell className="text-foreground">${Number(payment.amountUsd).toFixed(2)}</TableCell>
+                            <TableCell className="text-foreground">{Number(payment.amountCpxtb).toFixed(6)}</TableCell>
                             <TableCell>
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 payment.status === 'completed' 
@@ -1728,8 +1728,8 @@ export default function MerchantDashboard() {
                     <div className="mx-auto bg-muted/30 w-16 h-16 rounded-full flex items-center justify-center">
                       <Clock className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-medium">No payment history yet</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
+                    <h3 className="text-lg font-medium text-foreground">No payment history yet</h3>
+                    <p className="text-foreground max-w-md mx-auto">
                       Your completed payment transactions will appear here. Create a new payment in the Payments tab to get started.
                     </p>
                     <Button 

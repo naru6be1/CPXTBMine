@@ -28,6 +28,20 @@ export default function MerchantDashboard() {
 
   // Selected merchant for payment
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
+  
+  // Theme customization state
+  const [themeForm, setThemeForm] = useState({
+    primaryColor: "#3b82f6", // Default blue
+    secondaryColor: "#10b981", // Default green
+    accentColor: "#f59e0b", // Default amber
+    fontFamily: "Inter",
+    borderRadius: 8,
+    darkMode: false,
+    customCss: "",
+    customHeader: "",
+    customFooter: "",
+  });
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
 
   // Get user data
   const { data: userData } = useQuery<User>({
@@ -371,10 +385,173 @@ export default function MerchantDashboard() {
     setPaymentForm(prev => ({ ...prev, [name]: value }));
   };
   
+  // Handle theme form changes
+  const handleThemeFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setThemeForm(prev => ({
+        ...prev,
+        [name]: checked
+      }));
+    } else if (name === 'borderRadius') {
+      setThemeForm(prev => ({
+        ...prev,
+        [name]: parseInt(value) || 0
+      }));
+    } else {
+      setThemeForm(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+  
   // Payment verification form state
   const [verificationForm, setVerificationForm] = useState({
     reference: "",
     transactionHash: ""
+  });
+  
+  // Theme update mutation
+  const updateThemeMutation = useMutation({
+    mutationFn: async (themeData: typeof themeForm) => {
+      if (!selectedMerchant) {
+        throw new Error("Please select a merchant account first");
+      }
+
+      const apiKey = selectedMerchant.apiKey;
+      if (!apiKey || apiKey.includes('...')) {
+        throw new Error("Invalid API key - please refresh the page");
+      }
+      
+      console.log("Updating theme for merchant:", selectedMerchant.businessName);
+      
+      // Use direct fetch with explicit headers
+      const response = await fetch("/api/merchants/theme", {
+        method: "PATCH",
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey
+        },
+        body: JSON.stringify(themeData)
+      });
+      
+      if (!response.ok) {
+        let errorText = "Failed to update theme";
+        try {
+          const errorData = await response.json();
+          errorText = errorData.message || errorText;
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        throw new Error(errorText);
+      }
+      
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Theme updated",
+        description: "Payment page theme has been updated successfully.",
+      });
+      // Update selected merchant with the new theme data
+      if (selectedMerchant) {
+        setSelectedMerchant({
+          ...selectedMerchant,
+          ...data.merchant
+        });
+      }
+      refetchMerchants();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Theme update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Apply theme template mutation
+  const applyTemplateMutation = useMutation({
+    mutationFn: async (templateName: string) => {
+      if (!selectedMerchant) {
+        throw new Error("Please select a merchant account first");
+      }
+
+      const apiKey = selectedMerchant.apiKey;
+      if (!apiKey || apiKey.includes('...')) {
+        throw new Error("Invalid API key - please refresh the page");
+      }
+      
+      console.log("Applying theme template for merchant:", selectedMerchant.businessName);
+      
+      // Use direct fetch with explicit headers
+      const response = await fetch("/api/merchants/apply-template", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey
+        },
+        body: JSON.stringify({ templateName })
+      });
+      
+      if (!response.ok) {
+        let errorText = "Failed to apply theme template";
+        try {
+          const errorData = await response.json();
+          errorText = errorData.message || errorText;
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        throw new Error(errorText);
+      }
+      
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Template applied",
+        description: "Payment page theme template has been applied successfully.",
+      });
+      // Update form state with the new theme values from the template
+      if (data.merchant) {
+        setThemeForm({
+          primaryColor: data.merchant.primaryColor || "#3b82f6",
+          secondaryColor: data.merchant.secondaryColor || "#10b981",
+          accentColor: data.merchant.accentColor || "#f59e0b",
+          fontFamily: data.merchant.fontFamily || "Inter",
+          borderRadius: data.merchant.borderRadius || 8,
+          darkMode: data.merchant.darkMode || false,
+          customCss: data.merchant.customCss || "",
+          customHeader: data.merchant.customHeader || "",
+          customFooter: data.merchant.customFooter || "",
+        });
+        
+        // Update selected merchant with the new theme data
+        if (selectedMerchant) {
+          setSelectedMerchant({
+            ...selectedMerchant,
+            ...data.merchant
+          });
+        }
+      }
+      
+      setApplyingTemplate(false);
+      refetchMerchants();
+    },
+    onError: (error: Error) => {
+      setApplyingTemplate(false);
+      toast({
+        title: "Template application failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
   
   // Verify payment mutation
@@ -584,6 +761,7 @@ export default function MerchantDashboard() {
           <TabsTrigger value="payments" disabled={!merchantData?.merchants?.length}>Create Payment</TabsTrigger>
           <TabsTrigger value="qrcode" disabled={!currentPayment}>Payment QR Code</TabsTrigger>
           <TabsTrigger value="history" disabled={!merchantData?.merchants?.length}>Payment History</TabsTrigger>
+          <TabsTrigger value="appearance" disabled={!merchantData?.merchants?.length}>Appearance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="business" className="space-y-4">

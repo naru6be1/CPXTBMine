@@ -1640,7 +1640,7 @@ export default function MerchantDashboard() {
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
                         onClick={() => {
                           setApplyingTemplate(true);
-                          applyTemplateMutation.mutate("modern");
+                          applyTemplateMutation.mutate("default");
                         }}
                       >
                         <div className="flex flex-col h-full">
@@ -1655,7 +1655,7 @@ export default function MerchantDashboard() {
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
                         onClick={() => {
                           setApplyingTemplate(true);
-                          applyTemplateMutation.mutate("crypto");
+                          applyTemplateMutation.mutate("bold");
                         }}
                       >
                         <div className="flex flex-col h-full">
@@ -1685,7 +1685,7 @@ export default function MerchantDashboard() {
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
                         onClick={() => {
                           setApplyingTemplate(true);
-                          applyTemplateMutation.mutate("dark");
+                          applyTemplateMutation.mutate("tech");
                         }}
                       >
                         <div className="flex flex-col h-full">

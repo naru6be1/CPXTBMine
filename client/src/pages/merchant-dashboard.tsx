@@ -11,7 +11,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, CheckCircle2, Loader2, ExternalLink, AlertTriangle, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
@@ -1605,6 +1615,323 @@ export default function MerchantDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="appearance">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Theme Templates */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Theme Templates</CardTitle>
+                <CardDescription>
+                  One-click theme application for your payment pages
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Choose from our pre-designed theme templates to instantly style your payment page
+                    </p>
+                    
+                    {/* Template Options */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div
+                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
+                        onClick={() => {
+                          setApplyingTemplate(true);
+                          applyTemplateMutation.mutate("modern");
+                        }}
+                      >
+                        <div className="flex flex-col h-full">
+                          <div className="flex-none h-24 rounded-md bg-gradient-to-r from-blue-500 to-indigo-600 mb-3"></div>
+                          <h3 className="text-sm font-medium mb-1">Modern Blue</h3>
+                          <p className="text-xs text-muted-foreground mb-auto">Professional, clean design with blue accents</p>
+                          <Badge variant="outline" className="self-start mt-2">Modern</Badge>
+                        </div>
+                      </div>
+                      
+                      <div
+                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
+                        onClick={() => {
+                          setApplyingTemplate(true);
+                          applyTemplateMutation.mutate("crypto");
+                        }}
+                      >
+                        <div className="flex flex-col h-full">
+                          <div className="flex-none h-24 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 mb-3"></div>
+                          <h3 className="text-sm font-medium mb-1">Crypto Gold</h3>
+                          <p className="text-xs text-muted-foreground mb-auto">Bold design with crypto-inspired amber coloring</p>
+                          <Badge variant="outline" className="self-start mt-2">Crypto</Badge>
+                        </div>
+                      </div>
+                      
+                      <div
+                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
+                        onClick={() => {
+                          setApplyingTemplate(true);
+                          applyTemplateMutation.mutate("minimal");
+                        }}
+                      >
+                        <div className="flex flex-col h-full">
+                          <div className="flex-none h-24 rounded-md bg-gradient-to-r from-gray-100 to-gray-200 mb-3"></div>
+                          <h3 className="text-sm font-medium mb-1">Minimalist</h3>
+                          <p className="text-xs text-muted-foreground mb-auto">Simple, clean design with focus on content</p>
+                          <Badge variant="outline" className="self-start mt-2">Minimal</Badge>
+                        </div>
+                      </div>
+                      
+                      <div
+                        className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}`}
+                        onClick={() => {
+                          setApplyingTemplate(true);
+                          applyTemplateMutation.mutate("dark");
+                        }}
+                      >
+                        <div className="flex flex-col h-full">
+                          <div className="flex-none h-24 rounded-md bg-gradient-to-r from-gray-800 to-gray-900 mb-3"></div>
+                          <h3 className="text-sm font-medium mb-1">Dark Mode</h3>
+                          <p className="text-xs text-muted-foreground mb-auto">Sleek dark theme with high contrast</p>
+                          <Badge variant="outline" className="self-start mt-2">Dark</Badge>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Loading State */}
+                    {applyingTemplate && (
+                      <div className="flex items-center justify-center gap-2 mt-4">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Applying theme...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Custom Theme Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Custom Theme</CardTitle>
+                <CardDescription>
+                  Customize your payment page appearance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    updateThemeMutation.mutate(themeForm);
+                  }} 
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Color Pickers */}
+                    <div className="space-y-2">
+                      <Label htmlFor="primaryColor">Primary Color</Label>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-8 h-8 rounded-md border" 
+                          style={{ backgroundColor: themeForm.primaryColor }}
+                        ></div>
+                        <Input 
+                          id="primaryColor"
+                          name="primaryColor"
+                          type="color"
+                          value={themeForm.primaryColor}
+                          onChange={handleThemeFormChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="secondaryColor">Secondary Color</Label>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-8 h-8 rounded-md border" 
+                          style={{ backgroundColor: themeForm.secondaryColor }}
+                        ></div>
+                        <Input 
+                          id="secondaryColor"
+                          name="secondaryColor"
+                          type="color"
+                          value={themeForm.secondaryColor}
+                          onChange={handleThemeFormChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="accentColor">Accent Color</Label>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-8 h-8 rounded-md border" 
+                          style={{ backgroundColor: themeForm.accentColor }}
+                        ></div>
+                        <Input 
+                          id="accentColor"
+                          name="accentColor"
+                          type="color"
+                          value={themeForm.accentColor}
+                          onChange={handleThemeFormChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Font Family */}
+                    <div className="space-y-2">
+                      <Label htmlFor="fontFamily">Font Family</Label>
+                      <Select 
+                        value={themeForm.fontFamily} 
+                        onValueChange={(value) => {
+                          setThemeForm(prev => ({
+                            ...prev,
+                            fontFamily: value
+                          }));
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a font" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Inter">Inter</SelectItem>
+                          <SelectItem value="Roboto">Roboto</SelectItem>
+                          <SelectItem value="Montserrat">Montserrat</SelectItem>
+                          <SelectItem value="Poppins">Poppins</SelectItem>
+                          <SelectItem value="Open Sans">Open Sans</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Border Radius */}
+                  <div className="space-y-2">
+                    <Label htmlFor="borderRadius">Border Radius: {themeForm.borderRadius}px</Label>
+                    <Slider
+                      id="borderRadius"
+                      name="borderRadius"
+                      min={0}
+                      max={20}
+                      step={1}
+                      value={[themeForm.borderRadius]}
+                      onValueChange={(value) => {
+                        setThemeForm(prev => ({
+                          ...prev,
+                          borderRadius: value[0]
+                        }));
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Dark Mode Toggle */}
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="darkMode"
+                      name="darkMode"
+                      checked={themeForm.darkMode}
+                      onCheckedChange={(checked) => {
+                        setThemeForm(prev => ({
+                          ...prev,
+                          darkMode: checked
+                        }));
+                      }}
+                    />
+                    <Label htmlFor="darkMode">Dark Mode</Label>
+                  </div>
+                  
+                  {/* Advanced Settings (Optional) */}
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="advanced">
+                      <AccordionTrigger>Advanced Settings</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-4 mt-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="customCss">Custom CSS</Label>
+                            <Textarea
+                              id="customCss"
+                              name="customCss"
+                              placeholder=".payment-page { ... }"
+                              className="font-mono text-xs"
+                              value={themeForm.customCss}
+                              onChange={handleThemeFormChange}
+                            />
+                            <p className="text-xs text-muted-foreground">Add custom CSS styles for your payment page</p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="customHeader">Custom Header HTML</Label>
+                            <Textarea
+                              id="customHeader"
+                              name="customHeader"
+                              placeholder="<div class='my-header'>...</div>"
+                              className="font-mono text-xs"
+                              value={themeForm.customHeader}
+                              onChange={handleThemeFormChange}
+                            />
+                            <p className="text-xs text-muted-foreground">Custom HTML to display at the top of your payment page</p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="customFooter">Custom Footer HTML</Label>
+                            <Textarea
+                              id="customFooter"
+                              name="customFooter"
+                              placeholder="<div class='my-footer'>...</div>"
+                              className="font-mono text-xs"
+                              value={themeForm.customFooter}
+                              onChange={handleThemeFormChange}
+                            />
+                            <p className="text-xs text-muted-foreground">Custom HTML to display at the bottom of your payment page</p>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                  
+                  {/* Theme Preview */}
+                  <div className="border rounded-md p-4 mt-4">
+                    <h3 className="text-sm font-medium mb-1">Theme Preview</h3>
+                    <div className="h-24 rounded-md mt-2 flex items-center justify-center overflow-hidden" style={{
+                      backgroundColor: themeForm.darkMode ? '#1c1c1c' : '#ffffff',
+                      color: themeForm.darkMode ? '#ffffff' : '#000000',
+                      fontFamily: themeForm.fontFamily,
+                      borderRadius: `${themeForm.borderRadius}px`
+                    }}>
+                      <div className="flex flex-col items-center">
+                        <div 
+                          className="w-10 h-10 rounded-md mb-2 flex items-center justify-center"
+                          style={{ 
+                            backgroundColor: themeForm.primaryColor,
+                            borderRadius: `${themeForm.borderRadius / 2}px`
+                          }}
+                        >
+                          <span className="text-white text-xs">CPXTB</span>
+                        </div>
+                        <div 
+                          className="text-xs px-3 py-1 rounded"
+                          style={{ 
+                            backgroundColor: themeForm.secondaryColor,
+                            color: '#ffffff',
+                            borderRadius: `${themeForm.borderRadius / 2}px`
+                          }}
+                        >
+                          Pay with Crypto
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={updateThemeMutation.isPending}
+                  >
+                    {updateThemeMutation.isPending ? 'Updating...' : 'Apply Custom Theme'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

@@ -797,18 +797,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const merchants = await storage.getMerchantsByUserId(userId);
         console.log(`Found ${merchants.length} merchants for user ID: ${userId}`);
         
+        // Debug log of theme information for each merchant
+        console.log("Theme information for merchants:", merchants.map(m => ({
+          id: m.id,
+          themeTemplate: m.themeTemplate,
+          primaryColor: m.primaryColor,
+          darkMode: m.darkMode
+        })));
+        
         // Whether viewing own merchants or others, provide the data
         // with API keys appropriately handled
         if (authenticatedUserId === userId) {
           // Return full API keys for the authenticated user's own merchants
           console.log("User is viewing their own merchants - returning full API keys");
-          res.json({ merchants });
+          
+          // Explicitly ensure all theme properties are present
+          const enrichedMerchants = merchants.map(merchant => ({
+            ...merchant,
+            // Explicitly include these to ensure they are in the response
+            themeTemplate: merchant.themeTemplate,
+            primaryColor: merchant.primaryColor,
+            secondaryColor: merchant.secondaryColor,
+            accentColor: merchant.accentColor,
+            fontFamily: merchant.fontFamily,
+            borderRadius: merchant.borderRadius,
+            darkMode: merchant.darkMode
+          }));
+          
+          res.json({ merchants: enrichedMerchants });
         } else {
           // For security, mask the API keys when viewing someone else's merchants
           console.log("User is viewing someone else's merchants - masking API keys");
           const maskedMerchants = merchants.map(merchant => ({
             ...merchant,
-            apiKey: merchant.apiKey ? merchant.apiKey.substring(0, 8) + '...' : null
+            apiKey: merchant.apiKey ? merchant.apiKey.substring(0, 8) + '...' : null,
+            // Explicitly include these to ensure they are in the response
+            themeTemplate: merchant.themeTemplate,
+            primaryColor: merchant.primaryColor,
+            secondaryColor: merchant.secondaryColor,
+            accentColor: merchant.accentColor,
+            fontFamily: merchant.fontFamily,
+            borderRadius: merchant.borderRadius,
+            darkMode: merchant.darkMode
           }));
           res.json({ merchants: maskedMerchants });
         }
@@ -1176,19 +1206,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Applying theme template:', {
         merchantId: merchant.id,
-        template: templateName,
+        merchantName: merchant.businessName,
+        templateBefore: merchant.themeTemplate,
+        newTemplate: templateName,
         timestamp: new Date().toISOString()
       });
       
+      // Call the storage method to apply the template
       const updatedMerchant = await storage.applyThemeTemplate(merchant.id, templateName);
       
-      res.json({ 
+      console.log("After update - merchant received from database:", {
+        id: updatedMerchant.id,
+        themeTemplate: updatedMerchant.themeTemplate,
+        primaryColor: updatedMerchant.primaryColor,
+        updated: updatedMerchant.updatedAt?.toISOString()
+      });
+      
+      // Prepare response by creating a new object
+      const responseData = { 
         merchant: {
           ...updatedMerchant,
-          apiKey: updatedMerchant.apiKey.substring(0, 8) + '...' // Mask the API key in the response
+          apiKey: updatedMerchant.apiKey.substring(0, 8) + '...', // Mask the API key in the response
+          // Explicitly include theme properties to ensure they're in the response
+          themeTemplate: updatedMerchant.themeTemplate,
+          primaryColor: updatedMerchant.primaryColor,
+          secondaryColor: updatedMerchant.secondaryColor,
+          accentColor: updatedMerchant.accentColor,
+          fontFamily: updatedMerchant.fontFamily,
+          borderRadius: updatedMerchant.borderRadius,
+          darkMode: updatedMerchant.darkMode
         },
         message: `${templateName.charAt(0).toUpperCase() + templateName.slice(1)} theme applied successfully` 
+      };
+      
+      console.log("Sending response:", {
+        responseTemplate: responseData.merchant.themeTemplate,
+        responsePrimaryColor: responseData.merchant.primaryColor
       });
+      
+      res.json(responseData);
     } catch (error: any) {
       console.error("Error applying theme template:", error);
       

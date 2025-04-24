@@ -563,7 +563,12 @@ export default function MerchantDashboard() {
         throw new Error("Invalid API key - please refresh the page");
       }
       
-      console.log("Applying theme template for merchant:", selectedMerchant.businessName);
+      console.log("Applying theme template for merchant:", {
+        id: selectedMerchant.id,
+        name: selectedMerchant.businessName,
+        templateBefore: selectedMerchant.themeTemplate,
+        newTemplate: templateName
+      });
       
       // Use direct fetch with explicit headers
       const response = await fetch("/api/merchants/apply-template", {
@@ -587,58 +592,71 @@ export default function MerchantDashboard() {
       }
       
       const data = await response.json();
+      console.log("API Response for theme update:", data);
       return data;
     },
     onSuccess: (data) => {
+      console.log("Template application succeeded, received data:", data);
+      
+      // Store received merchant data for debugging
+      const receivedMerchant = data.merchant;
+      console.log("Received merchant from API:", {
+        themeTemplate: receivedMerchant.themeTemplate,
+        primaryColor: receivedMerchant.primaryColor,
+        secondaryColor: receivedMerchant.secondaryColor
+      });
+      
       toast({
         title: "Template applied",
         description: "Payment page theme template has been applied successfully.",
       });
       
-      console.log("Theme template applied successfully:", data.merchant);
-      
-      // Update form state with the new theme values from the template
-      if (data.merchant) {
-        // Update theme form explicitly with all the values from the server
-        const updatedThemeForm = {
-          primaryColor: data.merchant.primaryColor || "#3b82f6",
-          secondaryColor: data.merchant.secondaryColor || "#10b981",
-          accentColor: data.merchant.accentColor || "#f59e0b",
-          fontFamily: data.merchant.fontFamily || "Inter",
-          borderRadius: data.merchant.borderRadius || 8,
-          darkMode: data.merchant.darkMode || false,
-          customCss: data.merchant.customCss || "",
-          customHeader: data.merchant.customHeader || "",
-          customFooter: data.merchant.customFooter || "",
-        };
-        
-        setThemeForm(updatedThemeForm);
-        console.log("Theme form updated:", updatedThemeForm);
-        
-        // Immediately update the selected merchant with the new theme data
-        setSelectedMerchant((prevMerchant: any) => {
-          if (!prevMerchant) return null;
-          const updatedMerchant = {
-            ...prevMerchant,
-            ...data.merchant,
-            primaryColor: data.merchant.primaryColor,
-            secondaryColor: data.merchant.secondaryColor,
-            accentColor: data.merchant.accentColor,
-            fontFamily: data.merchant.fontFamily,
-            borderRadius: data.merchant.borderRadius,
-            darkMode: data.merchant.darkMode,
-            themeTemplate: data.merchant.themeTemplate
-          };
-          console.log("Updated selected merchant with new theme:", updatedMerchant);
-          return updatedMerchant;
+      // IMPORTANT: Force an immediate refresh of merchants data first
+      refetchMerchants().then((result) => {
+        console.log("Merchants refetched after template update:", {
+          success: !result.isError,
+          count: result.data?.merchants?.length || 0,
+          firstMerchant: result.data?.merchants?.[0] ? {
+            id: result.data.merchants[0].id,
+            template: result.data.merchants[0].themeTemplate
+          } : null
         });
-      }
+        
+        // Then update the local state with the freshly fetched data
+        if (result.data?.merchants?.length > 0) {
+          // Find the merchant that was updated
+          const refreshedMerchant = result.data.merchants.find(
+            (m: any) => m.id === receivedMerchant.id
+          );
+          
+          if (refreshedMerchant) {
+            console.log("Found refreshed merchant:", {
+              id: refreshedMerchant.id,
+              template: refreshedMerchant.themeTemplate,
+              primaryColor: refreshedMerchant.primaryColor
+            });
+            
+            // Update selected merchant with the refreshed data
+            setSelectedMerchant(refreshedMerchant);
+            
+            // Update theme form with the refreshed values
+            setThemeForm({
+              primaryColor: refreshedMerchant.primaryColor || "#3b82f6",
+              secondaryColor: refreshedMerchant.secondaryColor || "#10b981",
+              accentColor: refreshedMerchant.accentColor || "#f59e0b",
+              fontFamily: refreshedMerchant.fontFamily || "Inter",
+              borderRadius: refreshedMerchant.borderRadius || 8,
+              darkMode: refreshedMerchant.darkMode || false,
+              customCss: refreshedMerchant.customCss || "",
+              customHeader: refreshedMerchant.customHeader || "",
+              customFooter: refreshedMerchant.customFooter || ""
+            });
+          }
+        }
+      });
       
-      // Reset the applying state
+      // Reset applying flag
       setApplyingTemplate(false);
-      
-      // Refresh merchant data from server
-      refetchMerchants();
     },
     onError: (error: Error) => {
       setApplyingTemplate(false);

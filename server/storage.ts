@@ -335,6 +335,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   async applyThemeTemplate(id: number, templateName: string): Promise<Merchant> {
+    console.log(`ApplyThemeTemplate called for merchant ${id} with template "${templateName}"`);
+    
     // Define preset theme templates
     const themeTemplates: Record<string, {
       primaryColor: string;
@@ -405,17 +407,39 @@ export class DatabaseStorage implements IStorage {
     // Get the template or use default if not found
     const template = themeTemplates[templateName] || themeTemplates.default;
     
-    const [updatedMerchant] = await db
-      .update(merchants)
-      .set({
-        ...template,
-        themeTemplate: templateName,
-        updatedAt: new Date(),
-      })
-      .where(eq(merchants.id, id))
-      .returning();
+    console.log("Using template:", {
+      templateName,
+      settings: template
+    });
+    
+    // Explicitly create the update object with all needed fields
+    const updateData = {
+      ...template,
+      themeTemplate: templateName,
+      updatedAt: new Date(),
+    };
+    
+    console.log("Database update data:", updateData);
+    
+    try {
+      const [updatedMerchant] = await db
+        .update(merchants)
+        .set(updateData)
+        .where(eq(merchants.id, id))
+        .returning();
+        
+      console.log("Theme applied successfully:", {
+        merchantId: id,
+        themeTemplate: updatedMerchant.themeTemplate,
+        primaryColor: updatedMerchant.primaryColor,
+        updatedAt: updatedMerchant.updatedAt
+      });
       
-    return updatedMerchant;
+      return updatedMerchant;
+    } catch (error) {
+      console.error("Error applying theme template:", error);
+      throw error;
+    }
   }
   
   async deleteMerchant(id: number): Promise<void> {

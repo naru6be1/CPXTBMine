@@ -236,9 +236,21 @@ export default function MerchantDashboard() {
         userId: Number(userData.id)
       };
       
-      console.log("Sending merchant data:", dataToSend);
-      const res = await apiRequest("POST", "/api/merchants", dataToSend);
-      return await res.json();
+      console.log("Sending merchant data:", JSON.stringify(dataToSend, null, 2));
+      try {
+        const res = await apiRequest("POST", "/api/merchants", dataToSend);
+        const data = await res.json();
+        return data;
+      } catch (error: any) {
+        console.error("Merchant registration error:", error);
+        // Get the response text if available
+        if (error.response) {
+          const errorText = await error.response.text();
+          console.error("Server error response:", errorText);
+          throw new Error(errorText || error.message);
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({

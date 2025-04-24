@@ -724,40 +724,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register a new merchant
   app.post("/api/merchants", async (req, res) => {
     try {
-      // Validate the merchant data
-      const merchantData = insertMerchantSchema.parse(req.body);
+      // Log the received data for debugging
+      console.log('Received merchant registration data:', JSON.stringify(req.body, null, 2));
       
-      // Normalize wallet address
-      merchantData.walletAddress = merchantData.walletAddress.toLowerCase();
-      
-      // Create the merchant
-      const merchant = await storage.createMerchant(merchantData);
-      
-      console.log('New merchant registered:', {
-        merchantId: merchant.id,
-        businessName: merchant.businessName,
-        walletAddress: merchant.walletAddress,
-        timestamp: new Date().toISOString()
-      });
-      
-      res.status(201).json({ 
-        merchant: {
-          ...merchant,
-          apiKey: merchant.apiKey.substring(0, 8) + '...' // Mask the API key in the response
-        },
-        message: "Merchant created successfully. Save your API key, it won't be displayed again." 
-      });
+      try {
+        // Validate the merchant data with more details on error
+        const merchantData = insertMerchantSchema.parse(req.body);
+        
+        // Normalize wallet address
+        merchantData.walletAddress = merchantData.walletAddress.toLowerCase();
+        
+        // Create the merchant
+        const merchant = await storage.createMerchant(merchantData);
+        
+        console.log('New merchant registered:', {
+          merchantId: merchant.id,
+          businessName: merchant.businessName,
+          walletAddress: merchant.walletAddress,
+          timestamp: new Date().toISOString()
+        });
+        
+        res.status(201).json({ 
+          merchant: {
+            ...merchant,
+            apiKey: merchant.apiKey.substring(0, 8) + '...' // Mask the API key in the response
+          },
+          message: "Merchant created successfully. Save your API key, it won't be displayed again." 
+        });
+      } catch (validationError: any) {
+        if (validationError.name === "ZodError") {
+          console.error("Validation error details:", JSON.stringify(validationError.errors, null, 2));
+          const formattedError = fromZodError(validationError);
+          
+          res.status(400).json({
+            message: "Invalid merchant data: " + formattedError.message,
+            details: validationError.errors
+          });
+        } else {
+          throw validationError; // Re-throw to be caught by the outer catch
+        }
+      }
     } catch (error: any) {
       console.error("Error creating merchant:", error);
-      
-      if (error.name === "ZodError") {
-        const validationError = fromZodError(error);
-        res.status(400).json({
-          message: "Invalid merchant data: " + validationError.message
-        });
-        return;
-      }
-      
       res.status(500).json({
         message: "Error creating merchant: " + error.message
       });

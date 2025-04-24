@@ -1067,6 +1067,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  // Public endpoint for payment page - no authentication required
+  app.get("/api/payments/public/:reference", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      console.log(`Public payment page requested for reference: ${reference}`);
+      
+      // Get payment details
+      const payment = await storage.getPaymentByReference(reference);
+      
+      if (!payment) {
+        console.log(`Payment not found for reference: ${reference}`);
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Get merchant to retrieve theme settings
+      const merchant = await storage.getMerchant(payment.merchantId);
+      
+      if (!merchant) {
+        console.log(`Merchant not found for payment ${reference} with merchant ID ${payment.merchantId}`);
+        return res.status(404).json({ message: "Merchant not found" });
+      }
+      
+      console.log(`Serving public payment page for reference: ${reference} with theme: ${merchant.themeTemplate || 'default'}`);
+      
+      // Return payment data along with merchant theme settings
+      res.json({ 
+        payment,
+        theme: {
+          primaryColor: merchant.primaryColor,
+          secondaryColor: merchant.secondaryColor,
+          accentColor: merchant.accentColor,
+          fontFamily: merchant.fontFamily,
+          borderRadius: merchant.borderRadius,
+          darkMode: merchant.darkMode,
+          customCss: merchant.customCss,
+          customHeader: merchant.customHeader,
+          customFooter: merchant.customFooter,
+          themeTemplate: merchant.themeTemplate
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching public payment:", error);
+      res.status(500).json({ message: "Error fetching payment: " + error.message });
+    }
+  });
   
   // Get payment status
   app.get("/api/payments/:reference", authenticateMerchant, async (req, res) => {

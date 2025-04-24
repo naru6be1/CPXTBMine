@@ -1411,6 +1411,42 @@ export default function MerchantDashboard() {
                         {currentPayment.paymentInstructions}
                       </p>
                     )}
+                    
+                    {/* Direct payment page link */}
+                    <div className="text-center mt-4">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Share this direct payment link with your customers:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={`${window.location.origin}/payment?ref=${currentPayment.payment.reference}`}
+                          readOnly
+                          className="text-xs font-mono"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/payment?ref=${currentPayment.payment.reference}`);
+                            toast({
+                              title: "Copied",
+                              description: "Payment link copied to clipboard",
+                            });
+                          }}
+                        >
+                          <ClipboardCopy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <a 
+                        href={`/payment?ref=${currentPayment.payment.reference}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs mt-2 text-primary hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Open payment page in new tab
+                      </a>
+                    </div>
                   </div>
                   <div className="text-center mb-4 space-y-3">
                     <div className="text-sm px-3 py-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border-2 border-red-300 dark:border-red-800 rounded-lg flex items-center justify-center gap-2 font-semibold">
@@ -1558,8 +1594,15 @@ export default function MerchantDashboard() {
                   <div className="space-y-2">
                     <h3 className="font-medium">1. Share with Customer</h3>
                     <p className="text-sm text-muted-foreground">
-                      Show the QR code to your customer or share the payment details.
+                      Show the QR code to your customer or share the direct payment link. The payment page will automatically reflect your business theme.
                     </p>
+                    <div className="bg-blue-100 dark:bg-blue-950 border border-blue-300 dark:border-blue-800 rounded p-3 text-sm flex items-start gap-2">
+                      <InfoIcon className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-black dark:text-blue-300">NEW FEATURE: Direct Payment Page</p>
+                        <p className="text-muted-foreground mt-1">Share the direct payment link with your customers for a professional checkout experience that reflects your business theme.</p>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">

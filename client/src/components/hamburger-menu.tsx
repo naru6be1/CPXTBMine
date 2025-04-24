@@ -1,14 +1,26 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Gift, Pickaxe, Users, Award, Shield, BookOpen, MessageCircle, Info, FileText, AlertTriangle, Store } from "lucide-react";
-import { Link } from "wouter";
+import { Menu, Gift, Pickaxe, Users, Award, Shield, BookOpen, MessageCircle, Info, FileText, AlertTriangle, Store, LogOut, LogIn } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function HamburgerMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
 
   const handleMenuItemClick = () => {
     setIsOpen(false);
+  };
+  
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        setIsOpen(false);
+        setLocation("/");
+      }
+    });
   };
 
   return (
@@ -99,6 +111,34 @@ export function HamburgerMenu() {
                 Terms of Service
               </Button>
             </Link>
+          </div>
+          
+          {/* User authentication section */}
+          <div className="border-t border-border my-2 pt-2">
+            <h3 className="px-4 py-2 text-sm font-medium text-muted-foreground">Account</h3>
+            {user ? (
+              <>
+                <div className="px-4 py-2 text-sm">
+                  Signed in as <span className="font-semibold">{user.username}</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-100" 
+                  onClick={handleLogout}
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {logoutMutation.isPending ? 'Signing out...' : 'Sign out'}
+                </Button>
+              </>
+            ) : (
+              <Link href="/auth">
+                <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign in / Register
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </SheetContent>

@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, CheckCircle2, Loader2, ExternalLink, AlertTriangle, Check } from "lucide-react";
+import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, CheckCircle2, Loader2, ExternalLink, AlertTriangle, Check, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -24,9 +24,37 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useWallet } from "@/hooks/use-wallet";
+import { useAuth } from "@/hooks/use-auth";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
 import { PaymentNotification, PaymentSuccessNotification } from "@/components/payment-notification";
+
+// Logout button component
+function LogoutButton() {
+  const { logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
+  
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        setLocation("/");
+      }
+    });
+  };
+  
+  return (
+    <Button 
+      variant="outline" 
+      size="sm" 
+      className="flex items-center gap-1 text-red-500 hover:text-red-600 hover:bg-red-50 border-red-200"
+      onClick={handleLogout}
+      disabled={logoutMutation.isPending}
+    >
+      <LogOut className="h-4 w-4" />
+      {logoutMutation.isPending ? 'Signing out...' : 'Sign out'}
+    </Button>
+  );
+}
 
 // CPXTB token address for displaying in UI
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
@@ -779,7 +807,14 @@ export default function MerchantDashboard() {
         onClose={() => setShowSuccessNotification(false)}
       />
       
-      <h1 className="text-3xl font-bold mb-6">Merchant Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Merchant Dashboard</h1>
+        <div className="flex items-center gap-2">
+          {userData && (
+            <LogoutButton />
+          )}
+        </div>
+      </div>
       <p className="mb-8 text-muted-foreground">
         Accept CPXTB token payments for your business
       </p>

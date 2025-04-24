@@ -1105,6 +1105,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Update merchant theme settings
+  app.patch("/api/merchants/theme", authenticateMerchant, async (req, res) => {
+    try {
+      const merchant = (req as any).merchant;
+      const themeSchema = z.object({
+        primaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
+        secondaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
+        accentColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
+        fontFamily: z.string().optional(),
+        borderRadius: z.number().int().min(0).max(24).optional(),
+        darkMode: z.boolean().optional(),
+        customCss: z.string().optional(),
+        customHeader: z.string().optional(),
+        customFooter: z.string().optional(),
+      });
+      
+      const themeData = themeSchema.parse(req.body);
+      
+      console.log('Updating merchant theme:', {
+        merchantId: merchant.id,
+        themeUpdate: themeData,
+        timestamp: new Date().toISOString()
+      });
+      
+      const updatedMerchant = await storage.updateMerchantTheme(merchant.id, themeData);
+      
+      res.json({ 
+        merchant: {
+          ...updatedMerchant,
+          apiKey: updatedMerchant.apiKey.substring(0, 8) + '...' // Mask the API key in the response
+        },
+        message: "Theme updated successfully" 
+      });
+    } catch (error: any) {
+      console.error("Error updating merchant theme:", error);
+      
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        res.status(400).json({
+          message: "Invalid theme data: " + validationError.message
+        });
+        return;
+      }
+      
+      res.status(500).json({
+        message: "Error updating merchant theme: " + error.message
+      });
+    }
+  });
+  
+  // Apply theme template
+  app.post("/api/merchants/apply-template", authenticateMerchant, async (req, res) => {
+    try {
+      const merchant = (req as any).merchant;
+      const templateSchema = z.object({
+        templateName: z.enum(["default", "modern", "minimal", "bold", "elegant", "tech", "playful"])
+      });
+      
+      const { templateName } = templateSchema.parse(req.body);
+      
+      console.log('Applying theme template:', {
+        merchantId: merchant.id,
+        template: templateName,
+        timestamp: new Date().toISOString()
+      });
+      
+      const updatedMerchant = await storage.applyThemeTemplate(merchant.id, templateName);
+      
+      res.json({ 
+        merchant: {
+          ...updatedMerchant,
+          apiKey: updatedMerchant.apiKey.substring(0, 8) + '...' // Mask the API key in the response
+        },
+        message: `${templateName.charAt(0).toUpperCase() + templateName.slice(1)} theme applied successfully` 
+      });
+    } catch (error: any) {
+      console.error("Error applying theme template:", error);
+      
+      if (error.name === "ZodError") {
+        const validationError = fromZodError(error);
+        res.status(400).json({
+          message: "Invalid template data: " + validationError.message
+        });
+        return;
+      }
+      
+      res.status(500).json({
+        message: "Error applying theme template: " + error.message
+      });
+    }
+  });
 
   // Automatically clear expired pending payments
   const clearExpiredPayments = async () => {

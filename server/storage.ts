@@ -36,6 +36,19 @@ export interface IStorage {
   getMerchantByApiKey(apiKey: string): Promise<Merchant | undefined>;
   getMerchantsByUserId(userId: number): Promise<Merchant[]>;
   updateMerchant(id: number, updates: Partial<InsertMerchant>): Promise<Merchant>;
+  updateMerchantTheme(id: number, themeOptions: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
+    fontFamily?: string;
+    borderRadius?: number;
+    darkMode?: boolean;
+    customCss?: string;
+    customHeader?: string;
+    customFooter?: string;
+    themeTemplate?: string;
+  }): Promise<Merchant>;
+  applyThemeTemplate(id: number, templateName: string): Promise<Merchant>;
   deleteMerchant(id: number): Promise<void>;
   
   // Payment methods
@@ -289,6 +302,114 @@ export class DatabaseStorage implements IStorage {
       .update(merchants)
       .set({
         ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(merchants.id, id))
+      .returning();
+      
+    return updatedMerchant;
+  }
+  
+  async updateMerchantTheme(id: number, themeOptions: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
+    fontFamily?: string;
+    borderRadius?: number;
+    darkMode?: boolean;
+    customCss?: string;
+    customHeader?: string;
+    customFooter?: string;
+    themeTemplate?: string;
+  }): Promise<Merchant> {
+    const [updatedMerchant] = await db
+      .update(merchants)
+      .set({
+        ...themeOptions,
+        updatedAt: new Date(),
+      })
+      .where(eq(merchants.id, id))
+      .returning();
+    
+    return updatedMerchant;
+  }
+  
+  async applyThemeTemplate(id: number, templateName: string): Promise<Merchant> {
+    // Define preset theme templates
+    const themeTemplates: Record<string, {
+      primaryColor: string;
+      secondaryColor: string;
+      accentColor: string;
+      fontFamily: string;
+      borderRadius: number;
+      darkMode: boolean;
+    }> = {
+      default: {
+        primaryColor: "#3b82f6",
+        secondaryColor: "#10b981",
+        accentColor: "#f59e0b",
+        fontFamily: "Inter",
+        borderRadius: 8,
+        darkMode: false,
+      },
+      modern: {
+        primaryColor: "#6366f1",
+        secondaryColor: "#8b5cf6",
+        accentColor: "#ec4899",
+        fontFamily: "Montserrat",
+        borderRadius: 12,
+        darkMode: false,
+      },
+      minimal: {
+        primaryColor: "#111827",
+        secondaryColor: "#374151",
+        accentColor: "#f43f5e",
+        fontFamily: "Roboto",
+        borderRadius: 4,
+        darkMode: false,
+      },
+      bold: {
+        primaryColor: "#ef4444",
+        secondaryColor: "#f97316",
+        accentColor: "#eab308",
+        fontFamily: "Poppins",
+        borderRadius: 0,
+        darkMode: false,
+      },
+      elegant: {
+        primaryColor: "#475569",
+        secondaryColor: "#94a3b8",
+        accentColor: "#a855f7",
+        fontFamily: "Playfair Display",
+        borderRadius: 16,
+        darkMode: false,
+      },
+      tech: {
+        primaryColor: "#0ea5e9",
+        secondaryColor: "#22d3ee",
+        accentColor: "#4ade80",
+        fontFamily: "JetBrains Mono",
+        borderRadius: 6,
+        darkMode: true,
+      },
+      playful: {
+        primaryColor: "#a855f7",
+        secondaryColor: "#ec4899",
+        accentColor: "#0ea5e9",
+        fontFamily: "Comic Sans MS",
+        borderRadius: 20,
+        darkMode: false,
+      },
+    };
+    
+    // Get the template or use default if not found
+    const template = themeTemplates[templateName] || themeTemplates.default;
+    
+    const [updatedMerchant] = await db
+      .update(merchants)
+      .set({
+        ...template,
+        themeTemplate: templateName,
         updatedAt: new Date(),
       })
       .where(eq(merchants.id, id))

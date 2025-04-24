@@ -114,6 +114,18 @@ export const merchants = pgTable("merchants", {
   logoUrl: text("logo_url"),
   isVerified: boolean("is_verified").default(false),
   webhookUrl: text("webhook_url"),
+  // Theme customization options
+  primaryColor: text("primary_color").default("#3b82f6"), // Default blue
+  secondaryColor: text("secondary_color").default("#10b981"), // Default green
+  accentColor: text("accent_color").default("#f59e0b"), // Default amber
+  fontFamily: text("font_family").default("Inter"),
+  borderRadius: integer("border_radius").default(8),
+  darkMode: boolean("dark_mode").default(false),
+  customCss: text("custom_css"),
+  customHeader: text("custom_header"),
+  customFooter: text("custom_footer"),
+  // Theme templates
+  themeTemplate: text("theme_template").default("default"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -173,6 +185,17 @@ export const insertMerchantSchema = createInsertSchema(merchants)
     description: z.string().optional(),
     logoUrl: z.string().url().optional(),
     webhookUrl: z.string().url().optional(),
+    // Theme customization options
+    primaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
+    secondaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
+    accentColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
+    fontFamily: z.string().optional(),
+    borderRadius: z.number().int().min(0).max(24).optional(),
+    darkMode: z.boolean().optional(),
+    customCss: z.string().optional(),
+    customHeader: z.string().optional(),
+    customFooter: z.string().optional(),
+    themeTemplate: z.enum(["default", "modern", "minimal", "bold", "elegant", "tech", "playful"]).optional(),
   });
 
 export const insertPaymentSchema = createInsertSchema(payments)

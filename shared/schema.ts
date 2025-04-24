@@ -183,7 +183,7 @@ export const insertMerchantSchema = createInsertSchema(merchants)
     businessType: z.string(),
     contactEmail: z.string().email(),
     contactPhone: z.string().optional(),
-    website: z.string().url().optional(),
+    website: z.union([z.string().url(), z.literal("")]).optional(),
     description: z.string().optional(),
     logoUrl: z.string().url().optional(),
     webhookUrl: z.string().url().optional(),

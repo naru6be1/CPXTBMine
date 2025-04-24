@@ -198,12 +198,10 @@ export default function MerchantDashboard() {
         throw new Error("User not authenticated. Please log in.");
       }
       
-      // Convert empty website to undefined (not null) to pass validation
-      // and ensure userId is a number
+      // Prepare data to send to the API
       const dataToSend = {
         ...formData,
-        // If website is empty or just whitespace, don't send it at all
-        ...(formData.website && formData.website.trim() ? { website: formData.website } : {}),
+        website: formData.website.trim() || "", // Send empty string to handle optional website
         // Add legalAgreementAccepted from the legalAgreement checkbox
         legalAgreementAccepted: formData.legalAgreement,
         // Ensure userId is a number
@@ -901,13 +899,14 @@ export default function MerchantDashboard() {
                       onChange={(e) => {
                         // Ensure URL has protocol if not empty
                         let value = e.target.value;
+                        // Only add https:// if the value is not empty
                         if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
                           value = 'https://' + value;
                         }
                         setMerchantForm(prev => ({ ...prev, website: value }));
                       }}
                     />
-                    <p className="text-xs text-muted-foreground">URL must include https:// or http://</p>
+                    <p className="text-xs text-muted-foreground">URL must include https:// or http:// if provided</p>
                   </div>
                   
                   <div className="space-y-2">

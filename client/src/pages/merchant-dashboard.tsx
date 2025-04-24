@@ -120,7 +120,8 @@ export default function MerchantDashboard() {
     contactEmail: "",
     contactPhone: "",
     website: "",
-    description: ""
+    description: "",
+    legalAgreement: false
   });
 
   // Payment creation state
@@ -302,6 +303,17 @@ export default function MerchantDashboard() {
   // Handle merchant registration
   const handleMerchantRegister = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if legal agreement has been accepted
+    if (!merchantForm.legalAgreement) {
+      toast({
+        title: "Legal Agreement Required",
+        description: "You must accept the terms and conditions to register as a merchant",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createMerchantMutation.mutate(merchantForm);
   };
 
@@ -386,8 +398,14 @@ export default function MerchantDashboard() {
 
   // Handle form changes
   const handleMerchantFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setMerchantForm(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target as HTMLInputElement;
+    
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setMerchantForm(prev => ({ ...prev, [name]: checked }));
+    } else {
+      setMerchantForm(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handlePaymentFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

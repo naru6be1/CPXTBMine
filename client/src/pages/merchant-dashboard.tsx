@@ -229,11 +229,18 @@ export default function MerchantDashboard() {
       // Prepare data to send to the API
       const dataToSend = {
         ...formData,
-        website: formData.website.trim() || "", // Send empty string to handle optional website
+        // Handle website field - ensure it has protocol or is empty string
+        website: formData.website.trim() ? 
+          (formData.website.match(/^https?:\/\//) ? formData.website.trim() : `https://${formData.website.trim()}`) : 
+          "",
         // Add legalAgreementAccepted from the legalAgreement checkbox
         legalAgreementAccepted: formData.legalAgreement,
         // Ensure userId is a number
-        userId: Number(userData.id)
+        userId: Number(userData.id),
+        // Make sure wallet address is in the expected format
+        walletAddress: formData.walletAddress.startsWith('0x') ? 
+          formData.walletAddress.toLowerCase() : 
+          `0x${formData.walletAddress.toLowerCase()}`
       };
       
       console.log("Sending merchant data:", JSON.stringify(dataToSend, null, 2));
@@ -897,9 +904,19 @@ export default function MerchantDashboard() {
                       name="walletAddress"
                       placeholder="0x..."
                       value={merchantForm.walletAddress}
-                      onChange={handleMerchantFormChange}
+                      onChange={(e) => {
+                        // Ensure wallet address is properly formatted when entered
+                        let value = e.target.value.trim();
+                        setMerchantForm(prev => ({ 
+                          ...prev, 
+                          walletAddress: value 
+                        }));
+                      }}
+                      pattern="^(0x)?[0-9a-fA-F]{40}$"
+                      title="Please enter a valid Ethereum address (40 hexadecimal characters with optional 0x prefix)"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">Enter a valid Ethereum wallet address (0x followed by 40 hex characters)</p>
                     {!isConnected && (
                       <Button
                         type="button" 
@@ -944,12 +961,21 @@ export default function MerchantDashboard() {
                       placeholder="https://yourbusiness.com"
                       value={merchantForm.website}
                       onChange={(e) => {
-                        // Ensure URL has protocol if not empty
-                        let value = e.target.value;
-                        // Only add https:// if the value is not empty
-                        if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
+                        // Get the raw input value
+                        let value = e.target.value.trim();
+                        
+                        // If empty, set to empty string (handled by validation)
+                        if (!value) {
+                          setMerchantForm(prev => ({ ...prev, website: "" }));
+                          return;
+                        }
+                        
+                        // Check if the URL has protocol; if not, add https://
+                        if (!value.match(/^https?:\/\//)) {
                           value = 'https://' + value;
                         }
+                        
+                        // Update the form state
                         setMerchantForm(prev => ({ ...prev, website: value }));
                       }}
                     />

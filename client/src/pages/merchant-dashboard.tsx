@@ -1923,7 +1923,7 @@ export default function MerchantDashboard() {
                       
                       <div
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
-                          ${applyingTemplate === true ? 'opacity-50 pointer-events-none' : ''}
+                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
                           ${selectedMerchant?.themeTemplate === 'minimal' ? 'ring-2 ring-primary border-transparent bg-slate-50 dark:bg-slate-950/20' : ''}`}
                         onClick={() => {
                           if (!applyingTemplate) {
@@ -1953,7 +1953,7 @@ export default function MerchantDashboard() {
                       
                       <div
                         className={`border rounded-lg p-3 cursor-pointer transition-all hover:shadow-md relative
-                          ${applyingTemplate === true ? 'opacity-50 pointer-events-none' : ''}
+                          ${applyingTemplate ? 'opacity-50 pointer-events-none' : ''}
                           ${selectedMerchant?.themeTemplate === 'tech' ? 'ring-2 ring-primary border-transparent bg-slate-800/10 dark:bg-slate-900/50' : ''}`}
                         onClick={() => {
                           if (!applyingTemplate) {

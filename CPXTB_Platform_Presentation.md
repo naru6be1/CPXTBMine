@@ -69,15 +69,8 @@
 7. Real-time verification of transaction
 8. Payment history tracking
 
-## Slide 8: Platform Metrics & Growth
-- Current user base: 1,000+ active users
-- Merchants onboarded: 50+
-- Transaction volume: 25,000 CPXTB monthly
-- Average payment size: 150 CPXTB
-- Mining plans activated: 500+ monthly
-- Referral conversion rate: 22%
 
-## Slide 9: Competitive Landscape
+## Slide 8: Competitive Landscape
 - **Direct Competitors:**
   - Traditional crypto mining platforms
   - Web3 payment processors
@@ -88,7 +81,7 @@
   - Custom branded payment pages
   - Real-time transaction monitoring
 
-## Slide 10: Recent Platform Improvements
+## Slide 9: Recent Platform Improvements
 - ✅ Enhanced theme customization for merchants
 - ✅ Dedicated customer-facing payment pages
 - ✅ Improved wallet address validation

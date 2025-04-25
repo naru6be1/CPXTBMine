@@ -247,3 +247,77 @@
 │ themeTemplate: text       │      │                           │
 └───────────────────────────┘      └───────────────────────────┘
 ```
+
+## Data Retention & Compliance Strategy
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                 Data Retention Architecture                        │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  ┌───────────────┐   ┌───────────────┐   ┌───────────────┐        │
+│  │ Merchant      │   │ Data          │   │ Compliance    │        │
+│  │ Settings      │   │ Classification│   │ Engine        │        │
+│  └───────┬───────┘   └───────┬───────┘   └───────┬───────┘        │
+│          │                   │                   │                │
+│          ▼                   ▼                   ▼                │
+│  ┌───────────────────────────────────────────────────────────┐   │
+│  │                 Policy Enforcement Layer                   │   │
+│  │                                                           │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐           │   │
+│  │  │ Retention  │  │ Archival   │  │ Deletion   │           │   │
+│  │  │ Rules      │  │ Process    │  │ Process    │           │   │
+│  │  └────────────┘  └────────────┘  └────────────┘           │   │
+│  └───────────────────────────────────────────────────────────┘   │
+│                              │                                   │
+│                              ▼                                   │
+│  ┌───────────────────────────────────────────────────────────┐   │
+│  │                 Data Storage Tiers                        │   │
+│  │                                                           │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐           │   │
+│  │  │ Active     │  │ Archived   │  │ Anonymized │           │   │
+│  │  │ Data       │  │ Data       │  │ Data       │           │   │
+│  │  └────────────┘  └────────────┘  └────────────┘           │   │
+│  └───────────────────────────────────────────────────────────┘   │
+│                                                                   │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+### Data Retention Flow
+
+```
+┌──────────────┐     ┌───────────────┐     ┌───────────────┐
+│              │     │               │     │               │
+│   Merchant   │ 1   │ Configure     │ 2   │  Policy       │
+│   Dashboard  │────►│ Retention     │────►│  Storage      │
+│              │     │ Policy        │     │               │
+└──────────────┘     └───────────────┘     └───────────────┘
+                                                   │
+                                                   │ 3
+                                                   ▼
+┌──────────────┐     ┌───────────────┐     ┌───────────────┐
+│              │     │               │     │               │
+│  Scheduled   │ 6   │ Process       │ 4   │ Monitoring    │
+│  Jobs        │◄────│ Trigger       │◄────│ Service       │
+│              │     │               │     │               │
+└──────────────┘     └───────────────┘     └───────────────┘
+       │                                           
+       │ 7                                         
+       ▼                                           
+┌──────────────────────────────────────────────────┐
+│  Data Processing Actions                          │
+│                                                  │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  │
+│  │ Archive    │  │ Anonymize  │  │ Delete     │  │
+│  │ Records    │  │ Personal   │  │ Expired    │  │
+│  │            │  │ Data       │  │ Records    │  │
+│  └────────────┘  └────────────┘  └────────────┘  │
+└──────────────────────────────────────────────────┘
+
+1. Merchant configures data retention policy
+2. Policy settings stored in merchant profile
+3. Monitoring service regularly checks for applicable records
+4. When matching records found, process is triggered
+5. Scheduled jobs execute the appropriate action
+6. Data is archived, anonymized, or deleted based on policy
+```

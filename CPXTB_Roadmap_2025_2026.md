@@ -70,6 +70,14 @@
 | Accounting Integration | Integration with popular accounting software | December 2025 |
 | Payment Analytics | Enhanced payment analytics and reporting tools | Late December 2025 |
 
+### Data Management & Compliance
+| Milestone | Description | Estimated Completion |
+|-----------|-------------|----------------------|
+| Data Retention Policy | Implementation of configurable data retention policies for merchants | October 2025 |
+| Data Archiving | Tools for merchants to archive historical payment data | November 2025 |
+| GDPR Compliance | Enhanced compliance with "right to be forgotten" and data portability | November 2025 |
+| Data Anonymization | Automated anonymization for long-term storage of transaction data | December 2025 |
+
 ### User Experience Enhancements
 | Milestone | Description | Estimated Completion |
 |-----------|-------------|----------------------|

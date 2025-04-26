@@ -2169,9 +2169,9 @@ export default function MerchantDashboard() {
                         <Calendar
                           mode="single"
                           selected={endDate}
-                          onSelect={setEndDate}
+                          onSelect={(date) => setEndDate(date)}
                           initialFocus
-                          disabled={(date) => date > new Date() || (startDate ? date < startDate : false)}
+                          disabled={(date: Date) => date > new Date() || (startDate ? date < startDate : false)}
                         />
                       </PopoverContent>
                     </Popover>
@@ -2217,7 +2217,7 @@ export default function MerchantDashboard() {
                       </>
                     ) : (
                       <>
-                        <FileBarChart className="mr-2 h-4 w-4" />
+                        <BarChart className="mr-2 h-4 w-4" />
                         Generate Report
                       </>
                     )}
@@ -2267,7 +2267,7 @@ export default function MerchantDashboard() {
                           Export CSV
                         </Button>
                         <Button variant="outline" size="sm" onClick={exportToPDF}>
-                          <FilePdf className="mr-2 h-4 w-4" />
+                          <FileImage className="mr-2 h-4 w-4" />
                           Export PDF
                         </Button>
                       </div>
@@ -2324,7 +2324,7 @@ export default function MerchantDashboard() {
                       </div>
                     ) : (
                       <div className="text-center p-8 border rounded-md bg-muted/20">
-                        <FileQuestion className="h-12 w-12 mx-auto text-muted-foreground" />
+                        <HelpCircle className="h-12 w-12 mx-auto text-muted-foreground" />
                         <h3 className="mt-4 text-lg font-medium">No transactions found</h3>
                         <p className="mt-2 text-sm text-muted-foreground">
                           No payment transactions were found for the selected date range.
@@ -2335,7 +2335,7 @@ export default function MerchantDashboard() {
                 </div>
               ) : (
                 <div className="text-center p-12 border rounded-md bg-muted/20">
-                  <FileBarChart className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <BarChart className="h-12 w-12 mx-auto text-muted-foreground" />
                   <h3 className="mt-4 text-lg font-medium">No Report Generated</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Select a date range and click "Generate Report" to view your transaction data.

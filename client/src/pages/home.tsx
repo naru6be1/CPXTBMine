@@ -4,6 +4,7 @@ import { MiningPlan } from "@/components/mining-plan";
 import { useWallet } from "@/hooks/use-wallet";
 import { Logo } from "@/components/ui/logo";
 import { Link } from "wouter";
+import { CoinMarketCapButton } from "@/components/coinmarketcap-button";
 
 
 
@@ -24,7 +25,23 @@ export default function Home() {
 
         <PriceDisplay />
         
-        {/* Banner space */}
+        {/* CoinMarketCap Banner */}
+        <div className="bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-950 dark:to-blue-900 rounded-xl p-6 shadow-sm border border-blue-200 dark:border-blue-800">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-left">
+              <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300">Track CPXTB on CoinMarketCap</h3>
+              <p className="text-blue-700 dark:text-blue-400 max-w-md">
+                Add CPXTB to your watchlist to receive real-time price alerts and market updates.
+              </p>
+            </div>
+            <CoinMarketCapButton 
+              variant="default" 
+              size="default"
+              showTooltip={true}
+              className="bg-blue-600 hover:bg-blue-700"
+            />
+          </div>
+        </div>
 
         {/* Mining Plan Section */}
         <MiningPlan />
@@ -69,6 +86,15 @@ export default function Home() {
               Contact Us
             </Link>
           </div>
+          
+          <div className="flex justify-center mt-6 mb-4">
+            <CoinMarketCapButton 
+              variant="secondary" 
+              size="sm" 
+              showTooltip={false}
+            />
+          </div>
+          
           <p className="text-center text-xs text-muted-foreground mt-4">
             © 2025 CPXTB Platform. All rights reserved.
           </p>

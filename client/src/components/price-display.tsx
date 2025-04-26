@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createPublicClient, http, parseAbi } from 'viem';
 import { base } from 'viem/chains';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
+import { CoinMarketCapButton } from '@/components/coinmarketcap-button';
 
 // ABI for Uniswap V2 Pool interaction
 const POOL_ABI = parseAbi([
@@ -136,6 +137,8 @@ export function PriceDisplay() {
     };
   }, [toast]);
 
+  // Using the dedicated CoinMarketCapButton component instead
+  
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -155,6 +158,9 @@ export function PriceDisplay() {
           Real-time price from Uniswap V2
         </div>
       </CardContent>
+      <CardFooter className="pt-2 flex justify-center">
+        <CoinMarketCapButton className="mt-2" />
+      </CardFooter>
     </Card>
   );
 }

@@ -141,7 +141,7 @@ interface MiningPlan {
 function TelegramSupport() {
   return (
     <a
-      href="https://t.me/CPXTBOfficial"
+      href="https://t.me/CPXTBOfficialSupport"
       target="_blank"
       rel="noopener noreferrer"
       className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-white bg-[#229ED9] hover:bg-[#1e8bc3] rounded-md transition-colors"

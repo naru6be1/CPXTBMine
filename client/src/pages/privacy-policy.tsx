@@ -150,12 +150,12 @@ export default function PrivacyPolicyPage() {
                 </a>
                 <br />
                 <a 
-                  href="https://t.me/CPXTBOfficial" 
+                  href="https://t.me/CPXTBOfficialSupport" 
                   className="flex items-center hover:text-primary transition-colors"
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  <span className="mr-2">💬</span>Telegram Support: @CPXTBOfficial
+                  <span className="mr-2">💬</span>Telegram Support: @CPXTBOfficialSupport
                 </a>
                 <br />
                 <a 
@@ -165,6 +165,15 @@ export default function PrivacyPolicyPage() {
                   rel="noopener noreferrer"
                 >
                   <span className="mr-2">🐦</span>Twitter: @cpxtbofficial
+                </a>
+                <br />
+                <a 
+                  href="https://discord.gg/cpxtbofficial" 
+                  className="flex items-center hover:text-primary transition-colors"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <span className="mr-2">🎮</span>Discord: discord.gg/cpxtbofficial
                 </a>
               </p>
             </section>

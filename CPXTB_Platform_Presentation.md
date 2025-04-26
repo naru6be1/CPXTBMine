@@ -164,6 +164,7 @@
 - **For Users:**
   - Sign up today at coinpredictiontool.com
   - Join our Telegram community @CPXTBOfficial
+  - Get support via Telegram @CPXTBOfficialSupport
   - Follow us on Twitter @cpxtbofficial
 - **For Merchants:**
   - Schedule a demo
@@ -175,7 +176,7 @@
 - **Support:** support@coinpredictiontool.com
 - **Partnerships:** partners@coinpredictiontool.com
 - **Social Media:**
-  - Telegram: @CPXTBOfficial
+  - Telegram Support: @CPXTBOfficialSupport
   - Twitter: @cpxtbofficial
   - Discord: discord.gg/cpxtbofficial
 

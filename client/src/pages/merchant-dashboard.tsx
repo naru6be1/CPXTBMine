@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Redirect, useLocation } from "wouter";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, CheckCircle2, Loader2, ExternalLink, AlertTriangle, Check, LogOut } from "lucide-react";
+import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, CheckCircle2, Loader2, ExternalLink, AlertTriangle, Check, LogOut, FileText, BarChart, FileDown, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -23,11 +23,16 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { format, subDays, subMonths, subYears, parseISO } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAuth } from "@/hooks/use-auth";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
 import { PaymentNotification, PaymentSuccessNotification } from "@/components/payment-notification";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Logout button component
 function LogoutButton() {
@@ -922,6 +927,7 @@ export default function MerchantDashboard() {
           <TabsTrigger value="payments" disabled={!merchantData?.merchants?.length}>Create Payment</TabsTrigger>
           <TabsTrigger value="qrcode" disabled={!currentPayment}>Payment QR Code</TabsTrigger>
           <TabsTrigger value="history" disabled={!merchantData?.merchants?.length}>Payment History</TabsTrigger>
+          <TabsTrigger value="reports" disabled={!merchantData?.merchants?.length}>Reports</TabsTrigger>
           <TabsTrigger value="appearance" disabled={!merchantData?.merchants?.length}>Appearance</TabsTrigger>
         </TabsList>
 

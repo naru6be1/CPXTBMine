@@ -571,6 +571,95 @@ export class DatabaseStorage implements IStorage {
       totalAmountCpxtb: totalAmountCpxtb.toString()
     };
   }
+  
+  async getDetailedMerchantReport(merchantId: number, startDate: Date, endDate: Date): Promise<{
+    summary: {
+      totalPayments: number;
+      successfulPayments: number;
+      failedPayments: number;
+      pendingPayments: number;
+      expiredPayments: number;
+      totalAmountUsd: number;
+      totalAmountCpxtb: string;
+    };
+    payments: Payment[];
+    dailyTotals: {
+      date: string;
+      count: number;
+      amountUsd: number;
+      amountCpxtb: string;
+    }[];
+  }> {
+    // Get all payments in the date range
+    const allPayments = await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.merchantId, merchantId),
+          gte(payments.createdAt, startDate),
+          lt(payments.createdAt, endDate)
+        )
+      )
+      .orderBy(desc(payments.createdAt));
+    
+    // Filter payments by status
+    const successfulPayments = allPayments.filter(p => p.status === 'completed');
+    const failedPayments = allPayments.filter(p => p.status === 'failed');
+    const pendingPayments = allPayments.filter(p => p.status === 'pending' && new Date(p.expiresAt) > new Date());
+    const expiredPayments = allPayments.filter(p => p.status === 'pending' && new Date(p.expiresAt) <= new Date());
+    
+    // Calculate totals
+    const totalAmountUsd = successfulPayments.reduce((sum, p) => sum + Number(p.amountUsd), 0);
+    const totalAmountCpxtb = successfulPayments.reduce((sum, p) => sum + Number(p.amountCpxtb), 0);
+    
+    // Generate daily totals
+    const dailyMap = new Map<string, { count: number; amountUsd: number; amountCpxtb: number }>();
+    
+    // Initialize days in the range to ensure all days appear in the report
+    const daysBetween = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    for (let i = 0; i < daysBetween; i++) {
+      const day = new Date(startDate);
+      day.setDate(day.getDate() + i);
+      const dateStr = day.toISOString().split('T')[0]; // YYYY-MM-DD
+      dailyMap.set(dateStr, { count: 0, amountUsd: 0, amountCpxtb: 0 });
+    }
+    
+    // Populate with actual data
+    for (const payment of successfulPayments) {
+      const dateStr = new Date(payment.createdAt).toISOString().split('T')[0];
+      const current = dailyMap.get(dateStr) || { count: 0, amountUsd: 0, amountCpxtb: 0 };
+      
+      dailyMap.set(dateStr, {
+        count: current.count + 1,
+        amountUsd: current.amountUsd + Number(payment.amountUsd),
+        amountCpxtb: current.amountCpxtb + Number(payment.amountCpxtb)
+      });
+    }
+    
+    // Convert map to array and sort by date
+    const dailyTotals = Array.from(dailyMap.entries()).map(([date, data]) => ({
+      date,
+      count: data.count,
+      amountUsd: data.amountUsd,
+      amountCpxtb: data.amountCpxtb.toString()
+    })).sort((a, b) => a.date.localeCompare(b.date));
+    
+    return {
+      summary: {
+        totalPayments: allPayments.length,
+        successfulPayments: successfulPayments.length,
+        failedPayments: failedPayments.length,
+        pendingPayments: pendingPayments.length,
+        expiredPayments: expiredPayments.length,
+        totalAmountUsd,
+        totalAmountCpxtb: totalAmountCpxtb.toString()
+      },
+      payments: allPayments,
+      dailyTotals
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();

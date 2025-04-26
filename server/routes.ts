@@ -1153,6 +1153,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get custom date range report for merchant
+  app.get("/api/merchants/reports/date-range", authenticateMerchant, async (req, res) => {
+    try {
+      const merchant = (req as any).merchant;
+      console.log("Generating date range report for merchant:", merchant.id);
+      
+      // Default to last 30 days if no dates are provided
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      
+      // Parse start and end dates from query params if provided
+      if (req.query.startDate) {
+        startDate.setTime(Date.parse(req.query.startDate as string));
+      }
+      
+      if (req.query.endDate) {
+        endDate.setTime(Date.parse(req.query.endDate as string));
+      }
+      
+      console.log(`Generating report from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+      
+      // Get the detailed report
+      const report = await storage.getDetailedMerchantReport(merchant.id, startDate, endDate);
+      
+      // Format currency values for response
+      const formattedReport = {
+        ...report,
+        summary: {
+          ...report.summary,
+          totalAmountUsd: Number(report.summary.totalAmountUsd.toFixed(2)),
+          totalAmountCpxtb: Number(report.summary.totalAmountCpxtb).toFixed(6)
+        },
+        dailyTotals: report.dailyTotals.map(day => ({
+          ...day,
+          amountUsd: Number(day.amountUsd.toFixed(2)),
+          amountCpxtb: Number(day.amountCpxtb).toFixed(6)
+        })),
+        payments: report.payments.map(payment => ({
+          ...payment,
+          amountUsd: Number(payment.amountUsd).toFixed(2),
+          amountCpxtb: Number(payment.amountCpxtb).toFixed(6),
+          createdAt: new Date(payment.createdAt).toISOString(),
+          updatedAt: payment.updatedAt ? new Date(payment.updatedAt).toISOString() : null,
+          expiresAt: payment.expiresAt ? new Date(payment.expiresAt).toISOString() : null,
+          completedAt: payment.completedAt ? new Date(payment.completedAt).toISOString() : null
+        }))
+      };
+      
+      res.json({
+        report: formattedReport,
+        period: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error("Error generating date range report:", error);
+      res.status(500).json({
+        message: "Error generating date range report: " + error.message
+      });
+    }
+  });
+  
   // Get merchant payment statistics
   app.get("/api/merchants/stats", authenticateMerchant, async (req, res) => {
     try {

@@ -190,6 +190,12 @@ export default function MerchantDashboard() {
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
+  // Reports state
+  const [startDate, setStartDate] = useState<Date | undefined>(subDays(new Date(), 30));
+  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
+  const [reportData, setReportData] = useState<any>(null);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
+  
   // Fetch payment history
   const fetchPaymentHistory = useCallback(async () => {
     if (!selectedMerchant) {
@@ -236,6 +242,220 @@ export default function MerchantDashboard() {
       setIsLoadingHistory(false);
     }
   }, [selectedMerchant, toast]);
+  
+  // Function to fetch report data
+  const fetchReportData = async () => {
+    if (!selectedMerchant) {
+      toast({
+        title: "No merchant selected",
+        description: "Please select a merchant account first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!startDate || !endDate) {
+      toast({
+        title: "Date range required",
+        description: "Please select both start and end dates",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const apiKey = selectedMerchant.apiKey;
+    if (!apiKey || apiKey.includes('...')) {
+      toast({
+        title: "Error loading report data",
+        description: "Invalid API key - please refresh the page",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsLoadingReport(true);
+      
+      // Format dates for API query params
+      const startDateParam = startDate.toISOString();
+      const endDateParam = endDate.toISOString();
+      
+      // Fetch detailed report
+      const response = await fetch(`/api/merchants/reports/date-range?startDate=${startDateParam}&endDate=${endDateParam}`, {
+        headers: {
+          'X-API-Key': apiKey
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to generate report");
+      }
+      
+      const data = await response.json();
+      console.log("Report data loaded:", data);
+      setReportData(data);
+    } catch (error) {
+      console.error("Error fetching report data:", error);
+      toast({
+        title: "Failed to generate report",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+      setReportData(null);
+    } finally {
+      setIsLoadingReport(false);
+    }
+  };
+  
+  // Get badge color based on payment status
+  const getBadgeColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      case 'failed':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
+      case 'expired':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      default:
+        return '';
+    }
+  };
+  
+  // Export to CSV
+  const exportToCSV = () => {
+    if (!reportData) return;
+    
+    // Prepare headers
+    const headers = ['Order ID', 'Date', 'Status', 'USD Amount', 'CPXTB Amount', 'Transaction Hash'];
+    
+    // Prepare payment data
+    const rows = reportData.report.payments.map((payment: any) => [
+      payment.orderId,
+      format(parseISO(payment.createdAt), 'PP'),
+      payment.status,
+      payment.amountUsd,
+      payment.amountCpxtb,
+      payment.transactionHash || '-'
+    ]);
+    
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Set filename with date range
+    const startStr = format(parseISO(reportData.period.startDate), 'yyyy-MM-dd');
+    const endStr = format(parseISO(reportData.period.endDate), 'yyyy-MM-dd');
+    link.download = `CPXTB_Payments_${startStr}_to_${endStr}.csv`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Export successful",
+      description: "CSV file has been downloaded"
+    });
+  };
+  
+  // Export to PDF
+  const exportToPDF = () => {
+    if (!reportData) return;
+    
+    // Create PDF document
+    const doc = new jsPDF();
+    
+    // Add title and date range
+    const startStr = format(parseISO(reportData.period.startDate), 'PP');
+    const endStr = format(parseISO(reportData.period.endDate), 'PP');
+    const businessName = selectedMerchant?.businessName || 'Your Business';
+    
+    doc.setFontSize(18);
+    doc.text(`CPXTB Payment Report`, 14, 22);
+    
+    doc.setFontSize(12);
+    doc.text(`Business: ${businessName}`, 14, 30);
+    doc.text(`Period: ${startStr} to ${endStr}`, 14, 38);
+    
+    // Add summary
+    doc.setFontSize(14);
+    doc.text('Summary', 14, 48);
+    
+    const summary = [
+      ['Total Payments', reportData.report.summary.totalPayments.toString()],
+      ['Successful', reportData.report.summary.successfulPayments.toString()],
+      ['Failed', reportData.report.summary.failedPayments.toString()],
+      ['Pending', reportData.report.summary.pendingPayments.toString()],
+      ['Expired', reportData.report.summary.expiredPayments.toString()],
+      ['Total USD Volume', `$${reportData.report.summary.totalAmountUsd.toFixed(2)}`],
+      ['Total CPXTB Volume', reportData.report.summary.totalAmountCpxtb]
+    ];
+    
+    autoTable(doc, {
+      startY: 52,
+      head: [['Metric', 'Value']],
+      body: summary,
+      theme: 'grid'
+    });
+    
+    // Add transactions table
+    doc.setFontSize(14);
+    doc.text('Transaction Details', 14, doc.lastAutoTable.finalY + 10);
+    
+    const tableData = reportData.report.payments.map((payment: any) => [
+      payment.orderId,
+      format(parseISO(payment.createdAt), 'PP'),
+      payment.status,
+      `$${payment.amountUsd}`,
+      payment.amountCpxtb,
+      payment.transactionHash ? payment.transactionHash.substring(0, 10) + '...' : '-'
+    ]);
+    
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [['Order ID', 'Date', 'Status', 'USD', 'CPXTB', 'Tx Hash']],
+      body: tableData,
+      theme: 'striped',
+      styles: { overflow: 'ellipsize', cellWidth: 'wrap' },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 40 }
+      }
+    });
+    
+    // Add footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.text(
+        `Generated on ${format(new Date(), 'PPpp')} - Page ${i} of ${pageCount}`,
+        14,
+        doc.internal.pageSize.height - 10
+      );
+    }
+    
+    // Save the PDF
+    doc.save(`CPXTB_Payment_Report_${startStr.replace(/\//g, '-')}_to_${endStr.replace(/\//g, '-')}.pdf`);
+    
+    toast({
+      title: "Export successful",
+      description: "PDF report has been downloaded"
+    });
+  };
 
   // Create merchant mutation
   const createMerchantMutation = useMutation({

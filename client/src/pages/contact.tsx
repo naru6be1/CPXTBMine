@@ -19,12 +19,12 @@ export default function ContactPage() {
             Our support team is available 24/7 on Telegram to assist you with any questions or concerns about CPXTB mining.
           </p>
           <a 
-            href="https://t.me/CPXTBase" 
+            href="https://t.me/CPXTBOfficial" 
             target="_blank" 
             rel="noopener noreferrer"
             onClick={(e) => {
               e.preventDefault();
-              window.open('https://t.me/CPXTBase', '_blank', 'noopener,noreferrer');
+              window.open('https://t.me/CPXTBOfficial', '_blank', 'noopener,noreferrer');
             }}
           >
             <Button className="w-full sm:w-auto">

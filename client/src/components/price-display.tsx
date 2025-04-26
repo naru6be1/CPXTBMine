@@ -158,9 +158,6 @@ export function PriceDisplay() {
           Real-time price from Uniswap V2
         </div>
       </CardContent>
-      <CardFooter className="pt-2 flex justify-center">
-        <CoinMarketCapButton className="mt-2" />
-      </CardFooter>
     </Card>
   );
 }

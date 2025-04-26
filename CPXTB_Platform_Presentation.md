@@ -177,7 +177,7 @@
 - **Social Media:**
   - Telegram: @CPXTBOfficial
   - Twitter: @cpxtbofficial
-  - Discord: discord.gg/cpxtb
+  - Discord: discord.gg/cpxtbofficial
 
 ## Slide 19: Q&A
 - Thank you for your attention

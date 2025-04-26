@@ -372,15 +372,16 @@ function ActivePlanDisplay({
 }
 
 // Add social sharing component
-const createShareMessage = (amount: string, type: 'claim' | 'reward') => {
+const createShareMessage = (amount: string | undefined, type: 'claim' | 'reward') => {
+  const safeAmount = amount || '0';
   const baseMessage = type === 'claim'
-    ? `Just claimed ${amount} CPXTB tokens on CPXTBMining! 🎉`
-    : `Successfully earned ${amount} CPXTB from my mining rewards! 💰`;
+    ? `Just claimed ${safeAmount} CPXTB tokens on CPXTBMining! 🎉`
+    : `Successfully earned ${safeAmount} CPXTB from my mining rewards! 💰`;
   return `${baseMessage}\n\nJoin the mining revolution: https://cpxtbmining.com`;
 };
 
 // Update the SocialShareButtons component
-function SocialShareButtons({ amount, type }: { amount: string, type: 'claim' | 'reward' }) {
+function SocialShareButtons({ amount, type }: { amount: string | undefined, type: 'claim' | 'reward' }) {
   const message = createShareMessage(amount, type);
   const encodedMessage = encodeURIComponent(message);
 

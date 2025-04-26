@@ -12,7 +12,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ClipboardCopy, Copy, Download, Info, QrCode, RefreshCw, Clock, Plus, CheckCircle, CheckCircle2, Loader2, ExternalLink, AlertTriangle, Check, LogOut, FileText, BarChart, FileDown, Calendar } from "lucide-react";
+import { 
+  AlertCircle, 
+  ClipboardCopy, 
+  Copy, 
+  Download, 
+  Info, 
+  QrCode, 
+  RefreshCw, 
+  Clock, 
+  Plus, 
+  CheckCircle, 
+  CheckCircle2, 
+  Loader2, 
+  ExternalLink, 
+  AlertTriangle, 
+  Check, 
+  LogOut, 
+  FileText, 
+  BarChart, 
+  FileDown, 
+  Calendar as CalendarIcon,
+  FileImage,
+  HelpCircle
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -24,7 +47,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { format, subDays, subMonths, subYears, parseISO } from "date-fns";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useWallet } from "@/hooks/use-wallet";
 import { useAuth } from "@/hooks/use-auth";
@@ -2090,6 +2113,235 @@ export default function MerchantDashboard() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction Reports</CardTitle>
+              <CardDescription>
+                Generate reports for your payment transactions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Date Range Selection */}
+              <div className="mb-6 border-b pb-6">
+                <h3 className="text-lg font-medium mb-4">Select Date Range</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Start Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(startDate, 'PPP') : <span className="text-muted-foreground">Select start date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={startDate}
+                          onSelect={(date) => setStartDate(date)}
+                          initialFocus
+                          disabled={(date: Date) => date > new Date() || (endDate ? date > endDate : false)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endDate">End Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {endDate ? format(endDate, 'PPP') : <span className="text-muted-foreground">Select end date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={endDate}
+                          onSelect={setEndDate}
+                          initialFocus
+                          disabled={(date) => date > new Date() || (startDate ? date < startDate : false)}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end space-x-2 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setStartDate(subDays(new Date(), 7));
+                      setEndDate(new Date());
+                    }}
+                  >
+                    Last 7 days
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setStartDate(subDays(new Date(), 30));
+                      setEndDate(new Date());
+                    }}
+                  >
+                    Last 30 days
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setStartDate(subMonths(new Date(), 3));
+                      setEndDate(new Date());
+                    }}
+                  >
+                    Last 3 months
+                  </Button>
+                  <Button
+                    variant="default"
+                    disabled={!startDate || !endDate || isLoadingReport}
+                    onClick={fetchReportData}
+                  >
+                    {isLoadingReport ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileBarChart className="mr-2 h-4 w-4" />
+                        Generate Report
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Report Results */}
+              {reportData ? (
+                <div className="space-y-6">
+                  {/* Report Summary */}
+                  <div className="bg-muted/30 rounded-lg p-6">
+                    <h3 className="text-lg font-medium mb-4">Report Summary</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-background p-4 rounded-md border shadow-sm">
+                        <div className="text-sm text-muted-foreground">Total Payments</div>
+                        <div className="text-2xl font-bold">{reportData.report.summary.totalPayments}</div>
+                      </div>
+                      <div className="bg-background p-4 rounded-md border shadow-sm">
+                        <div className="text-sm text-muted-foreground">Successful</div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {reportData.report.summary.successfulPayments}
+                        </div>
+                      </div>
+                      <div className="bg-background p-4 rounded-md border shadow-sm">
+                        <div className="text-sm text-muted-foreground">Total USD</div>
+                        <div className="text-2xl font-bold">
+                          ${reportData.report.summary.totalAmountUsd.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="bg-background p-4 rounded-md border shadow-sm">
+                        <div className="text-sm text-muted-foreground">Total CPXTB</div>
+                        <div className="text-2xl font-bold">
+                          {reportData.report.summary.totalAmountCpxtb}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Detailed Transaction Table */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium">Transaction Details</h3>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" onClick={exportToCSV}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Export CSV
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={exportToPDF}>
+                          <FilePdf className="mr-2 h-4 w-4" />
+                          Export PDF
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {reportData.report.payments.length > 0 ? (
+                      <div className="rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead className="text-foreground font-semibold">Date</TableHead>
+                              <TableHead className="text-foreground font-semibold">Order ID</TableHead>
+                              <TableHead className="text-foreground font-semibold">Amount (USD)</TableHead>
+                              <TableHead className="text-foreground font-semibold">Amount (CPXTB)</TableHead>
+                              <TableHead className="text-foreground font-semibold">Status</TableHead>
+                              <TableHead className="text-foreground font-semibold">Transaction</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {reportData.report.payments.map((payment: any) => (
+                              <TableRow key={payment.id} className="hover:bg-muted/50">
+                                <TableCell className="text-foreground">
+                                  {format(parseISO(payment.createdAt), 'PP')}
+                                </TableCell>
+                                <TableCell className="font-medium text-foreground">
+                                  {payment.orderId}
+                                </TableCell>
+                                <TableCell className="text-foreground">${Number(payment.amountUsd).toFixed(2)}</TableCell>
+                                <TableCell className="text-foreground">{Number(payment.amountCpxtb).toFixed(6)}</TableCell>
+                                <TableCell>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBadgeColor(payment.status)}`}>
+                                    {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  {payment.transactionHash ? (
+                                    <a 
+                                      href={`https://basescan.org/tx/${payment.transactionHash}`}
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+                                    >
+                                      <span className="truncate max-w-[120px]">{payment.transactionHash.substring(0, 10)}...</span>
+                                      <ExternalLink className="h-3 w-3 ml-1" />
+                                    </a>
+                                  ) : (
+                                    <span className="text-muted-foreground text-sm">-</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center p-8 border rounded-md bg-muted/20">
+                        <FileQuestion className="h-12 w-12 mx-auto text-muted-foreground" />
+                        <h3 className="mt-4 text-lg font-medium">No transactions found</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          No payment transactions were found for the selected date range.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center p-12 border rounded-md bg-muted/20">
+                  <FileBarChart className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <h3 className="mt-4 text-lg font-medium">No Report Generated</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Select a date range and click "Generate Report" to view your transaction data.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

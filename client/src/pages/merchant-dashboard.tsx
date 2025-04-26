@@ -1731,18 +1731,18 @@ export default function MerchantDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert className="mb-4 bg-green-50 border-green-200 text-foreground">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-foreground font-medium">Automatic Payment Detection Active</AlertTitle>
-                <AlertDescription className="text-foreground dark:text-foreground">
+              <Alert className="mb-4 bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-700">
+                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <AlertTitle className="text-green-800 dark:text-green-100 font-medium">Automatic Payment Detection Active</AlertTitle>
+                <AlertDescription className="text-green-700 dark:text-green-200">
                   Payment transactions are automatically monitored and verified in real-time. Keep this application open while waiting for payments. Manual verification is available as a backup option.
                 </AlertDescription>
               </Alert>
               {/* Payment verification form */}
               <div className="mb-8 border border-border p-4 rounded-md bg-muted/20">
                 <h3 className="text-lg font-medium mb-3 text-foreground">Manual Verification (Backup Option)</h3>
-                <p className="text-sm text-foreground mb-4">
-                  <span className="font-medium text-amber-700 dark:text-amber-500">Note: Payments should be verified automatically.</span> Use this form only if automatic verification fails and the customer provides you with the transaction hash after sending CPXTB tokens.
+                <p className="text-sm mb-4 text-slate-700 dark:text-slate-200">
+                  <span className="font-medium text-amber-700 dark:text-amber-400">Note: Payments should be verified automatically.</span> Use this form only if automatic verification fails and the customer provides you with the transaction hash after sending CPXTB tokens.
                 </p>
                 <div className="space-y-4">
                   <div className="grid gap-2">
@@ -1762,7 +1762,7 @@ export default function MerchantDashboard() {
                       value={verificationForm.transactionHash}
                       onChange={(e) => setVerificationForm({...verificationForm, transactionHash: e.target.value})}
                     />
-                    <p className="text-xs text-foreground">
+                    <p className="text-xs text-slate-700 dark:text-slate-300">
                       The transaction hash starts with "0x" and is provided by the customer after they make the payment.
                     </p>
                   </div>
@@ -1850,7 +1850,7 @@ export default function MerchantDashboard() {
                       <Clock className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <h3 className="text-lg font-medium text-foreground">No payment history yet</h3>
-                    <p className="text-foreground max-w-md mx-auto">
+                    <p className="text-slate-700 dark:text-slate-300 max-w-md mx-auto">
                       Your completed payment transactions will appear here. Create a new payment in the Payments tab to get started.
                     </p>
                     <Button 

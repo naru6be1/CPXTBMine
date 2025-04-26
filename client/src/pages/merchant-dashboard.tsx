@@ -366,7 +366,7 @@ export default function MerchantDashboard() {
     // Create CSV content
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.join(','))
+      ...rows.map((row: any[]) => row.join(','))
     ].join('\n');
     
     // Create download link
@@ -432,8 +432,11 @@ export default function MerchantDashboard() {
     
     // Add transactions table
     doc.setFontSize(14);
-    doc.text('Transaction Details', 14, doc.lastAutoTable.finalY + 10);
     
+    // Use a variable to store the first table's final position instead of doc.lastAutoTable
+    let finalY = 130; // Default position if the first table doesn't set it
+    
+    // Get the actual position from the first table result
     const tableData = reportData.report.payments.map((payment: any) => [
       payment.orderId,
       format(parseISO(payment.createdAt), 'PP'),
@@ -443,8 +446,10 @@ export default function MerchantDashboard() {
       payment.transactionHash ? payment.transactionHash.substring(0, 10) + '...' : '-'
     ]);
     
+    doc.text('Transaction Details', 14, finalY);
+    
     autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 15,
+      startY: finalY + 5,
       head: [['Order ID', 'Date', 'Status', 'USD', 'CPXTB', 'Tx Hash']],
       body: tableData,
       theme: 'striped',
@@ -871,7 +876,7 @@ export default function MerchantDashboard() {
       
       // Step 1: Immediately update the local selected merchant state
       // This provides immediate feedback to the user while we do a full refresh
-      setSelectedMerchant(prevMerchant => {
+      setSelectedMerchant((prevMerchant: any) => {
         if (!prevMerchant) return receivedMerchant;
         
         const updatedMerchant = {

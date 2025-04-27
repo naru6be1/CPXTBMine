@@ -90,8 +90,8 @@ async function processTransferEvent(
           }
           
           try {
-            // Update payment status in storage
-            await storage.updatePaymentStatus(payment.id, paymentStatus, txHash);
+            // Update payment status in storage with received amount information
+            await storage.updatePaymentStatus(payment.id, paymentStatus, txHash, receivedAmount, requiredAmount);
             
             // Extra safety - update directly in database too
             if (shouldComplete) {
@@ -100,7 +100,9 @@ async function processTransferEvent(
                   status: paymentStatus,
                   transactionHash: txHash,
                   updatedAt: new Date(),
-                  completedAt: new Date()
+                  completedAt: new Date(),
+                  receivedAmount: receivedAmount,
+                  requiredAmount: requiredAmount
                 })
                 .where(eq(payments.id, payment.id));
               
@@ -110,11 +112,13 @@ async function processTransferEvent(
                 .set({
                   status: paymentStatus,
                   transactionHash: txHash,
-                  updatedAt: new Date()
+                  updatedAt: new Date(),
+                  receivedAmount: receivedAmount,
+                  requiredAmount: requiredAmount
                 })
                 .where(eq(payments.id, payment.id));
               
-              console.log(`🔄 Payment ${payment.id} marked as partially paid with tx hash ${txHash}`);
+              console.log(`🔄 Payment ${payment.id} marked as partially paid with tx hash ${txHash}, received: ${receivedAmount}, required: ${requiredAmount}`);
             }
             
             // Broadcast payment status update to all WebSocket clients

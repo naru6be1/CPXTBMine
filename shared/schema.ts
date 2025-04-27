@@ -150,6 +150,8 @@ export const payments = pgTable("payments", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
   completedAt: timestamp("completed_at"),
+  receivedAmount: numeric("received_amount", { precision: 20, scale: 8 }),
+  requiredAmount: numeric("required_amount", { precision: 20, scale: 8 }),
 });
 
 // Define relations

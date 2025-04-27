@@ -1,6 +1,8 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from 'qrcode.react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Use the same token address as in the merchant dashboard
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
@@ -21,9 +23,56 @@ export function MerchantPamphlet({
     return `ethereum:${walletAddress}?token=${CPXTB_TOKEN_ADDRESS}`;
   };
 
-  // Function to print the pamphlet
+  // Function to generate PDF and download
   const handlePrint = () => {
-    window.print();
+    try {
+      // Create new jsPDF instance
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      // Get pamphlet content element
+      const content = document.querySelector('.merchant-pamphlet-container');
+      
+      if (!content) {
+        console.error('Pamphlet content element not found');
+        return;
+      }
+      
+      // Clone the element to avoid modifying the original
+      const printContent = content.cloneNode(true) as HTMLElement;
+      
+      // Get all images in the content
+      const images = printContent.querySelectorAll('img, svg');
+      const qrCode = printContent.querySelector('.qr-code-wrapper svg') as SVGElement;
+      
+      // Append to body to make it visible for html2canvas
+      document.body.appendChild(printContent);
+      printContent.style.position = 'absolute';
+      printContent.style.left = '-9999px';
+      
+      // Convert to canvas with html2canvas
+      html2canvas(printContent).then(canvas => {
+        // Remove the cloned element after we're done with it
+        document.body.removeChild(printContent);
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Add image to PDF (fitting to page width while maintaining aspect ratio)
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        // Save the PDF
+        doc.save(`${businessName.replace(/\s+/g, '_')}_Payment_Guide.pdf`);
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      // Fall back to regular print dialog if PDF generation fails
+      window.print();
+    }
   };
 
   return (
@@ -36,9 +85,14 @@ export function MerchantPamphlet({
         <h2 className="text-2xl font-bold text-gray-800">Payment Instructions</h2>
         <Button 
           onClick={handlePrint}
-          className="print:hidden"
+          className="print:hidden flex items-center gap-2"
         >
-          Print Pamphlet
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 9 L6 2 L18 2 L18 9"/>
+            <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+            <path d="M6 14h12v8H6z"/>
+          </svg>
+          Download PDF
         </Button>
       </div>
 
@@ -64,7 +118,7 @@ export function MerchantPamphlet({
 
       <div className="grid md:grid-cols-2 gap-8">
         <div className="text-center">
-          <div className="border-4 border-primary p-3 rounded-lg bg-white mb-4 inline-block">
+          <div className="qr-code-wrapper border-4 border-primary p-3 rounded-lg bg-white mb-4 inline-block">
             <QRCodeSVG 
               value={getWalletQrData()}
               size={200}

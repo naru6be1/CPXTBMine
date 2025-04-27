@@ -236,7 +236,7 @@ export class DatabaseStorage implements IStorage {
           eq(miningPlans.walletAddress, walletAddress),
           eq(miningPlans.hasWithdrawn, false),
           eq(miningPlans.isActive, true),
-          gte(currentTime, miningPlans.expiresAt)  // Only return truly expired plans
+          sql`${miningPlans.expiresAt} <= ${currentTime}`  // Only return truly expired plans
         )
       );
 
@@ -457,12 +457,22 @@ export class DatabaseStorage implements IStorage {
   
   // Payment methods
   async createPayment(payment: InsertPayment): Promise<Payment> {
+    // Convert numeric fields to strings for compatibility with PostgreSQL
+    const paymentData = {
+      ...payment,
+      // Ensure numeric fields are properly converted to strings
+      amountUsd: typeof payment.amountUsd === 'number' ? payment.amountUsd.toString() : payment.amountUsd,
+      amountCpxtb: typeof payment.amountCpxtb === 'number' ? payment.amountCpxtb.toString() : payment.amountCpxtb,
+      exchangeRate: typeof payment.exchangeRate === 'number' ? payment.exchangeRate.toString() : payment.exchangeRate,
+    };
+    
+    // Remove updatedAt from the object as it's handled by the schema default
+    const { updatedAt, ...paymentDataFiltered } = paymentData as any;
+    
+    // Create payment with proper data types
     const [newPayment] = await db
       .insert(payments)
-      .values({
-        ...payment,
-        updatedAt: new Date(),
-      })
+      .values(paymentDataFiltered)
       .returning();
       
     return newPayment;
@@ -516,13 +526,15 @@ export class DatabaseStorage implements IStorage {
       updates.transactionHash = transactionHash;
     }
     
-    // If received and required amounts are provided, update them
+    // If received and required amounts are provided, update them with proper string conversion
     if (receivedAmount !== undefined) {
-      updates.receivedAmount = receivedAmount;
+      updates.receivedAmount = typeof receivedAmount === 'number' ? 
+        receivedAmount.toString() : receivedAmount;
     }
     
     if (requiredAmount !== undefined) {
-      updates.requiredAmount = requiredAmount;
+      updates.requiredAmount = typeof requiredAmount === 'number' ? 
+        requiredAmount.toString() : requiredAmount;
     }
     
     const [updatedPayment] = await db

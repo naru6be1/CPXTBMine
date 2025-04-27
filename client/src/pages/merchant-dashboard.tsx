@@ -54,6 +54,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { QRCodeSVG } from 'qrcode.react';
 import { User } from "@shared/schema";
 import { PaymentNotification, PaymentSuccessNotification } from "@/components/payment-notification";
+import { MerchantPamphlet } from "@/components/merchant-pamphlet";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 

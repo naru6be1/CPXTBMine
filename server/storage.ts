@@ -111,13 +111,19 @@ export class DatabaseStorage implements IStorage {
       insertUser.referralCode = `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     }
 
-    // Create new user with normalized username
+    // Create new user with normalized username and convert numeric values to strings
+    const insertData = {
+      ...insertUser,
+      username: normalizedUsername,
+      // Ensure numeric fields are properly converted to strings
+      accumulatedCPXTB: insertUser.accumulatedCPXTB !== undefined ? 
+        insertUser.accumulatedCPXTB?.toString() : 
+        "0.000"
+    };
+
     const [user] = await db
       .insert(users)
-      .values({
-        ...insertUser,
-        username: normalizedUsername
-      })
+      .values(insertData)
       .returning();
 
     return user;
@@ -191,13 +197,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deactivateExpiredPlans(): Promise<void> {
+    const currentDate = new Date();
     await db
       .update(miningPlans)
       .set({ isActive: false })
       .where(
         and(
           eq(miningPlans.isActive, true),
-          gte(new Date(), miningPlans.expiresAt)
+          sql`${miningPlans.expiresAt} <= ${currentDate}`
         )
       );
   }

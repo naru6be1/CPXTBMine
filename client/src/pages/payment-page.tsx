@@ -419,17 +419,39 @@ export default function PaymentPage() {
   // Calculate remaining amount if payment is partial
   let remainingAmount = '0.000000';
   if (payment && payment.status === 'partial') {
+    // Convert received and required amounts to numbers, ensuring we have valid values
     let receivedAmount = 0;
+    let requiredAmount = 0;
     
-    if (payment.receivedAmount && typeof payment.receivedAmount === 'number') {
-      receivedAmount = payment.receivedAmount;
-    } else if (payment.transactionHash) {
-      // Fallback estimate
-      receivedAmount = Number(payment.amountCpxtb) * 0.7;
+    // Check if received amount is available from the payment data
+    if (payment.receivedAmount !== undefined && payment.receivedAmount !== null) {
+      receivedAmount = typeof payment.receivedAmount === 'number' 
+        ? payment.receivedAmount 
+        : parseFloat(payment.receivedAmount);
     }
     
-    const requiredAmount = payment.requiredAmount || Number(payment.amountCpxtb);
-    remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+    // Determine required amount - either from payment.requiredAmount or fall back to amountCpxtb
+    if (payment.requiredAmount !== undefined && payment.requiredAmount !== null) {
+      requiredAmount = typeof payment.requiredAmount === 'number'
+        ? payment.requiredAmount
+        : parseFloat(payment.requiredAmount);
+    } else if (payment.amountCpxtb) {
+      requiredAmount = typeof payment.amountCpxtb === 'number'
+        ? payment.amountCpxtb
+        : parseFloat(payment.amountCpxtb);
+    }
+    
+    // Calculate the remaining amount needed to complete the payment
+    const remaining = Math.max(0, requiredAmount - receivedAmount);
+    
+    // Format with 6 decimal places for CPXTB token precision
+    remainingAmount = remaining.toFixed(6);
+    
+    console.log('Partial payment details:', {
+      receivedAmount,
+      requiredAmount,
+      remainingAmount
+    });
   }
 
   // Status indicator

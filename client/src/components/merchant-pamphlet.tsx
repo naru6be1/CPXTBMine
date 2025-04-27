@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from 'qrcode.react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useToast } from "@/hooks/use-toast";
 
 // Use the same token address as in the merchant dashboard
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
@@ -18,14 +19,47 @@ export function MerchantPamphlet({
   walletAddress,
   logoUrl
 }: MerchantPamphletProps) {
+  const { toast } = useToast();
+  const pamphletRef = useRef<HTMLDivElement>(null);
   // Function to generate QR code data for merchant's wallet
   const getWalletQrData = () => {
     return `ethereum:${walletAddress}?token=${CPXTB_TOKEN_ADDRESS}`;
   };
 
   // Function to generate PDF and download
-  const handlePrint = () => {
+  const handlePrint = async () => {
     try {
+      // Create a loading indicator
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'fixed inset-0 flex items-center justify-center bg-black/30 z-50';
+      loadingDiv.innerHTML = `
+        <div class="bg-white p-4 rounded-lg shadow-lg flex items-center space-x-3">
+          <div class="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+          <div>Generating PDF...</div>
+        </div>
+      `;
+      document.body.appendChild(loadingDiv);
+      
+      // First, generate an image of the QR code to ensure it renders in the PDF
+      let qrCodeImage: string | null = null;
+      
+      try {
+        // Get the QR code SVG
+        const qrCodeSvg = document.querySelector('.qr-code-wrapper svg');
+        if (qrCodeSvg) {
+          // Create a temporary canvas for the QR code
+          const qrCanvas = await html2canvas(qrCodeSvg as HTMLElement, {
+            backgroundColor: '#FFFFFF',
+            scale: 3, // Higher scale for better quality
+            logging: false
+          });
+          
+          qrCodeImage = qrCanvas.toDataURL('image/png');
+        }
+      } catch (qrError) {
+        console.error('Error converting QR code:', qrError);
+      }
+      
       // Create new jsPDF instance
       const doc = new jsPDF({
         orientation: 'portrait',
@@ -33,50 +67,108 @@ export function MerchantPamphlet({
         format: 'a4'
       });
       
-      // Get pamphlet content element
-      const content = document.querySelector('.merchant-pamphlet-container');
+      // Get pamphlet content element using ref if available
+      const content = pamphletRef.current;
       
       if (!content) {
         console.error('Pamphlet content element not found');
+        document.body.removeChild(loadingDiv);
+        
+        toast({
+          title: "PDF Generation Error",
+          description: "Could not find the pamphlet content. Please try again.",
+          variant: "destructive"
+        });
+        
         return;
       }
       
       // Clone the element to avoid modifying the original
       const printContent = content.cloneNode(true) as HTMLElement;
       
-      // Get all images in the content
-      const images = printContent.querySelectorAll('img, svg');
-      const qrCode = printContent.querySelector('.qr-code-wrapper svg') as SVGElement;
+      // If we have a QR code image, replace the SVG with it for better rendering
+      if (qrCodeImage) {
+        const qrWrapper = printContent.querySelector('.qr-code-wrapper');
+        if (qrWrapper) {
+          // Replace the SVG with an image
+          const svgElement = qrWrapper.querySelector('svg');
+          if (svgElement) {
+            const img = document.createElement('img');
+            img.src = qrCodeImage;
+            img.style.width = '200px';
+            img.style.height = '200px';
+            svgElement.replaceWith(img);
+          }
+        }
+      }
       
-      // Append to body to make it visible for html2canvas
+      // Append to body to make it visible for html2canvas but hide it
       document.body.appendChild(printContent);
       printContent.style.position = 'absolute';
       printContent.style.left = '-9999px';
+      printContent.style.width = '794px'; // A4 width in pixels at 96 DPI
       
-      // Convert to canvas with html2canvas
-      html2canvas(printContent).then(canvas => {
-        // Remove the cloned element after we're done with it
-        document.body.removeChild(printContent);
-        
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Add image to PDF (fitting to page width while maintaining aspect ratio)
-        const pdfWidth = doc.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        
-        // Save the PDF
-        doc.save(`${businessName.replace(/\s+/g, '_')}_Payment_Guide.pdf`);
+      // Wait a moment for everything to render
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Convert to canvas with html2canvas - use higher scale for better quality
+      const canvas = await html2canvas(printContent, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#FFFFFF',
+        logging: false
       });
+      
+      // Remove the cloned element after we're done with it
+      document.body.removeChild(printContent);
+      
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Add image to PDF (fitting to page width while maintaining aspect ratio)
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      // Save the PDF
+      doc.save(`${businessName.replace(/\s+/g, '_')}_Payment_Guide.pdf`);
+      
+      // Remove loading indicator
+      document.body.removeChild(loadingDiv);
+      
+      // Show success toast
+      toast({
+        title: "PDF Generated Successfully",
+        description: "Your payment guide has been downloaded as a PDF file.",
+        variant: "default"
+      });
+      
     } catch (error) {
       console.error('Error generating PDF:', error);
+      // Remove loading indicator if it exists
+      const loadingDiv = document.querySelector('.fixed.inset-0.flex.items-center.justify-center.bg-black\\/30.z-50');
+      if (loadingDiv && loadingDiv.parentNode) {
+        loadingDiv.parentNode.removeChild(loadingDiv);
+      }
+      
+      // Show error toast
+      toast({
+        title: "PDF Generation Failed",
+        description: "There was an error creating your PDF. Please try again or use your browser's print function.",
+        variant: "destructive"
+      });
+      
       // Fall back to regular print dialog if PDF generation fails
-      window.print();
+      setTimeout(() => {
+        window.print();
+      }, 500);
     }
   };
 
   return (
-    <div className="merchant-pamphlet-container p-6 max-w-2xl mx-auto bg-white shadow-lg rounded-lg border border-gray-200">
+    <div 
+      ref={pamphletRef}
+      className="merchant-pamphlet-container p-6 max-w-2xl mx-auto bg-white shadow-lg rounded-lg border border-gray-200">
       <div className="print:block hidden absolute top-4 right-4">
         <p className="text-sm text-gray-500">Generated from CPXTB Platform</p>
       </div>

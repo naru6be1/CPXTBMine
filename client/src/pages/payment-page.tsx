@@ -665,7 +665,17 @@ export default function PaymentPage() {
   // Generate wallet URI for QR code with full payment information
   // This format allows wallets to pre-populate both token address and the exact amount needed
   const amountToSend = payment.status === 'partial' ? initialRemainingAmount : payment.amountCpxtb;
-  const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${payment.tokenAddress}&tokenValue=${encodeURIComponent(amountToSend)}`;
+  
+  // Make sure we have the token address from constants if not available in payment object
+  const tokenAddress = payment.tokenAddress || '0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b'; // CPXTB token address
+  
+  const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${tokenAddress}&tokenValue=${encodeURIComponent(amountToSend.toString())}`;
+  
+  console.log("Wallet URI generated:", {
+    merchantAddress: payment.merchantWalletAddress,
+    tokenAddress: tokenAddress,
+    amountToSend: amountToSend
+  });
 
   // Format timestamp for display
   const formatDate = (timestamp: string) => {
@@ -937,7 +947,7 @@ export default function PaymentPage() {
                 <span>{calculatedRemainingAmount} CPXTB</span>
                 <button
                   onClick={() => copyToClipboard(
-                    calculatedRemainingAmount,
+                    typeof calculatedRemainingAmount === 'string' ? calculatedRemainingAmount : calculatedRemainingAmount.toString(),
                     "Remaining amount copied to clipboard"
                   )}
                   style={{
@@ -1178,7 +1188,13 @@ export default function PaymentPage() {
                   <button 
                     style={styles.copyButton}
                     onClick={() => copyToClipboard(
-                      payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb.toString(), 
+                      payment.status === 'partial' 
+                        ? (typeof calculatedRemainingAmount === 'string' 
+                            ? calculatedRemainingAmount 
+                            : calculatedRemainingAmount.toString())
+                        : (typeof payment.amountCpxtb === 'string' 
+                            ? payment.amountCpxtb 
+                            : payment.amountCpxtb.toString()), 
                       payment.status === 'partial' ? "Remaining amount copied to clipboard" : "Amount copied to clipboard"
                     )}
                   >
@@ -1215,7 +1231,15 @@ export default function PaymentPage() {
               
               <div>
                 <a 
-                  href={`https://twitter.com/intent/tweet?text=Please%20send%20me%20${payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}&hashtags=CPXTB,Crypto`}
+                  href={`https://twitter.com/intent/tweet?text=Please%20send%20me%20${
+                    payment.status === 'partial' 
+                      ? (typeof calculatedRemainingAmount === 'string' 
+                          ? calculatedRemainingAmount 
+                          : calculatedRemainingAmount.toString())
+                      : (typeof payment.amountCpxtb === 'string' 
+                          ? payment.amountCpxtb 
+                          : payment.amountCpxtb.toString())
+                  }%20CPXTB%20to%20${payment.merchantWalletAddress || ''}&hashtags=CPXTB,Crypto`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={styles.socialButton}
@@ -1224,7 +1248,15 @@ export default function PaymentPage() {
                 </a>
                 
                 <a 
-                  href={`https://t.me/share/url?url=${window.location.href}&text=Please%20send%20me%20${payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}`}
+                  href={`https://t.me/share/url?url=${window.location.href}&text=Please%20send%20me%20${
+                    payment.status === 'partial' 
+                      ? (typeof calculatedRemainingAmount === 'string' 
+                          ? calculatedRemainingAmount 
+                          : calculatedRemainingAmount.toString())
+                      : (typeof payment.amountCpxtb === 'string' 
+                          ? payment.amountCpxtb 
+                          : payment.amountCpxtb.toString())
+                  }%20CPXTB%20to%20${payment.merchantWalletAddress || ''}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={styles.socialButton}

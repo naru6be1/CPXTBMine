@@ -1160,6 +1160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Add token address to payment data for QR code generation
+      payment.tokenAddress = CPXTB_TOKEN_ADDRESS;
+      
       // Return payment data along with merchant theme settings
       res.json({ 
         payment,
@@ -1198,6 +1201,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Unauthorized access to payment' });
       }
       
+      // Add token address for QR code generation
+      payment.tokenAddress = CPXTB_TOKEN_ADDRESS;
+      
       res.json({ payment });
     } catch (error: any) {
       console.error("Error fetching payment:", error);
@@ -1213,7 +1219,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const merchant = (req as any).merchant;
       const payments = await storage.getPaymentsByMerchant(merchant.id);
       
-      res.json({ payments });
+      // Add token address to each payment for QR code generation
+      const enhancedPayments = payments.map(payment => ({
+        ...payment,
+        tokenAddress: CPXTB_TOKEN_ADDRESS
+      }));
+      
+      res.json({ payments: enhancedPayments });
     } catch (error: any) {
       console.error("Error fetching merchant payments:", error);
       res.status(500).json({

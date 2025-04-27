@@ -43,6 +43,13 @@ export default function PaymentPage() {
   const reference = (!rawReference || 
                      rawReference === "undefined" || 
                      rawReference.toLowerCase() === "undefined") ? null : rawReference;
+                     
+  // Redirect to home page if no valid reference is provided
+  useEffect(() => {
+    if (!reference) {
+      navigate('/');
+    }
+  }, [reference, navigate]);
   
   // WebSocket state for real-time updates
   const [socket, setSocket] = useState<WebSocket | null>(null);

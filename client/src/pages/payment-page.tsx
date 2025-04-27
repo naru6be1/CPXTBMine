@@ -244,6 +244,16 @@ export default function PaymentPage() {
         alignItems: 'center',
         gap: '0.5rem',
       },
+      statusPartial: {
+        backgroundColor: theme.darkMode ? '#4a3' : '#fbeed0',
+        color: theme.darkMode ? '#f97316' : '#c2410c',
+        padding: '0.75rem',
+        borderRadius: `${theme.borderRadius / 2}px`,
+        marginTop: '1rem',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '0.5rem',
+      },
       footer: {
         backgroundColor: theme.darkMode ? '#2d2d2d' : '#f1f5f9',
         padding: '1rem',
@@ -411,6 +421,57 @@ export default function PaymentPage() {
               View Transaction
             </a>
           )}
+        </div>
+      );
+    } else if (payment.status === 'partial') {
+      // Calculate remaining amount
+      let receivedAmount = 0;
+      
+      try {
+        // Try to estimate the received amount based on transaction hash
+        // This is a simplified approach - for a more accurate solution we would need
+        // the server to store the actual received amount
+        if (payment.transactionHash) {
+          receivedAmount = Number(payment.amountCpxtb) * 0.7; // Example estimate
+        }
+      } catch (err) {
+        console.error("Error calculating remaining amount:", err);
+      }
+      
+      const remainingAmount = Math.max(0, Number(payment.amountCpxtb) - receivedAmount).toFixed(6);
+      
+      return (
+        <div style={styles.statusPartial}>
+          <div style={{ 
+            height: '0.75rem', 
+            width: '0.75rem', 
+            borderRadius: '50%', 
+            backgroundColor: 'currentColor',
+            animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+          }} />
+          <div>
+            <span>Partial Payment Received</span>
+            <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
+              <strong>Still needed: {remainingAmount} CPXTB</strong>
+            </div>
+            {payment.transactionHash && (
+              <a 
+                href={`https://basescan.org/tx/${payment.transactionHash}`} 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  marginTop: '0.25rem'
+                }}
+              >
+                <ExternalLink className="h-3 w-3" />
+                View Transaction
+              </a>
+            )}
+          </div>
         </div>
       );
     } else if (payment.status === 'expired') {

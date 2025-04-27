@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Button } from "@/components/ui/button";
 import { Loader2, ExternalLink, Copy, AlertCircle, CheckCircle2, MessageCircle, Twitter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PaymentSuccessNotification, PaymentPartialNotification } from "@/components/payment-notification";
 
 export default function PaymentPage() {
   const [, navigate] = useLocation();
@@ -34,6 +35,11 @@ export default function PaymentPage() {
   // WebSocket state for real-time updates
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  
+  // State for payment notification modals
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPartialModal, setShowPartialModal] = useState(false);
+  const [partialAmount, setPartialAmount] = useState("");
 
   // Effect to load payment data
   useEffect(() => {
@@ -143,6 +149,9 @@ export default function PaymentPage() {
             // Play sound notification
             const audio = new Audio('/payment-success.mp3');
             audio.play().catch(e => console.error("Error playing audio:", e));
+            
+            // Show success modal
+            setShowSuccessModal(true);
           } else if (data.status === 'partial') {
             // Use remaining amount provided by server, or calculate it if not available
             const remainingAmount = data.remainingAmount || (() => {
@@ -160,9 +169,15 @@ export default function PaymentPage() {
               variant: "destructive", // Use destructive variant instead of warning (not supported by our toast)
             });
             
+            // Save the remaining amount for the modal
+            setPartialAmount(remainingAmount);
+            
             // Play sound notification (different sound for partial payments)
             const audio = new Audio('/payment-partial.mp3');
             audio.play().catch(e => console.error("Error playing audio:", e));
+            
+            // Show partial payment modal
+            setShowPartialModal(true);
           }
         }
       } catch (err) {

@@ -1135,7 +1135,7 @@ export default function MerchantDashboard() {
           const data = await response.json();
           console.log("🔍 Merchant QR polling result:", data);
           
-          // ENHANCED STATUS VERIFICATION: Apply same logic as payment-page.tsx
+          // ENHANCED STATUS VERIFICATION: Apply same logic as WebSocket handler
           // -------------------------------------------------------------
           // Extract data for validation
           const payment = data.payment;
@@ -1164,50 +1164,70 @@ export default function MerchantDashboard() {
             hasCompletedTimestamp: !!payment.completedAt
           };
           
-          // Decision logic - if ANY completion condition is true, treat as completed
-          const isEffectivelyCompleted = 
-            conditions.explicitlyCompleted || 
-            conditions.zeroRemaining || 
-            conditions.zeroRemainingExact || 
-            conditions.receivedEnough;
+          // FIXED BUG: For partial payments, we need to be strict 
+          const isPartialPayment = payment.status === 'partial';
           
           console.log("🔍 MERCHANT QR POLL - Payment status verification:", {
             reference: payment.reference || payment.paymentReference,
             ...conditions,
-            isEffectivelyCompleted,
+            isPartialPayment,
             originalStatus,
             receivedAmount, 
             requiredAmount,
             remainingAmount
           });
           
-          // Override status in local data if payment should be completed
-          let shouldUpdateUI = false;
+          // Fix for partial payment handling - only consider effectively completed
+          // if explicitly completed or meets numeric criteria but NOT partial payment
+          const isEffectivelyCompleted = (
+            // If explicitly marked as completed, honor that
+            conditions.explicitlyCompleted || 
+            // OR if it meets our numeric criteria AND is not a partial payment
+            (!isPartialPayment && (
+              conditions.zeroRemaining || 
+              conditions.zeroRemainingExact || 
+              conditions.receivedEnough
+            ))
+          );
           
-          if (isEffectivelyCompleted && payment.status !== 'completed') {
-            console.log("🚨 MERCHANT QR POLL: Auto-correcting status from", payment.status, "to completed", {
-              reason: "Payment meets completion criteria but incorrect status"
-            });
+          // Update UI with the payment data
+          if (isPartialPayment) {
+            // For partial payments, update UI but don't show completion
+            console.log("💲 Updating merchant QR UI with partial payment data");
             
-            // Override status
-            payment.status = 'completed';
-            payment.remainingAmount = '0.000000';
-            shouldUpdateUI = true;
-          }
-          
-          // Only update UI if status changed or conditions met
-          if (originalStatus !== payment.status || shouldUpdateUI) {
-            console.log("📊 Updating merchant QR UI with corrected payment data");
-            
-            setCurrentPayment(prevState => ({
+            setCurrentPayment((prevState: any) => ({
               ...prevState,
               payment: {
-                ...payment
+                ...payment,
+                status: 'partial'  // Ensure status is 'partial'
               }
             }));
             
-            // If status is completed, show notification
-            if (payment.status === 'completed') {
+            // Refresh payment history in the background to reflect partial payment
+            fetchPaymentHistory();
+          }
+          else if (isEffectivelyCompleted) {
+            // This should be a completed payment
+            console.log("🚨 MERCHANT QR POLL: This payment should be completed", {
+              receivedAmount,
+              requiredAmount,
+              remainingAmount
+            });
+            
+            // Force payment data to be in completed state
+            const completedPayment = {
+              ...payment,
+              status: 'completed',
+              remainingAmount: '0.000000'
+            };
+            
+            setCurrentPayment((prevState: any) => ({
+              ...prevState,
+              payment: completedPayment
+            }));
+            
+            // Only show completion notification if transitioning to completed
+            if (originalStatus !== 'completed') {
               setCompletedPaymentRef(payment.reference || payment.paymentReference);
               setShowSuccessNotification(true);
               
@@ -1222,6 +1242,17 @@ export default function MerchantDashboard() {
                 console.error("Error playing notification sound:", err);
               }
             }
+          }
+          else {
+            // Regular update for other payment states (pending, etc.)
+            console.log("📊 Regular update of merchant QR UI with payment data");
+            
+            setCurrentPayment((prevState: any) => ({
+              ...prevState,
+              payment: {
+                ...payment
+              }
+            }));
           }
         } catch (err) {
           console.error("Error polling for payment status:", err);
@@ -1274,23 +1305,34 @@ export default function MerchantDashboard() {
       hasCompletedTimestamp: !!payment.completedAt
     };
     
-    // Decision logic - if ANY completion condition is true, treat as completed
-    const isEffectivelyCompleted = 
-      conditions.explicitlyCompleted || 
-      conditions.zeroRemaining || 
-      conditions.zeroRemainingExact || 
-      conditions.receivedEnough;
+    // FIXED BUG: For partial payments, we need to be strict and verify that
+    // the received amount is ACTUALLY sufficient before marking as completed
+    const isPartialPayment = payment.status === 'partial';
     
     console.log("🔍 MERCHANT DASHBOARD - Payment update status check:", {
       reference: payment.reference || payment.paymentReference,
       ...conditions,
-      isEffectivelyCompleted,
+      isPartialPayment,
       originalStatus: payment.status,
       receivedAmount,
-      requiredAmount
+      requiredAmount,
+      remainingAmount
     });
     
-    // Force status to completed if any condition is met
+    // Fix for partial payment handling:
+    // Only consider it effectively completed if it's received enough AND not explicitly partial
+    const isEffectivelyCompleted = (
+      // If explicitly marked as completed, honor that
+      conditions.explicitlyCompleted || 
+      // OR if it meets our numeric criteria AND is not a partial payment
+      (!isPartialPayment && (
+        conditions.zeroRemaining || 
+        conditions.zeroRemainingExact || 
+        conditions.receivedEnough
+      ))
+    );
+    
+    // Force status to completed if criteria are met for completed payment
     if (isEffectivelyCompleted && payment.status !== 'completed') {
       console.log("🚨 MERCHANT DASHBOARD - Auto-correcting status from", payment.status, "to completed", {
         reason: "Payment meets completion criteria but incorrect status",
@@ -1305,8 +1347,53 @@ export default function MerchantDashboard() {
       payment.remainingAmount = '0.000000';
     }
     
-    // Only proceed if payment is actually completed
-    if (payment.status === 'completed') {
+    // For partial payments, we need to update the UI but NOT show completion notification
+    if (isPartialPayment && currentPayment && 
+        currentPayment.payment && 
+        currentPayment.payment.reference === payment.paymentReference) {
+      
+      console.log('💲 Updating current payment with partial payment data in merchant dashboard', {
+        receivedAmount,
+        requiredAmount,
+        remainingAmount
+      });
+      
+      // Create updated payment object with partial payment status
+      const updatedPayment = {
+        ...currentPayment,
+        payment: {
+          ...currentPayment.payment,
+          status: 'partial',
+          receivedAmount: payment.receivedAmount || currentPayment.payment.receivedAmount,
+          remainingAmount: payment.remainingAmount
+        }
+      };
+      
+      // Update the current payment
+      setCurrentPayment(updatedPayment);
+      
+      // Switch to QR code tab if not already there
+      if (activeTab !== "qrcode") {
+        toast({
+          title: "Partial Payment Received",
+          description: `Still need ${payment.remainingAmount} CPXTB to complete this payment`,
+          variant: "warning",
+          action: (
+            <div 
+              className="bg-amber-600 text-white hover:bg-amber-700 cursor-pointer p-1 rounded"
+              onClick={() => setActiveTab("qrcode")}
+            >
+              View
+            </div>
+          )
+        });
+      }
+      
+      // Refresh payment history to reflect the partial payment
+      fetchPaymentHistory();
+    }
+    // Only proceed with completion logic if payment is actually completed
+    else if (payment.status === 'completed') {
       // Show the success notification
       setCompletedPaymentRef(payment.paymentReference);
       setShowSuccessNotification(true);
@@ -1353,7 +1440,7 @@ export default function MerchantDashboard() {
       // Refresh payment history
       fetchPaymentHistory();
     } else {
-      console.log("ℹ️ Payment update ignored - status is not completed:", payment.status);
+      console.log("ℹ️ Payment update ignored - status is not completed or partial:", payment.status);
     }
   };
 

@@ -1991,7 +1991,7 @@ export default function MerchantDashboard() {
                         </Button>
                       </div>
                       <a 
-                        href={`/payment/${currentPayment.payment.reference}`}
+                        href={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs mt-2 text-primary hover:underline"

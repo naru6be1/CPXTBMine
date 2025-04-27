@@ -415,6 +415,22 @@ export default function PaymentPage() {
       description: message,
     });
   };
+  
+  // Calculate remaining amount if payment is partial
+  let remainingAmount = '0.000000';
+  if (payment && payment.status === 'partial') {
+    let receivedAmount = 0;
+    
+    if (payment.receivedAmount && typeof payment.receivedAmount === 'number') {
+      receivedAmount = payment.receivedAmount;
+    } else if (payment.transactionHash) {
+      // Fallback estimate
+      receivedAmount = Number(payment.amountCpxtb) * 0.7;
+    }
+    
+    const requiredAmount = payment.requiredAmount || Number(payment.amountCpxtb);
+    remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+  }
 
   // Status indicator
   const renderStatus = () => {
@@ -443,30 +459,7 @@ export default function PaymentPage() {
         </div>
       );
     } else if (payment.status === 'partial') {
-      // Get received amount (either from WebSocket data or calculate an estimate)
-      let receivedAmount = 0;
-      
-      if (payment.receivedAmount && typeof payment.receivedAmount === 'number') {
-        // Use the actual received amount from WebSocket if available
-        receivedAmount = payment.receivedAmount;
-        console.log("Using received amount from WebSocket:", receivedAmount);
-      } else {
-        try {
-          // Fallback: estimate the received amount 
-          if (payment.transactionHash) {
-            receivedAmount = Number(payment.amountCpxtb) * 0.7; // Example estimate
-            console.log("Using estimated received amount:", receivedAmount);
-          }
-        } catch (err) {
-          console.error("Error calculating estimated amount:", err);
-        }
-      }
-      
-      // Get required amount (either from WebSocket or from payment data)
-      const requiredAmount = payment.requiredAmount || Number(payment.amountCpxtb);
-      
-      // Calculate the remaining amount needed
-      const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+      // We already calculated remainingAmount above, no need to recalculate it here
       
       return (
         <div style={styles.statusPartial}>
@@ -479,8 +472,48 @@ export default function PaymentPage() {
           }} />
           <div>
             <span>Partial Payment Received</span>
-            <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
-              <strong>Still needed: {remainingAmount} CPXTB</strong>
+            
+            {/* Prominent display of remaining amount with larger font and contrast */}
+            <div style={{ 
+              marginTop: '0.5rem',
+              padding: '0.5rem',
+              backgroundColor: theme.darkMode ? 'rgba(255, 153, 0, 0.2)' : 'rgba(255, 153, 0, 0.1)',
+              borderRadius: '0.25rem',
+              borderLeft: '3px solid #ff9900',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 'normal' }}>Still needed:</div>
+              <div style={{ 
+                fontSize: '1.25rem', 
+                fontWeight: 'bold',
+                marginTop: '0.25rem',
+                color: theme.darkMode ? '#ffb84d' : '#B45309',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}>
+                <span>{remainingAmount} CPXTB</span>
+                <button
+                  onClick={() => copyToClipboard(
+                    remainingAmount,
+                    "Remaining amount copied to clipboard"
+                  )}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '2px',
+                    borderRadius: '4px',
+                    color: 'inherit',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             {payment.transactionHash && (
               <a 
@@ -609,7 +642,11 @@ export default function PaymentPage() {
         <div style={styles.card}>
           <div style={{ padding: '1rem', textAlign: 'center' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '1.125rem' }}>
-              Scan to Pay {Number(payment.amountCpxtb).toFixed(6)} CPXTB
+              {payment.status === 'partial' ? (
+                <>Scan to Pay <span style={{ color: '#ff9900', fontWeight: 'bold' }}>{remainingAmount}</span> CPXTB</>
+              ) : (
+                <>Scan to Pay {Number(payment.amountCpxtb).toFixed(6)} CPXTB</>
+              )}
             </h3>
             
             <div style={{ 
@@ -633,7 +670,11 @@ export default function PaymentPage() {
               
               <div>
                 <p style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                  Send exactly {Number(payment.amountCpxtb).toFixed(6)} CPXTB to:
+                  {payment.status === 'partial' ? (
+                    <>Send exactly <span style={{ color: '#ff9900' }}>{remainingAmount}</span> CPXTB to:</>
+                  ) : (
+                    <>Send exactly {Number(payment.amountCpxtb).toFixed(6)} CPXTB to:</>
+                  )}
                 </p>
                 
                 <div style={styles.walletAddress}>
@@ -654,11 +695,12 @@ export default function PaymentPage() {
                   <button 
                     style={styles.copyButton}
                     onClick={() => copyToClipboard(
-                      payment.amountCpxtb.toString(), 
-                      "Amount copied to clipboard"
+                      payment.status === 'partial' ? remainingAmount : payment.amountCpxtb.toString(), 
+                      payment.status === 'partial' ? "Remaining amount copied to clipboard" : "Amount copied to clipboard"
                     )}
                   >
-                    <Copy className="h-3 w-3 inline-block mr-1" /> Copy Amount
+                    <Copy className="h-3 w-3 inline-block mr-1" /> 
+                    {payment.status === 'partial' ? 'Copy Remaining' : 'Copy Amount'}
                   </button>
                 </div>
               </div>
@@ -690,7 +732,7 @@ export default function PaymentPage() {
               
               <div>
                 <a 
-                  href={`https://twitter.com/intent/tweet?text=Please%20send%20me%20${payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}&hashtags=CPXTB,Crypto`}
+                  href={`https://twitter.com/intent/tweet?text=Please%20send%20me%20${payment.status === 'partial' ? remainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}&hashtags=CPXTB,Crypto`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={styles.socialButton}
@@ -699,7 +741,7 @@ export default function PaymentPage() {
                 </a>
                 
                 <a 
-                  href={`https://t.me/share/url?url=${window.location.href}&text=Please%20send%20me%20${payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}`}
+                  href={`https://t.me/share/url?url=${window.location.href}&text=Please%20send%20me%20${payment.status === 'partial' ? remainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={styles.socialButton}

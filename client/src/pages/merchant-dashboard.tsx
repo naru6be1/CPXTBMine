@@ -84,7 +84,7 @@ function LogoutButton() {
   );
 }
 
-// CPXTB token address for generating wallet URI and QR codes
+// CPXTB token address for displaying in UI
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
 
 export default function MerchantDashboard() {
@@ -1195,35 +1195,13 @@ export default function MerchantDashboard() {
             // For partial payments, update UI but don't show completion
             console.log("💲 Updating merchant QR UI with partial payment data");
             
-            // Generate wallet URI for QR code with remaining amount if needed
-            if (payment.merchantWalletAddress && remainingAmount > 0) {
-              const tokenAddress = payment.tokenAddress || CPXTB_TOKEN_ADDRESS;
-              const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${tokenAddress}&tokenValue=${encodeURIComponent(remainingAmount.toString())}`;
-              
-              console.log("📱 Generated wallet URI for QR code with remaining amount:", {
-                tokenAddress,
-                remainingAmount
-              });
-              
-              setCurrentPayment((prevState: any) => ({
-                ...prevState,
-                qrCodeData: walletUri, // Update QR code with remaining amount needed
-                paymentInstructions: `PARTIAL PAYMENT: Send ${remainingAmount.toFixed(6)} more CPXTB tokens to complete this payment`,
-                payment: {
-                  ...payment,
-                  status: 'partial'  // Ensure status is 'partial'
-                }
-              }));
-            } else {
-              // Fall back to basic update
-              setCurrentPayment((prevState: any) => ({
-                ...prevState,
-                payment: {
-                  ...payment,
-                  status: 'partial'  // Ensure status is 'partial'
-                }
-              }));
-            }
+            setCurrentPayment((prevState: any) => ({
+              ...prevState,
+              payment: {
+                ...payment,
+                status: 'partial'  // Ensure status is 'partial'
+              }
+            }));
             
             // Refresh payment history in the background to reflect partial payment
             fetchPaymentHistory();
@@ -1243,14 +1221,8 @@ export default function MerchantDashboard() {
               remainingAmount: '0.000000'
             };
             
-            // For completed payments, we can use a special QR code showing transaction hash
-            // or a completion message
-            const completionMessage = `Payment completed! Transaction: ${payment.transactionHash?.substring(0, 10) || 'Confirmed'}`;
-            
             setCurrentPayment((prevState: any) => ({
               ...prevState,
-              qrCodeData: completionMessage, // Use a text message instead of payment URI
-              paymentInstructions: `Payment of ${Number(payment.amountCpxtb).toFixed(6)} CPXTB completed successfully!`,
               payment: completedPayment
             }));
             
@@ -1275,33 +1247,12 @@ export default function MerchantDashboard() {
             // Regular update for other payment states (pending, etc.)
             console.log("📊 Regular update of merchant QR UI with payment data");
             
-            // Generate wallet URI for QR code if we have necessary data but it's missing
-            if (payment && payment.merchantWalletAddress && payment.amountCpxtb) {
-              const tokenAddress = payment.tokenAddress || CPXTB_TOKEN_ADDRESS;
-              const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${tokenAddress}&tokenValue=${encodeURIComponent(payment.amountCpxtb.toString())}`;
-              
-              console.log("📱 Generated wallet URI for QR code:", {
-                tokenAddress,
-                amountCpxtb: payment.amountCpxtb
-              });
-              
-              setCurrentPayment((prevState: any) => ({
-                ...prevState,
-                qrCodeData: walletUri, // Ensure QR code data is always set
-                paymentInstructions: `CPXTB PAYMENT: Send ${Number(payment.amountCpxtb).toFixed(6)} CPXTB tokens to this address on Base network`,
-                payment: {
-                  ...payment
-                }
-              }));
-            } else {
-              // Fall back to the previous behavior if we don't have necessary data
-              setCurrentPayment((prevState: any) => ({
-                ...prevState,
-                payment: {
-                  ...payment
-                }
-              }));
-            }
+            setCurrentPayment((prevState: any) => ({
+              ...prevState,
+              payment: {
+                ...payment
+              }
+            }));
           }
         } catch (err) {
           console.error("Error polling for payment status:", err);
@@ -2019,39 +1970,35 @@ export default function MerchantDashboard() {
                       <p className="text-sm text-muted-foreground mb-2">
                         Share this direct payment link with your customers:
                       </p>
-                      {currentPayment?.payment?.reference && (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
-                            readOnly
-                            className="text-xs font-mono"
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              navigator.clipboard.writeText(`${window.location.origin}/payment/${currentPayment.payment.reference}`);
-                              toast({
-                                title: "Copied",
-                                description: "Payment link copied to clipboard",
-                              });
-                            }}
-                          >
-                            <ClipboardCopy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                      {currentPayment?.payment?.reference && (
-                        <a 
-                          href={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs mt-2 text-primary hover:underline"
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
+                          readOnly
+                          className="text-xs font-mono"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/payment/${currentPayment.payment.reference}`);
+                            toast({
+                              title: "Copied",
+                              description: "Payment link copied to clipboard",
+                            });
+                          }}
                         >
-                          <ExternalLink className="h-3 w-3" />
-                          Open payment page in new tab
-                        </a>
-                      )}
+                          <ClipboardCopy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <a 
+                        href={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs mt-2 text-primary hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Open payment page in new tab
+                      </a>
                     </div>
                   </div>
                   <div className="text-center mb-4 space-y-3">
@@ -2102,20 +2049,18 @@ export default function MerchantDashboard() {
                       <Label>Payment Reference</Label>
                       <div className="flex items-center gap-2">
                         <Input 
-                          value={currentPayment?.payment?.reference || ""}
+                          value={currentPayment.payment.reference}
                           readOnly
                         />
                         <Button 
                           variant="outline" 
                           size="icon"
                           onClick={() => {
-                            if (currentPayment?.payment?.reference) {
-                              navigator.clipboard.writeText(currentPayment.payment.reference);
-                              toast({
-                                title: "Copied",
-                                description: "Payment reference copied to clipboard",
-                              });
-                            }
+                            navigator.clipboard.writeText(currentPayment.payment.reference);
+                            toast({
+                              title: "Copied",
+                              description: "Payment reference copied to clipboard",
+                            });
                           }}
                         >
                           <ClipboardCopy className="h-4 w-4" />
@@ -2123,67 +2068,61 @@ export default function MerchantDashboard() {
                       </div>
                     </div>
                     
-                    {currentPayment?.payment?.amountUsd && currentPayment?.payment?.amountCpxtb && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Amount (USD)</Label>
-                          <Input 
-                            value={`$${Number(currentPayment.payment.amountUsd).toFixed(2)}`}
-                            readOnly
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Amount (CPXTB)</Label>
-                          <Input 
-                            value={`${Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB`}
-                            readOnly
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {currentPayment?.payment?.status && (
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Status</Label>
-                        {currentPayment.payment.status === 'completed' ? (
-                          <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
-                            <div className="h-3 w-3 bg-green-500 rounded-full" />
-                            <span className="font-semibold text-green-700 dark:text-green-300">Payment Completed!</span>
-                            {currentPayment.payment.transactionHash && (
-                              <a 
-                                href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="ml-auto text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded flex items-center gap-1 text-green-800 dark:text-green-200"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                View Transaction
-                              </a>
-                            )}
-                          </div>
-                        ) : currentPayment.payment.status === 'expired' ? (
-                          <div className="bg-red-100 dark:bg-red-900 p-3 rounded-lg border border-red-300 dark:border-red-700 flex items-center gap-2">
-                            <div className="h-3 w-3 bg-red-500 rounded-full" />
-                            <span className="font-semibold text-red-700 dark:text-red-300">Payment Expired</span>
-                          </div>
-                        ) : (
-                          <div className="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-lg border border-yellow-300 dark:border-yellow-700 flex items-center gap-2">
-                            <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse" />
-                            <span className="font-semibold text-yellow-700 dark:text-yellow-300">Payment Pending</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {currentPayment?.payment?.expiresAt && (
-                      <div className="space-y-2">
-                        <Label>Expires At</Label>
+                        <Label>Amount (USD)</Label>
                         <Input 
-                          value={new Date(currentPayment.payment.expiresAt).toLocaleString()}
+                          value={`$${Number(currentPayment.payment.amountUsd).toFixed(2)}`}
                           readOnly
                         />
                       </div>
-                    )}
+                      <div className="space-y-2">
+                        <Label>Amount (CPXTB)</Label>
+                        <Input 
+                          value={`${Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB`}
+                          readOnly
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      {currentPayment.payment.status === 'completed' ? (
+                        <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
+                          <div className="h-3 w-3 bg-green-500 rounded-full" />
+                          <span className="font-semibold text-green-700 dark:text-green-300">Payment Completed!</span>
+                          {currentPayment.payment.transactionHash && (
+                            <a 
+                              href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-auto text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded flex items-center gap-1 text-green-800 dark:text-green-200"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              View Transaction
+                            </a>
+                          )}
+                        </div>
+                      ) : currentPayment.payment.status === 'expired' ? (
+                        <div className="bg-red-100 dark:bg-red-900 p-3 rounded-lg border border-red-300 dark:border-red-700 flex items-center gap-2">
+                          <div className="h-3 w-3 bg-red-500 rounded-full" />
+                          <span className="font-semibold text-red-700 dark:text-red-300">Payment Expired</span>
+                        </div>
+                      ) : (
+                        <div className="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-lg border border-yellow-300 dark:border-yellow-700 flex items-center gap-2">
+                          <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse" />
+                          <span className="font-semibold text-yellow-700 dark:text-yellow-300">Payment Pending</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Expires At</Label>
+                      <Input 
+                        value={new Date(currentPayment.payment.expiresAt).toLocaleString()}
+                        readOnly
+                      />
+                    </div>
                     
                     <div className="pt-2">
                       <Button 
@@ -2219,50 +2158,46 @@ export default function MerchantDashboard() {
                     </div>
                   </div>
                   
-                  {currentPayment?.payment?.amountCpxtb && (
-                    <div className="space-y-2">
-                      <h3 className="font-medium">2. Customer Scans QR Code</h3>
-                      <p className="text-sm text-muted-foreground">
-                        The customer should scan the QR code with any wallet app to get your wallet address (or copy the address below).
-                      </p>
-                      <div className="bg-red-100 dark:bg-red-950 border-2 border-red-400 dark:border-red-900 rounded p-3 text-sm flex items-start gap-2 shadow-md">
-                        <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-bold text-black dark:text-red-400 mb-1">⚠️ IMPORTANT: CPXTB TOKENS ONLY!</p>
-                          <p className="text-black dark:text-white font-medium">After scanning, the customer needs to send the exact amount of <strong className="text-black dark:text-white bg-yellow-200 dark:bg-yellow-800 px-1 py-0.5 rounded-sm underline">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</strong> tokens to your address.</p>
-                          <p className="mt-1 text-xs font-bold text-black dark:text-red-400">Do NOT send ETH or BASE coins - they will be lost!</p>
-                        </div>
+                  <div className="space-y-2">
+                    <h3 className="font-medium">2. Customer Scans QR Code</h3>
+                    <p className="text-sm text-muted-foreground">
+                      The customer should scan the QR code with any wallet app to get your wallet address (or copy the address below).
+                    </p>
+                    <div className="bg-red-100 dark:bg-red-950 border-2 border-red-400 dark:border-red-900 rounded p-3 text-sm flex items-start gap-2 shadow-md">
+                      <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-black dark:text-red-400 mb-1">⚠️ IMPORTANT: CPXTB TOKENS ONLY!</p>
+                        <p className="text-black dark:text-white font-medium">After scanning, the customer needs to send the exact amount of <strong className="text-black dark:text-white bg-yellow-200 dark:bg-yellow-800 px-1 py-0.5 rounded-sm underline">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</strong> tokens to your address.</p>
+                        <p className="mt-1 text-xs font-bold text-black dark:text-red-400">Do NOT send ETH or BASE coins - they will be lost!</p>
                       </div>
                     </div>
-                  )}
+                  </div>
                   
-                  {currentPayment?.payment?.amountCpxtb && currentPayment?.payment?.merchantWalletAddress && (
-                    <div className="space-y-2">
-                      <h3 className="font-medium">3. Customer Sends CPXTB</h3>
-                      <p className="text-sm font-medium text-black dark:text-white">
-                        The customer sends exactly <span className="bg-yellow-200 dark:bg-yellow-800 px-1 py-0.5 rounded font-bold">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span> to your wallet address:
-                      </p>
-                      <div className="flex items-center">
-                        <code className="text-xs bg-muted p-2 rounded-l block break-all w-full">
-                          {currentPayment.payment.merchantWalletAddress}
-                        </code>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          className="h-8 rounded-l-none"
-                          onClick={() => {
-                            navigator.clipboard.writeText(currentPayment.payment.merchantWalletAddress);
-                            toast({
-                              title: "Copied",
-                              description: "Wallet address copied to clipboard",
-                            });
-                          }}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
+                  <div className="space-y-2">
+                    <h3 className="font-medium">3. Customer Sends CPXTB</h3>
+                    <p className="text-sm font-medium text-black dark:text-white">
+                      The customer sends exactly <span className="bg-yellow-200 dark:bg-yellow-800 px-1 py-0.5 rounded font-bold">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span> to your wallet address:
+                    </p>
+                    <div className="flex items-center">
+                      <code className="text-xs bg-muted p-2 rounded-l block break-all w-full">
+                        {currentPayment.payment.merchantWalletAddress}
+                      </code>
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        className="h-8 rounded-l-none"
+                        onClick={() => {
+                          navigator.clipboard.writeText(currentPayment.payment.merchantWalletAddress);
+                          toast({
+                            title: "Copied",
+                            description: "Wallet address copied to clipboard",
+                          });
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
                     </div>
-                  )}
+                  </div>
                   
                   <div className="space-y-2">
                     <h3 className="font-medium">4. Payment Verification</h3>
@@ -2321,21 +2256,19 @@ export default function MerchantDashboard() {
                     </div>
                   </div>
                   
-                  {currentPayment?.payment?.amountCpxtb && (
-                    <div className="space-y-2">
-                      <h3 className="font-medium flex items-center gap-1">
-                        <AlertCircle className="h-4 w-4 text-orange-500" />
-                        Important Notes
-                      </h3>
-                      <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-900 rounded-md p-3">
-                        <ul className="text-sm text-black dark:text-white list-disc pl-5 space-y-2">
-                          <li><strong>Time limit:</strong> This payment request will expire in <span className="font-bold underline">15 minutes</span>.</li>
-                          <li><strong>Exchange rate:</strong> The CPXTB amount is calculated based on the current exchange rate.</li>
-                          <li><strong>Exact amount:</strong> Make sure the customer sends <span className="font-bold text-orange-700 dark:text-orange-400">exactly {Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span> - no more, no less.</li>
-                        </ul>
-                      </div>
+                  <div className="space-y-2">
+                    <h3 className="font-medium flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4 text-orange-500" />
+                      Important Notes
+                    </h3>
+                    <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-900 rounded-md p-3">
+                      <ul className="text-sm text-black dark:text-white list-disc pl-5 space-y-2">
+                        <li><strong>Time limit:</strong> This payment request will expire in <span className="font-bold underline">15 minutes</span>.</li>
+                        <li><strong>Exchange rate:</strong> The CPXTB amount is calculated based on the current exchange rate.</li>
+                        <li><strong>Exact amount:</strong> Make sure the customer sends <span className="font-bold text-orange-700 dark:text-orange-400">exactly {Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span> - no more, no less.</li>
+                      </ul>
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </div>

@@ -84,7 +84,7 @@ function LogoutButton() {
   );
 }
 
-// CPXTB token address for displaying in UI
+// CPXTB token address for generating wallet URI and QR codes
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
 
 export default function MerchantDashboard() {

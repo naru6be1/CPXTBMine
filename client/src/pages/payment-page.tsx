@@ -296,14 +296,15 @@ export default function PaymentPage() {
         gap: '0.5rem',
       },
       statusPartial: {
-        backgroundColor: theme.darkMode ? '#4a3' : '#fbeed0',
-        color: theme.darkMode ? '#f97316' : '#c2410c',
+        backgroundColor: theme.darkMode ? '#473112' : '#fff7e0',
+        color: theme.darkMode ? '#f59e0b' : '#b45309',
         padding: '0.75rem',
         borderRadius: `${theme.borderRadius / 2}px`,
         marginTop: '1rem',
         display: 'flex',
         alignItems: 'flex-start',
         gap: '0.5rem',
+        borderLeft: '4px solid #f59e0b',
       },
       footer: {
         backgroundColor: theme.darkMode ? '#2d2d2d' : '#f1f5f9',

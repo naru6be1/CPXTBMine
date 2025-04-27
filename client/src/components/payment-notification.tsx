@@ -101,7 +101,7 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
             toast({
               title: "Partial Payment Received",
               description: `Transaction confirmed, but still need ${remainingAmount} CPXTB to complete payment.`,
-              variant: "destructive", // Use destructive for warning
+              variant: "warning", // Use warning for partial payments
             });
           }
           

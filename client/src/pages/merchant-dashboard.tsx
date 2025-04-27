@@ -1972,7 +1972,7 @@ export default function MerchantDashboard() {
                       </p>
                       <div className="flex items-center gap-2">
                         <Input
-                          value={`${window.location.origin}/payment?ref=${currentPayment.payment.reference}`}
+                          value={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
                           readOnly
                           className="text-xs font-mono"
                         />
@@ -1980,7 +1980,7 @@ export default function MerchantDashboard() {
                           variant="outline"
                           size="icon"
                           onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/payment?ref=${currentPayment.payment.reference}`);
+                            navigator.clipboard.writeText(`${window.location.origin}/payment/${currentPayment.payment.reference}`);
                             toast({
                               title: "Copied",
                               description: "Payment link copied to clipboard",
@@ -1991,7 +1991,7 @@ export default function MerchantDashboard() {
                         </Button>
                       </div>
                       <a 
-                        href={`/payment?ref=${currentPayment.payment.reference}`}
+                        href={`/payment/${currentPayment.payment.reference}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs mt-2 text-primary hover:underline"

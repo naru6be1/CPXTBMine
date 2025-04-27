@@ -91,15 +91,27 @@ async function processTransferEvent(
           }
           
           try {
-            // Calculate the remaining amount for partial payments
-            const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+            // Get the current payment details to see if there are already partial payments
+            const currentPayment = await storage.getPayment(payment.id);
+            let totalReceivedAmount = receivedAmount;
+            
+            // If there's already a received amount, add it to our current received amount
+            if (currentPayment && currentPayment.receivedAmount) {
+              const previouslyReceived = parseFloat(currentPayment.receivedAmount);
+              totalReceivedAmount = previouslyReceived + receivedAmount;
+              console.log(`Adding current payment of ${receivedAmount} CPXTB to previous payment of ${previouslyReceived} CPXTB for a total of ${totalReceivedAmount} CPXTB`);
+            }
+            
+            // Calculate the remaining amount based on the total received
+            const remainingAmount = Math.max(0, requiredAmount - totalReceivedAmount).toFixed(6);
+            console.log(`Total received so far: ${totalReceivedAmount} CPXTB, Remaining: ${remainingAmount} CPXTB`);
             
             // Update payment status in storage with all payment details
             await storage.updatePaymentStatus(
               payment.id, 
               paymentStatus, 
               txHash, 
-              receivedAmount, 
+              totalReceivedAmount, // Use the summed amount
               requiredAmount,
               remainingAmount
             );
@@ -124,7 +136,7 @@ async function processTransferEvent(
                   status: paymentStatus,
                   transactionHash: txHash,
                   updatedAt: new Date(),
-                  receivedAmount: receivedAmount.toString(),
+                  receivedAmount: totalReceivedAmount.toString(), // Use the summed amount
                   requiredAmount: requiredAmount.toString(),
                   remainingAmount: remainingAmount.toString()
                 })
@@ -150,11 +162,11 @@ async function processTransferEvent(
                   timestamp: new Date().toISOString(),
                   // Include received and required amounts to calculate remaining amount
                   // Make sure to convert numbers to strings to prevent precision issues
-                  receivedAmount: receivedAmount.toString(),
+                  receivedAmount: totalReceivedAmount.toString(),
                   requiredAmount: requiredAmount.toString(),
                   amountCpxtb: payment.amountCpxtb,
-                  // Add remaining amount calculation to ensure consistent values
-                  remainingAmount: payment.remainingAmount || Math.max(0, requiredAmount - receivedAmount).toFixed(6)
+                  // Use the already calculated remaining amount value
+                  remainingAmount: remainingAmount
                 };
                 
                 console.log(`📢 Broadcasting payment update to WebSocket clients for merchant ID: ${payment.merchantId}`);

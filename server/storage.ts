@@ -6,7 +6,7 @@ import {
   type Payment, type InsertPayment 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, sql, desc, lt, asc } from "drizzle-orm";
+import { eq, and, or, gte, sql, desc, lt, asc } from "drizzle-orm";
 import crypto from "crypto";
 
 export interface IStorage {
@@ -579,7 +579,11 @@ export class DatabaseStorage implements IStorage {
       .from(payments)
       .where(
         and(
-          eq(payments.status, 'pending'),
+          // Include both 'pending' and 'partial' statuses
+          or(
+            eq(payments.status, 'pending'),
+            eq(payments.status, 'partial')
+          ),
           gte(payments.expiresAt, new Date())
         )
       );

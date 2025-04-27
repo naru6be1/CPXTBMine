@@ -552,9 +552,30 @@ export default function PaymentPage() {
 
   // Status indicator
   const renderStatus = () => {
-    // If the payment status is completed or the remaining amount is 0, show completed status
-    if (payment.status === 'completed' || 
-        (payment.remainingAmount === '0.000000' || parseFloat(payment.remainingAmount || '1') <= 0)) {
+    // Check if payment should be considered completed
+    const isZeroRemaining = 
+      payment.remainingAmount === '0.000000' || 
+      parseFloat(payment.remainingAmount || '1') <= 0;
+    
+    // Check if we should show a completed status (either status is completed or remaining is 0)
+    const showAsCompleted = payment.status === 'completed' || isZeroRemaining;
+    
+    // Log payment status debug info
+    console.log('Payment status evaluation:', {
+      status: payment.status,
+      remainingAmount: payment.remainingAmount,
+      isZeroRemaining,
+      showAsCompleted
+    });
+    
+    // If the payment is completed or the remaining amount is 0, show completed status
+    if (showAsCompleted) {
+      // If we're displaying a partial payment as completed due to zero remaining,
+      // log this condition to help with debugging
+      if (payment.status === 'partial' && isZeroRemaining) {
+        console.log('⚠️ Payment status says partial but remaining amount is zero - showing as completed anyway');
+      }
+      
       return (
         <div style={styles.statusCompleted}>
           <CheckCircle2 className="h-5 w-5" />
@@ -769,7 +790,7 @@ export default function PaymentPage() {
         <div style={styles.card}>
           <div style={{ padding: '1rem', textAlign: 'center' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '1.125rem' }}>
-              {payment.status === 'partial' ? (
+              {payment.status === 'partial' && parseFloat(remainingAmount) > 0 ? (
                 <>Scan to Pay <span style={{ color: '#ff9900', fontWeight: 'bold' }}>{remainingAmount}</span> CPXTB</>
               ) : (
                 <>Scan to Pay {Number(payment.amountCpxtb).toFixed(6)} CPXTB</>
@@ -797,7 +818,7 @@ export default function PaymentPage() {
               
               <div>
                 <p style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                  {payment.status === 'partial' ? (
+                  {payment.status === 'partial' && parseFloat(remainingAmount) > 0 ? (
                     <>Send exactly <span style={{ color: '#ff9900' }}>{remainingAmount}</span> CPXTB to:</>
                   ) : (
                     <>Send exactly {Number(payment.amountCpxtb).toFixed(6)} CPXTB to:</>

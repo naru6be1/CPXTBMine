@@ -130,7 +130,10 @@ async function processTransferEvent(
                   paymentReference: payment.paymentReference,
                   status: paymentStatus,
                   transactionHash: txHash,
-                  timestamp: new Date().toISOString()
+                  timestamp: new Date().toISOString(),
+                  // Include received and required amounts to calculate remaining amount
+                  receivedAmount: receivedAmount,
+                  requiredAmount: requiredAmount
                 };
                 
                 console.log('📢 Broadcasting payment update to WebSocket clients:', notificationPayload);

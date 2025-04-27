@@ -109,12 +109,16 @@ export default function PaymentPage() {
         const data = JSON.parse(event.data);
         console.log("WebSocket message received:", data);
         
-        if (data.type === 'paymentUpdate' && data.reference === reference) {
+        if ((data.type === 'paymentUpdate' && data.reference === reference) ||
+            (data.type === 'paymentStatusUpdate' && data.paymentReference === payment?.paymentReference)) {
           // Update payment status
           setPayment((prevPayment: any) => ({
             ...prevPayment,
             status: data.status,
-            transactionHash: data.transactionHash || prevPayment.transactionHash
+            transactionHash: data.transactionHash || prevPayment.transactionHash,
+            // Store received amount data if provided by server
+            receivedAmount: data.receivedAmount || null,
+            requiredAmount: data.requiredAmount || prevPayment.amountCpxtb
           }));
           
           // Show notification
@@ -126,6 +130,21 @@ export default function PaymentPage() {
             
             // Play sound notification
             const audio = new Audio('/payment-success.mp3');
+            audio.play().catch(e => console.error("Error playing audio:", e));
+          } else if (data.status === 'partial') {
+            // Calculate remaining amount
+            const receivedAmount = data.receivedAmount || 0;
+            const requiredAmount = data.requiredAmount || Number(payment?.amountCpxtb || 0);
+            const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+            
+            toast({
+              title: "Partial Payment Received",
+              description: `Transaction confirmed, but still need ${remainingAmount} CPXTB to complete payment`,
+              variant: "destructive", // Use destructive variant instead of warning (not supported by our toast)
+            });
+            
+            // Play sound notification (different sound for partial payments)
+            const audio = new Audio('/payment-partial.mp3');
             audio.play().catch(e => console.error("Error playing audio:", e));
           }
         }
@@ -151,7 +170,7 @@ export default function PaymentPage() {
         ws.close();
       }
     };
-  }, [reference, toast]);
+  }, [reference, payment, toast]);
 
   // Generate dynamic styles based on theme
   const generateStyles = () => {
@@ -424,21 +443,30 @@ export default function PaymentPage() {
         </div>
       );
     } else if (payment.status === 'partial') {
-      // Calculate remaining amount
+      // Get received amount (either from WebSocket data or calculate an estimate)
       let receivedAmount = 0;
       
-      try {
-        // Try to estimate the received amount based on transaction hash
-        // This is a simplified approach - for a more accurate solution we would need
-        // the server to store the actual received amount
-        if (payment.transactionHash) {
-          receivedAmount = Number(payment.amountCpxtb) * 0.7; // Example estimate
+      if (payment.receivedAmount && typeof payment.receivedAmount === 'number') {
+        // Use the actual received amount from WebSocket if available
+        receivedAmount = payment.receivedAmount;
+        console.log("Using received amount from WebSocket:", receivedAmount);
+      } else {
+        try {
+          // Fallback: estimate the received amount 
+          if (payment.transactionHash) {
+            receivedAmount = Number(payment.amountCpxtb) * 0.7; // Example estimate
+            console.log("Using estimated received amount:", receivedAmount);
+          }
+        } catch (err) {
+          console.error("Error calculating estimated amount:", err);
         }
-      } catch (err) {
-        console.error("Error calculating remaining amount:", err);
       }
       
-      const remainingAmount = Math.max(0, Number(payment.amountCpxtb) - receivedAmount).toFixed(6);
+      // Get required amount (either from WebSocket or from payment data)
+      const requiredAmount = payment.requiredAmount || Number(payment.amountCpxtb);
+      
+      // Calculate the remaining amount needed
+      const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
       
       return (
         <div style={styles.statusPartial}>

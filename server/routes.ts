@@ -1091,6 +1091,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Serving public payment page for reference: ${reference} with theme: ${merchant.themeTemplate || 'default'}`);
       
+      // Calculate remaining amount if payment is in partial status
+      if (payment.status === 'partial' && payment.receivedAmount && payment.requiredAmount) {
+        // Ensure proper type handling for calculations
+        const receivedAmount = typeof payment.receivedAmount === 'string' 
+          ? parseFloat(payment.receivedAmount) 
+          : Number(payment.receivedAmount);
+          
+        const requiredAmount = typeof payment.requiredAmount === 'string' 
+          ? parseFloat(payment.requiredAmount) 
+          : Number(payment.requiredAmount);
+          
+        // Calculate the remaining amount needed
+        const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+        
+        // Ensure payment object has remainingAmount
+        payment.remainingAmount = remainingAmount;
+        
+        console.log(`Calculated remaining amount for payment ${payment.id}: ${remainingAmount} CPXTB`);
+      }
+      
       // Return payment data along with merchant theme settings
       res.json({ 
         payment,

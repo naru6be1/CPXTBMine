@@ -935,12 +935,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Make sure the address is properly formatted (starts with 0x)
       const formattedAddress = walletAddress.startsWith('0x') ? walletAddress : `0x${walletAddress}`;
       
-      // Use the most basic and widely supported QR code format
-      // Simple format: Just the wallet address
+      // Use the most basic and widely supported QR code format for the wallet address
       const simpleWalletUri = formattedAddress;
       
-      // Use the simplest format for maximum compatibility
-      const walletUri = simpleWalletUri;
+      // Create a payment link URL for the QR code using the new direct payment format
+      const paymentUrl = `${process.env.NODE_ENV === 'production' ? process.env.PUBLIC_URL : 'https://' + req.headers.host}/payment/${payment.paymentReference}`;
+      
+      // Use the payment URL for the QR code to enable direct payment link scanning
+      const walletUri = paymentUrl;
       
       // Create payment instructions message
       const paymentInstructions = `CPXTB PAYMENT: Send ${amountCpxtb.toFixed(6)} CPXTB tokens to this address on Base network`;

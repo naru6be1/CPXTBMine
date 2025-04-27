@@ -1127,7 +1127,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Also update the database to ensure future requests get the right status
         try {
-          await storage.updatePaymentStatus(payment.id, 'completed', payment.transactionHash || undefined);
+          // Get the required parameters for the payment
+          const receivedAmount = typeof payment.receivedAmount === 'string' 
+            ? parseFloat(payment.receivedAmount) 
+            : Number(payment.receivedAmount || 0);
+            
+          const requiredAmount = typeof payment.requiredAmount === 'string' 
+            ? parseFloat(payment.requiredAmount) 
+            : Number(payment.requiredAmount || payment.amountCpxtb || 0);
+          
+          // Call with the complete parameters list that the function is expecting
+          await storage.updatePaymentStatus(
+            payment.id, 
+            'completed', 
+            payment.transactionHash || undefined,
+            receivedAmount,
+            requiredAmount,
+            '0.000000' // Explicitly set remaining amount to zero
+          );
+          
           console.log(`✅ Successfully updated payment status in database for ${payment.id}`);
         } catch (dbError) {
           console.error(`❌ Failed to update payment status in database: ${dbError}`);
@@ -1421,7 +1439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expiredPayments = await storage.getExpiredPayments();
       
       for (const payment of expiredPayments) {
-        await storage.updatePaymentStatus(payment.id, 'expired');
+        // For expired payments, we don't need to provide the optional parameters
+        await storage.updatePaymentStatus(payment.id, 'expired', undefined);
         console.log(`Payment ${payment.id} (${payment.paymentReference}) marked as expired`);
       }
     } catch (error) {

@@ -41,7 +41,7 @@ export default function PaymentPage() {
   const [showPartialModal, setShowPartialModal] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
 
-  // Effect to load payment data
+  // COMPLETELY REWRITTEN to add multiple layers of status checking
   useEffect(() => {
     if (!reference) {
       setError("No payment reference provided");
@@ -53,54 +53,87 @@ export default function PaymentPage() {
       try {
         console.log("Fetching payment data for reference:", reference);
         
+        // Timestamp query parameter to bypass all caching
+        const timestamp = Date.now(); 
+        
         // The URL includes the payment reference, but no authentication
         // The endpoint should be accessible publicly
-        const response = await fetch(`/api/payments/public/${reference}`);
+        const response = await fetch(`/api/payments/public/${reference}?nocache=${timestamp}`, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
         
         if (!response.ok) {
           throw new Error(response.statusText || 'Failed to load payment');
         }
         
         const data = await response.json();
-        console.log("Payment data loaded:", data);
+        console.log("⭐ NEW PAYMENT DATA LOADED ⭐ Reference:", reference);
         
         // Debug raw payment data
-        console.log("Raw payment data:", {
+        console.log("🔍 DIAGNOSTIC - Raw payment data:", {
+          id: data.payment.id,
+          ref: data.payment.paymentReference,
           status: data.payment.status,
           receivedAmount: data.payment.receivedAmount,
-          requiredAmount: data.payment.requiredAmount,
+          requiredAmount: data.payment.requiredAmount || data.payment.amountCpxtb,
           amountCpxtb: data.payment.amountCpxtb,
-          remainingAmount: data.payment.remainingAmount
+          remainingAmount: data.payment.remainingAmount,
+          timestamp: new Date().toISOString()
         });
         
-        // ENHANCED: Handle edge case where payment has 0.000000 remaining but status is still 'partial'
-        // OR received amount >= required amount
-        if (data.payment.status !== 'completed') {
-          // Check remaining amount
-          const remainingAmount = parseFloat(data.payment.remainingAmount || '0');
-          // Also calculate it directly to double-check
-          const receivedAmount = parseFloat(data.payment.receivedAmount || '0');
-          const requiredAmount = parseFloat(data.payment.requiredAmount || data.payment.amountCpxtb || '0');
-          
-          console.log("💰 Payment status check:", {
-            status: data.payment.status,
-            remainingAmount,
-            receivedAmount,
+        // SUPER ENHANCED: Fully rewritten status checking with multiple redundant checks
+        // -----------------------------------------------------------------------------
+        const originalStatus = data.payment.status;
+        
+        // Parse all numeric values for comparison
+        const receivedAmount = parseFloat(data.payment.receivedAmount || '0');
+        const requiredAmount = parseFloat(data.payment.requiredAmount || data.payment.amountCpxtb || '0');
+        const remainingAmount = parseFloat(data.payment.remainingAmount || '0');
+        
+        // Define all possible completion conditions
+        const conditions = {
+          explicitlyCompleted: data.payment.status === 'completed',
+          zeroRemaining: remainingAmount <= 0,
+          zeroRemainingExact: data.payment.remainingAmount === '0.000000',
+          receivedEnough: receivedAmount >= requiredAmount,
+          hasTransactionHash: !!data.payment.transactionHash,
+          hasCompletedTimestamp: !!data.payment.completedAt
+        };
+        
+        // Decision logic - if ANY completion condition is true, treat as completed
+        const isEffectivelyCompleted = 
+          conditions.explicitlyCompleted || 
+          conditions.zeroRemaining || 
+          conditions.zeroRemainingExact || 
+          conditions.receivedEnough;
+        
+        // Debug the decision process
+        console.log("🔍 COMPLETION CHECK - All conditions:", {
+          ...conditions,
+          isEffectivelyCompleted,
+          statusBeforeCheck: data.payment.status,
+          calculatedRemaining: (requiredAmount - receivedAmount).toFixed(6)
+        });
+        
+        // If any condition indicates completion, force status to 'completed'
+        if (isEffectivelyCompleted && data.payment.status !== 'completed') {
+          console.log("🚨 AUTO-CORRECTING status from", data.payment.status, "to completed", {
+            reason: "Payment has sufficient funds but incorrect status",
+            receivedAmount, 
             requiredAmount,
-            requiredMet: receivedAmount >= requiredAmount,
-            zeroRemaining: remainingAmount <= 0 || data.payment.remainingAmount === '0.000000'
+            remainingAmount
           });
           
-          // Auto-correct to completed if either condition is met
-          if (remainingAmount <= 0 || 
-              data.payment.remainingAmount === '0.000000' || 
-              receivedAmount >= requiredAmount) {
-            console.log("💰 Auto-correcting status to completed because remaining amount is zero or required amount is met");
-            data.payment.status = 'completed';
-          }
+          // Force the status
+          data.payment.status = 'completed';
+          
+          // Also ensure remaining amount is 0
+          data.payment.remainingAmount = '0.000000';
         }
-        
-        setPayment(data.payment);
         
         // Apply merchant theme if available
         if (data.theme) {
@@ -117,6 +150,14 @@ export default function PaymentPage() {
           });
         }
         
+        // If status changed, log the change
+        if (originalStatus !== data.payment.status) {
+          console.log(`🔄 Payment status changed: ${originalStatus} -> ${data.payment.status}`);
+        }
+        
+        // Update payment state with corrected data
+        setPayment(data.payment);
+        
       } catch (err: any) {
         console.error("Error loading payment:", err);
         setError(err.message || "Failed to load payment information");
@@ -128,40 +169,16 @@ export default function PaymentPage() {
     // Initial fetch
     fetchPaymentData();
 
-    // Set up a more aggressive polling interval to refresh payment data every 5 seconds
-    // This ensures we get status updates even if WebSocket fails
+    // Set up a more aggressive polling interval to refresh payment data every 3 seconds
+    // This ensures we get frequent status updates even if WebSocket fails
     const pollingInterval = setInterval(() => {
-      // Always poll regardless of current status to ensure we have the latest data
-      console.log("Polling for payment status update...");
-      // Force refresh payment data with explicit call that bypasses caching
-      fetch(`/api/payments/public/${reference}?t=${Date.now()}`, { 
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      })
-      .then(res => res.json())
-      .then(data => {
-        console.log("💰 Forced refresh data:", data);
-        
-        // Handle edge case where payment has 0 remaining but status isn't completed
-        if (data.payment && (
-            data.payment.remainingAmount === '0.000000' || 
-            parseFloat(data.payment.remainingAmount || '0') <= 0 ||
-            (data.payment.receivedAmount && data.payment.requiredAmount && 
-             parseFloat(data.payment.receivedAmount) >= parseFloat(data.payment.requiredAmount))
-        )) {
-          console.log("💰 Payment should be completed but isn't showing properly - force updating state");
-          // Force update payment with completed status
-          data.payment.status = 'completed';
-          setPayment(data.payment);
-        } else if (data.payment) {
-          setPayment(data.payment);
-        }
-      })
-      .catch(err => console.error("Error in forced refresh:", err));
-    }, 5000); // 5 seconds for more responsive updates
+      console.log("⏱️ Polling for payment status update...");
+      
+      // Rather than using fetch directly, reuse our fetchPaymentData function
+      // to ensure consistent status correction logic
+      fetchPaymentData();
+      
+    }, 3000); // 3 seconds for even more responsive updates
 
     // Cleanup interval on component unmount
     return () => clearInterval(pollingInterval);
@@ -190,35 +207,82 @@ export default function PaymentPage() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("WebSocket message received:", data);
+        console.log("🔄 WebSocket message received:", data);
         
         if ((data.type === 'paymentUpdate' && data.reference === reference) ||
             (data.type === 'paymentStatusUpdate' && data.paymentReference === payment?.paymentReference)) {
-          console.log("Updating payment state with new WebSocket data:", data);
+          console.log("✨ WEBSOCKET UPDATE - Processing payment data", {
+            reference: data.reference || data.paymentReference,
+            status: data.status,
+            receivedAmount: data.receivedAmount,
+            requiredAmount: data.requiredAmount || data.payment?.requiredAmount
+          });
           
-          // Update payment status with all available data
+          // ENHANCED WEBSOCKET STATUS CHECK: Apply same thorough status checking to WS messages
+          let correctedStatus = data.status;
+          
+          // Parse all numeric values for comparison
+          const receivedAmount = parseFloat(data.receivedAmount || '0');
+          const requiredAmount = parseFloat(
+            data.requiredAmount || 
+            (payment?.requiredAmount ? payment.requiredAmount : payment?.amountCpxtb) || 
+            '0'
+          );
+          const remainingAmount = parseFloat(data.remainingAmount || '0');
+          
+          // Define all possible completion conditions
+          const conditions = {
+            explicitlyCompleted: data.status === 'completed',
+            zeroRemaining: remainingAmount <= 0,
+            zeroRemainingExact: data.remainingAmount === '0.000000',
+            receivedEnough: receivedAmount >= requiredAmount,
+            hasTransactionHash: !!data.transactionHash,
+          };
+          
+          // Decision logic - if ANY completion condition is true, treat as completed
+          const isEffectivelyCompleted = 
+            conditions.explicitlyCompleted || 
+            conditions.zeroRemaining || 
+            conditions.zeroRemainingExact || 
+            conditions.receivedEnough;
+          
+          // Debug the decision process
+          console.log("🔍 WEBSOCKET COMPLETION CHECK - All conditions:", {
+            ...conditions,
+            isEffectivelyCompleted,
+            statusReceived: data.status,
+            receivedAmount,
+            requiredAmount,
+            remainingAmount,
+            calculatedRemaining: (requiredAmount - receivedAmount).toFixed(6)
+          });
+          
+          // If any condition indicates completion, force status to 'completed'
+          if (isEffectivelyCompleted && data.status !== 'completed') {
+            console.log("🚨 WEBSOCKET AUTO-CORRECTING status from", data.status, "to completed", {
+              reason: "Payment has sufficient funds but incorrect status",
+              receivedAmount, 
+              requiredAmount,
+              remainingAmount
+            });
+            
+            // Force the status
+            correctedStatus = 'completed';
+            data.status = 'completed'; // Update the original data too
+            data.remainingAmount = '0.000000';
+          }
+          
+          // Update payment status with all available data, applying any status corrections
           setPayment((prevPayment: any) => ({
             ...prevPayment,
-            status: data.status,
+            status: correctedStatus, // Use corrected status
             transactionHash: data.transactionHash || prevPayment.transactionHash,
             // Store received amount data if provided by server
-            receivedAmount: data.receivedAmount || null,
-            requiredAmount: data.requiredAmount || prevPayment.amountCpxtb,
-            // Store pre-calculated remaining amount if available 
-            remainingAmount: data.remainingAmount || null
+            receivedAmount: data.receivedAmount || prevPayment.receivedAmount,
+            requiredAmount: data.requiredAmount || prevPayment.requiredAmount || prevPayment.amountCpxtb,
+            // Store pre-calculated remaining amount if available or zero if completed
+            remainingAmount: correctedStatus === 'completed' ? '0.000000' : (data.remainingAmount || prevPayment.remainingAmount)
           }));
-          
-          // Handle edge case where payment has 0.000000 remaining but status is still 'partial'
-          if (data.status === 'partial') {
-            const remainingAmount = typeof data.remainingAmount === 'string' 
-              ? parseFloat(data.remainingAmount) 
-              : data.remainingAmount || 0;
-              
-            if (remainingAmount <= 0 || data.remainingAmount === '0.000000') {
-              console.log("💰 WebSocket: Auto-correcting status to completed because remaining amount is zero");
-              data.status = 'completed';
-            }
-          }
           
           // Show notification
           if (data.status === 'completed') {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, Rocket, Database, Award } from "lucide-react";
+import { AlertCircle, Rocket, Database, Award, Clock, Users } from "lucide-react";
 
 export default function SpaceMiningGame() {
   const [cpxtbMined, setCpxtbMined] = useState(0);
@@ -22,6 +22,10 @@ export default function SpaceMiningGame() {
   const [asteroidLevel, setAsteroidLevel] = useState(1);
   const [isAnimating, setIsAnimating] = useState(false);
   const gameRef = useRef<HTMLDivElement>(null);
+  
+  // Limited slots countdown
+  const [timeRemaining, setTimeRemaining] = useState(3600); // 1 hour in seconds
+  const [availableSlots, setAvailableSlots] = useState(15);
   
   // Auto mining effect
   useEffect(() => {

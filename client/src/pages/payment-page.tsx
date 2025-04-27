@@ -67,7 +67,8 @@ export default function PaymentPage() {
           status: data.payment.status,
           receivedAmount: data.payment.receivedAmount,
           requiredAmount: data.payment.requiredAmount,
-          amountCpxtb: data.payment.amountCpxtb
+          amountCpxtb: data.payment.amountCpxtb,
+          remainingAmount: data.payment.remainingAmount
         });
         
         setPayment(data.payment);
@@ -95,8 +96,25 @@ export default function PaymentPage() {
       }
     };
 
+    // Initial fetch
     fetchPaymentData();
-  }, [reference]);
+
+    // Set up a polling interval to refresh payment data every 15 seconds
+    // This ensures we get status updates even if WebSocket fails
+    const pollingInterval = setInterval(() => {
+      if (payment && (payment.status === 'pending' || payment.status === 'partial')) {
+        console.log("Polling for payment status update...");
+        fetchPaymentData();
+      } else {
+        // If payment is completed or expired, stop polling
+        console.log("Payment status is finalized, stopping polling");
+        clearInterval(pollingInterval);
+      }
+    }, 15000); // 15 seconds
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(pollingInterval);
+  }, [reference, payment?.status]);
 
   // Set up WebSocket connection for real-time updates
   useEffect(() => {
@@ -516,7 +534,9 @@ export default function PaymentPage() {
 
   // Status indicator
   const renderStatus = () => {
-    if (payment.status === 'completed') {
+    // If the payment status is completed or the remaining amount is 0, show completed status
+    if (payment.status === 'completed' || 
+        (payment.remainingAmount === '0.000000' || parseFloat(payment.remainingAmount || '1') <= 0)) {
       return (
         <div style={styles.statusCompleted}>
           <CheckCircle2 className="h-5 w-5" />
@@ -542,6 +562,13 @@ export default function PaymentPage() {
       );
     } else if (payment.status === 'partial') {
       // We already calculated remainingAmount above, no need to recalculate it here
+      // Additional debug logging
+      console.log('Rendering partial payment status - Payment data:', {
+        status: payment.status,
+        receivedAmount: payment.receivedAmount,
+        requiredAmount: payment.requiredAmount,
+        remainingAmount: payment.remainingAmount
+      });
       
       return (
         <div style={styles.statusPartial}>

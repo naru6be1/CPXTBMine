@@ -604,13 +604,18 @@ export default function PaymentPage() {
         
         {isAnyUndefinedError && (
           <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 max-w-lg">
-            <p className="text-amber-700 text-sm">
-              <strong>Common Issue:</strong> If you received this link from a merchant, please ask them 
-              to provide a corrected payment link. {isQueryUndefinedError 
+            <h3 className="font-bold text-amber-800 mb-2">What happened?</h3>
+            <p className="text-amber-700 text-sm mb-3">
+              The payment link you're using is incomplete. {isQueryUndefinedError 
                 ? 'The URL parameter "ref=undefined"' 
-                : 'The URL format "/payment/undefined"'} indicates the payment 
-              reference was not properly included.
+                : 'The URL format "/payment/undefined"'} is missing the actual payment reference code.
             </p>
+            <h3 className="font-bold text-amber-800 mb-2">How to fix this:</h3>
+            <ul className="list-disc pl-5 text-amber-700 text-sm">
+              <li className="mb-1">If you received this link from a merchant, please ask them to provide a correctly formatted payment link</li>
+              <li className="mb-1">A valid payment link should look like: <code className="bg-amber-100 px-1 rounded">/payment/CPXTB-XXXXXXXXXXXXXXX</code></li>
+              <li className="mb-1">If you're a merchant, please regenerate the payment link from your dashboard</li>
+            </ul>
           </div>
         )}
         
@@ -643,8 +648,10 @@ export default function PaymentPage() {
     );
   }
 
-  // Generate wallet URI for QR code
-  const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${payment.tokenAddress}`;
+  // Generate wallet URI for QR code with full payment information
+  // This format allows wallets to pre-populate both token address and the exact amount needed
+  const amountToSend = payment.status === 'partial' ? remainingAmount : payment.amountCpxtb;
+  const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${payment.tokenAddress}&tokenValue=${encodeURIComponent(amountToSend)}`;
 
   // Format timestamp for display
   const formatDate = (timestamp: string) => {
@@ -724,28 +731,105 @@ export default function PaymentPage() {
     }
   }
 
-  // Super aggressive status indicator that prioritizes completion detection
+  // ULTRA-AGGRESSIVE status indicator that ensures payment is ALWAYS shown properly
   const renderStatus = () => {
-    // FINAL FIX: Much more aggressive checking to ensure payment is shown as completed
-    // when it actually is completed
+    // MEGA ENHANCED FINAL FIX: Even more aggressive checking to ensure payment completion
+    // is ALWAYS properly detected and displayed regardless of server status field
     
-    // Calculate payment completion status from scratch regardless of the status field
-    const receivedAmount = parseFloat(payment.receivedAmount || '0');
-    const requiredAmount = parseFloat(payment.requiredAmount || payment.amountCpxtb || '0');
-    const calculatedRemainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+    // Perform from-scratch calculation of payment status with maximum type safety
+    let receivedAmount = 0;
+    let requiredAmount = 0;
     
-    // Define multiple conditions that indicate completion
+    // Safely parse receivedAmount with multiple fallbacks
+    if (payment.receivedAmount !== undefined && payment.receivedAmount !== null) {
+      try {
+        receivedAmount = typeof payment.receivedAmount === 'number'
+          ? payment.receivedAmount
+          : parseFloat(payment.receivedAmount);
+      } catch (e) {
+        console.error('Error parsing receivedAmount:', e);
+      }
+    }
+    
+    // Safely parse requiredAmount with multiple fallbacks
+    if (payment.requiredAmount !== undefined && payment.requiredAmount !== null) {
+      try {
+        requiredAmount = typeof payment.requiredAmount === 'number'
+          ? payment.requiredAmount
+          : parseFloat(payment.requiredAmount);
+      } catch (e) {
+        console.error('Error parsing requiredAmount:', e);
+        // Try fallback to amountCpxtb
+        if (payment.amountCpxtb !== undefined && payment.amountCpxtb !== null) {
+          try {
+            requiredAmount = typeof payment.amountCpxtb === 'number'
+              ? payment.amountCpxtb
+              : parseFloat(payment.amountCpxtb);
+          } catch (e2) {
+            console.error('Error parsing amountCpxtb fallback:', e2);
+          }
+        }
+      }
+    } else if (payment.amountCpxtb !== undefined && payment.amountCpxtb !== null) {
+      // If requiredAmount is not available, use amountCpxtb
+      try {
+        requiredAmount = typeof payment.amountCpxtb === 'number'
+          ? payment.amountCpxtb
+          : parseFloat(payment.amountCpxtb);
+      } catch (e) {
+        console.error('Error parsing amountCpxtb:', e);
+      }
+    }
+    
+    // Ultra-precise calculation with guard against floating point issues
+    const calculatedRemainingAmount = Math.max(0, requiredAmount - receivedAmount);
+    const formattedRemainingAmount = calculatedRemainingAmount.toFixed(6);
+    
+    // Define multiple conditions for completion with various thresholds
+    // to handle floating point arithmetic quirks
+    const EPSILON = 0.000001; // Tiny threshold for floating point comparison
+    
+    // Check for zero or near-zero remaining
     const hasZeroRemaining = 
       payment.remainingAmount === '0.000000' || 
-      parseFloat(payment.remainingAmount || '1') <= 0 ||
-      calculatedRemainingAmount === '0.000000' ||
-      parseFloat(calculatedRemainingAmount) <= 0;
+      (payment.remainingAmount !== undefined && 
+       payment.remainingAmount !== null &&
+       parseFloat(payment.remainingAmount) <= EPSILON) ||
+      calculatedRemainingAmount <= EPSILON ||
+      formattedRemainingAmount === '0.000000';
     
-    const hasReceivedEnough = receivedAmount >= requiredAmount;
+    // Check if enough tokens were received with a small buffer for rounding errors
+    const hasReceivedEnough = receivedAmount >= (requiredAmount - EPSILON);
+    
+    // Check for explicit status from server
     const isExplicitlyCompleted = payment.status === 'completed';
     
-    // If ANY condition indicates completion, show as completed
-    const isEffectivelyCompleted = isExplicitlyCompleted || hasZeroRemaining || hasReceivedEnough;
+    // Also check transaction hash as an additional indicator
+    const hasTransactionHash = payment.transactionHash && 
+                              payment.transactionHash.startsWith("0x") && 
+                              payment.transactionHash.length >= 40;
+    
+    // FORCE completion state if ANY condition indicates completion
+    // EXCEPT when explicitly marked as partial AND numbers show insufficient payment
+    const isPartialWithInsufficientPayment = payment.status === 'partial' && 
+                                            receivedAmount < requiredAmount &&
+                                            calculatedRemainingAmount > EPSILON;
+    
+    // If ANY completion condition is met and we're not certain it's a partial payment,
+    // mark as effectively completed
+    
+    // NEW FIX FOR TRANSACTION HASH CASE: 
+    // If transaction hash is present and amount is sufficient, ALWAYS mark as completed
+    // regardless of server-side status (this fixes the "QR code scanned but payment not showing completed" bug)
+    const hasTransactionAndSufficientPayment = hasTransactionHash && hasReceivedEnough;
+    
+    const isEffectivelyCompleted = (
+      isExplicitlyCompleted || 
+      hasZeroRemaining || 
+      hasReceivedEnough || 
+      (hasTransactionHash && !isPartialWithInsufficientPayment) ||
+      hasTransactionAndSufficientPayment
+    );
     
     // Extensive logging to diagnose the issue
     console.log('🔬 ENHANCED Payment status check (QR code page):', {

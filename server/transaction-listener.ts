@@ -101,8 +101,8 @@ async function processTransferEvent(
                   transactionHash: txHash,
                   updatedAt: new Date(),
                   completedAt: new Date(),
-                  receivedAmount: receivedAmount,
-                  requiredAmount: requiredAmount
+                  receivedAmount: receivedAmount.toString(),
+                  requiredAmount: requiredAmount.toString()
                 })
                 .where(eq(payments.id, payment.id));
               
@@ -113,8 +113,8 @@ async function processTransferEvent(
                   status: paymentStatus,
                   transactionHash: txHash,
                   updatedAt: new Date(),
-                  receivedAmount: receivedAmount,
-                  requiredAmount: requiredAmount
+                  receivedAmount: receivedAmount.toString(),
+                  requiredAmount: requiredAmount.toString()
                 })
                 .where(eq(payments.id, payment.id));
               

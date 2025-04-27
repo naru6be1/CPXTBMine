@@ -487,7 +487,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(payments.createdAt));
   }
   
-  async updatePaymentStatus(paymentId: number, status: string, transactionHash?: string): Promise<Payment> {
+  async updatePaymentStatus(
+    paymentId: number, 
+    status: string, 
+    transactionHash?: string,
+    receivedAmount?: number,
+    requiredAmount?: number
+  ): Promise<Payment> {
     const updates: any = { 
       status, 
       updatedAt: new Date() 
@@ -501,6 +507,15 @@ export class DatabaseStorage implements IStorage {
     // If transaction hash is provided, update it
     if (transactionHash) {
       updates.transactionHash = transactionHash;
+    }
+    
+    // If received and required amounts are provided, update them
+    if (receivedAmount !== undefined) {
+      updates.receivedAmount = receivedAmount;
+    }
+    
+    if (requiredAmount !== undefined) {
+      updates.requiredAmount = requiredAmount;
     }
     
     const [updatedPayment] = await db

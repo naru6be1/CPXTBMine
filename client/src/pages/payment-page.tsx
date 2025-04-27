@@ -35,7 +35,9 @@ export default function PaymentPage() {
   const routeReference = params.reference;
   
   // Use either the query param or route param, prioritizing the query param
-  const reference = queryReference || routeReference;
+  // Also guard against "undefined" string value, which can happen if ?ref=undefined is in the URL
+  const rawReference = queryReference || routeReference;
+  const reference = (rawReference === "undefined" || !rawReference) ? null : rawReference;
   
   // WebSocket state for real-time updates
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -49,7 +51,12 @@ export default function PaymentPage() {
   // COMPLETELY REWRITTEN to add multiple layers of status checking
   useEffect(() => {
     if (!reference) {
-      setError("No payment reference provided");
+      // Enhanced error message for better user experience
+      setError(
+        window.location.search.includes('ref=undefined') 
+          ? "Invalid payment link: The URL contains 'ref=undefined'. This is likely due to a malformed payment link."
+          : "No payment reference provided. Please check the payment link you received."
+      );
       setLoading(false);
       return;
     }
@@ -216,10 +223,12 @@ export default function PaymentPage() {
       setIsConnected(true);
       
       // Subscribe to updates for this payment reference
-      ws.send(JSON.stringify({ 
+      const subscriptionMessage = { 
         type: 'subscribeToPayment', 
         reference 
-      }));
+      };
+      console.log("📝 Subscribing to payment updates:", subscriptionMessage);
+      ws.send(JSON.stringify(subscriptionMessage));
     };
     
     ws.onmessage = (event) => {
@@ -563,6 +572,9 @@ export default function PaymentPage() {
   }
 
   if (error) {
+    // Determine if this is likely the "?ref=undefined" error
+    const isUndefinedRefError = window.location.search.includes('ref=undefined');
+    
     return (
       <div style={{ 
         display: 'flex', 
@@ -577,6 +589,17 @@ export default function PaymentPage() {
         <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
         <h1 className="text-xl font-bold mb-2">Payment Error</h1>
         <p className="text-center mb-4">{error}</p>
+        
+        {isUndefinedRefError && (
+          <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 max-w-lg">
+            <p className="text-amber-700 text-sm">
+              <strong>Common Issue:</strong> If you received this link from a merchant, please ask them 
+              to provide a corrected payment link. The URL parameter "ref=undefined" indicates the payment 
+              reference was not properly included.
+            </p>
+          </div>
+        )}
+        
         <Button onClick={() => navigate('/')}>
           Return to Home
         </Button>

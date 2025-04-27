@@ -126,7 +126,7 @@ async function processTransferEvent(
                   updatedAt: new Date(),
                   receivedAmount: receivedAmount.toString(),
                   requiredAmount: requiredAmount.toString(),
-                  remainingAmount: remainingAmount
+                  remainingAmount: remainingAmount.toString()
                 })
                 .where(eq(payments.id, payment.id));
               

@@ -73,11 +73,29 @@ export default function PaymentPage() {
           remainingAmount: data.payment.remainingAmount
         });
         
-        // Handle edge case where payment has 0.000000 remaining but status is still 'partial'
-        if (data.payment.status === 'partial') {
+        // ENHANCED: Handle edge case where payment has 0.000000 remaining but status is still 'partial'
+        // OR received amount >= required amount
+        if (data.payment.status !== 'completed') {
+          // Check remaining amount
           const remainingAmount = parseFloat(data.payment.remainingAmount || '0');
-          if (remainingAmount <= 0 || data.payment.remainingAmount === '0.000000') {
-            console.log("💰 Auto-correcting status to completed because remaining amount is zero");
+          // Also calculate it directly to double-check
+          const receivedAmount = parseFloat(data.payment.receivedAmount || '0');
+          const requiredAmount = parseFloat(data.payment.requiredAmount || data.payment.amountCpxtb || '0');
+          
+          console.log("💰 Payment status check:", {
+            status: data.payment.status,
+            remainingAmount,
+            receivedAmount,
+            requiredAmount,
+            requiredMet: receivedAmount >= requiredAmount,
+            zeroRemaining: remainingAmount <= 0 || data.payment.remainingAmount === '0.000000'
+          });
+          
+          // Auto-correct to completed if either condition is met
+          if (remainingAmount <= 0 || 
+              data.payment.remainingAmount === '0.000000' || 
+              receivedAmount >= requiredAmount) {
+            console.log("💰 Auto-correcting status to completed because remaining amount is zero or required amount is met");
             data.payment.status = 'completed';
           }
         }
@@ -691,6 +709,48 @@ export default function PaymentPage() {
         </div>
       );
     } else {
+      // Debug why we're reaching the pending state
+      console.log('⚠️ Rendering PENDING status even though we should be completed! Payment data:', {
+        status: payment.status,
+        receivedAmount: payment.receivedAmount,
+        requiredAmount: payment.requiredAmount,
+        remainingAmount: payment.remainingAmount,
+        isZeroRemaining: payment.remainingAmount === '0.000000' || parseFloat(payment.remainingAmount || '1') <= 0
+      });
+      
+      // Force check if payment should actually be shown as completed
+      const shouldBeCompleted = payment.remainingAmount === '0.000000' || 
+                             parseFloat(payment.remainingAmount || '1') <= 0 ||
+                             payment.status === 'completed';
+      
+      if (shouldBeCompleted) {
+        console.log('🔄 Detected payment should be completed - forcing completed display');
+        return (
+          <div style={styles.statusCompleted}>
+            <CheckCircle2 className="h-5 w-5" />
+            <span>Payment Completed! (Auto-corrected)</span>
+            {payment.transactionHash && (
+              <a 
+                href={`https://basescan.org/tx/${payment.transactionHash}`} 
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
+                  marginLeft: 'auto',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <ExternalLink className="h-3 w-3" />
+                View Transaction
+              </a>
+            )}
+          </div>
+        );
+      }
+      
+      // If we get here, it's genuinely pending
       return (
         <div style={styles.statusPending}>
           <div style={{ 

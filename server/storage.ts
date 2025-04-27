@@ -580,10 +580,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           // Include both 'pending' and 'partial' statuses
-          or(
-            eq(payments.status, 'pending'),
-            eq(payments.status, 'partial')
-          ),
+          sql`(${payments.status} = 'pending' OR ${payments.status} = 'partial')`,
           gte(payments.expiresAt, new Date())
         )
       );
@@ -631,6 +628,7 @@ export class DatabaseStorage implements IStorage {
       successfulPayments: number;
       failedPayments: number;
       pendingPayments: number;
+      partialPayments: number;
       expiredPayments: number;
       totalAmountUsd: number;
       totalAmountCpxtb: string;
@@ -660,7 +658,10 @@ export class DatabaseStorage implements IStorage {
     const successfulPayments = allPayments.filter(p => p.status === 'completed');
     const failedPayments = allPayments.filter(p => p.status === 'failed');
     const pendingPayments = allPayments.filter(p => p.status === 'pending' && new Date(p.expiresAt) > new Date());
-    const expiredPayments = allPayments.filter(p => p.status === 'pending' && new Date(p.expiresAt) <= new Date());
+    const partialPayments = allPayments.filter(p => p.status === 'partial' && new Date(p.expiresAt) > new Date());
+    const expiredPayments = allPayments.filter(p => 
+      (p.status === 'pending' || p.status === 'partial') && new Date(p.expiresAt) <= new Date()
+    );
     
     // Calculate totals
     const totalAmountUsd = successfulPayments.reduce((sum, p) => sum + Number(p.amountUsd), 0);
@@ -705,6 +706,7 @@ export class DatabaseStorage implements IStorage {
         successfulPayments: successfulPayments.length,
         failedPayments: failedPayments.length,
         pendingPayments: pendingPayments.length,
+        partialPayments: partialPayments.length,
         expiredPayments: expiredPayments.length,
         totalAmountUsd,
         totalAmountCpxtb: totalAmountCpxtb.toString()

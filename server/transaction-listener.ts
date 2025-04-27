@@ -133,7 +133,7 @@ async function processTransferEvent(
               console.log(`🔄 Payment ${payment.id} marked as partially paid with tx hash ${txHash}, received: ${receivedAmount}, required: ${requiredAmount}`);
             }
             
-            // Broadcast payment status update to all WebSocket clients
+            // Broadcast payment status update only to the relevant merchant
             try {
               // Access the WebSocket server from the global scope
               const wss = (global as any).wss;
@@ -142,6 +142,7 @@ async function processTransferEvent(
                 // Create notification payload with more detailed information
                 const notificationPayload = {
                   type: 'paymentStatusUpdate',
+                  merchantId: payment.merchantId, // Include merchantId to filter recipients
                   paymentId: payment.id,
                   paymentReference: payment.paymentReference,
                   status: paymentStatus,
@@ -153,15 +154,22 @@ async function processTransferEvent(
                   requiredAmount: requiredAmount.toString(),
                   amountCpxtb: payment.amountCpxtb,
                   // Add remaining amount calculation to ensure consistent values
-                  remainingAmount: Math.max(0, requiredAmount - receivedAmount).toFixed(6)
+                  remainingAmount: payment.remainingAmount || Math.max(0, requiredAmount - receivedAmount).toFixed(6)
                 };
                 
-                console.log('📢 Broadcasting payment update to WebSocket clients:', notificationPayload);
+                console.log(`📢 Broadcasting payment update to WebSocket clients for merchant ID: ${payment.merchantId}`);
                 
-                // Send to all connected clients
+                // Only send to clients that have set their merchantId filter
+                // or to the specific merchant that owns this payment
                 wss.clients.forEach((client: any) => {
                   if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(notificationPayload));
+                    // Only send to clients that:
+                    // 1. Have the same merchantId as the payment
+                    // 2. Or have the merchant's wallet address
+                    if (client.merchantId === payment.merchantId || 
+                        (client.walletAddress && client.walletAddress.toLowerCase() === merchantAddress)) {
+                      client.send(JSON.stringify(notificationPayload));
+                    }
                   }
                 });
               } else {

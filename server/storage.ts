@@ -509,7 +509,8 @@ export class DatabaseStorage implements IStorage {
     status: string, 
     transactionHash?: string,
     receivedAmount?: number,
-    requiredAmount?: number
+    requiredAmount?: number,
+    remainingAmount?: string
   ): Promise<Payment> {
     const updates: any = { 
       status, 
@@ -535,6 +536,20 @@ export class DatabaseStorage implements IStorage {
     if (requiredAmount !== undefined) {
       updates.requiredAmount = typeof requiredAmount === 'number' ? 
         requiredAmount.toString() : requiredAmount;
+    }
+    
+    // If this is a partial payment, calculate and store the remaining amount
+    if (status === 'partial' && receivedAmount !== undefined && requiredAmount !== undefined) {
+      // If remaining amount was explicitly provided, use it
+      if (remainingAmount !== undefined) {
+        updates.remainingAmount = remainingAmount;
+      } else {
+        // Otherwise calculate it
+        const remaining = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+        updates.remainingAmount = remaining;
+      }
+      
+      console.log(`Payment ${paymentId}: Setting remainingAmount to ${updates.remainingAmount}`);
     }
     
     const [updatedPayment] = await db

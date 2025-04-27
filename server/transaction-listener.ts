@@ -91,8 +91,18 @@ async function processTransferEvent(
           }
           
           try {
-            // Update payment status in storage with received amount information
-            await storage.updatePaymentStatus(payment.id, paymentStatus, txHash, receivedAmount, requiredAmount);
+            // Calculate the remaining amount for partial payments
+            const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+            
+            // Update payment status in storage with all payment details
+            await storage.updatePaymentStatus(
+              payment.id, 
+              paymentStatus, 
+              txHash, 
+              receivedAmount, 
+              requiredAmount,
+              remainingAmount
+            );
             
             // Extra safety - update directly in database too
             if (shouldComplete) {
@@ -115,7 +125,8 @@ async function processTransferEvent(
                   transactionHash: txHash,
                   updatedAt: new Date(),
                   receivedAmount: receivedAmount.toString(),
-                  requiredAmount: requiredAmount.toString()
+                  requiredAmount: requiredAmount.toString(),
+                  remainingAmount: remainingAmount
                 })
                 .where(eq(payments.id, payment.id));
               

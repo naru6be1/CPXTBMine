@@ -849,6 +849,20 @@ export default function PaymentPage() {
           <small>Powered by Base Network</small>
         </footer>
       )}
+      
+      {/* Payment notification modals */}
+      <PaymentSuccessNotification 
+        isVisible={showSuccessModal}
+        reference={payment?.paymentReference || ''}
+        onClose={() => setShowSuccessModal(false)}
+      />
+      
+      <PaymentPartialNotification
+        isVisible={showPartialModal}
+        reference={payment?.paymentReference || ''}
+        remainingAmount={partialAmount}
+        onClose={() => setShowPartialModal(false)}
+      />
     </div>
   );
 }

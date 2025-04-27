@@ -2054,6 +2054,7 @@ export default function MerchantDashboard() {
                           <TableHead className="text-foreground font-semibold">Amount (USD)</TableHead>
                           <TableHead className="text-foreground font-semibold">Amount (CPXTB)</TableHead>
                           <TableHead className="text-foreground font-semibold">Status</TableHead>
+                          <TableHead className="text-foreground font-semibold">Remaining</TableHead>
                           <TableHead className="text-foreground font-semibold">Transaction</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -2078,6 +2079,23 @@ export default function MerchantDashboard() {
                               }`}>
                                 {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                               </span>
+                            </TableCell>
+                            <TableCell>
+                              {payment.status === 'partial' ? (
+                                <div className="flex flex-col">
+                                  <span className="text-amber-700 font-medium">
+                                    {payment.remainingAmount
+                                      ? Number(payment.remainingAmount).toFixed(6)
+                                      : (Number(payment.requiredAmount) - Number(payment.receivedAmount || 0)).toFixed(6)
+                                    } CPXTB
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    needed to complete
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               {payment.transactionHash ? (

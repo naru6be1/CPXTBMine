@@ -74,7 +74,8 @@ async function processTransferEvent(
           const receivedAmount = Number(ethers.formatEther(value));
           const requiredAmount = Number(payment.amountCpxtb);
           
-          console.log(`Payment ${payment.id}: Required amount=${requiredAmount} CPXTB, Received amount=${receivedAmount} CPXTB`);
+          console.log(`Payment ${payment.id}: Required amount=${requiredAmount} CPXTB (${typeof requiredAmount}), Received amount=${receivedAmount} CPXTB (${typeof receivedAmount})`);
+          console.log(`Original amountCpxtb from payment=${payment.amountCpxtb} (${typeof payment.amountCpxtb})`);
           
           // Determine payment status based on amount comparison
           let paymentStatus = 'pending';

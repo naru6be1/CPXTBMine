@@ -1111,53 +1111,112 @@ export default function MerchantDashboard() {
   // We don't need the manual redirect anymore since the component will only render
   // if the user is authenticated
 
-  // Handle payment update notifications
+  // Handle payment update notifications with enhanced status verification
   const handlePaymentUpdate = (payment: any) => {
-    console.log("Payment update received:", payment);
+    console.log("🔔 Payment update received in merchant dashboard:", payment);
     
-    // Show the success notification
-    setCompletedPaymentRef(payment.paymentReference);
-    setShowSuccessNotification(true);
+    // ENHANCED STATUS VERIFICATION - same as in payment-page.tsx
+    // -------------------------------------------------------------
+    // Parse all numeric values for comparison
+    const receivedAmount = parseFloat(payment.receivedAmount || '0');
+    const requiredAmount = parseFloat(
+      payment.requiredAmount || 
+      (currentPayment?.payment?.amountCpxtb) || 
+      '0'
+    );
+    const remainingAmount = parseFloat(payment.remainingAmount || '0');
     
-    // Update current payment status if this is the active payment
-    if (currentPayment && 
-        currentPayment.payment && 
-        currentPayment.payment.reference === payment.paymentReference) {
+    // Define all possible completion conditions
+    const conditions = {
+      explicitlyCompleted: payment.status === 'completed',
+      zeroRemaining: remainingAmount <= 0,
+      zeroRemainingExact: payment.remainingAmount === '0.000000',
+      receivedEnough: receivedAmount >= requiredAmount,
+      hasTransactionHash: !!payment.transactionHash,
+      hasCompletedTimestamp: !!payment.completedAt
+    };
+    
+    // Decision logic - if ANY completion condition is true, treat as completed
+    const isEffectivelyCompleted = 
+      conditions.explicitlyCompleted || 
+      conditions.zeroRemaining || 
+      conditions.zeroRemainingExact || 
+      conditions.receivedEnough;
+    
+    console.log("🔍 MERCHANT DASHBOARD - Payment update status check:", {
+      reference: payment.reference || payment.paymentReference,
+      ...conditions,
+      isEffectivelyCompleted,
+      originalStatus: payment.status,
+      receivedAmount,
+      requiredAmount
+    });
+    
+    // Force status to completed if any condition is met
+    if (isEffectivelyCompleted && payment.status !== 'completed') {
+      console.log("🚨 MERCHANT DASHBOARD - Auto-correcting status from", payment.status, "to completed", {
+        reason: "Payment meets completion criteria but incorrect status",
+        receivedAmount, 
+        requiredAmount,
+        remainingAmount
+      });
       
-      console.log('Updating current payment status to completed');
-      
-      // Create updated payment object with completed status
-      const updatedPayment = {
-        ...currentPayment,
-        payment: {
-          ...currentPayment.payment,
-          status: 'completed',
-          transactionHash: payment.transactionHash
-        }
-      };
-      
-      // Update the current payment
-      setCurrentPayment(updatedPayment);
-      
-      // Switch to QR code tab if not already there
-      if (activeTab !== "qrcode") {
-        toast({
-          title: "Payment Completed! 🎉",
-          description: "Switch to QR tab to see payment details",
-          action: (
-            <div 
-              className="bg-green-600 text-white hover:bg-green-700 cursor-pointer p-1 rounded"
-              onClick={() => setActiveTab("qrcode")}
-            >
-              View
-            </div>
-          )
-        });
-      }
+      // Override status
+      payment.status = 'completed';
+      // Also ensure remaining amount is 0
+      payment.remainingAmount = '0.000000';
     }
     
-    // Refresh payment history
-    fetchPaymentHistory();
+    // Only proceed if payment is actually completed
+    if (payment.status === 'completed') {
+      // Show the success notification
+      setCompletedPaymentRef(payment.paymentReference);
+      setShowSuccessNotification(true);
+      
+      // Update current payment status if this is the active payment
+      if (currentPayment && 
+          currentPayment.payment && 
+          currentPayment.payment.reference === payment.paymentReference) {
+        
+        console.log('💰 Updating current payment status to completed in merchant dashboard');
+        
+        // Create updated payment object with completed status
+        const updatedPayment = {
+          ...currentPayment,
+          payment: {
+            ...currentPayment.payment,
+            status: 'completed',
+            transactionHash: payment.transactionHash,
+            receivedAmount: payment.receivedAmount || currentPayment.payment.receivedAmount,
+            remainingAmount: '0.000000'  // Force remaining to zero when completed
+          }
+        };
+        
+        // Update the current payment
+        setCurrentPayment(updatedPayment);
+        
+        // Switch to QR code tab if not already there
+        if (activeTab !== "qrcode") {
+          toast({
+            title: "Payment Completed! 🎉",
+            description: "Switch to QR tab to see payment details",
+            action: (
+              <div 
+                className="bg-green-600 text-white hover:bg-green-700 cursor-pointer p-1 rounded"
+                onClick={() => setActiveTab("qrcode")}
+              >
+                View
+              </div>
+            )
+          });
+        }
+      }
+      
+      // Refresh payment history
+      fetchPaymentHistory();
+    } else {
+      console.log("ℹ️ Payment update ignored - status is not completed:", payment.status);
+    }
   };
 
   return (

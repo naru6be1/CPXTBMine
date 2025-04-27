@@ -128,7 +128,7 @@ async function processTransferEvent(
               const wss = (global as any).wss;
               
               if (wss) {
-                // Create notification payload
+                // Create notification payload with more detailed information
                 const notificationPayload = {
                   type: 'paymentStatusUpdate',
                   paymentId: payment.id,
@@ -137,8 +137,12 @@ async function processTransferEvent(
                   transactionHash: txHash,
                   timestamp: new Date().toISOString(),
                   // Include received and required amounts to calculate remaining amount
-                  receivedAmount: receivedAmount,
-                  requiredAmount: requiredAmount
+                  // Make sure to convert numbers to strings to prevent precision issues
+                  receivedAmount: receivedAmount.toString(),
+                  requiredAmount: requiredAmount.toString(),
+                  amountCpxtb: payment.amountCpxtb,
+                  // Add remaining amount calculation to ensure consistent values
+                  remainingAmount: Math.max(0, requiredAmount - receivedAmount).toFixed(6)
                 };
                 
                 console.log('📢 Broadcasting payment update to WebSocket clients:', notificationPayload);

@@ -119,14 +119,18 @@ export default function PaymentPage() {
         
         if ((data.type === 'paymentUpdate' && data.reference === reference) ||
             (data.type === 'paymentStatusUpdate' && data.paymentReference === payment?.paymentReference)) {
-          // Update payment status
+          console.log("Updating payment state with new WebSocket data:", data);
+          
+          // Update payment status with all available data
           setPayment((prevPayment: any) => ({
             ...prevPayment,
             status: data.status,
             transactionHash: data.transactionHash || prevPayment.transactionHash,
             // Store received amount data if provided by server
             receivedAmount: data.receivedAmount || null,
-            requiredAmount: data.requiredAmount || prevPayment.amountCpxtb
+            requiredAmount: data.requiredAmount || prevPayment.amountCpxtb,
+            // Store pre-calculated remaining amount if available 
+            remainingAmount: data.remainingAmount || null
           }));
           
           // Show notification
@@ -140,10 +144,15 @@ export default function PaymentPage() {
             const audio = new Audio('/payment-success.mp3');
             audio.play().catch(e => console.error("Error playing audio:", e));
           } else if (data.status === 'partial') {
-            // Calculate remaining amount
-            const receivedAmount = data.receivedAmount || 0;
-            const requiredAmount = data.requiredAmount || Number(payment?.amountCpxtb || 0);
-            const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+            // Use remaining amount provided by server, or calculate it if not available
+            const remainingAmount = data.remainingAmount || (() => {
+              console.log("WebSocket update: calculating remaining amount from scratch");
+              const receivedAmount = typeof data.receivedAmount === 'string' ? parseFloat(data.receivedAmount) : (data.receivedAmount || 0);
+              const requiredAmount = typeof data.requiredAmount === 'string' ? parseFloat(data.requiredAmount) : (data.requiredAmount || Number(payment?.amountCpxtb || 0));
+              return Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+            })();
+            
+            console.log("Partial payment WebSocket update - remainingAmount:", remainingAmount);
             
             toast({
               title: "Partial Payment Received",
@@ -431,49 +440,59 @@ export default function PaymentPage() {
       status: payment.status,
       receivedAmount: payment.receivedAmount,
       requiredAmount: payment.requiredAmount,
-      amountCpxtb: payment.amountCpxtb
+      amountCpxtb: payment.amountCpxtb,
+      remainingAmount: payment.remainingAmount // Check if we already have this from WebSocket
     });
     
     if (payment.status === 'partial') {
-      // Convert received and required amounts to numbers, ensuring we have valid values
-      let receivedAmount = 0;
-      let requiredAmount = 0;
-      
-      // Check if received amount is available from the payment data
-      if (payment.receivedAmount !== undefined && payment.receivedAmount !== null) {
-        console.log('Raw receivedAmount:', payment.receivedAmount, 'type:', typeof payment.receivedAmount);
-        receivedAmount = typeof payment.receivedAmount === 'number' 
-          ? payment.receivedAmount 
-          : parseFloat(payment.receivedAmount);
+      // First check if remainingAmount is already provided by the server via WebSocket
+      if (payment.remainingAmount) {
+        console.log('Using server-provided remainingAmount:', payment.remainingAmount);
+        remainingAmount = typeof payment.remainingAmount === 'string' 
+          ? payment.remainingAmount 
+          : payment.remainingAmount.toFixed(6);
+      } else {
+        // Otherwise calculate it manually
+        // Convert received and required amounts to numbers, ensuring we have valid values
+        let receivedAmount = 0;
+        let requiredAmount = 0;
+        
+        // Check if received amount is available from the payment data
+        if (payment.receivedAmount !== undefined && payment.receivedAmount !== null) {
+          console.log('Raw receivedAmount:', payment.receivedAmount, 'type:', typeof payment.receivedAmount);
+          receivedAmount = typeof payment.receivedAmount === 'number' 
+            ? payment.receivedAmount 
+            : parseFloat(payment.receivedAmount);
+        }
+        
+        // Determine required amount - either from payment.requiredAmount or fall back to amountCpxtb
+        if (payment.requiredAmount !== undefined && payment.requiredAmount !== null) {
+          console.log('Raw requiredAmount:', payment.requiredAmount, 'type:', typeof payment.requiredAmount);
+          requiredAmount = typeof payment.requiredAmount === 'number'
+            ? payment.requiredAmount
+            : parseFloat(payment.requiredAmount);
+        } else if (payment.amountCpxtb) {
+          console.log('Using amountCpxtb as fallback:', payment.amountCpxtb, 'type:', typeof payment.amountCpxtb);
+          requiredAmount = typeof payment.amountCpxtb === 'number'
+            ? payment.amountCpxtb
+            : parseFloat(payment.amountCpxtb);
+        }
+        
+        console.log('After conversion - receivedAmount:', receivedAmount, 'requiredAmount:', requiredAmount);
+        
+        // Calculate the remaining amount needed to complete the payment
+        const remaining = Math.max(0, requiredAmount - receivedAmount);
+        
+        // Format with 6 decimal places for CPXTB token precision
+        remainingAmount = remaining.toFixed(6);
+        
+        console.log('Manual calculation - Partial payment details:', {
+          receivedAmount,
+          requiredAmount,
+          remaining,
+          remainingAmount
+        });
       }
-      
-      // Determine required amount - either from payment.requiredAmount or fall back to amountCpxtb
-      if (payment.requiredAmount !== undefined && payment.requiredAmount !== null) {
-        console.log('Raw requiredAmount:', payment.requiredAmount, 'type:', typeof payment.requiredAmount);
-        requiredAmount = typeof payment.requiredAmount === 'number'
-          ? payment.requiredAmount
-          : parseFloat(payment.requiredAmount);
-      } else if (payment.amountCpxtb) {
-        console.log('Using amountCpxtb as fallback:', payment.amountCpxtb, 'type:', typeof payment.amountCpxtb);
-        requiredAmount = typeof payment.amountCpxtb === 'number'
-          ? payment.amountCpxtb
-          : parseFloat(payment.amountCpxtb);
-      }
-      
-      console.log('After conversion - receivedAmount:', receivedAmount, 'requiredAmount:', requiredAmount);
-      
-      // Calculate the remaining amount needed to complete the payment
-      const remaining = Math.max(0, requiredAmount - receivedAmount);
-      
-      // Format with 6 decimal places for CPXTB token precision
-      remainingAmount = remaining.toFixed(6);
-      
-      console.log('Final calculation - Partial payment details:', {
-        receivedAmount,
-        requiredAmount,
-        remaining,
-        remainingAmount
-      });
     } else {
       console.log('Payment not partial, status:', payment.status);
     }

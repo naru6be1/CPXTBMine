@@ -724,13 +724,13 @@ export default function PaymentPage() {
         const remaining = Math.max(0, requiredAmount - receivedAmount);
         
         // Format with 6 decimal places for CPXTB token precision
-        remainingAmount = remaining.toFixed(6);
+        calculatedRemainingAmount = remaining.toFixed(6);
         
         console.log('Manual calculation - Partial payment details:', {
           receivedAmount,
           requiredAmount,
           remaining,
-          remainingAmount
+          calculatedRemainingAmount
         });
       }
     } else {
@@ -927,10 +927,10 @@ export default function PaymentPage() {
                 justifyContent: 'center',
                 gap: '0.5rem'
               }}>
-                <span>{remainingAmount} CPXTB</span>
+                <span>{calculatedRemainingAmount} CPXTB</span>
                 <button
                   onClick={() => copyToClipboard(
-                    remainingAmount,
+                    calculatedRemainingAmount,
                     "Remaining amount copied to clipboard"
                   )}
                   style={{
@@ -1118,8 +1118,8 @@ export default function PaymentPage() {
         <div style={styles.card}>
           <div style={{ padding: '1rem', textAlign: 'center' }}>
             <h3 style={{ margin: '0 0 1rem', fontSize: '1.125rem' }}>
-              {payment.status === 'partial' && parseFloat(remainingAmount) > 0 ? (
-                <>Scan to Pay <span style={{ color: '#ff9900', fontWeight: 'bold' }}>{remainingAmount}</span> CPXTB</>
+              {payment.status === 'partial' && parseFloat(calculatedRemainingAmount) > 0 ? (
+                <>Scan to Pay <span style={{ color: '#ff9900', fontWeight: 'bold' }}>{calculatedRemainingAmount}</span> CPXTB</>
               ) : (
                 <>Scan to Pay {Number(payment.amountCpxtb).toFixed(6)} CPXTB</>
               )}
@@ -1146,8 +1146,8 @@ export default function PaymentPage() {
               
               <div>
                 <p style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                  {payment.status === 'partial' && parseFloat(remainingAmount) > 0 ? (
-                    <>Send exactly <span style={{ color: '#ff9900' }}>{remainingAmount}</span> CPXTB to:</>
+                  {payment.status === 'partial' && parseFloat(calculatedRemainingAmount) > 0 ? (
+                    <>Send exactly <span style={{ color: '#ff9900' }}>{calculatedRemainingAmount}</span> CPXTB to:</>
                   ) : (
                     <>Send exactly {Number(payment.amountCpxtb).toFixed(6)} CPXTB to:</>
                   )}
@@ -1171,7 +1171,7 @@ export default function PaymentPage() {
                   <button 
                     style={styles.copyButton}
                     onClick={() => copyToClipboard(
-                      payment.status === 'partial' ? remainingAmount : payment.amountCpxtb.toString(), 
+                      payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb.toString(), 
                       payment.status === 'partial' ? "Remaining amount copied to clipboard" : "Amount copied to clipboard"
                     )}
                   >
@@ -1208,7 +1208,7 @@ export default function PaymentPage() {
               
               <div>
                 <a 
-                  href={`https://twitter.com/intent/tweet?text=Please%20send%20me%20${payment.status === 'partial' ? remainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}&hashtags=CPXTB,Crypto`}
+                  href={`https://twitter.com/intent/tweet?text=Please%20send%20me%20${payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}&hashtags=CPXTB,Crypto`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={styles.socialButton}
@@ -1217,7 +1217,7 @@ export default function PaymentPage() {
                 </a>
                 
                 <a 
-                  href={`https://t.me/share/url?url=${window.location.href}&text=Please%20send%20me%20${payment.status === 'partial' ? remainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}`}
+                  href={`https://t.me/share/url?url=${window.location.href}&text=Please%20send%20me%20${payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={styles.socialButton}

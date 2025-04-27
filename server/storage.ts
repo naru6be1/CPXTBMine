@@ -538,8 +538,8 @@ export class DatabaseStorage implements IStorage {
         requiredAmount.toString() : requiredAmount;
     }
     
-    // If this is a partial payment, calculate and store the remaining amount
-    if (status === 'partial' && receivedAmount !== undefined && requiredAmount !== undefined) {
+    // For both partial and completed payments, handle the remaining amount
+    if ((status === 'partial' || status === 'completed') && receivedAmount !== undefined && requiredAmount !== undefined) {
       // If remaining amount was explicitly provided, use it
       if (remainingAmount !== undefined) {
         updates.remainingAmount = remainingAmount;
@@ -550,6 +550,14 @@ export class DatabaseStorage implements IStorage {
       }
       
       console.log(`Payment ${paymentId}: Setting remainingAmount to ${updates.remainingAmount}`);
+      
+      // If received amount exceeds or equals required amount, update status to completed
+      if (receivedAmount >= requiredAmount && status === 'partial') {
+        console.log(`Payment ${paymentId}: Received amount ${receivedAmount} >= Required amount ${requiredAmount}, updating status to completed`);
+        updates.status = 'completed';
+        updates.completedAt = new Date();
+        updates.remainingAmount = '0.000000';
+      }
     }
     
     const [updatedPayment] = await db

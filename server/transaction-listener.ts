@@ -106,6 +106,15 @@ async function processTransferEvent(
             const remainingAmount = Math.max(0, requiredAmount - totalReceivedAmount).toFixed(6);
             console.log(`Total received so far: ${totalReceivedAmount} CPXTB, Remaining: ${remainingAmount} CPXTB`);
             
+            // Check if we should set the payment to completed based on the total
+            if (totalReceivedAmount >= requiredAmount) {
+              paymentStatus = 'completed';
+              shouldComplete = true;
+              console.log(`Payment ${payment.id}: Setting remainingAmount to 0.000000 and status to completed`);
+            } else {
+              console.log(`Payment ${payment.id}: Setting remainingAmount to ${remainingAmount}`);
+            }
+            
             // Update payment status in storage with all payment details
             await storage.updatePaymentStatus(
               payment.id, 
@@ -120,12 +129,13 @@ async function processTransferEvent(
             if (shouldComplete) {
               await db.update(payments)
                 .set({
-                  status: paymentStatus,
+                  status: 'completed', // Always use 'completed' here to ensure consistency
                   transactionHash: txHash,
                   updatedAt: new Date(),
                   completedAt: new Date(),
-                  receivedAmount: receivedAmount.toString(),
-                  requiredAmount: requiredAmount.toString()
+                  receivedAmount: totalReceivedAmount.toString(), // Use total amount received
+                  requiredAmount: requiredAmount.toString(),
+                  remainingAmount: '0.000000' // Explicitly set to zero
                 })
                 .where(eq(payments.id, payment.id));
               
@@ -157,7 +167,8 @@ async function processTransferEvent(
                   merchantId: payment.merchantId, // Include merchantId to filter recipients
                   paymentId: payment.id,
                   paymentReference: payment.paymentReference,
-                  status: paymentStatus,
+                  // Use the updated status that reflects total amount received
+                  status: shouldComplete ? 'completed' : paymentStatus,
                   transactionHash: txHash,
                   timestamp: new Date().toISOString(),
                   // Include received and required amounts to calculate remaining amount
@@ -166,7 +177,7 @@ async function processTransferEvent(
                   requiredAmount: requiredAmount.toString(),
                   amountCpxtb: payment.amountCpxtb,
                   // Use the already calculated remaining amount value
-                  remainingAmount: remainingAmount
+                  remainingAmount: shouldComplete ? '0.000000' : remainingAmount
                 };
                 
                 console.log(`📢 Broadcasting payment update to WebSocket clients for merchant ID: ${payment.merchantId}`);

@@ -69,22 +69,54 @@ async function processTransferEvent(
         if (merchantAddress === recipientAddress) {
           console.log(`✅ Wallet address match for payment ${payment.id}!`);
           
+          // Convert the received token amount to a comparable format (with same decimal precision)
+          // CPXTB has 18 decimals like most ERC20 tokens
+          const receivedAmount = Number(ethers.formatEther(value));
+          const requiredAmount = Number(payment.amountCpxtb);
+          
+          console.log(`Payment ${payment.id}: Required amount=${requiredAmount} CPXTB, Received amount=${receivedAmount} CPXTB`);
+          
+          // Determine payment status based on amount comparison
+          let paymentStatus = 'pending';
+          let shouldComplete = false;
+          
+          if (receivedAmount >= requiredAmount) {
+            paymentStatus = 'completed';
+            shouldComplete = true;
+            console.log(`✅ Received amount (${receivedAmount}) is sufficient for payment ${payment.id}`);
+          } else {
+            paymentStatus = 'partial';
+            console.log(`⚠️ Insufficient payment: Required ${requiredAmount} CPXTB but received only ${receivedAmount} CPXTB`);
+          }
+          
           try {
-            // Mark the payment as completed
-            await storage.updatePaymentStatus(payment.id, 'completed', txHash);
-            
-            console.log(`✅ Payment ${payment.id} (${payment.paymentReference}) marked as completed with tx hash ${txHash}`);
+            // Update payment status in storage
+            await storage.updatePaymentStatus(payment.id, paymentStatus, txHash);
             
             // Extra safety - update directly in database too
-            await db.update(payments)
-              .set({
-                status: 'completed',
-                transactionHash: txHash,
-                updatedAt: new Date(),
-                completedAt: new Date()
-              })
-              .where(eq(payments.id, payment.id));
+            if (shouldComplete) {
+              await db.update(payments)
+                .set({
+                  status: paymentStatus,
+                  transactionHash: txHash,
+                  updatedAt: new Date(),
+                  completedAt: new Date()
+                })
+                .where(eq(payments.id, payment.id));
               
+              console.log(`✅ Payment ${payment.id} (${payment.paymentReference}) marked as completed with tx hash ${txHash}`);
+            } else {
+              await db.update(payments)
+                .set({
+                  status: paymentStatus,
+                  transactionHash: txHash,
+                  updatedAt: new Date()
+                })
+                .where(eq(payments.id, payment.id));
+              
+              console.log(`🔄 Payment ${payment.id} marked as partially paid with tx hash ${txHash}`);
+            }
+            
             // Broadcast payment status update to all WebSocket clients
             try {
               // Access the WebSocket server from the global scope
@@ -96,7 +128,7 @@ async function processTransferEvent(
                   type: 'paymentStatusUpdate',
                   paymentId: payment.id,
                   paymentReference: payment.paymentReference,
-                  status: 'completed',
+                  status: paymentStatus,
                   transactionHash: txHash,
                   timestamp: new Date().toISOString()
                 };

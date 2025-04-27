@@ -1106,6 +1106,144 @@ export default function MerchantDashboard() {
       };
     }
   }, [activeTab, selectedMerchant, fetchPaymentHistory]);
+  
+  // ENHANCED: This useEffect adds aggressive polling for payment status on QR code tab
+  // similar to the polling mechanism in payment-page.tsx
+  useEffect(() => {
+    if (activeTab === "qrcode" && currentPayment?.payment?.reference && selectedMerchant?.apiKey) {
+      console.log("🔄 Setting up aggressive payment status polling for QR code tab");
+      
+      // Define a function to fetch payment status with enhanced validation
+      const fetchPaymentStatus = async () => {
+        try {
+          // Add cache-busting timestamp
+          const timestamp = Date.now();
+          const response = await fetch(`/api/payments/${currentPayment.payment.reference}?t=${timestamp}`, {
+            headers: {
+              'X-API-Key': selectedMerchant.apiKey,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (!response.ok) {
+            console.error("⚠️ Error polling for payment status:", response.statusText);
+            return;
+          }
+          
+          const data = await response.json();
+          console.log("🔍 Merchant QR polling result:", data);
+          
+          // ENHANCED STATUS VERIFICATION: Apply same logic as payment-page.tsx
+          // -------------------------------------------------------------
+          // Extract data for validation
+          const payment = data.payment;
+          
+          // Skip if no payment data returned
+          if (!payment) {
+            console.error("❌ No payment data in polling response");
+            return;
+          }
+          
+          // Store original status for comparison
+          const originalStatus = payment.status;
+          
+          // Parse all numeric values for comparison
+          const receivedAmount = parseFloat(payment.receivedAmount || '0');
+          const requiredAmount = parseFloat(payment.requiredAmount || payment.amountCpxtb || '0');
+          const remainingAmount = parseFloat(payment.remainingAmount || '0');
+          
+          // Define all possible completion conditions
+          const conditions = {
+            explicitlyCompleted: payment.status === 'completed',
+            zeroRemaining: remainingAmount <= 0,
+            zeroRemainingExact: payment.remainingAmount === '0.000000',
+            receivedEnough: receivedAmount >= requiredAmount,
+            hasTransactionHash: !!payment.transactionHash,
+            hasCompletedTimestamp: !!payment.completedAt
+          };
+          
+          // Decision logic - if ANY completion condition is true, treat as completed
+          const isEffectivelyCompleted = 
+            conditions.explicitlyCompleted || 
+            conditions.zeroRemaining || 
+            conditions.zeroRemainingExact || 
+            conditions.receivedEnough;
+          
+          console.log("🔍 MERCHANT QR POLL - Payment status verification:", {
+            reference: payment.reference || payment.paymentReference,
+            ...conditions,
+            isEffectivelyCompleted,
+            originalStatus,
+            receivedAmount, 
+            requiredAmount,
+            remainingAmount
+          });
+          
+          // Override status in local data if payment should be completed
+          let shouldUpdateUI = false;
+          
+          if (isEffectivelyCompleted && payment.status !== 'completed') {
+            console.log("🚨 MERCHANT QR POLL: Auto-correcting status from", payment.status, "to completed", {
+              reason: "Payment meets completion criteria but incorrect status"
+            });
+            
+            // Override status
+            payment.status = 'completed';
+            payment.remainingAmount = '0.000000';
+            shouldUpdateUI = true;
+          }
+          
+          // Only update UI if status changed or conditions met
+          if (originalStatus !== payment.status || shouldUpdateUI) {
+            console.log("📊 Updating merchant QR UI with corrected payment data");
+            
+            setCurrentPayment(prevState => ({
+              ...prevState,
+              payment: {
+                ...payment
+              }
+            }));
+            
+            // If status is completed, show notification
+            if (payment.status === 'completed') {
+              setCompletedPaymentRef(payment.reference || payment.paymentReference);
+              setShowSuccessNotification(true);
+              
+              // Refresh payment history in the background
+              fetchPaymentHistory();
+              
+              // Play notification sound
+              try {
+                const audio = new Audio('/payment-success.mp3');
+                audio.play().catch(err => console.error("Error playing audio:", err));
+              } catch (err) {
+                console.error("Error playing notification sound:", err);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Error polling for payment status:", err);
+        }
+      };
+      
+      // Run once immediately
+      fetchPaymentStatus();
+      
+      // Set up aggressive polling interval (every 3 seconds)
+      const pollingInterval = setInterval(() => {
+        console.log("⏱️ Polling for merchant QR payment status update...");
+        fetchPaymentStatus();
+      }, 3000);
+      
+      // Clean up interval on tab change or unmount
+      return () => {
+        clearInterval(pollingInterval);
+        console.log("Cleared payment QR polling interval");
+      };
+    }
+  }, [activeTab, currentPayment?.payment?.reference, selectedMerchant, fetchPaymentHistory]);
 
   // The ProtectedRoute component will now handle the authentication check
   // We don't need the manual redirect anymore since the component will only render

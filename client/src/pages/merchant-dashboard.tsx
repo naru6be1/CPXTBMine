@@ -1195,13 +1195,35 @@ export default function MerchantDashboard() {
             // For partial payments, update UI but don't show completion
             console.log("💲 Updating merchant QR UI with partial payment data");
             
-            setCurrentPayment((prevState: any) => ({
-              ...prevState,
-              payment: {
-                ...payment,
-                status: 'partial'  // Ensure status is 'partial'
-              }
-            }));
+            // Generate wallet URI for QR code with remaining amount if needed
+            if (payment.merchantWalletAddress && remainingAmount > 0) {
+              const tokenAddress = payment.tokenAddress || CPXTB_TOKEN_ADDRESS;
+              const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${tokenAddress}&tokenValue=${encodeURIComponent(remainingAmount.toString())}`;
+              
+              console.log("📱 Generated wallet URI for QR code with remaining amount:", {
+                tokenAddress,
+                remainingAmount
+              });
+              
+              setCurrentPayment((prevState: any) => ({
+                ...prevState,
+                qrCodeData: walletUri, // Update QR code with remaining amount needed
+                paymentInstructions: `PARTIAL PAYMENT: Send ${remainingAmount.toFixed(6)} more CPXTB tokens to complete this payment`,
+                payment: {
+                  ...payment,
+                  status: 'partial'  // Ensure status is 'partial'
+                }
+              }));
+            } else {
+              // Fall back to basic update
+              setCurrentPayment((prevState: any) => ({
+                ...prevState,
+                payment: {
+                  ...payment,
+                  status: 'partial'  // Ensure status is 'partial'
+                }
+              }));
+            }
             
             // Refresh payment history in the background to reflect partial payment
             fetchPaymentHistory();
@@ -1221,8 +1243,14 @@ export default function MerchantDashboard() {
               remainingAmount: '0.000000'
             };
             
+            // For completed payments, we can use a special QR code showing transaction hash
+            // or a completion message
+            const completionMessage = `Payment completed! Transaction: ${payment.transactionHash?.substring(0, 10) || 'Confirmed'}`;
+            
             setCurrentPayment((prevState: any) => ({
               ...prevState,
+              qrCodeData: completionMessage, // Use a text message instead of payment URI
+              paymentInstructions: `Payment of ${Number(payment.amountCpxtb).toFixed(6)} CPXTB completed successfully!`,
               payment: completedPayment
             }));
             
@@ -1247,12 +1275,33 @@ export default function MerchantDashboard() {
             // Regular update for other payment states (pending, etc.)
             console.log("📊 Regular update of merchant QR UI with payment data");
             
-            setCurrentPayment((prevState: any) => ({
-              ...prevState,
-              payment: {
-                ...payment
-              }
-            }));
+            // Generate wallet URI for QR code if we have necessary data but it's missing
+            if (payment && payment.merchantWalletAddress && payment.amountCpxtb) {
+              const tokenAddress = payment.tokenAddress || CPXTB_TOKEN_ADDRESS;
+              const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${tokenAddress}&tokenValue=${encodeURIComponent(payment.amountCpxtb.toString())}`;
+              
+              console.log("📱 Generated wallet URI for QR code:", {
+                tokenAddress,
+                amountCpxtb: payment.amountCpxtb
+              });
+              
+              setCurrentPayment((prevState: any) => ({
+                ...prevState,
+                qrCodeData: walletUri, // Ensure QR code data is always set
+                paymentInstructions: `CPXTB PAYMENT: Send ${Number(payment.amountCpxtb).toFixed(6)} CPXTB tokens to this address on Base network`,
+                payment: {
+                  ...payment
+                }
+              }));
+            } else {
+              // Fall back to the previous behavior if we don't have necessary data
+              setCurrentPayment((prevState: any) => ({
+                ...prevState,
+                payment: {
+                  ...payment
+                }
+              }));
+            }
           }
         } catch (err) {
           console.error("Error polling for payment status:", err);

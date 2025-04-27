@@ -51,6 +51,8 @@ export default function PaymentPage() {
 
     const fetchPaymentData = async () => {
       try {
+        console.log("Fetching payment data for reference:", reference);
+        
         // The URL includes the payment reference, but no authentication
         // The endpoint should be accessible publicly
         const response = await fetch(`/api/payments/public/${reference}`);
@@ -70,6 +72,15 @@ export default function PaymentPage() {
           amountCpxtb: data.payment.amountCpxtb,
           remainingAmount: data.payment.remainingAmount
         });
+        
+        // Handle edge case where payment has 0.000000 remaining but status is still 'partial'
+        if (data.payment.status === 'partial') {
+          const remainingAmount = parseFloat(data.payment.remainingAmount || '0');
+          if (remainingAmount <= 0 || data.payment.remainingAmount === '0.000000') {
+            console.log("💰 Auto-correcting status to completed because remaining amount is zero");
+            data.payment.status = 'completed';
+          }
+        }
         
         setPayment(data.payment);
         
@@ -99,22 +110,17 @@ export default function PaymentPage() {
     // Initial fetch
     fetchPaymentData();
 
-    // Set up a polling interval to refresh payment data every 15 seconds
+    // Set up a polling interval to refresh payment data every 10 seconds
     // This ensures we get status updates even if WebSocket fails
     const pollingInterval = setInterval(() => {
-      if (payment && (payment.status === 'pending' || payment.status === 'partial')) {
-        console.log("Polling for payment status update...");
-        fetchPaymentData();
-      } else {
-        // If payment is completed or expired, stop polling
-        console.log("Payment status is finalized, stopping polling");
-        clearInterval(pollingInterval);
-      }
-    }, 15000); // 15 seconds
+      // Always poll regardless of current status to ensure we have the latest data
+      console.log("Polling for payment status update...");
+      fetchPaymentData();
+    }, 10000); // 10 seconds (reduced from 15 for more responsive updates)
 
     // Cleanup interval on component unmount
     return () => clearInterval(pollingInterval);
-  }, [reference, payment?.status]);
+  }, [reference]);
 
   // Set up WebSocket connection for real-time updates
   useEffect(() => {
@@ -156,6 +162,18 @@ export default function PaymentPage() {
             // Store pre-calculated remaining amount if available 
             remainingAmount: data.remainingAmount || null
           }));
+          
+          // Handle edge case where payment has 0.000000 remaining but status is still 'partial'
+          if (data.status === 'partial') {
+            const remainingAmount = typeof data.remainingAmount === 'string' 
+              ? parseFloat(data.remainingAmount) 
+              : data.remainingAmount || 0;
+              
+            if (remainingAmount <= 0 || data.remainingAmount === '0.000000') {
+              console.log("💰 WebSocket: Auto-correcting status to completed because remaining amount is zero");
+              data.status = 'completed';
+            }
+          }
           
           // Show notification
           if (data.status === 'completed') {

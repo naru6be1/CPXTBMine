@@ -1087,10 +1087,23 @@ export default function MerchantDashboard() {
   }, [activeTab, merchantData, toast]);
   
   // This useEffect fetches payment history when the history tab is active
+  // and sets up automatic refreshing
   useEffect(() => {
     if (activeTab === "history" && selectedMerchant) {
       console.log("History tab activated, fetching payment history...");
       fetchPaymentHistory();
+      
+      // Set up periodic refresh for payment history (every 15 seconds)
+      const refreshInterval = setInterval(() => {
+        console.log("Auto-refreshing payment history...");
+        fetchPaymentHistory();
+      }, 15000);
+      
+      // Clean up the interval when tab changes or component unmounts
+      return () => {
+        clearInterval(refreshInterval);
+        console.log("Cleared payment history refresh interval");
+      };
     }
   }, [activeTab, selectedMerchant, fetchPaymentHistory]);
 

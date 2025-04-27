@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from "@/components/ui/button";
 import { Loader2, ExternalLink, Copy, AlertCircle, CheckCircle2, MessageCircle, Twitter } from "lucide-react";
@@ -9,6 +9,7 @@ import { PaymentSuccessNotification, PaymentPartialNotification } from "@/compon
 export default function PaymentPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const params = useParams();
   
   // State for payment data
   const [payment, setPayment] = useState<any>(null);
@@ -28,9 +29,13 @@ export default function PaymentPage() {
     customFooter: "", // Custom footer HTML
   });
   
-  // Get payment reference from URL
+  // Get payment reference from URL - check both query params and route params
   const urlParams = new URLSearchParams(window.location.search);
-  const reference = urlParams.get('ref');
+  const queryReference = urlParams.get('ref');
+  const routeReference = params.reference;
+  
+  // Use either the query param or route param, prioritizing the query param
+  const reference = queryReference || routeReference;
   
   // WebSocket state for real-time updates
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -104,18 +109,31 @@ export default function PaymentPage() {
           hasCompletedTimestamp: !!data.payment.completedAt
         };
         
-        // Decision logic - if ANY completion condition is true, treat as completed
-        const isEffectivelyCompleted = 
+        // FIXED BUG: For partial payments, we need to be strict
+        const isPartialPayment = data.payment.status === 'partial';
+        
+        // Decision logic - only treat as completed if explicitly completed
+        // or meets numeric criteria AND is not a partial payment
+        const isEffectivelyCompleted = (
+          // If explicitly marked as completed, honor that
           conditions.explicitlyCompleted || 
-          conditions.zeroRemaining || 
-          conditions.zeroRemainingExact || 
-          conditions.receivedEnough;
+          // OR if it meets our numeric criteria AND is not a partial payment
+          (!isPartialPayment && (
+            conditions.zeroRemaining || 
+            conditions.zeroRemainingExact || 
+            conditions.receivedEnough
+          ))
+        );
         
         // Debug the decision process
         console.log("🔍 COMPLETION CHECK - All conditions:", {
           ...conditions,
+          isPartialPayment,
           isEffectivelyCompleted,
           statusBeforeCheck: data.payment.status,
+          receivedAmount,
+          requiredAmount,
+          remainingAmount,
           calculatedRemaining: (requiredAmount - receivedAmount).toFixed(6)
         });
         
@@ -239,16 +257,26 @@ export default function PaymentPage() {
             hasTransactionHash: !!data.transactionHash,
           };
           
-          // Decision logic - if ANY completion condition is true, treat as completed
-          const isEffectivelyCompleted = 
+          // FIXED BUG: For partial payments, we need to be strict
+          const isPartialPayment = data.status === 'partial';
+          
+          // Decision logic - only treat as completed if explicitly completed
+          // or meets numeric criteria AND is not a partial payment
+          const isEffectivelyCompleted = (
+            // If explicitly marked as completed, honor that
             conditions.explicitlyCompleted || 
-            conditions.zeroRemaining || 
-            conditions.zeroRemainingExact || 
-            conditions.receivedEnough;
+            // OR if it meets our numeric criteria AND is not a partial payment
+            (!isPartialPayment && (
+              conditions.zeroRemaining || 
+              conditions.zeroRemainingExact || 
+              conditions.receivedEnough
+            ))
+          );
           
           // Debug the decision process
           console.log("🔍 WEBSOCKET COMPLETION CHECK - All conditions:", {
             ...conditions,
+            isPartialPayment,
             isEffectivelyCompleted,
             statusReceived: data.status,
             receivedAmount,

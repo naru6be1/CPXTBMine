@@ -87,6 +87,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <ProtectedRoute path="/merchant" component={MerchantDashboard} />
         <Route path="/payment" component={PaymentPage} />
+        <Route path="/payment/:reference" component={PaymentPage} />
         
         {/* No Games */}
         

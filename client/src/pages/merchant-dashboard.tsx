@@ -1970,35 +1970,39 @@ export default function MerchantDashboard() {
                       <p className="text-sm text-muted-foreground mb-2">
                         Share this direct payment link with your customers:
                       </p>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
-                          readOnly
-                          className="text-xs font-mono"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/payment/${currentPayment.payment.reference}`);
-                            toast({
-                              title: "Copied",
-                              description: "Payment link copied to clipboard",
-                            });
-                          }}
+                      {currentPayment?.payment?.reference && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
+                            readOnly
+                            className="text-xs font-mono"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/payment/${currentPayment.payment.reference}`);
+                              toast({
+                                title: "Copied",
+                                description: "Payment link copied to clipboard",
+                              });
+                            }}
+                          >
+                            <ClipboardCopy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                      {currentPayment?.payment?.reference && (
+                        <a 
+                          href={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs mt-2 text-primary hover:underline"
                         >
-                          <ClipboardCopy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <a 
-                        href={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs mt-2 text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Open payment page in new tab
-                      </a>
+                          <ExternalLink className="h-3 w-3" />
+                          Open payment page in new tab
+                        </a>
+                      )}
                     </div>
                   </div>
                   <div className="text-center mb-4 space-y-3">
@@ -2049,18 +2053,20 @@ export default function MerchantDashboard() {
                       <Label>Payment Reference</Label>
                       <div className="flex items-center gap-2">
                         <Input 
-                          value={currentPayment.payment.reference}
+                          value={currentPayment?.payment?.reference || ""}
                           readOnly
                         />
                         <Button 
                           variant="outline" 
                           size="icon"
                           onClick={() => {
-                            navigator.clipboard.writeText(currentPayment.payment.reference);
-                            toast({
-                              title: "Copied",
-                              description: "Payment reference copied to clipboard",
-                            });
+                            if (currentPayment?.payment?.reference) {
+                              navigator.clipboard.writeText(currentPayment.payment.reference);
+                              toast({
+                                title: "Copied",
+                                description: "Payment reference copied to clipboard",
+                              });
+                            }
                           }}
                         >
                           <ClipboardCopy className="h-4 w-4" />
@@ -2068,61 +2074,67 @@ export default function MerchantDashboard() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
+                    {currentPayment?.payment?.amountUsd && currentPayment?.payment?.amountCpxtb && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Amount (USD)</Label>
+                          <Input 
+                            value={`$${Number(currentPayment.payment.amountUsd).toFixed(2)}`}
+                            readOnly
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Amount (CPXTB)</Label>
+                          <Input 
+                            value={`${Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB`}
+                            readOnly
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {currentPayment?.payment?.status && (
                       <div className="space-y-2">
-                        <Label>Amount (USD)</Label>
+                        <Label>Status</Label>
+                        {currentPayment.payment.status === 'completed' ? (
+                          <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
+                            <div className="h-3 w-3 bg-green-500 rounded-full" />
+                            <span className="font-semibold text-green-700 dark:text-green-300">Payment Completed!</span>
+                            {currentPayment.payment.transactionHash && (
+                              <a 
+                                href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-auto text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded flex items-center gap-1 text-green-800 dark:text-green-200"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                View Transaction
+                              </a>
+                            )}
+                          </div>
+                        ) : currentPayment.payment.status === 'expired' ? (
+                          <div className="bg-red-100 dark:bg-red-900 p-3 rounded-lg border border-red-300 dark:border-red-700 flex items-center gap-2">
+                            <div className="h-3 w-3 bg-red-500 rounded-full" />
+                            <span className="font-semibold text-red-700 dark:text-red-300">Payment Expired</span>
+                          </div>
+                        ) : (
+                          <div className="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-lg border border-yellow-300 dark:border-yellow-700 flex items-center gap-2">
+                            <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse" />
+                            <span className="font-semibold text-yellow-700 dark:text-yellow-300">Payment Pending</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {currentPayment?.payment?.expiresAt && (
+                      <div className="space-y-2">
+                        <Label>Expires At</Label>
                         <Input 
-                          value={`$${Number(currentPayment.payment.amountUsd).toFixed(2)}`}
+                          value={new Date(currentPayment.payment.expiresAt).toLocaleString()}
                           readOnly
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>Amount (CPXTB)</Label>
-                        <Input 
-                          value={`${Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB`}
-                          readOnly
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Status</Label>
-                      {currentPayment.payment.status === 'completed' ? (
-                        <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
-                          <div className="h-3 w-3 bg-green-500 rounded-full" />
-                          <span className="font-semibold text-green-700 dark:text-green-300">Payment Completed!</span>
-                          {currentPayment.payment.transactionHash && (
-                            <a 
-                              href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="ml-auto text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded flex items-center gap-1 text-green-800 dark:text-green-200"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              View Transaction
-                            </a>
-                          )}
-                        </div>
-                      ) : currentPayment.payment.status === 'expired' ? (
-                        <div className="bg-red-100 dark:bg-red-900 p-3 rounded-lg border border-red-300 dark:border-red-700 flex items-center gap-2">
-                          <div className="h-3 w-3 bg-red-500 rounded-full" />
-                          <span className="font-semibold text-red-700 dark:text-red-300">Payment Expired</span>
-                        </div>
-                      ) : (
-                        <div className="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-lg border border-yellow-300 dark:border-yellow-700 flex items-center gap-2">
-                          <div className="h-3 w-3 bg-yellow-500 rounded-full animate-pulse" />
-                          <span className="font-semibold text-yellow-700 dark:text-yellow-300">Payment Pending</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Expires At</Label>
-                      <Input 
-                        value={new Date(currentPayment.payment.expiresAt).toLocaleString()}
-                        readOnly
-                      />
-                    </div>
+                    )}
                     
                     <div className="pt-2">
                       <Button 

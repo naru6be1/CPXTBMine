@@ -35,9 +35,14 @@ export default function PaymentPage() {
   const routeReference = params.reference;
   
   // Use either the query param or route param, prioritizing the query param
-  // Also guard against "undefined" string value, which can happen if ?ref=undefined is in the URL
+  // Guard against all forms of "undefined" string values:
+  // 1. ?ref=undefined (query parameter)
+  // 2. /payment/undefined (route parameter)
+  // 3. Missing reference altogether
   const rawReference = queryReference || routeReference;
-  const reference = (rawReference === "undefined" || !rawReference) ? null : rawReference;
+  const reference = (!rawReference || 
+                     rawReference === "undefined" || 
+                     rawReference.toLowerCase() === "undefined") ? null : rawReference;
   
   // WebSocket state for real-time updates
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -51,12 +56,17 @@ export default function PaymentPage() {
   // COMPLETELY REWRITTEN to add multiple layers of status checking
   useEffect(() => {
     if (!reference) {
-      // Enhanced error message for better user experience
-      setError(
-        window.location.search.includes('ref=undefined') 
-          ? "Invalid payment link: The URL contains 'ref=undefined'. This is likely due to a malformed payment link."
-          : "No payment reference provided. Please check the payment link you received."
-      );
+      // Enhanced error message for better user experience based on the exact error pattern detected
+      let errorMessage = "No payment reference provided. Please check the payment link you received.";
+      
+      // Check for different malformed URL patterns
+      if (window.location.search.includes('ref=undefined')) {
+        errorMessage = "Invalid payment link: The URL contains 'ref=undefined'. This is likely due to a malformed payment link.";
+      } else if (window.location.pathname.includes('/payment/undefined')) {
+        errorMessage = "Invalid payment link: The URL contains '/payment/undefined'. This is likely due to a malformed payment link.";
+      }
+      
+      setError(errorMessage);
       setLoading(false);
       return;
     }
@@ -572,8 +582,10 @@ export default function PaymentPage() {
   }
 
   if (error) {
-    // Determine if this is likely the "?ref=undefined" error
-    const isUndefinedRefError = window.location.search.includes('ref=undefined');
+    // Determine if this is one of the "undefined" reference errors
+    const isQueryUndefinedError = window.location.search.includes('ref=undefined');
+    const isRouteUndefinedError = window.location.pathname.includes('/payment/undefined');
+    const isAnyUndefinedError = isQueryUndefinedError || isRouteUndefinedError;
     
     return (
       <div style={{ 
@@ -590,11 +602,13 @@ export default function PaymentPage() {
         <h1 className="text-xl font-bold mb-2">Payment Error</h1>
         <p className="text-center mb-4">{error}</p>
         
-        {isUndefinedRefError && (
+        {isAnyUndefinedError && (
           <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 max-w-lg">
             <p className="text-amber-700 text-sm">
               <strong>Common Issue:</strong> If you received this link from a merchant, please ask them 
-              to provide a corrected payment link. The URL parameter "ref=undefined" indicates the payment 
+              to provide a corrected payment link. {isQueryUndefinedError 
+                ? 'The URL parameter "ref=undefined"' 
+                : 'The URL format "/payment/undefined"'} indicates the payment 
               reference was not properly included.
             </p>
           </div>

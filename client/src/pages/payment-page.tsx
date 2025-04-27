@@ -128,13 +128,40 @@ export default function PaymentPage() {
     // Initial fetch
     fetchPaymentData();
 
-    // Set up a polling interval to refresh payment data every 10 seconds
+    // Set up a more aggressive polling interval to refresh payment data every 5 seconds
     // This ensures we get status updates even if WebSocket fails
     const pollingInterval = setInterval(() => {
       // Always poll regardless of current status to ensure we have the latest data
       console.log("Polling for payment status update...");
-      fetchPaymentData();
-    }, 10000); // 10 seconds (reduced from 15 for more responsive updates)
+      // Force refresh payment data with explicit call that bypasses caching
+      fetch(`/api/payments/public/${reference}?t=${Date.now()}`, { 
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("💰 Forced refresh data:", data);
+        
+        // Handle edge case where payment has 0 remaining but status isn't completed
+        if (data.payment && (
+            data.payment.remainingAmount === '0.000000' || 
+            parseFloat(data.payment.remainingAmount || '0') <= 0 ||
+            (data.payment.receivedAmount && data.payment.requiredAmount && 
+             parseFloat(data.payment.receivedAmount) >= parseFloat(data.payment.requiredAmount))
+        )) {
+          console.log("💰 Payment should be completed but isn't showing properly - force updating state");
+          // Force update payment with completed status
+          data.payment.status = 'completed';
+          setPayment(data.payment);
+        } else if (data.payment) {
+          setPayment(data.payment);
+        }
+      })
+      .catch(err => console.error("Error in forced refresh:", err));
+    }, 5000); // 5 seconds for more responsive updates
 
     // Cleanup interval on component unmount
     return () => clearInterval(pollingInterval);

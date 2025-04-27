@@ -1091,24 +1091,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Serving public payment page for reference: ${reference} with theme: ${merchant.themeTemplate || 'default'}`);
       
-      // Calculate remaining amount if payment is in partial status
-      if (payment.status === 'partial' && payment.receivedAmount && payment.requiredAmount) {
-        // Ensure proper type handling for calculations
-        const receivedAmount = typeof payment.receivedAmount === 'string' 
-          ? parseFloat(payment.receivedAmount) 
-          : Number(payment.receivedAmount);
-          
-        const requiredAmount = typeof payment.requiredAmount === 'string' 
-          ? parseFloat(payment.requiredAmount) 
-          : Number(payment.requiredAmount);
-          
-        // Calculate the remaining amount needed
-        const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+      // Enhanced status handling for all payment statuses
+      // First, ensure we have receivedAmount and requiredAmount
+      const receivedAmount = typeof payment.receivedAmount === 'string' 
+        ? parseFloat(payment.receivedAmount) 
+        : Number(payment.receivedAmount || 0);
         
-        // Ensure payment object has remainingAmount
-        payment.remainingAmount = remainingAmount;
+      const requiredAmount = typeof payment.requiredAmount === 'string' 
+        ? parseFloat(payment.requiredAmount) 
+        : Number(payment.requiredAmount || payment.amountCpxtb || 0);
+      
+      // Calculate the remaining amount needed (for all payment statuses)
+      const remainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+      
+      // Ensure payment object has remainingAmount
+      payment.remainingAmount = remainingAmount;
+      
+      console.log(`Payment check for ${payment.id}:`, {
+        status: payment.status,
+        receivedAmount,
+        requiredAmount,
+        remainingAmount,
+        isRemainderZero: remainingAmount === '0.000000' || parseFloat(remainingAmount) === 0,
+        receivedEnough: receivedAmount >= requiredAmount
+      });
+      
+      // FIX: Auto-correct status to 'completed' if remaining amount is zero or received enough
+      // This fixes the issue with status showing as pending in the QR code page
+      if ((remainingAmount === '0.000000' || parseFloat(remainingAmount) === 0 || receivedAmount >= requiredAmount) && 
+          payment.status !== 'completed') {
+        console.log(`⚠️ Correcting payment status to 'completed' for payment ${payment.id} as remaining amount is zero: ${remainingAmount}`);
         
-        console.log(`Calculated remaining amount for payment ${payment.id}: ${remainingAmount} CPXTB`);
+        // Force update status to completed in this response
+        payment.status = 'completed';
+        
+        // Also update the database to ensure future requests get the right status
+        try {
+          await storage.updatePaymentStatus(payment.id, 'completed', payment.transactionHash);
+          console.log(`✅ Successfully updated payment status in database for ${payment.id}`);
+        } catch (dbError) {
+          console.error(`❌ Failed to update payment status in database: ${dbError}`);
+          // We still return completed status in this response even if DB update fails
+        }
       }
       
       // Return payment data along with merchant theme settings

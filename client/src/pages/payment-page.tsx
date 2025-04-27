@@ -647,10 +647,17 @@ export default function PaymentPage() {
       </div>
     );
   }
+  
+  // Calculate remaining amount for payment
+  const initialRemainingAmount = payment.remainingAmount 
+    ? (typeof payment.remainingAmount === 'string' 
+        ? payment.remainingAmount 
+        : payment.remainingAmount.toFixed(6))
+    : '0.000000';
 
   // Generate wallet URI for QR code with full payment information
   // This format allows wallets to pre-populate both token address and the exact amount needed
-  const amountToSend = payment.status === 'partial' ? remainingAmount : payment.amountCpxtb;
+  const amountToSend = payment.status === 'partial' ? initialRemainingAmount : payment.amountCpxtb;
   const walletUri = `ethereum:${payment.merchantWalletAddress}?value=0&token=${payment.tokenAddress}&tokenValue=${encodeURIComponent(amountToSend)}`;
 
   // Format timestamp for display
@@ -666,8 +673,8 @@ export default function PaymentPage() {
     });
   };
   
-  // Calculate remaining amount if payment is partial
-  let remainingAmount = '0.000000';
+  // Calculate detailed remaining amount if payment is partial
+  let calculatedRemainingAmount = '0.000000';
   if (payment) {
     console.log('Payment object for calculation:', {
       status: payment.status,
@@ -681,7 +688,7 @@ export default function PaymentPage() {
       // First check if remainingAmount is already provided by the server via WebSocket
       if (payment.remainingAmount) {
         console.log('Using server-provided remainingAmount:', payment.remainingAmount);
-        remainingAmount = typeof payment.remainingAmount === 'string' 
+        calculatedRemainingAmount = typeof payment.remainingAmount === 'string' 
           ? payment.remainingAmount 
           : payment.remainingAmount.toFixed(6);
       } else {

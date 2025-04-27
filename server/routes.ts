@@ -941,8 +941,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a payment link URL for the QR code using the new direct payment format
       const paymentUrl = `${process.env.NODE_ENV === 'production' ? process.env.PUBLIC_URL : 'https://' + req.headers.host}/payment/${payment.paymentReference}`;
       
-      // Use the payment URL for the QR code to enable direct payment link scanning
-      const walletUri = paymentUrl;
+      // Create an enhanced wallet URI that includes token information for direct wallet scanning
+      // Format: ethereum:address?value=0&token=tokenAddress&tokenValue=amount
+      const enhancedWalletUri = `ethereum:${formattedAddress}?value=0&token=${CPXTB_TOKEN_ADDRESS}&tokenValue=${encodeURIComponent(amountCpxtb.toString())}`;
+      
+      // Use the enhanced wallet URI for the QR code to enable direct payment in wallets
+      // This allows users to scan and pay in one step with proper token information
+      const walletUri = enhancedWalletUri;
       
       // Create payment instructions message
       const paymentInstructions = `CPXTB PAYMENT: Send ${amountCpxtb.toFixed(6)} CPXTB tokens to this address on Base network`;

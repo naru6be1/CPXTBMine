@@ -1476,6 +1476,7 @@ export default function MerchantDashboard() {
           <TabsTrigger value="qrcode" disabled={!currentPayment}>Payment QR Code</TabsTrigger>
           <TabsTrigger value="history" disabled={!merchantData?.merchants?.length}>Payment History</TabsTrigger>
           <TabsTrigger value="reports" disabled={!merchantData?.merchants?.length}>Reports</TabsTrigger>
+          <TabsTrigger value="pamphlet" disabled={!merchantData?.merchants?.length}>Print Materials</TabsTrigger>
           <TabsTrigger value="appearance" disabled={!merchantData?.merchants?.length}>Appearance</TabsTrigger>
         </TabsList>
 
@@ -2669,6 +2670,173 @@ export default function MerchantDashboard() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="pamphlet" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Print Materials</CardTitle>
+                <CardDescription>
+                  Generate printable materials to help customers pay with CPXTB
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Create professionally designed materials to help your customers understand how to pay with CPXTB tokens.
+                    These materials can be printed and displayed at your point of sale.
+                  </p>
+                  
+                  <div className="space-y-4 pb-2">
+                    <Label>Select a Business</Label>
+                    {merchantData?.merchants?.length ? (
+                      <Select
+                        value={selectedMerchant?.id?.toString() || ""}
+                        onValueChange={(val) => {
+                          const merchant = merchantData.merchants.find(m => m.id.toString() === val);
+                          setSelectedMerchant(merchant || null);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a business" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {merchantData.merchants.map((merchant: any) => (
+                            <SelectItem key={merchant.id} value={merchant.id.toString()}>
+                              {merchant.businessName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        No businesses registered. Please register a business first.
+                      </p>
+                    )}
+                  </div>
+                  
+                  {selectedMerchant && (
+                    <div className="pt-2 space-y-4">
+                      <h3 className="font-semibold">Available Materials</h3>
+                      
+                      <Card className="border border-primary/20 hover:border-primary/40 transition-all">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">CPXTB Payment Instruction Pamphlet</CardTitle>
+                          <CardDescription>
+                            A printer-friendly guide for customers on how to pay with CPXTB tokens
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="flex justify-end">
+                            <Button
+                              variant="outline"
+                              className="flex items-center gap-1"
+                              onClick={() => {
+                                setActiveTab("pamphlet-preview");
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                              Preview
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <p className="text-xs text-muted-foreground mt-6">
+                        Note: Print materials will use your business name and wallet address.
+                        Make sure this information is correct before printing.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="h-fit">
+              <CardHeader>
+                <CardTitle>Tips for Using Print Materials</CardTitle>
+                <CardDescription>
+                  How to effectively use these materials in your business
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <div className="bg-primary/10 rounded-full p-1 mt-0.5">
+                      <Store className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Display at Point of Sale</p>
+                      <p className="text-sm text-muted-foreground">
+                        Place the printed pamphlet near your cash register or checkout area where customers can easily see payment options.
+                      </p>
+                    </div>
+                  </li>
+                  
+                  <li className="flex items-start gap-3">
+                    <div className="bg-primary/10 rounded-full p-1 mt-0.5">
+                      <ScanLine className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">QR Code Visibility</p>
+                      <p className="text-sm text-muted-foreground">
+                        Ensure the QR code is clearly visible and not obstructed. Consider laminating the pamphlet for durability.
+                      </p>
+                    </div>
+                  </li>
+                  
+                  <li className="flex items-start gap-3">
+                    <div className="bg-primary/10 rounded-full p-1 mt-0.5">
+                      <CircleDollarSign className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Staff Training</p>
+                      <p className="text-sm text-muted-foreground">
+                        Train your staff on how CPXTB payments work so they can assist customers who may have questions.
+                      </p>
+                    </div>
+                  </li>
+                  
+                  <li className="flex items-start gap-3">
+                    <div className="bg-primary/10 rounded-full p-1 mt-0.5">
+                      <Globe className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Online Promotion</p>
+                      <p className="text-sm text-muted-foreground">
+                        Mention on your website and social media that you accept CPXTB token payments to attract crypto-friendly customers.
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="pamphlet-preview">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Pamphlet Preview</CardTitle>
+                <CardDescription>Preview and print your payment instruction pamphlet</CardDescription>
+              </div>
+              <Button variant="ghost" onClick={() => setActiveTab("pamphlet")}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {selectedMerchant && (
+                <MerchantPamphlet 
+                  businessName={selectedMerchant.businessName} 
+                  walletAddress={selectedMerchant.walletAddress}
+                  logoUrl={selectedMerchant.logoUrl}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
         <TabsContent value="appearance">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Theme Templates */}

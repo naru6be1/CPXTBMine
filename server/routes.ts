@@ -1127,7 +1127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Also update the database to ensure future requests get the right status
         try {
-          await storage.updatePaymentStatus(payment.id, 'completed', payment.transactionHash);
+          await storage.updatePaymentStatus(payment.id, 'completed', payment.transactionHash || undefined);
           console.log(`✅ Successfully updated payment status in database for ${payment.id}`);
         } catch (dbError) {
           console.error(`❌ Failed to update payment status in database: ${dbError}`);

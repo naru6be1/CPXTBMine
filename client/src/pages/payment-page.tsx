@@ -595,30 +595,51 @@ export default function PaymentPage() {
     }
   }
 
-  // Status indicator
+  // Super aggressive status indicator that prioritizes completion detection
   const renderStatus = () => {
-    // Check if payment should be considered completed
-    const isZeroRemaining = 
+    // FINAL FIX: Much more aggressive checking to ensure payment is shown as completed
+    // when it actually is completed
+    
+    // Calculate payment completion status from scratch regardless of the status field
+    const receivedAmount = parseFloat(payment.receivedAmount || '0');
+    const requiredAmount = parseFloat(payment.requiredAmount || payment.amountCpxtb || '0');
+    const calculatedRemainingAmount = Math.max(0, requiredAmount - receivedAmount).toFixed(6);
+    
+    // Define multiple conditions that indicate completion
+    const hasZeroRemaining = 
       payment.remainingAmount === '0.000000' || 
-      parseFloat(payment.remainingAmount || '1') <= 0;
+      parseFloat(payment.remainingAmount || '1') <= 0 ||
+      calculatedRemainingAmount === '0.000000' ||
+      parseFloat(calculatedRemainingAmount) <= 0;
     
-    // Check if we should show a completed status (either status is completed or remaining is 0)
-    const showAsCompleted = payment.status === 'completed' || isZeroRemaining;
+    const hasReceivedEnough = receivedAmount >= requiredAmount;
+    const isExplicitlyCompleted = payment.status === 'completed';
     
-    // Log payment status debug info
-    console.log('Payment status evaluation:', {
-      status: payment.status,
-      remainingAmount: payment.remainingAmount,
-      isZeroRemaining,
-      showAsCompleted
+    // If ANY condition indicates completion, show as completed
+    const isEffectivelyCompleted = isExplicitlyCompleted || hasZeroRemaining || hasReceivedEnough;
+    
+    // Extensive logging to diagnose the issue
+    console.log('🔬 ENHANCED Payment status check (QR code page):', {
+      actualStatus: payment.status,
+      effectiveStatus: isEffectivelyCompleted ? 'completed' : payment.status,
+      receivedAmount,
+      requiredAmount,
+      storedRemainingAmount: payment.remainingAmount,
+      calculatedRemainingAmount,
+      isZeroRemaining: hasZeroRemaining,
+      hasReceivedEnough,
+      isExplicitlyCompleted,
+      paymentId: payment.id,
+      reference: payment.paymentReference,
+      transactionHash: payment.transactionHash,
+      completionTimestamp: new Date().toISOString()
     });
     
-    // If the payment is completed or the remaining amount is 0, show completed status
-    if (showAsCompleted) {
-      // If we're displaying a partial payment as completed due to zero remaining,
-      // log this condition to help with debugging
-      if (payment.status === 'partial' && isZeroRemaining) {
-        console.log('⚠️ Payment status says partial but remaining amount is zero - showing as completed anyway');
+    // If effectively completed, show completion status
+    if (isEffectivelyCompleted) {
+      // If we're fixing a status mismatch, log that fact
+      if (!isExplicitlyCompleted) {
+        console.log('⚠️ Auto-correcting display from ' + payment.status + ' to completed - zero remaining or received enough');
       }
       
       return (

@@ -329,19 +329,34 @@ export default function PaymentPage() {
           }));
           
           // Show notification only if we actually received payment
-          // FIXED: Add MULTIPLE STRICT validation checks - this is critical for security
+          // CRITICAL SECURITY ENHANCEMENT: Add comprehensive validation checks
+          // All of these conditions MUST be true for a payment to be considered valid:
+          const hasValidTxHash = !!data.transactionHash && 
+              typeof data.transactionHash === 'string' && 
+              data.transactionHash.startsWith('0x') && 
+              data.transactionHash.length === 66;
+              
+          // Create comprehensive validation report with new server-side security flag
+          const finalValidationReport = {
+            status: data.status,
+            receivedAmount,
+            requiredAmount,
+            hasActualCoins: receivedAmount > 0,
+            hasValidTxHash: hasValidTxHash,
+            securityCheckPassed: data.securityCheck === 'passed', // New server-side verification flag
+            percentReceived: data.percentReceived ? 
+              `${(data.percentReceived * 100).toFixed(2)}%` : 'unknown',
+            timestamp: new Date().toISOString()
+          };
+          
+          // ENHANCED SECURITY: Even more stringent validation before showing success notification
           if (data.status === 'completed' && 
               receivedAmount > 0 && 
-              data.transactionHash && 
+              hasValidTxHash && 
+              (data.securityCheck === 'passed' || !data.securityCheck) && // Support both new and old servers
               conditions.hasTransactionHash) {
             
-            console.log("✅✅✅ PAYMENT FULLY VERIFIED - All verification checks passed:", {
-              status: data.status,
-              receivedAmount,
-              hasTransaction: !!data.transactionHash,
-              receivedActualCoins: receivedAmount > 0,
-              timeVerified: new Date().toISOString()
-            });
+            console.log("✅✅✅ PAYMENT FULLY VERIFIED - All security checks passed:", finalValidationReport);
             
             toast({
               title: "Payment Completed!",

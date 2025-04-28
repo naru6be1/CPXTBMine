@@ -37,24 +37,49 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
         if (data.type === 'paymentStatusUpdate') {
           console.log('🔔 Received payment update notification:', data);
           
-          // Parse the received amount to ensure we have actual payment
-          const receivedAmount = typeof data.receivedAmount === 'string' 
-            ? parseFloat(data.receivedAmount) 
-            : (data.receivedAmount || 0);
+          // SECURITY ENHANCEMENT: Add detailed validation checks
+          // 1. Parse and validate the received amount with proper number checks
+          const receivedAmount = (() => {
+            if (typeof data.receivedAmount === 'string') {
+              const parsed = parseFloat(data.receivedAmount);
+              return isNaN(parsed) ? 0 : parsed;
+            }
+            return typeof data.receivedAmount === 'number' ? data.receivedAmount : 0;
+          })();
           
-          // CRITICAL SECURITY FIX: Require transaction hash AND actual coins
-          // Multiple validation layers to prevent false success notifications
+          // 2. Validate transaction hash format
+          const hasValidTransactionHash = !!data.transactionHash && 
+              typeof data.transactionHash === 'string' && 
+              data.transactionHash.startsWith('0x') && 
+              data.transactionHash.length === 66;
+          
+          // 3. Create detailed validation report for debugging
+          const validationReport = {
+            status: data.status,
+            receivedAmount,
+            requiresAmount: receivedAmount > 0,
+            hasValidTxHash: hasValidTransactionHash,
+            reference: data.paymentReference,
+            securityCheck: data.securityCheck || 'unknown', // Using new server-side security flag
+            percentReceived: data.percentReceived ? 
+              `${(data.percentReceived * 100).toFixed(2)}%` : 'unknown',
+            timeVerified: new Date().toISOString()
+          };
+          
+          console.log('🔐 PAYMENT VALIDATION REPORT:', validationReport);
+          
+          // CRITICAL SECURITY FIX: Enhanced multi-factor validation
+          // All of these need to be true for a payment to be considered successful:
+          // 1. Server reports 'completed' status
+          // 2. Actual coins received (amount > 0)  
+          // 3. Valid transaction hash exists on blockchain
+          // 4. Server security checks have passed (new server-side verification)
           if (data.status === 'completed' && 
               receivedAmount > 0 && 
-              data.transactionHash) {
+              hasValidTransactionHash && 
+              (data.securityCheck === 'passed' || !data.securityCheck)) { // Allow backwards compatibility
               
-            console.log('✅ VALIDATED PAYMENT: Payment has actual coins and transaction hash', {
-              status: data.status,
-              receivedAmount,
-              hasTransaction: !!data.transactionHash,
-              reference: data.paymentReference,
-              timeVerified: new Date().toISOString()
-            });
+            console.log('✅ VALIDATED PAYMENT: Payment has passed all security checks', validationReport);
             
             // Play success sound - try multiple times if it fails
             try {

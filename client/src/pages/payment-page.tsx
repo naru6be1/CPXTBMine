@@ -279,17 +279,13 @@ export default function PaymentPage() {
           // FIXED BUG: For partial payments, we need to be strict
           const isPartialPayment = data.status === 'partial';
           
-          // Decision logic - only treat as completed if explicitly completed
-          // or meets numeric criteria AND is not a partial payment
+          // FIXED STRICT VALIDATION: Only treat as completed if explicitly marked as completed
+          // OR has received sufficient coins with amount greater than 0
           const isEffectivelyCompleted = (
             // If explicitly marked as completed, honor that
             conditions.explicitlyCompleted || 
-            // OR if it meets our numeric criteria AND is not a partial payment
-            (!isPartialPayment && (
-              conditions.zeroRemaining || 
-              conditions.zeroRemainingExact || 
-              conditions.receivedEnough
-            ))
+            // OR if we've received sufficient coins AND amount is non-zero
+            (conditions.receivedEnough && receivedAmount > 0)
           );
           
           // Debug the decision process
@@ -331,8 +327,9 @@ export default function PaymentPage() {
             remainingAmount: correctedStatus === 'completed' ? '0.000000' : (data.remainingAmount || prevPayment.remainingAmount)
           }));
           
-          // Show notification
-          if (data.status === 'completed') {
+          // Show notification only if we actually received payment
+          // FIXED: Add strict validation to require actual coins received
+          if (data.status === 'completed' && receivedAmount > 0) {
             toast({
               title: "Payment Completed!",
               description: "The transaction has been confirmed on the blockchain",
@@ -342,7 +339,7 @@ export default function PaymentPage() {
             const audio = new Audio('/payment-success.mp3');
             audio.play().catch(e => console.error("Error playing audio:", e));
             
-            // Show success modal
+            // Show success modal only when we've actually received coins
             setShowSuccessModal(true);
           } else if (data.status === 'partial') {
             // Use remaining amount provided by server, or calculate it if not available

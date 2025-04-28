@@ -153,6 +153,10 @@ export const payments = pgTable("payments", {
   receivedAmount: numeric("received_amount", { precision: 20, scale: 8 }),
   requiredAmount: numeric("required_amount", { precision: 20, scale: 8 }),
   remainingAmount: numeric("remaining_amount", { precision: 20, scale: 8 }),
+  // Enhanced security fields
+  securityStatus: text("security_status").default("unknown"),
+  securityVerifiedAt: timestamp("security_verified_at"),
+  metadata: text("metadata"), // JSON storage for validation results and security checks
 });
 
 // Define relations

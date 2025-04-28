@@ -77,17 +77,47 @@ async function processTransferEvent(
           console.log(`Payment ${payment.id}: Required amount=${requiredAmount} CPXTB (${typeof requiredAmount}), Received amount=${receivedAmount} CPXTB (${typeof receivedAmount})`);
           console.log(`Original amountCpxtb from payment=${payment.amountCpxtb} (${typeof payment.amountCpxtb})`);
           
-          // Determine payment status based on amount comparison
+          // ENHANCED SECURITY: Stricter payment status determination
           let paymentStatus = 'pending';
           let shouldComplete = false;
+          let securityCheck = 'unknown';
           
+          // SECURITY CHECK: Ensure we have actual coins received (non-zero)
+          if (receivedAmount <= 0) {
+            console.error(`❌ SECURITY ALERT: Zero or negative amount detected in transaction ${txHash}`);
+            securityCheck = 'failed';
+            continue; // Skip this payment entirely - potentially malicious transaction
+          }
+          
+          // Create comprehensive validation report
+          const validationReport = {
+            paymentId: payment.id,
+            paymentReference: payment.paymentReference,
+            merchantAddress: merchantAddress,
+            transactionHash: txHash,
+            requiredAmount: requiredAmount,
+            receivedAmount: receivedAmount,
+            percentReceived: (receivedAmount / requiredAmount * 100).toFixed(2) + '%',
+            sufficientAmount: receivedAmount >= requiredAmount,
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log('🔐 PAYMENT VALIDATION REPORT:', validationReport);
+          
+          // Determine payment status based on amount comparison
           if (receivedAmount >= requiredAmount) {
             paymentStatus = 'completed';
             shouldComplete = true;
+            securityCheck = 'passed';
             console.log(`✅ Received amount (${receivedAmount}) is sufficient for payment ${payment.id}`);
+          } else if (receivedAmount >= requiredAmount * 0.1) { // At least 10% paid
+            paymentStatus = 'partial';
+            securityCheck = 'passed'; // Allow partial payments that reach at least 10%
+            console.log(`⚠️ Partial payment: Required ${requiredAmount} CPXTB but received ${receivedAmount} CPXTB (${(receivedAmount/requiredAmount*100).toFixed(2)}%)`);
           } else {
             paymentStatus = 'partial';
-            console.log(`⚠️ Insufficient payment: Required ${requiredAmount} CPXTB but received only ${receivedAmount} CPXTB`);
+            securityCheck = 'failed'; // Too small payment - might be dust/spam
+            console.log(`⚠️ SUSPICIOUS: Tiny payment detected: Required ${requiredAmount} CPXTB but received only ${receivedAmount} CPXTB`);
           }
           
           try {
@@ -123,6 +153,13 @@ async function processTransferEvent(
               console.log(`Payment ${payment.id}: Setting remainingAmount to ${remainingAmount}`);
             }
             
+            // ENHANCED SECURITY: Record security check status
+            const securityMetadata = {
+              validationTimestamp: new Date().toISOString(),
+              securityCheck,
+              validationReport
+            };
+            
             // Update payment status in storage with all payment details
             await storage.updatePaymentStatus(
               payment.id, 
@@ -130,11 +167,12 @@ async function processTransferEvent(
               txHash, 
               totalReceivedAmount, // Use the summed amount
               requiredAmount,
-              remainingAmount
+              remainingAmount,
+              JSON.stringify(securityMetadata) // Store security check metadata
             );
             
-            // Extra safety - update directly in database too
-            if (shouldComplete) {
+            // Extra safety - update directly in database too with security information
+            if (shouldComplete && securityCheck === 'passed') {
               await db.update(payments)
                 .set({
                   status: 'completed', // Always use 'completed' here to ensure consistency
@@ -143,11 +181,17 @@ async function processTransferEvent(
                   completedAt: new Date(),
                   receivedAmount: totalReceivedAmount.toString(), // Use total amount received
                   requiredAmount: requiredAmount.toString(),
-                  remainingAmount: '0.000000' // Explicitly set to zero
+                  remainingAmount: '0.000000', // Explicitly set to zero
+                  metadata: JSON.stringify({
+                    ...JSON.parse(payment.metadata || '{}'),
+                    securityStatus: 'passed',
+                    verifiedAt: new Date().toISOString(),
+                    validationReport
+                  })
                 })
                 .where(eq(payments.id, payment.id));
               
-              console.log(`✅ Payment ${payment.id} (${payment.paymentReference}) marked as completed with tx hash ${txHash}`);
+              console.log(`✅ Payment ${payment.id} (${payment.paymentReference}) SECURELY marked as completed with tx hash ${txHash}`);
             } else {
               await db.update(payments)
                 .set({
@@ -156,11 +200,17 @@ async function processTransferEvent(
                   updatedAt: new Date(),
                   receivedAmount: totalReceivedAmount.toString(), // Use the summed amount
                   requiredAmount: requiredAmount.toString(),
-                  remainingAmount: remainingAmount.toString()
+                  remainingAmount: remainingAmount.toString(),
+                  metadata: JSON.stringify({
+                    ...JSON.parse(payment.metadata || '{}'),
+                    securityStatus: securityCheck,
+                    partialVerifiedAt: new Date().toISOString(),
+                    validationReport
+                  })
                 })
                 .where(eq(payments.id, payment.id));
               
-              console.log(`🔄 Payment ${payment.id} marked as partially paid with tx hash ${txHash}, received: ${receivedAmount}, required: ${requiredAmount}`);
+              console.log(`🔄 Payment ${payment.id} marked as ${paymentStatus} with security status ${securityCheck}, tx hash ${txHash}, received: ${receivedAmount}, required: ${requiredAmount}`);
             }
             
             // Broadcast payment status update only to the relevant merchant
@@ -169,7 +219,7 @@ async function processTransferEvent(
               const wss = (global as any).wss;
               
               if (wss) {
-                // Create notification payload with more detailed information
+                // Create enhanced notification payload with security information
                 const notificationPayload = {
                   type: 'paymentStatusUpdate',
                   merchantId: payment.merchantId, // Include merchantId to filter recipients
@@ -185,7 +235,18 @@ async function processTransferEvent(
                   requiredAmount: requiredAmount.toString(),
                   amountCpxtb: payment.amountCpxtb,
                   // Use the already calculated remaining amount value
-                  remainingAmount: shouldComplete ? '0.000000' : remainingAmount
+                  remainingAmount: shouldComplete ? '0.000000' : remainingAmount,
+                  // ENHANCED SECURITY: Add security fields to notification
+                  securityStatus: securityCheck,
+                  validationTimestamp: new Date().toISOString(),
+                  // Include security indicators for UI handling
+                  // Only allow payment completion if security checks passed
+                  isSecureTransaction: securityCheck === 'passed',
+                  verificationDetails: {
+                    receivedPercentage: (totalReceivedAmount / requiredAmount * 100).toFixed(2) + '%',
+                    hasActualCoins: totalReceivedAmount > 0,
+                    isVerifiedOnBlockchain: true,
+                  }
                 };
                 
                 console.log(`📢 Broadcasting payment update to WebSocket clients for merchant ID: ${payment.merchantId}`);

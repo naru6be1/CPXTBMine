@@ -37,7 +37,19 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
         if (data.type === 'paymentStatusUpdate') {
           console.log('🔔 Received payment update notification:', data);
           
-          if (data.status === 'completed') {
+          // Parse the received amount to ensure we have actual payment
+          const receivedAmount = typeof data.receivedAmount === 'string' 
+            ? parseFloat(data.receivedAmount) 
+            : (data.receivedAmount || 0);
+          
+          // Only process completed payments that have received actual coins
+          if (data.status === 'completed' && receivedAmount > 0) {
+            console.log('✅ VALIDATED PAYMENT: Payment has actual coins', {
+              status: data.status,
+              receivedAmount,
+              reference: data.paymentReference
+            });
+            
             // Play success sound - try multiple times if it fails
             try {
               const audio = new Audio('/sound/payment-success.mp3');

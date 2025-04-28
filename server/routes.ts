@@ -1010,6 +1010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         merchant.walletAddress
       );
       
+      // ENHANCED VERIFICATION: Validate both the transaction verification and the amount
       if (!verificationResult.verified) {
         return res.status(400).json({ 
           verified: false, 
@@ -1017,11 +1018,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Update payment status
+      // FIXED: Extra validation for zero-value transactions
+      if (verificationResult.amount <= 0) {
+        return res.status(400).json({
+          verified: false,
+          message: `Transaction contains zero or invalid amount: ${verificationResult.amount} CPXTB`
+        });
+      }
+      
+      console.log(`✅ Payment ${payment.id} verified with actual coins received: ${verificationResult.amount} CPXTB`);
+      
+      // Update payment status including the verified amount
       const updatedPayment = await storage.updatePaymentStatus(
         payment.id, 
         'completed',
-        transactionHash
+        transactionHash,
+        verificationResult.amount, // Use the actual verified amount from the blockchain
+        payment.amountCpxtb,
+        '0.000000' // Mark remaining amount as zero since we're considering it complete
       );
       
       // Send notification about the completed payment

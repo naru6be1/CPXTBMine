@@ -106,12 +106,20 @@ async function processTransferEvent(
             const remainingAmount = Math.max(0, requiredAmount - totalReceivedAmount).toFixed(6);
             console.log(`Total received so far: ${totalReceivedAmount} CPXTB, Remaining: ${remainingAmount} CPXTB`);
             
-            // Check if we should set the payment to completed based on the total
-            if (totalReceivedAmount >= requiredAmount) {
+            // FIXED: Enhanced payment validation to ensure actual payment is received
+            // Check if we should set the payment to completed based on the total amount received
+            if (totalReceivedAmount > 0 && totalReceivedAmount >= requiredAmount) {
+              // Only mark as completed if actual coins were received (amount > 0)
               paymentStatus = 'completed';
               shouldComplete = true;
-              console.log(`Payment ${payment.id}: Setting remainingAmount to 0.000000 and status to completed`);
+              console.log(`Payment ${payment.id}: Received actual coins (${totalReceivedAmount} CPXTB). Setting remainingAmount to 0.000000 and status to completed`);
+            } else if (totalReceivedAmount === 0) {
+              // Special case warning for transactions with zero value
+              console.warn(`⚠️ Payment ${payment.id}: Transaction detected but with ZERO coins received. NOT marking as completed!`);
+              shouldComplete = false;
+              paymentStatus = 'pending'; // Keep as pending if no coins were actually received
             } else {
+              // For partial payments
               console.log(`Payment ${payment.id}: Setting remainingAmount to ${remainingAmount}`);
             }
             
@@ -189,8 +197,11 @@ async function processTransferEvent(
                     // Only send to clients that:
                     // 1. Have the same merchantId as the payment
                     // 2. Or have the merchant's wallet address
-                    if (client.merchantId === payment.merchantId || 
-                        (client.walletAddress && client.walletAddress.toLowerCase() === merchantAddress)) {
+                    // ADDITIONAL SAFETY: Only send notifications for payments with actual coins received
+                    if ((client.merchantId === payment.merchantId || 
+                        (client.walletAddress && client.walletAddress.toLowerCase() === merchantAddress)) &&
+                        totalReceivedAmount > 0) { // Only notify if actual coins were received
+                      console.log(`💲 Sending payment notification for ${totalReceivedAmount} CPXTB received`);
                       client.send(JSON.stringify(notificationPayload));
                     }
                   }

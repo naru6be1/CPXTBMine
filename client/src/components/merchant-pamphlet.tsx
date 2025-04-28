@@ -283,20 +283,20 @@ export function MerchantPamphlet({
         // Calculate position for QR code - find its relative position in the pamphlet
         const qrBoxSize = Math.min(pdfWidth * 0.25, pdfHeight * 0.25); // Take smaller dimension for consistent sizing
         const qrPosition = {
-          x: pdfWidth * 0.17, // Adjusted for better centering in the left column
-          y: pdfHeight * 0.35, // Approximately 1/3 of the way down
+          x: pdfWidth * 0.12, // Moved further left
+          y: pdfHeight * 0.30, // Moved further up
           width: qrBoxSize, // Square sizing based on page dimensions
           height: qrBoxSize // Square, so same as width
         };
         
-        // Draw a white background for the QR code
+        // Draw a white background for the QR code with larger padding
         doc.setFillColor(255, 255, 255);
-        doc.rect(qrPosition.x - 2, qrPosition.y - 2, qrPosition.width + 4, qrPosition.height + 4, 'F');
+        doc.rect(qrPosition.x - 5, qrPosition.y - 5, qrPosition.width + 10, qrPosition.height + 10, 'F');
         
-        // Draw a border
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.5);
-        doc.rect(qrPosition.x - 2, qrPosition.y - 2, qrPosition.width + 4, qrPosition.height + 4, 'S');
+        // Draw a border with primary color
+        doc.setDrawColor(0, 78, 152); // Primary blue color 
+        doc.setLineWidth(1.5);
+        doc.rect(qrPosition.x - 5, qrPosition.y - 5, qrPosition.width + 10, qrPosition.height + 10, 'S');
         
         // Add the QR code image on top of this
         doc.addImage(qrCodeImage, 'PNG', qrPosition.x, qrPosition.y, qrPosition.width, qrPosition.height);

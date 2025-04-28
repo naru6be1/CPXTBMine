@@ -203,9 +203,9 @@ export default function MerchantDashboard() {
   });
 
   // Payment creation state
+  // Removed orderId field as per user request
   const [paymentForm, setPaymentForm] = useState({
     amountUsd: "",
-    orderId: "",
     description: ""
   });
 
@@ -570,9 +570,9 @@ export default function MerchantDashboard() {
       console.log("Using merchant ID:", selectedMerchant.id);
       
       // Define data to send - explicitly extract from form data and selectedMerchant
+      // Removed orderId field as per user request
       const paymentData = {
         amountUsd: formData.amountUsd,
-        orderId: formData.orderId,
         description: formData.description,
         merchantId: selectedMerchant.id
       };
@@ -696,15 +696,7 @@ export default function MerchantDashboard() {
       return;
     }
     
-    // Order ID validation
-    if (!paymentForm.orderId || paymentForm.orderId.trim() === '') {
-      toast({
-        title: "Missing order ID",
-        description: "Please enter an order ID for this payment",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Order ID validation removed as per user request
     
     console.log("Submitting payment with validated merchant:", {
       id: selectedMerchant.id,
@@ -1883,18 +1875,7 @@ export default function MerchantDashboard() {
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="orderId">Order ID</Label>
-                    <Input 
-                      id="orderId"
-                      name="orderId"
-                      placeholder="Order reference"
-                      value={paymentForm.orderId}
-                      onChange={handlePaymentFormChange}
-                      required
-                    />
-                  </div>
-                  
+                  {/* Order ID field removed as per user request */}
                   <div className="space-y-2">
                     <Label htmlFor="description">Description (Optional)</Label>
                     <Input 

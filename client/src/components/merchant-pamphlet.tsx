@@ -281,11 +281,12 @@ export function MerchantPamphlet({
       // If we have a QR code image, add it directly to the PDF as well for guaranteed visibility
       if (qrCodeImage) {
         // Calculate position for QR code - find its relative position in the pamphlet
+        const qrBoxSize = Math.min(pdfWidth * 0.25, pdfHeight * 0.25); // Take smaller dimension for consistent sizing
         const qrPosition = {
-          x: pdfWidth * 0.175, // Adjusted for better centering in the left column
+          x: pdfWidth * 0.17, // Adjusted for better centering in the left column
           y: pdfHeight * 0.35, // Approximately 1/3 of the way down
-          width: pdfWidth * 0.25, // Slightly larger for better visibility
-          height: pdfWidth * 0.25 // Square, so same as width
+          width: qrBoxSize, // Square sizing based on page dimensions
+          height: qrBoxSize // Square, so same as width
         };
         
         // Draw a white background for the QR code
@@ -397,8 +398,8 @@ export function MerchantPamphlet({
         <div className="text-center">
           <div 
             ref={qrCodeRef} 
-            className="qr-code-wrapper border-4 border-primary p-3 rounded-lg bg-white mb-4 inline-flex items-center justify-center"
-            style={{ width: '220px', height: '220px' }}
+            className="qr-code-wrapper border-4 border-primary rounded-lg bg-white mb-4 inline-flex items-center justify-center"
+            style={{ width: '212px', height: '212px', padding: '6px' }}
           >
             {prerenderedQrCode ? (
               <img 
@@ -407,7 +408,7 @@ export function MerchantPamphlet({
                 width={200}
                 height={200}
                 className="block"
-                style={{ objectFit: 'contain' }}
+                style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
               />
             ) : (
               <QRCodeSVG 

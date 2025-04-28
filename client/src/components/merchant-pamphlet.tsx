@@ -282,10 +282,10 @@ export function MerchantPamphlet({
       if (qrCodeImage) {
         // Calculate position for QR code - find its relative position in the pamphlet
         const qrPosition = {
-          x: pdfWidth * 0.25, // Approximately 1/4 of the way across
+          x: pdfWidth * 0.175, // Adjusted for better centering in the left column
           y: pdfHeight * 0.35, // Approximately 1/3 of the way down
-          width: pdfWidth * 0.2, // About 20% of page width
-          height: pdfWidth * 0.2 // Square, so same as width
+          width: pdfWidth * 0.25, // Slightly larger for better visibility
+          height: pdfWidth * 0.25 // Square, so same as width
         };
         
         // Draw a white background for the QR code
@@ -397,7 +397,8 @@ export function MerchantPamphlet({
         <div className="text-center">
           <div 
             ref={qrCodeRef} 
-            className="qr-code-wrapper border-4 border-primary p-3 rounded-lg bg-white mb-4 inline-block"
+            className="qr-code-wrapper border-4 border-primary p-3 rounded-lg bg-white mb-4 inline-flex items-center justify-center"
+            style={{ width: '220px', height: '220px' }}
           >
             {prerenderedQrCode ? (
               <img 
@@ -406,6 +407,7 @@ export function MerchantPamphlet({
                 width={200}
                 height={200}
                 className="block"
+                style={{ objectFit: 'contain' }}
               />
             ) : (
               <QRCodeSVG 
@@ -500,6 +502,15 @@ export function MerchantPamphlet({
             top: 0;
             width: 100%;
             padding: 20px;
+          }
+          
+          .qr-code-wrapper {
+            margin-left: auto;
+            margin-right: auto;
+            border-width: 4px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
           }
           
           .print\\:hidden {

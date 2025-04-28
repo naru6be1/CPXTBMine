@@ -259,14 +259,57 @@ const getCurrentCpxtbPrice = async (): Promise<number> => {
 // SECURITY CRITICAL - Enhanced transaction verification function with strict validation
 const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, toAddress: string) => {
   try {
-    // SECURITY CHECK: Validate transaction hash format
-    if (!txHash || !txHash.startsWith('0x') || txHash.length !== 66) {
+    // VERSION 2.0 ENHANCED VALIDATION:
+    // Create a comprehensive validation system that tracks all security checks
+    const validationResults = {
+      // Format checks
+      hasValidTxFormat: false,
+      hasValidToAddress: false,
+      hasValidExpectedAmount: false,
+      
+      // Blockchain verification
+      transactionExists: false,
+      hasConfirmations: false,
+      confirmedOnChain: false,
+      
+      // Token transfer verification
+      hasTransferEvent: false,
+      receiverMatches: false,
+      tokenAddressMatches: false,
+      transferAmountPositive: false,
+      transferAmountSufficient: false,
+      
+      // Detailed data
+      expectedAmount: 0,
+      actualAmount: 0,
+      confirmationCount: 0,
+      percentReceived: 0,
+      
+      // Final results
+      allChecksPass: false,
+      securityVerdict: 'pending'
+    };
+    
+    // STEP 1: Input validation
+    validationResults.hasValidTxFormat = !!txHash && txHash.startsWith('0x') && txHash.length === 66;
+    validationResults.hasValidToAddress = !!toAddress && toAddress.startsWith('0x') && toAddress.length === 42;
+    
+    try {
+      validationResults.expectedAmount = parseFloat(expectedAmount);
+      validationResults.hasValidExpectedAmount = !isNaN(validationResults.expectedAmount) && validationResults.expectedAmount > 0;
+    } catch (e) {
+      validationResults.hasValidExpectedAmount = false;
+    }
+    
+    // Early termination if basic validation fails
+    if (!validationResults.hasValidTxFormat) {
       console.error(`❌ CRITICAL VALIDATION FAILURE: Invalid transaction hash format: ${txHash}`);
       return { 
         verified: false, 
         reason: 'Invalid transaction hash format', 
         amount: 0,
-        securityCheck: 'failed' 
+        securityCheck: 'failed',
+        validationResults 
       };
     }
     
@@ -286,39 +329,65 @@ const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, to
       hash: txHash as `0x${string}` 
     });
     
-    // SECURITY CHECK: Confirm transaction exists and completed
+    // STEP 2: Blockchain transaction validation
     if (!receipt) {
       console.error(`❌ CRITICAL VALIDATION FAILURE: No receipt found for transaction: ${txHash}`);
+      validationResults.transactionExists = false;
+      validationResults.securityVerdict = 'failed';
       return { 
         verified: false, 
         reason: 'Transaction not found', 
         amount: 0,
-        securityCheck: 'failed' 
+        securityCheck: 'failed',
+        validationResults
       };
     }
     
-    // SECURITY CHECK: Ensure the transaction has at least 1 confirmation
+    // Mark transaction as existing
+    validationResults.transactionExists = true;
+    
+    // Calculate confirmations
     const confirmations = receipt.blockNumber ? Number(currentBlock - receipt.blockNumber) + 1 : 0;
+    validationResults.confirmationCount = confirmations;
+    
     console.log(`Transaction has ${confirmations} confirmations. Current block: ${currentBlock}, Tx block: ${receipt.blockNumber}`);
     
+    // Validate confirmation count
     if (confirmations < 1) {
       console.error(`❌ VALIDATION FAILURE: Transaction has insufficient confirmations: ${confirmations}`);
+      validationResults.hasConfirmations = false;
+      validationResults.securityVerdict = 'failed';
       return { 
         verified: false, 
         reason: 'Insufficient confirmations', 
         confirmations: confirmations.toString(),
         amount: 0,
-        securityCheck: 'failed' 
+        securityCheck: 'failed',
+        validationResults
       };
     }
     
-    // Check if transaction was successful
+    // Mark as having sufficient confirmations
+    validationResults.hasConfirmations = true;
+    
+    // STEP 3: Check on-chain transaction success
     if (receipt.status !== 'success') {
       console.error(`❌ VALIDATION FAILURE: Transaction failed with status: ${receipt.status}`);
-      return { verified: false, reason: 'Transaction failed', amount: 0 };
+      validationResults.confirmedOnChain = false;
+      validationResults.securityVerdict = 'failed';
+      return { 
+        verified: false, 
+        reason: 'Transaction failed', 
+        amount: 0,
+        securityCheck: 'failed',
+        validationResults
+      };
     }
     
-    // Get the transaction to verify CPXTB token transfer
+    // Mark transaction as confirmed on chain
+    validationResults.confirmedOnChain = true;
+    
+    // STEP 4: CPXTB token transfer verification
     console.log(`Verifying transaction ${txHash} for CPXTB tokens sent to ${toAddress}...`);
     
     try {
@@ -337,13 +406,28 @@ const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, to
       
       if (!transferLog) {
         console.log(`❌ No Transfer event found to ${toAddress} in transaction ${txHash}`);
+        validationResults.hasTransferEvent = false;
+        validationResults.securityVerdict = 'failed';
         return { 
           verified: false, 
           reason: 'No CPXTB transfer found to recipient address', 
           amount: 0,
-          receipt 
+          receipt,
+          securityCheck: 'failed',
+          validationResults
         };
       }
+      
+      // Mark as having transfer event
+      validationResults.hasTransferEvent = true;
+      
+      // Verify recipient address matches (double check)
+      validationResults.receiverMatches = 
+        transferLog.args.to?.toLowerCase() === toAddress.toLowerCase();
+        
+      // Verify token address matches CPXTB
+      validationResults.tokenAddressMatches = 
+        transferLog.address.toLowerCase() === CPXTB_TOKEN_ADDRESS.toLowerCase();
       
       // Get the amount transferred from the log
       const amountTransferred = transferLog.args.value || BigInt(0);
@@ -359,30 +443,44 @@ const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, to
         tokenAddressMatches: transferLog.address.toLowerCase() === CPXTB_TOKEN_ADDRESS.toLowerCase()
       });
       
-      // STRICT VALIDATION: Validate the actual transferred amount (with exact amount checking)
-      if (amountInCPXTB <= 0) {
+      // STEP 5: Amount validation - populate validation results
+      validationResults.actualAmount = amountInCPXTB;
+      
+      // Check if amount is positive
+      validationResults.transferAmountPositive = amountInCPXTB > 0;
+      
+      if (!validationResults.transferAmountPositive) {
         console.error(`❌ CRITICAL VALIDATION FAILURE: Zero or negative amount (${amountInCPXTB}) transferred in transaction ${txHash}`);
+        validationResults.securityVerdict = 'failed';
         return { 
           verified: false, 
           reason: 'Zero or negative amount transferred', 
           amount: amountInCPXTB,
           receipt,
-          securityCheck: 'failed'
+          securityCheck: 'failed',
+          validationResults
         };
       }
       
-      // STRICT VALIDATION: Validate that the transferred amount is sufficient
+      // Validate sufficient amount vs expected amount
       const expectedAmountFloat = parseFloat(expectedAmount);
+      validationResults.expectedAmount = expectedAmountFloat;
+      
       const minimumRequiredPercentage = 0.98; // Allow for small rounding differences (2% tolerance)
       const receivedPercentage = amountInCPXTB / expectedAmountFloat;
+      validationResults.percentReceived = receivedPercentage;
       
       console.log(`Payment amount validation - Expected: ${expectedAmountFloat}, Received: ${amountInCPXTB}, Percentage: ${receivedPercentage * 100}%`);
       
-      if (receivedPercentage < minimumRequiredPercentage) {
+      // Check if received enough
+      validationResults.transferAmountSufficient = receivedPercentage >= minimumRequiredPercentage;
+      
+      if (!validationResults.transferAmountSufficient) {
         console.error(`⚠️ VALIDATION WARNING: Insufficient amount transferred - Expected ${expectedAmountFloat} but received only ${amountInCPXTB} CPXTB (${receivedPercentage * 100}%)`);
         
         // If it's a very small amount (less than 10% of expected), treat it as a failed verification
         if (receivedPercentage < 0.1) {
+          validationResults.securityVerdict = 'failed';
           return { 
             verified: false, 
             reason: 'Amount transferred is less than 10% of expected amount', 
@@ -390,19 +488,40 @@ const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, to
             expectedAmount: expectedAmountFloat,
             percentReceived: receivedPercentage,
             receipt,
-            securityCheck: 'failed'
+            securityCheck: 'failed',
+            validationResults
           };
         }
       }
       
-      // All checks passed, return success with the verified amount
+      // STEP 6: Final validation verdict
+      // Check if all critical checks passed
+      validationResults.allChecksPass = 
+        validationResults.hasValidTxFormat &&
+        validationResults.transactionExists &&
+        validationResults.hasConfirmations &&
+        validationResults.confirmedOnChain &&
+        validationResults.hasTransferEvent &&
+        validationResults.receiverMatches &&
+        validationResults.tokenAddressMatches &&
+        validationResults.transferAmountPositive &&
+        (validationResults.transferAmountSufficient || receivedPercentage >= 0.1); // Allow partial payments above 10%
+      
+      // Set final security verdict
+      validationResults.securityVerdict = validationResults.allChecksPass ? 'passed' : 'failed';
+      
+      // Log complete validation report
+      console.log('🔐 COMPLETE TRANSACTION VALIDATION REPORT:', validationResults);
+      
+      // All checks passed, return success with the verified amount and detailed validation results
       return { 
         verified: true, 
         amount: amountInCPXTB,
         expectedAmount: expectedAmountFloat,
         percentReceived: receivedPercentage,
         receipt,
-        securityCheck: 'passed'
+        securityCheck: validationResults.securityVerdict,
+        validationResults
       };
     } catch (logError: any) {
       console.error('Error verifying transaction logs:', logError);

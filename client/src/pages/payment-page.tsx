@@ -850,17 +850,31 @@ export default function PaymentPage() {
     // If ANY completion condition is met and we're not certain it's a partial payment,
     // mark as effectively completed
     
-    // NEW FIX FOR TRANSACTION HASH CASE: 
-    // If transaction hash is present and amount is sufficient, ALWAYS mark as completed
-    // regardless of server-side status (this fixes the "QR code scanned but payment not showing completed" bug)
-    const hasTransactionAndSufficientPayment = hasTransactionHash && hasReceivedEnough;
+    // ENHANCED SECURITY: Transaction hash validation
+    // Check if transaction hash is present, valid format, and amount is sufficient
+    const isValidTxHash = hasTransactionHash && 
+                        payment.transactionHash.startsWith("0x") && 
+                        payment.transactionHash.length === 66; // Exact length for Ethereum tx hash
+                        
+    const hasTransactionAndSufficientPayment = isValidTxHash && 
+                                              hasReceivedEnough && 
+                                              receivedAmount > 0;
     
-    // FIXED: Only consider a payment completed if we've actually received enough coins
-    // or the server has explicitly marked it as completed
+    // NEW SERVER-SIDE SECURITY CHECK: Check for additional security verification
+    // Use server's explicit security check flag if present (backwards compatible)
+    const hasPassedServerSecurityCheck = payment.securityCheck === 'passed' || 
+                                        !payment.hasOwnProperty('securityCheck');
+    
+    // ENHANCED COMPLETION VERIFICATION: Multiple conditions must be met
+    // 1. Server explicitly marks as completed OR
+    // 2. We have valid transaction hash, sufficient payment, AND pass server security checks
     const isEffectivelyCompleted = (
+      // Explicit server-side completion
       isExplicitlyCompleted || 
-      (hasReceivedEnough && receivedAmount > 0) || 
-      hasTransactionAndSufficientPayment
+      // OR comprehensive transaction verification
+      (hasTransactionAndSufficientPayment && 
+       hasPassedServerSecurityCheck && 
+       receivedAmount > 0)
     );
     
     // Extensive logging to diagnose the issue
@@ -1002,20 +1016,32 @@ export default function PaymentPage() {
         </div>
       );
     } else {
-      // Debug why we're reaching the pending state
-      console.log('⚠️ Rendering PENDING status even though we should be completed! Payment data:', {
+      // Enhanced diagnostic logging for pending state
+      console.log('⚠️ Detailed PENDING state diagnostics:', {
         status: payment.status,
-        receivedAmount: payment.receivedAmount,
-        requiredAmount: payment.requiredAmount,
+        receivedAmount,
+        requiredAmount,
         remainingAmount: payment.remainingAmount,
-        isZeroRemaining: payment.remainingAmount === '0.000000' || parseFloat(payment.remainingAmount || '1') <= 0
+        isZeroRemaining: hasZeroRemaining,
+        hasValidTxHash: isValidTxHash,
+        hasTransactionHash: payment.transactionHash ? true : false,
+        txHashFormat: payment.transactionHash 
+          ? `${payment.transactionHash.substring(0, 10)}...${payment.transactionHash.substring(60)}` 
+          : 'none',
+        securityCheck: payment.securityCheck || 'not available',
+        isPossiblyFalsePositive: payment.receivedAmount && parseFloat(payment.receivedAmount.toString()) > 0 
+          && !payment.transactionHash
       });
       
-      // FIXED: Only show completed for 'completed' status and not based on remainingAmount
-      // This is a critical fix for the payment completed bug that shows completed without payment
+      // CRITICAL SECURITY FIX: Implement comprehensive validation
+      // Only show completed when:
+      // 1. Server says completed status AND
+      // 2. We have actual coins received AND
+      // 3. We have a valid transaction hash
       const shouldBeCompleted = payment.status === 'completed' && 
-                              (payment.receivedAmount !== undefined && 
-                               parseFloat(payment.receivedAmount?.toString() || '0') > 0);
+                              receivedAmount > 0 && 
+                              isValidTxHash && 
+                              (payment.securityCheck === 'passed' || !payment.hasOwnProperty('securityCheck'));
       
       if (shouldBeCompleted) {
         console.log('🔄 Detected payment should be completed (server confirmed) - forcing completed display');

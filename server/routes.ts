@@ -256,22 +256,65 @@ const getCurrentCpxtbPrice = async (): Promise<number> => {
 };
 
 // Helper function to verify a CPXTB token transaction on the blockchain
-// Enhanced transaction verification function to validate actual amounts
+// SECURITY CRITICAL - Enhanced transaction verification function with strict validation
 const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, toAddress: string) => {
   try {
+    // SECURITY CHECK: Validate transaction hash format
+    if (!txHash || !txHash.startsWith('0x') || txHash.length !== 66) {
+      console.error(`❌ CRITICAL VALIDATION FAILURE: Invalid transaction hash format: ${txHash}`);
+      return { 
+        verified: false, 
+        reason: 'Invalid transaction hash format', 
+        amount: 0,
+        securityCheck: 'failed' 
+      };
+    }
+    
     // Create Base network client
     const baseClient = createPublicClient({
       chain: base,
       transport: http(BASE_RPC_URL)
     });
     
+    // SECURITY CHECK: Get current block for confirmation validation
+    const currentBlock = await baseClient.getBlockNumber();
+    const currentBlockNumber = Number(currentBlock);
+    
     // Get transaction receipt
+    console.log(`🔍 Verifying transaction with hash: ${txHash}`);
     const receipt = await baseClient.getTransactionReceipt({ 
       hash: txHash as `0x${string}` 
     });
     
+    // SECURITY CHECK: Confirm transaction exists and completed
+    if (!receipt) {
+      console.error(`❌ CRITICAL VALIDATION FAILURE: No receipt found for transaction: ${txHash}`);
+      return { 
+        verified: false, 
+        reason: 'Transaction not found', 
+        amount: 0,
+        securityCheck: 'failed' 
+      };
+    }
+    
+    // SECURITY CHECK: Ensure the transaction has at least 1 confirmation
+    const confirmations = receipt.blockNumber ? Number(currentBlock - receipt.blockNumber) + 1 : 0;
+    console.log(`Transaction has ${confirmations} confirmations. Current block: ${currentBlock}, Tx block: ${receipt.blockNumber}`);
+    
+    if (confirmations < 1) {
+      console.error(`❌ VALIDATION FAILURE: Transaction has insufficient confirmations: ${confirmations}`);
+      return { 
+        verified: false, 
+        reason: 'Insufficient confirmations', 
+        confirmations: confirmations.toString(),
+        amount: 0,
+        securityCheck: 'failed' 
+      };
+    }
+    
     // Check if transaction was successful
     if (receipt.status !== 'success') {
+      console.error(`❌ VALIDATION FAILURE: Transaction failed with status: ${receipt.status}`);
       return { verified: false, reason: 'Transaction failed', amount: 0 };
     }
     
@@ -316,21 +359,50 @@ const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, to
         tokenAddressMatches: transferLog.address.toLowerCase() === CPXTB_TOKEN_ADDRESS.toLowerCase()
       });
       
-      // Validate the actual transferred amount (with exact amount checking)
+      // STRICT VALIDATION: Validate the actual transferred amount (with exact amount checking)
       if (amountInCPXTB <= 0) {
+        console.error(`❌ CRITICAL VALIDATION FAILURE: Zero or negative amount (${amountInCPXTB}) transferred in transaction ${txHash}`);
         return { 
           verified: false, 
           reason: 'Zero or negative amount transferred', 
           amount: amountInCPXTB,
-          receipt 
+          receipt,
+          securityCheck: 'failed'
         };
+      }
+      
+      // STRICT VALIDATION: Validate that the transferred amount is sufficient
+      const expectedAmountFloat = parseFloat(expectedAmount);
+      const minimumRequiredPercentage = 0.98; // Allow for small rounding differences (2% tolerance)
+      const receivedPercentage = amountInCPXTB / expectedAmountFloat;
+      
+      console.log(`Payment amount validation - Expected: ${expectedAmountFloat}, Received: ${amountInCPXTB}, Percentage: ${receivedPercentage * 100}%`);
+      
+      if (receivedPercentage < minimumRequiredPercentage) {
+        console.error(`⚠️ VALIDATION WARNING: Insufficient amount transferred - Expected ${expectedAmountFloat} but received only ${amountInCPXTB} CPXTB (${receivedPercentage * 100}%)`);
+        
+        // If it's a very small amount (less than 10% of expected), treat it as a failed verification
+        if (receivedPercentage < 0.1) {
+          return { 
+            verified: false, 
+            reason: 'Amount transferred is less than 10% of expected amount', 
+            amount: amountInCPXTB,
+            expectedAmount: expectedAmountFloat,
+            percentReceived: receivedPercentage,
+            receipt,
+            securityCheck: 'failed'
+          };
+        }
       }
       
       // All checks passed, return success with the verified amount
       return { 
         verified: true, 
         amount: amountInCPXTB,
-        receipt 
+        expectedAmount: expectedAmountFloat,
+        percentReceived: receivedPercentage,
+        receipt,
+        securityCheck: 'passed'
       };
     } catch (logError: any) {
       console.error('Error verifying transaction logs:', logError);

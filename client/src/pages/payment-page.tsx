@@ -276,16 +276,17 @@ export default function PaymentPage() {
             hasTransactionHash: !!data.transactionHash,
           };
           
-          // FIXED BUG: For partial payments, we need to be strict
+          // CRITICAL FIX: Forbid automatic status correction from WebSocket messages
+          // Only the server is allowed to mark something as completed
           const isPartialPayment = data.status === 'partial';
           
-          // FIXED STRICT VALIDATION: Only treat as completed if explicitly marked as completed
-          // OR has received sufficient coins with amount greater than 0
+          // SECURITY PATCH: Prevent automatic completion via WebSocket
+          // Only trust status from server, NEVER auto-correct via WebSocket
           const isEffectivelyCompleted = (
-            // If explicitly marked as completed, honor that
-            conditions.explicitlyCompleted || 
-            // OR if we've received sufficient coins AND amount is non-zero
-            (conditions.receivedEnough && receivedAmount > 0)
+            // ONLY accept explicit completion signal from server AND additional verification 
+            conditions.explicitlyCompleted && 
+            conditions.hasTransactionHash && 
+            receivedAmount > 0
           );
           
           // Debug the decision process

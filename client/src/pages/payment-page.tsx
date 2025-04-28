@@ -930,7 +930,7 @@ export default function PaymentPage() {
                 <span>{calculatedRemainingAmount} CPXTB</span>
                 <button
                   onClick={() => copyToClipboard(
-                    calculatedRemainingAmount,
+                    calculatedRemainingAmount.toString(),
                     "Remaining amount copied to clipboard"
                   )}
                   style={{
@@ -986,13 +986,14 @@ export default function PaymentPage() {
         isZeroRemaining: payment.remainingAmount === '0.000000' || parseFloat(payment.remainingAmount || '1') <= 0
       });
       
-      // Force check if payment should actually be shown as completed
-      const shouldBeCompleted = payment.remainingAmount === '0.000000' || 
-                             parseFloat(payment.remainingAmount || '1') <= 0 ||
-                             payment.status === 'completed';
+      // FIXED: Only show completed for 'completed' status and not based on remainingAmount
+      // This is a critical fix for the payment completed bug that shows completed without payment
+      const shouldBeCompleted = payment.status === 'completed' && 
+                              (payment.receivedAmount !== undefined && 
+                               parseFloat(payment.receivedAmount?.toString() || '0') > 0);
       
       if (shouldBeCompleted) {
-        console.log('🔄 Detected payment should be completed - forcing completed display');
+        console.log('🔄 Detected payment should be completed (server confirmed) - forcing completed display');
         return (
           <div style={styles.statusCompleted}>
             <CheckCircle2 className="h-5 w-5" />
@@ -1171,7 +1172,7 @@ export default function PaymentPage() {
                   <button 
                     style={styles.copyButton}
                     onClick={() => copyToClipboard(
-                      payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb.toString(), 
+                      payment.status === 'partial' ? calculatedRemainingAmount.toString() : payment.amountCpxtb.toString(), 
                       payment.status === 'partial' ? "Remaining amount copied to clipboard" : "Amount copied to clipboard"
                     )}
                   >
@@ -1208,7 +1209,7 @@ export default function PaymentPage() {
               
               <div>
                 <a 
-                  href={`https://twitter.com/intent/tweet?text=Please%20send%20me%20${payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}&hashtags=CPXTB,Crypto`}
+                  href={`https://twitter.com/intent/tweet?text=Please%20send%20me%20${payment.status === 'partial' ? calculatedRemainingAmount.toString() : payment.amountCpxtb?.toString() || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}&hashtags=CPXTB,Crypto`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={styles.socialButton}
@@ -1217,7 +1218,7 @@ export default function PaymentPage() {
                 </a>
                 
                 <a 
-                  href={`https://t.me/share/url?url=${window.location.href}&text=Please%20send%20me%20${payment.status === 'partial' ? calculatedRemainingAmount : payment.amountCpxtb || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}`}
+                  href={`https://t.me/share/url?url=${window.location.href}&text=Please%20send%20me%20${payment.status === 'partial' ? calculatedRemainingAmount.toString() : payment.amountCpxtb?.toString() || ''}%20CPXTB%20to%20${payment.merchantWalletAddress || ''}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={styles.socialButton}

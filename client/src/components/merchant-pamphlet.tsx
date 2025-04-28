@@ -1,9 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from 'qrcode.react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from 'lucide-react';
 
 // Use the same token address as in the merchant dashboard
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
@@ -21,6 +22,51 @@ export function MerchantPamphlet({
 }: MerchantPamphletProps) {
   const { toast } = useToast();
   const pamphletRef = useRef<HTMLDivElement>(null);
+  const qrCodeRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [prerenderedQrCode, setPrerenderedQrCode] = useState<string | null>(null);
+  
+  // Pre-render QR code as an image on component mount to ensure it shows in PDF
+  useEffect(() => {
+    const renderQrAsImage = async () => {
+      try {
+        // Find the QR code SVG element
+        const qrElement = qrCodeRef.current?.querySelector('svg');
+        if (qrElement) {
+          // Convert SVG to data URL
+          const svgString = new XMLSerializer().serializeToString(qrElement as SVGElement);
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const img = new Image();
+          
+          // Set up the rendering pipeline
+          canvas.width = 400;
+          canvas.height = 400;
+          ctx!.fillStyle = '#ffffff';
+          ctx!.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Create a data URL from the SVG
+          const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+          const url = URL.createObjectURL(svgBlob);
+          
+          // Load the image and render to canvas
+          img.onload = () => {
+            ctx!.drawImage(img, 0, 0, 400, 400);
+            const dataUrl = canvas.toDataURL('image/png');
+            setPrerenderedQrCode(dataUrl);
+            URL.revokeObjectURL(url);
+          };
+          
+          img.src = url;
+        }
+      } catch (err) {
+        console.error('Failed to pre-render QR code:', err);
+      }
+    };
+    
+    // Run the pre-rendering logic
+    renderQrAsImage();
+  }, [walletAddress]);
   // Function to generate QR code data for merchant's wallet
   const getWalletQrData = () => {
     return `ethereum:${walletAddress}?token=${CPXTB_TOKEN_ADDRESS}`;
@@ -73,6 +119,9 @@ export function MerchantPamphlet({
   // Function to generate PDF and download
   const handlePrint = async () => {
     try {
+      // Set generating state
+      setIsGenerating(true);
+      
       // Create a loading indicator
       const loadingDiv = document.createElement('div');
       loadingDiv.className = 'fixed inset-0 flex items-center justify-center bg-black/30 z-50';
@@ -84,81 +133,72 @@ export function MerchantPamphlet({
       `;
       document.body.appendChild(loadingDiv);
       
-      // First, generate an image of the QR code to ensure it renders in the PDF
-      let qrCodeImage: string | null = null;
+      // Use our pre-rendered QR code image if available
+      let qrCodeImage: string | null = prerenderedQrCode;
       
-      try {
-        // Get the QR code SVG
-        const qrCodeSvg = document.querySelector('.qr-code-wrapper svg');
-        if (qrCodeSvg) {
-          // Use our specialized function to convert SVG to data URL
-          qrCodeImage = await getQRCodeDataUrl(qrCodeSvg as SVGElement);
-        }
-      } catch (qrError) {
-        console.error('Error converting QR code:', qrError);
-        
-        // Fallback to html2canvas if our specialized function fails
+      // If we don't have a pre-rendered QR code, try multiple methods to generate one
+      if (!qrCodeImage) {
         try {
-          const qrCodeSvg = document.querySelector('.qr-code-wrapper svg');
-          if (qrCodeSvg) {
-            // Create a temporary canvas for the QR code
-            const qrCanvas = await html2canvas(qrCodeSvg as HTMLElement, {
-              backgroundColor: '#FFFFFF',
-              scale: 3, // Higher scale for better quality
-              logging: false
-            });
-            
-            qrCodeImage = qrCanvas.toDataURL('image/png');
+          // Try to get the QR code from the DOM
+          const qrCodeImg = qrCodeRef.current?.querySelector('img');
+          if (qrCodeImg) {
+            qrCodeImage = (qrCodeImg as HTMLImageElement).src;
+          } else {
+            // If no image exists yet, try to get the SVG and convert it
+            const qrCodeSvg = qrCodeRef.current?.querySelector('svg');
+            if (qrCodeSvg) {
+              // Use our specialized function to convert SVG to data URL
+              qrCodeImage = await getQRCodeDataUrl(qrCodeSvg as SVGElement);
+            }
           }
-        } catch (fallbackError) {
-          console.error('Both QR code conversion methods failed:', fallbackError);
+        } catch (qrError) {
+          console.error('Error getting pre-rendered QR code:', qrError);
+          
+          // Fallback to html2canvas if other methods fail
+          try {
+            const qrElement = qrCodeRef.current;
+            if (qrElement) {
+              // Create a temporary canvas for the QR code
+              const qrCanvas = await html2canvas(qrElement, {
+                backgroundColor: '#FFFFFF',
+                scale: 3, // Higher scale for better quality
+                logging: false
+              });
+              
+              qrCodeImage = qrCanvas.toDataURL('image/png');
+            }
+          } catch (fallbackError) {
+            console.error('All QR code conversion methods failed:', fallbackError);
+          }
         }
       }
       
-      // If we don't have a QR code image yet (both methods failed), create a direct QR code
+      // If we still don't have a QR code image, create a basic placeholder
       if (!qrCodeImage) {
-        try {
-          // Create a new QR code directly in the PDF
-          // Using a data URL from qrcode.react
-          const qrCodeValue = getWalletQrData();
-          const tempQrElement = document.createElement('div');
-          tempQrElement.style.position = 'absolute';
-          tempQrElement.style.left = '-9999px';
+        console.warn('Using placeholder QR code image');
+        // Create a basic QR code placeholder using canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // Fill background
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, 200, 200);
           
-          // Render a new QR code
-          const qrCodeContainer = document.createElement('div');
-          qrCodeContainer.style.padding = '10px';
-          qrCodeContainer.style.backgroundColor = '#ffffff';
-          qrCodeContainer.style.display = 'inline-block';
+          // Draw border
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(10, 10, 180, 180);
           
-          // We'll manually render a QR code using HTML
-          const size = 400; // Large size for better quality
-          // Create a simple SVG QR code placeholder - this is a fallback if other methods failed
-          const qrElementHTML = `
-            <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-              <rect width="${size}" height="${size}" fill="#ffffff"/>
-              <rect width="${size - 40}" height="${size - 40}" x="20" y="20" fill="#f0f0f0" stroke="#000000" stroke-width="1"/>
-              <text x="${size/2}" y="${size/2}" font-family="Arial" font-size="14" text-anchor="middle" dominant-baseline="middle">QR Code</text>
-            </svg>
-          `;
-          
-          qrCodeContainer.innerHTML = qrElementHTML;
-          tempQrElement.appendChild(qrCodeContainer);
-          document.body.appendChild(tempQrElement);
-          
-          // Convert to canvas
-          const canvas = await html2canvas(qrCodeContainer, {
-            backgroundColor: '#FFFFFF',
-            scale: 2,
-            logging: false
-          });
+          // Add text
+          ctx.fillStyle = '#000000';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('QR Code', 100, 100);
           
           qrCodeImage = canvas.toDataURL('image/png');
-          
-          // Clean up
-          document.body.removeChild(tempQrElement);
-        } catch (directQrError) {
-          console.error('Failed to create direct QR code:', directQrError);
         }
       }
       
@@ -175,6 +215,7 @@ export function MerchantPamphlet({
       if (!content) {
         console.error('Pamphlet content element not found');
         document.body.removeChild(loadingDiv);
+        setIsGenerating(false);
         
         toast({
           title: "PDF Generation Error",
@@ -188,19 +229,18 @@ export function MerchantPamphlet({
       // Clone the element to avoid modifying the original
       const printContent = content.cloneNode(true) as HTMLElement;
       
-      // If we have a QR code image, replace the SVG with it for better rendering
+      // Replace all QR code elements with simple image elements for better PDF rendering
       if (qrCodeImage) {
         const qrWrapper = printContent.querySelector('.qr-code-wrapper');
         if (qrWrapper) {
-          // Replace the SVG with an image
-          const svgElement = qrWrapper.querySelector('svg');
-          if (svgElement) {
-            const img = document.createElement('img');
-            img.src = qrCodeImage;
-            img.style.width = '200px';
-            img.style.height = '200px';
-            svgElement.replaceWith(img);
-          }
+          // Clear the wrapper and add a simple image
+          qrWrapper.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = qrCodeImage;
+          img.width = 200;
+          img.height = 200;
+          img.style.display = 'block';
+          qrWrapper.appendChild(img);
         }
       }
       
@@ -230,13 +270,43 @@ export function MerchantPamphlet({
       // Add image to PDF (fitting to page width while maintaining aspect ratio)
       const pdfWidth = doc.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // Add white background to ensure visibility
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pdfWidth, pdfHeight, 'F');
+      
+      // Add the image on top of the white background
       doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      // If we have a QR code image, add it directly to the PDF as well for guaranteed visibility
+      if (qrCodeImage) {
+        // Calculate position for QR code - find its relative position in the pamphlet
+        const qrPosition = {
+          x: pdfWidth * 0.25, // Approximately 1/4 of the way across
+          y: pdfHeight * 0.35, // Approximately 1/3 of the way down
+          width: pdfWidth * 0.2, // About 20% of page width
+          height: pdfWidth * 0.2 // Square, so same as width
+        };
+        
+        // Draw a white background for the QR code
+        doc.setFillColor(255, 255, 255);
+        doc.rect(qrPosition.x - 2, qrPosition.y - 2, qrPosition.width + 4, qrPosition.height + 4, 'F');
+        
+        // Draw a border
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.rect(qrPosition.x - 2, qrPosition.y - 2, qrPosition.width + 4, qrPosition.height + 4, 'S');
+        
+        // Add the QR code image on top of this
+        doc.addImage(qrCodeImage, 'PNG', qrPosition.x, qrPosition.y, qrPosition.width, qrPosition.height);
+      }
       
       // Save the PDF
       doc.save(`${businessName.replace(/\s+/g, '_')}_Payment_Guide.pdf`);
       
       // Remove loading indicator
       document.body.removeChild(loadingDiv);
+      setIsGenerating(false);
       
       // Show success toast
       toast({
@@ -247,6 +317,9 @@ export function MerchantPamphlet({
       
     } catch (error) {
       console.error('Error generating PDF:', error);
+      // Reset generating state
+      setIsGenerating(false);
+      
       // Remove loading indicator if it exists
       const loadingDiv = document.querySelector('.fixed.inset-0.flex.items-center.justify-center.bg-black\\/30.z-50');
       if (loadingDiv && loadingDiv.parentNode) {
@@ -280,13 +353,23 @@ export function MerchantPamphlet({
         <Button 
           onClick={handlePrint}
           className="print:hidden flex items-center gap-2"
+          disabled={isGenerating}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 9 L6 2 L18 2 L18 9"/>
-            <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
-            <path d="M6 14h12v8H6z"/>
-          </svg>
-          Download PDF
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9 L6 2 L18 2 L18 9"/>
+                <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+                <path d="M6 14h12v8H6z"/>
+              </svg>
+              Download PDF
+            </>
+          )}
         </Button>
       </div>
 
@@ -312,15 +395,28 @@ export function MerchantPamphlet({
 
       <div className="grid md:grid-cols-2 gap-8">
         <div className="text-center">
-          <div className="qr-code-wrapper border-4 border-primary p-3 rounded-lg bg-white mb-4 inline-block">
-            <QRCodeSVG 
-              value={getWalletQrData()}
-              size={200}
-              bgColor={"#ffffff"}
-              fgColor={"#000000"}
-              level={"L"}
-              includeMargin={false}
-            />
+          <div 
+            ref={qrCodeRef} 
+            className="qr-code-wrapper border-4 border-primary p-3 rounded-lg bg-white mb-4 inline-block"
+          >
+            {prerenderedQrCode ? (
+              <img 
+                src={prerenderedQrCode}
+                alt="QR code for wallet"
+                width={200}
+                height={200}
+                className="block"
+              />
+            ) : (
+              <QRCodeSVG 
+                value={getWalletQrData()}
+                size={200}
+                bgColor={"#ffffff"}
+                fgColor={"#000000"}
+                level={"L"}
+                includeMargin={false}
+              />
+            )}
           </div>
           <p className="text-sm text-gray-500 mb-2">Scan this QR code with any crypto wallet</p>
           <div className="bg-gray-100 p-2 rounded text-xs font-mono break-all">

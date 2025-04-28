@@ -285,26 +285,23 @@ export function PaymentPartialNotification({
   );
 }
 
-// Animated notification that appears on payment completion
+// Animated notification that appears on payment completion - DISABLED per user request
 export function PaymentSuccessNotification({ 
   isVisible, 
   reference,
-  securityVerified = false, // Add new security verification parameter
+  securityVerified = false, 
   onClose 
 }: { 
   isVisible: boolean;
   reference: string;
-  securityVerified?: boolean; // Flag to indicate if payment passed security checks 
+  securityVerified?: boolean;
   onClose: () => void;
 }) {
-  // Auto-close after 20 seconds (extended time)
+  // Auto-dismiss immediately when it becomes visible
   useEffect(() => {
     if (isVisible) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 20000);
-      
-      return () => clearTimeout(timer);
+      // Immediately close the notification
+      onClose();
     }
   }, [isVisible, onClose]);
 

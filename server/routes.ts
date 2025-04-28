@@ -12,7 +12,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { TREASURY_ADDRESS, CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID } from "./constants";
 import { WebSocketServer, WebSocket } from "ws";
-import { createPublicClient, http, parseAbi } from "viem";
+import { createPublicClient, http, parseAbi, parseAbiItem, formatUnits } from "viem";
 import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -256,6 +256,7 @@ const getCurrentCpxtbPrice = async (): Promise<number> => {
 };
 
 // Helper function to verify a CPXTB token transaction on the blockchain
+// Enhanced transaction verification function to validate actual amounts
 const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, toAddress: string) => {
   try {
     // Create Base network client
@@ -271,19 +272,82 @@ const verifyCpxtbTransaction = async (txHash: string, expectedAmount: string, to
     
     // Check if transaction was successful
     if (receipt.status !== 'success') {
-      return { verified: false, reason: 'Transaction failed' };
+      return { verified: false, reason: 'Transaction failed', amount: 0 };
     }
     
-    // Additional verification logic would go here
-    // In a production environment, we would:
-    // 1. Verify this is an ERC20 transfer of CPXTB tokens
-    // 2. Verify the recipient address matches the merchant's wallet
-    // 3. Verify the amount transferred matches the expected amount
+    // Get the transaction to verify CPXTB token transfer
+    console.log(`Verifying transaction ${txHash} for CPXTB tokens sent to ${toAddress}...`);
     
-    return { verified: true, receipt };
+    try {
+      // Get the transaction logs to check for ERC20 Transfer events
+      const logs = await baseClient.getLogs({
+        address: CPXTB_TOKEN_ADDRESS as `0x${string}`,
+        event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+        fromBlock: receipt.blockNumber,
+        toBlock: receipt.blockNumber
+      });
+      
+      // Find the transfer event that matches our recipient
+      const transferLog = logs.find(log => 
+        log.args.to?.toLowerCase() === toAddress.toLowerCase()
+      );
+      
+      if (!transferLog) {
+        console.log(`❌ No Transfer event found to ${toAddress} in transaction ${txHash}`);
+        return { 
+          verified: false, 
+          reason: 'No CPXTB transfer found to recipient address', 
+          amount: 0,
+          receipt 
+        };
+      }
+      
+      // Get the amount transferred from the log
+      const amountTransferred = transferLog.args.value || BigInt(0);
+      console.log(`Found Transfer event: ${amountTransferred.toString()} wei of CPXTB sent to ${toAddress}`);
+      
+      // Convert from wei to CPXTB (18 decimals)
+      const amountInCPXTB = parseFloat(formatUnits(amountTransferred, 18));
+      
+      console.log(`Transaction verification details:`, {
+        expectedAmount,
+        actualAmount: amountInCPXTB.toString(),
+        receiverMatches: transferLog.args.to?.toLowerCase() === toAddress.toLowerCase(),
+        tokenAddressMatches: transferLog.address.toLowerCase() === CPXTB_TOKEN_ADDRESS.toLowerCase()
+      });
+      
+      // Validate the actual transferred amount (with exact amount checking)
+      if (amountInCPXTB <= 0) {
+        return { 
+          verified: false, 
+          reason: 'Zero or negative amount transferred', 
+          amount: amountInCPXTB,
+          receipt 
+        };
+      }
+      
+      // All checks passed, return success with the verified amount
+      return { 
+        verified: true, 
+        amount: amountInCPXTB,
+        receipt 
+      };
+    } catch (logError: any) {
+      console.error('Error verifying transaction logs:', logError);
+      return { 
+        verified: false, 
+        reason: `Error verifying transaction logs: ${logError.message}`, 
+        amount: 0,
+        receipt 
+      };
+    }
   } catch (error: any) {
     console.error('Transaction verification error:', error);
-    return { verified: false, reason: error.message };
+    return { 
+      verified: false, 
+      reason: error.message, 
+      amount: 0 
+    };
   }
 };
 
@@ -1012,29 +1076,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // ENHANCED VERIFICATION: Validate both the transaction verification and the amount
       if (!verificationResult.verified) {
+        console.log(`❌ Payment ${payment.id} verification failed: ${verificationResult.reason}`);
         return res.status(400).json({ 
           verified: false, 
-          message: `Transaction verification failed: ${verificationResult.reason}` 
+          message: `Transaction verification failed: ${verificationResult.reason || 'Unknown error'}` 
         });
       }
+      
+      // Safely access the amount property that we now ensure exists in our verification function
+      const amountReceived = typeof verificationResult.amount === 'number' ? verificationResult.amount : 0;
       
       // FIXED: Extra validation for zero-value transactions
-      if (verificationResult.amount <= 0) {
+      if (amountReceived <= 0) {
+        console.log(`❌ Payment ${payment.id} contains zero amount: ${amountReceived} CPXTB`);
         return res.status(400).json({
           verified: false,
-          message: `Transaction contains zero or invalid amount: ${verificationResult.amount} CPXTB`
+          message: `Transaction contains zero or invalid amount: ${amountReceived} CPXTB`
         });
       }
       
-      console.log(`✅ Payment ${payment.id} verified with actual coins received: ${verificationResult.amount} CPXTB`);
+      console.log(`✅ Payment ${payment.id} verified with actual coins received: ${amountReceived} CPXTB`);
       
       // Update payment status including the verified amount
       const updatedPayment = await storage.updatePaymentStatus(
         payment.id, 
         'completed',
         transactionHash,
-        verificationResult.amount, // Use the actual verified amount from the blockchain
-        payment.amountCpxtb,
+        amountReceived, // Use the actual verified amount from the blockchain
+        Number(payment.amountCpxtb), // Ensure numeric value
         '0.000000' // Mark remaining amount as zero since we're considering it complete
       );
       

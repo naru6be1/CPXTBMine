@@ -56,7 +56,15 @@ export interface IStorage {
   getPayment(id: number): Promise<Payment | undefined>;
   getPaymentByReference(paymentReference: string): Promise<Payment | undefined>;
   getPaymentsByMerchant(merchantId: number): Promise<Payment[]>;
-  updatePaymentStatus(paymentId: number, status: string, transactionHash?: string): Promise<Payment>;
+  updatePaymentStatus(
+    paymentId: number, 
+    status: string, 
+    transactionHash?: string, 
+    receivedAmount?: number,
+    requiredAmount?: number,
+    remainingAmount?: string,
+    securityMetadata?: string
+  ): Promise<Payment>;
   getExpiredPayments(): Promise<Payment[]>;
   getPendingPayments(): Promise<Payment[]>;
   getMerchantReport(merchantId: number, startDate: Date, endDate: Date): Promise<{
@@ -510,7 +518,8 @@ export class DatabaseStorage implements IStorage {
     transactionHash?: string,
     receivedAmount?: number,
     requiredAmount?: number,
-    remainingAmount?: string
+    remainingAmount?: string,
+    securityMetadata?: string
   ): Promise<Payment> {
     const updates: any = { 
       status, 
@@ -538,6 +547,28 @@ export class DatabaseStorage implements IStorage {
         requiredAmount.toString() : requiredAmount;
     }
     
+    // ENHANCED SECURITY: Add security metadata if provided
+    if (securityMetadata) {
+      try {
+        const securityData = JSON.parse(securityMetadata);
+        
+        // Extract security status from metadata
+        if (securityData.securityCheck) {
+          updates.securityStatus = securityData.securityCheck;
+        }
+        
+        // Store verification timestamp
+        updates.securityVerifiedAt = new Date();
+        
+        // Store full metadata JSON
+        updates.metadata = securityMetadata;
+        
+        console.log(`✅ Enhanced security data stored for payment ${paymentId}: ${securityData.securityCheck}`);
+      } catch (err) {
+        console.error(`Error processing security metadata: ${err}`);
+      }
+    }
+    
     // For both partial and completed payments, handle the remaining amount
     if ((status === 'partial' || status === 'completed') && receivedAmount !== undefined && requiredAmount !== undefined) {
       // If remaining amount was explicitly provided, use it
@@ -551,12 +582,25 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Payment ${paymentId}: Setting remainingAmount to ${updates.remainingAmount}`);
       
-      // If received amount exceeds or equals required amount, update status to completed
+      // ENHANCED SECURITY: Only mark as completed if security checks passed
       if (receivedAmount >= requiredAmount && status === 'partial') {
-        console.log(`Payment ${paymentId}: Received amount ${receivedAmount} >= Required amount ${requiredAmount}, updating status to completed`);
-        updates.status = 'completed';
-        updates.completedAt = new Date();
-        updates.remainingAmount = '0.000000';
+        console.log(`Payment ${paymentId}: Received amount ${receivedAmount} >= Required amount ${requiredAmount}`);
+        
+        // Check security status before marking as completed
+        const securityPassed = updates.securityStatus === 'passed';
+        
+        if (securityPassed) {
+          console.log(`Payment ${paymentId}: Security checks PASSED, updating status to completed`);
+          updates.status = 'completed';
+          updates.completedAt = new Date();
+          updates.remainingAmount = '0.000000';
+        } else {
+          console.log(`Payment ${paymentId}: Security checks NOT PASSED, keeping as ${status} despite sufficient amount`);
+          // Add warning to metadata
+          const metadataObj = securityMetadata ? JSON.parse(securityMetadata) : {};
+          metadataObj.securityWarning = 'Payment has sufficient funds but failed security checks';
+          updates.metadata = JSON.stringify(metadataObj);
+        }
       }
     }
     

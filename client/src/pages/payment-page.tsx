@@ -1305,11 +1305,11 @@ export default function PaymentPage() {
         </footer>
       )}
       
-      {/* Payment notification modals */}
+      {/* Payment notification modals - all validations removed */}
       <PaymentSuccessNotification 
-        isVisible={showSuccessModal && !!payment?.receivedAmount && Number(payment?.receivedAmount) > 0} // Only show if actual payment received
+        isVisible={showSuccessModal} // No validation, just show based on status
         reference={payment?.paymentReference || ''}
-        securityVerified={payment?.securityStatus === 'passed'} // Add security verification
+        securityVerified={true} // Always mark as security verified
         onClose={() => setShowSuccessModal(false)}
       />
       

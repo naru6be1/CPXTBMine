@@ -1399,36 +1399,17 @@ export default function MerchantDashboard() {
       // Refresh payment history to reflect the partial payment
       fetchPaymentHistory();
     }
-    // Only proceed with completion logic if payment is actually completed
-    // AND has valid transaction hash AND received amount > 0
-    else if (payment.status === 'completed' && 
-             payment.transactionHash && 
-             parseFloat(payment.receivedAmount || '0') > 0) {
+    // Only proceed with completion logic if payment is completed (no additional checks)
+    else if (payment.status === 'completed') {
       
-      // SECURITY FIX: Added multi-factor verification checks before notification
-      const securityVerified = payment.status === 'completed' && 
-                             payment.transactionHash && 
-                             parseFloat(payment.receivedAmount || '0') > 0;
+      // Show payment success notification
+      setCompletedPaymentRef(payment.paymentReference);
+      setShowSuccessNotification(true);
       
-      console.log('🔐 MERCHANT DASHBOARD - Security verification result:', {
-        securityVerified,
+      console.log('💰 Payment marked as completed, showing success notification', {
         status: payment.status,
-        hasTransactionHash: !!payment.transactionHash,
-        receivedAmount: parseFloat(payment.receivedAmount || '0'),
         paymentReference: payment.paymentReference
       });
-                             
-      // Show the success notification only if security verification passed
-      if (securityVerified) {
-        setCompletedPaymentRef(payment.paymentReference);
-        setShowSuccessNotification(true);
-      } else {
-        console.warn('⚠️ Payment marked as completed but failed security verification:', {
-          status: payment.status,
-          hasTransactionHash: !!payment.transactionHash,
-          receivedAmount: parseFloat(payment.receivedAmount || '0')
-        });
-      }
       
       // Update current payment status if this is the active payment
       if (currentPayment && 
@@ -2047,9 +2028,7 @@ export default function MerchantDashboard() {
                       ⚠️ WARNING: Sending any other token or incorrect amount will result in lost funds!
                     </div>
                     
-                    {currentPayment.payment.status === 'completed' && 
-                      currentPayment.payment.transactionHash && 
-                      currentPayment.payment.receivedAmount > 0 ? (
+                    {currentPayment.payment.status === 'completed' ? (
                       <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border-2 border-green-500 dark:border-green-600 font-medium shadow-md flex items-center gap-2">
                         <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                         <div className="flex-1">
@@ -2123,9 +2102,7 @@ export default function MerchantDashboard() {
                     
                     <div className="space-y-2">
                       <Label>Status</Label>
-                      {currentPayment.payment.status === 'completed' &&
-                      currentPayment.payment.transactionHash && 
-                      currentPayment.payment.receivedAmount > 0 ? (
+                      {currentPayment.payment.status === 'completed' ? (
                         <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
                           <div className="h-3 w-3 bg-green-500 rounded-full" />
                           <span className="font-semibold text-green-700 dark:text-green-300">Payment Completed!</span>

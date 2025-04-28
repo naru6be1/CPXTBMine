@@ -42,12 +42,18 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
             ? parseFloat(data.receivedAmount) 
             : (data.receivedAmount || 0);
           
-          // Only process completed payments that have received actual coins
-          if (data.status === 'completed' && receivedAmount > 0) {
-            console.log('✅ VALIDATED PAYMENT: Payment has actual coins', {
+          // CRITICAL SECURITY FIX: Require transaction hash AND actual coins
+          // Multiple validation layers to prevent false success notifications
+          if (data.status === 'completed' && 
+              receivedAmount > 0 && 
+              data.transactionHash) {
+              
+            console.log('✅ VALIDATED PAYMENT: Payment has actual coins and transaction hash', {
               status: data.status,
               receivedAmount,
-              reference: data.paymentReference
+              hasTransaction: !!data.transactionHash,
+              reference: data.paymentReference,
+              timeVerified: new Date().toISOString()
             });
             
             // Play success sound - try multiple times if it fails

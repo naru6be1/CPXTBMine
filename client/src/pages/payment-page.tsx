@@ -328,8 +328,20 @@ export default function PaymentPage() {
           }));
           
           // Show notification only if we actually received payment
-          // FIXED: Add strict validation to require actual coins received
-          if (data.status === 'completed' && receivedAmount > 0) {
+          // FIXED: Add MULTIPLE STRICT validation checks - this is critical for security
+          if (data.status === 'completed' && 
+              receivedAmount > 0 && 
+              data.transactionHash && 
+              conditions.hasTransactionHash) {
+            
+            console.log("✅✅✅ PAYMENT FULLY VERIFIED - All verification checks passed:", {
+              status: data.status,
+              receivedAmount,
+              hasTransaction: !!data.transactionHash,
+              receivedActualCoins: receivedAmount > 0,
+              timeVerified: new Date().toISOString()
+            });
+            
             toast({
               title: "Payment Completed!",
               description: "The transaction has been confirmed on the blockchain",
@@ -339,7 +351,7 @@ export default function PaymentPage() {
             const audio = new Audio('/payment-success.mp3');
             audio.play().catch(e => console.error("Error playing audio:", e));
             
-            // Show success modal only when we've actually received coins
+            // Show success modal only when we've actually received coins AND have transaction hash
             setShowSuccessModal(true);
           } else if (data.status === 'partial') {
             // Use remaining amount provided by server, or calculate it if not available

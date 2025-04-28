@@ -106,8 +106,8 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
             
             // Show toast notification
             toast({
-              title: "Payment Received! 🎉",
-              description: `Payment ${data.paymentReference} has been completed successfully.`,
+              title: "Payment Confirmed! 🎉",
+              description: `Payment ${data.paymentReference} has been verified and completed successfully.`,
               variant: "default",
             });
           } else if (data.status === 'partial') {
@@ -142,8 +142,8 @@ export function PaymentNotification({ onPaymentUpdate }: PaymentNotificationProp
             
             // Show partial payment toast notification
             toast({
-              title: "Partial Payment Received",
-              description: `Transaction confirmed, but still need ${remainingAmount} CPXTB to complete payment.`,
+              title: "Partial Payment Detected",
+              description: `Some funds received, but still need ${remainingAmount} CPXTB to complete payment.`,
               variant: "warning", // Use warning for partial payments
             });
           }
@@ -254,10 +254,10 @@ export function PaymentPartialNotification({
               
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-2">
-                  Partial Payment Received
+                  Partial Payment Detected
                 </h2>
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  Payment <span className="font-medium text-black dark:text-white">{reference}</span> has been partially paid.
+                  Payment <span className="font-medium text-black dark:text-white">{reference}</span> has received some funds but is incomplete.
                 </p>
                 <div className="bg-amber-50 dark:bg-amber-900/40 p-4 rounded-md mb-6">
                   <div className="text-sm text-amber-800 dark:text-amber-300 mb-2">
@@ -378,13 +378,13 @@ export function PaymentSuccessNotification({
                 >
                   {securityVerified 
                     ? "Payment Successful! 🎉" 
-                    : "Payment Received - Verifying..."}
+                    : "Awaiting Payment..."}
                 </h2>
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
                   Payment <span className="font-medium text-black dark:text-white">{reference}</span> 
                   {securityVerified 
                     ? " has been verified on the blockchain." 
-                    : " is being verified. Please wait for full confirmation."}
+                    : " has been created but no funds have been received yet."}
                 </p>
                 <div className={`${
                   securityVerified 
@@ -394,7 +394,7 @@ export function PaymentSuccessNotification({
                 >
                   {securityVerified 
                     ? "The payment has been processed and will appear in your transaction history." 
-                    : "The transaction has been seen but is still being verified. This may take a few moments."}
+                    : "No transaction has been detected yet. Please complete the payment using your wallet."}
                 </div>
                 <div className="flex justify-center">
                   <button

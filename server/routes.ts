@@ -1133,12 +1133,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } 
       });
       
-      const { amountUsd, orderId, description, customerWalletAddress } = req.body;
+      const { amountUsd, description, customerWalletAddress } = req.body;
       
-      // Validate inputs
-      if (!amountUsd || !orderId) {
+      // Validate inputs - no longer require orderId as per user request
+      if (!amountUsd) {
         console.log("Payment validation failed: missing required fields");
-        return res.status(400).json({ message: 'Amount in USD and orderId are required' });
+        return res.status(400).json({ message: 'Amount in USD is required' });
       }
       
       // Get current CPXTB price
@@ -1155,10 +1155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set expiration time (15 minutes from now)
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
       
-      // Prepare payment data
+      // Prepare payment data - removed orderId as per user request
       const paymentData = {
         merchantId: merchant.id,
-        orderId,
         amountUsd,
         amountCpxtb,
         // Only include customerWalletAddress if it exists

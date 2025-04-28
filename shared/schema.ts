@@ -135,7 +135,7 @@ export const merchants = pgTable("merchants", {
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   merchantId: integer("merchant_id").notNull().references(() => merchants.id),
-  orderId: text("order_id").notNull(),
+  orderId: text("order_id"), // Made optional as per user request
   amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
   amountCpxtb: numeric("amount_cpxtb", { precision: 20, scale: 8 }).notNull(),
   customerWalletAddress: text("customer_wallet_address"),
@@ -223,7 +223,7 @@ export const insertPaymentSchema = createInsertSchema(payments)
     completedAt: true,
   })
   .extend({
-    orderId: z.string(),
+    orderId: z.string().optional(), // Made optional as per user request
     amountUsd: z.number().positive(),
     amountCpxtb: z.number().positive(),
     customerWalletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Ethereum address").optional(),

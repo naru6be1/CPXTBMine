@@ -2170,14 +2170,18 @@ export default function MerchantDashboard() {
                     </p>
                     <div className="flex items-center">
                       <code className="text-xs bg-muted p-2 rounded-l block break-all w-full">
-                        {currentPayment.payment.merchantWalletAddress}
+                        {currentPayment.payment.merchantWalletAddress || selectedMerchant?.walletAddress || ""}
                       </code>
                       <Button 
                         variant="outline" 
                         size="icon"
                         className="h-8 rounded-l-none"
                         onClick={() => {
-                          navigator.clipboard.writeText(currentPayment.payment.merchantWalletAddress);
+                          // Use selected merchant wallet address if payment wallet address is undefined
+                          const walletAddress = currentPayment.payment.merchantWalletAddress || 
+                                              selectedMerchant?.walletAddress || 
+                                              "";
+                          navigator.clipboard.writeText(walletAddress);
                           toast({
                             title: "Copied",
                             description: "Wallet address copied to clipboard",

@@ -1436,7 +1436,7 @@ export default function MerchantDashboard() {
         // Switch to QR code tab if not already there
         if (activeTab !== "qrcode") {
           toast({
-            title: "Payment Completed! 🎉",
+            title: "Payment Processed",
             description: "Switch to QR tab to see payment details",
             action: (
               <div 
@@ -2032,8 +2032,7 @@ export default function MerchantDashboard() {
                       <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border-2 border-green-500 dark:border-green-600 font-medium shadow-md flex items-center gap-2">
                         <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                         <div className="flex-1">
-                          <span className="font-bold">✅ PAYMENT COMPLETED!</span>
-                          <p className="text-xs mt-1">Transaction has been verified on the blockchain</p>
+                          {/* Payment success messages removed per user request */}
                         </div>
                         {currentPayment.payment.transactionHash && (
                           <a 
@@ -2105,7 +2104,7 @@ export default function MerchantDashboard() {
                       {currentPayment.payment.status === 'completed' ? (
                         <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
                           <div className="h-3 w-3 bg-green-500 rounded-full" />
-                          <span className="font-semibold text-green-700 dark:text-green-300">Payment Completed!</span>
+                          <span className="font-semibold text-green-700 dark:text-green-300">Payment Processed</span>
                           {currentPayment.payment.transactionHash && (
                             <a 
                               href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 

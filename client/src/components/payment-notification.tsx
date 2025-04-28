@@ -288,11 +288,13 @@ export function PaymentPartialNotification({
 // Animated notification that appears on payment completion
 export function PaymentSuccessNotification({ 
   isVisible, 
-  reference, 
+  reference,
+  securityVerified = false, // Add new security verification parameter
   onClose 
 }: { 
   isVisible: boolean;
   reference: string;
+  securityVerified?: boolean; // Flag to indicate if payment passed security checks 
   onClose: () => void;
 }) {
   // Auto-close after 20 seconds (extended time)
@@ -333,9 +335,15 @@ export function PaymentSuccessNotification({
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
           >
             <motion.div 
-              className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-2xl border-2 border-green-400 dark:border-green-600"
+              className={`bg-white dark:bg-gray-900 p-6 rounded-lg shadow-2xl border-2 ${
+                securityVerified 
+                  ? "border-green-400 dark:border-green-600" 
+                  : "border-amber-400 dark:border-amber-600"
+              }`}
               animate={{ 
-                boxShadow: ["0 0 0 rgba(34, 197, 94, 0.2)", "0 0 20px rgba(34, 197, 94, 0.6)", "0 0 0 rgba(34, 197, 94, 0.2)"]
+                boxShadow: securityVerified
+                  ? ["0 0 0 rgba(34, 197, 94, 0.2)", "0 0 20px rgba(34, 197, 94, 0.6)", "0 0 0 rgba(34, 197, 94, 0.2)"]
+                  : ["0 0 0 rgba(251, 191, 36, 0.2)", "0 0 20px rgba(251, 191, 36, 0.6)", "0 0 0 rgba(251, 191, 36, 0.2)"]
               }}
               transition={{ 
                 duration: 2,
@@ -345,29 +353,58 @@ export function PaymentSuccessNotification({
             >
               <div className="text-center mb-4">
                 <motion.div 
-                  className="inline-block bg-green-100 dark:bg-green-900 p-3 rounded-full"
+                  className={`inline-block ${
+                    securityVerified 
+                      ? "bg-green-100 dark:bg-green-900" 
+                      : "bg-amber-100 dark:bg-amber-900"
+                  } p-3 rounded-full`}
                   animate={{ scale: [1, 1.2, 1] }}
                   transition={{ duration: 1, repeat: Infinity }}
                 >
-                  <CheckCircle2 className="h-10 w-10 text-green-500" />
+                  {securityVerified ? (
+                    <CheckCircle2 className="h-10 w-10 text-green-500" />
+                  ) : (
+                    <div className="h-10 w-10 text-amber-500 flex items-center justify-center font-bold text-2xl">!</div>
+                  )}
                 </motion.div>
               </div>
               
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-green-700 dark:text-green-400 mb-2">
-                  Payment Successful! 🎉
+                <h2 className={`text-2xl font-bold ${
+                  securityVerified 
+                    ? "text-green-700 dark:text-green-400" 
+                    : "text-amber-700 dark:text-amber-400"
+                  } mb-2`}
+                >
+                  {securityVerified 
+                    ? "Payment Successful! 🎉" 
+                    : "Payment Received - Verifying..."}
                 </h2>
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  Payment <span className="font-medium text-black dark:text-white">{reference}</span> has been verified on the blockchain.
+                  Payment <span className="font-medium text-black dark:text-white">{reference}</span> 
+                  {securityVerified 
+                    ? " has been verified on the blockchain." 
+                    : " is being verified. Please wait for full confirmation."}
                 </p>
-                <div className="bg-green-50 dark:bg-green-900/40 p-3 rounded-md text-sm text-green-800 dark:text-green-300 mb-6">
-                  The payment has been processed and will appear in your transaction history.
+                <div className={`${
+                  securityVerified 
+                    ? "bg-green-50 dark:bg-green-900/40 text-green-800 dark:text-green-300" 
+                    : "bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300"
+                  } p-3 rounded-md text-sm mb-6`}
+                >
+                  {securityVerified 
+                    ? "The payment has been processed and will appear in your transaction history." 
+                    : "The transaction has been seen but is still being verified. This may take a few moments."}
                 </div>
                 <div className="flex justify-center">
                   <button
                     onClick={onClose}
-                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-md 
-                             transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                    className={`${
+                      securityVerified 
+                        ? "bg-green-600 hover:bg-green-700 focus:ring-green-500" 
+                        : "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500"
+                      } text-white font-medium px-4 py-2 rounded-md 
+                      transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2`}
                   >
                     Dismiss
                   </button>

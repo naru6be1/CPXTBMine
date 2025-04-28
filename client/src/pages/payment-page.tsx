@@ -325,7 +325,9 @@ export default function PaymentPage() {
             receivedAmount: data.receivedAmount || prevPayment.receivedAmount,
             requiredAmount: data.requiredAmount || prevPayment.requiredAmount || prevPayment.amountCpxtb,
             // Store pre-calculated remaining amount if available or zero if completed
-            remainingAmount: correctedStatus === 'completed' ? '0.000000' : (data.remainingAmount || prevPayment.remainingAmount)
+            remainingAmount: correctedStatus === 'completed' ? '0.000000' : (data.remainingAmount || prevPayment.remainingAmount),
+            // CRITICAL SECURITY FIX: Store the security status from the server
+            securityStatus: data.securityStatus || data.securityCheck || prevPayment.securityStatus || 'unknown'
           }));
           
           // Show notification only if we actually received payment
@@ -350,10 +352,13 @@ export default function PaymentPage() {
           };
           
           // ENHANCED SECURITY: Even more stringent validation before showing success notification
+          // Only show success notification if security verification has passed
+          const securityPassed = data.securityStatus === 'passed' || data.securityCheck === 'passed';
+          
           if (data.status === 'completed' && 
               receivedAmount > 0 && 
               hasValidTxHash && 
-              (data.securityCheck === 'passed' || !data.securityCheck) && // Support both new and old servers
+              securityPassed && // CRITICAL FIX: Only consider successful if security checks pass
               conditions.hasTransactionHash) {
             
             console.log("✅✅✅ PAYMENT FULLY VERIFIED - All security checks passed:", finalValidationReport);
@@ -1301,6 +1306,7 @@ export default function PaymentPage() {
       <PaymentSuccessNotification 
         isVisible={showSuccessModal}
         reference={payment?.paymentReference || ''}
+        securityVerified={payment?.securityStatus === 'passed'} // Add security verification
         onClose={() => setShowSuccessModal(false)}
       />
       

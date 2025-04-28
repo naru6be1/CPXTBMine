@@ -182,8 +182,9 @@ async function processTransferEvent(
                   receivedAmount: totalReceivedAmount.toString(), // Use total amount received
                   requiredAmount: requiredAmount.toString(),
                   remainingAmount: '0.000000', // Explicitly set to zero
+                  securityStatus: 'passed',
+                  securityVerifiedAt: new Date(),
                   metadata: JSON.stringify({
-                    ...JSON.parse(payment.metadata || '{}'),
                     securityStatus: 'passed',
                     verifiedAt: new Date().toISOString(),
                     validationReport
@@ -201,8 +202,9 @@ async function processTransferEvent(
                   receivedAmount: totalReceivedAmount.toString(), // Use the summed amount
                   requiredAmount: requiredAmount.toString(),
                   remainingAmount: remainingAmount.toString(),
+                  securityStatus: securityCheck,
+                  securityVerifiedAt: new Date(),
                   metadata: JSON.stringify({
-                    ...JSON.parse(payment.metadata || '{}'),
                     securityStatus: securityCheck,
                     partialVerifiedAt: new Date().toISOString(),
                     validationReport

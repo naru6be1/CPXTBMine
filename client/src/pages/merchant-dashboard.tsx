@@ -1400,10 +1400,35 @@ export default function MerchantDashboard() {
       fetchPaymentHistory();
     }
     // Only proceed with completion logic if payment is actually completed
-    else if (payment.status === 'completed') {
-      // Show the success notification
-      setCompletedPaymentRef(payment.paymentReference);
-      setShowSuccessNotification(true);
+    // AND has valid transaction hash AND received amount > 0
+    else if (payment.status === 'completed' && 
+             payment.transactionHash && 
+             parseFloat(payment.receivedAmount || '0') > 0) {
+      
+      // SECURITY FIX: Added multi-factor verification checks before notification
+      const securityVerified = payment.status === 'completed' && 
+                             payment.transactionHash && 
+                             parseFloat(payment.receivedAmount || '0') > 0;
+      
+      console.log('🔐 MERCHANT DASHBOARD - Security verification result:', {
+        securityVerified,
+        status: payment.status,
+        hasTransactionHash: !!payment.transactionHash,
+        receivedAmount: parseFloat(payment.receivedAmount || '0'),
+        paymentReference: payment.paymentReference
+      });
+                             
+      // Show the success notification only if security verification passed
+      if (securityVerified) {
+        setCompletedPaymentRef(payment.paymentReference);
+        setShowSuccessNotification(true);
+      } else {
+        console.warn('⚠️ Payment marked as completed but failed security verification:', {
+          status: payment.status,
+          hasTransactionHash: !!payment.transactionHash,
+          receivedAmount: parseFloat(payment.receivedAmount || '0')
+        });
+      }
       
       // Update current payment status if this is the active payment
       if (currentPayment && 
@@ -1456,10 +1481,11 @@ export default function MerchantDashboard() {
       {/* Real-time payment notification listener */}
       <PaymentNotification onPaymentUpdate={handlePaymentUpdate} />
       
-      {/* Animated success notification */}
+      {/* Animated success notification with security verification */}
       <PaymentSuccessNotification 
         isVisible={showSuccessNotification}
         reference={completedPaymentRef}
+        securityVerified={true} // We only show this if security checks passed
         onClose={() => setShowSuccessNotification(false)}
       />
       

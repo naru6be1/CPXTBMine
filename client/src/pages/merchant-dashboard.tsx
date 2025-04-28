@@ -2028,12 +2028,9 @@ export default function MerchantDashboard() {
                       ⚠️ WARNING: Sending any other token or incorrect amount will result in lost funds!
                     </div>
                     
+                    {/* Removed payment status message box per user request */}
                     {currentPayment.payment.status === 'completed' ? (
-                      <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border-2 border-green-500 dark:border-green-600 font-medium shadow-md flex items-center gap-2">
-                        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                        <div className="flex-1">
-                          {/* Payment success messages removed per user request */}
-                        </div>
+                      <div className="flex justify-end mb-2">
                         {currentPayment.payment.transactionHash && (
                           <a 
                             href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
@@ -2042,7 +2039,7 @@ export default function MerchantDashboard() {
                             className="text-xs bg-green-200 dark:bg-green-800 p-1 rounded flex items-center gap-1"
                           >
                             <ExternalLink className="h-3 w-3" />
-                            View
+                            View Transaction
                           </a>
                         )}
                       </div>
@@ -2102,15 +2099,13 @@ export default function MerchantDashboard() {
                     <div className="space-y-2">
                       <Label>Status</Label>
                       {currentPayment.payment.status === 'completed' ? (
-                        <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
-                          <div className="h-3 w-3 bg-green-500 rounded-full" />
-                          <span className="font-semibold text-green-700 dark:text-green-300">Payment Processed</span>
+                        <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center justify-end">
                           {currentPayment.payment.transactionHash && (
                             <a 
                               href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="ml-auto text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded flex items-center gap-1 text-green-800 dark:text-green-200"
+                              className="text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded flex items-center gap-1 text-green-800 dark:text-green-200"
                             >
                               <ExternalLink className="h-3 w-3" />
                               View Transaction

@@ -1162,6 +1162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amountCpxtb,
         // Only include customerWalletAddress if it exists
         ...(customerWalletAddress ? { customerWalletAddress: customerWalletAddress.toLowerCase() } : {}),
+        // Include orderId if it exists in the request (supporting old clients)
+        ...(req.body.orderId ? { orderId: req.body.orderId } : {}),
         paymentReference,
         description,
         exchangeRate: cpxtbPrice,
@@ -1354,12 +1356,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { reference } = req.params;
       console.log(`Public payment page requested for reference: ${reference}`);
       
-      // TEMPORARY DEBUGGING: Add special logging for the payment we want to check
-      if (reference === 'CPXTB-7F499A61563E6598') {
-        console.log('----------------------------');
-        console.log('SPECIAL DEBUG - CHECKING TARGET PAYMENT: CPXTB-7F499A61563E6598');
-        console.log('----------------------------');
-      }
+      // TEMPORARY DEBUGGING: Special reference format check removed since we're using a new format
+      // Logging all references for tracking during transition
+      console.log('----------------------------');
+      console.log(`REFERENCE FORMAT CHECK: ${reference}`);
+      console.log('----------------------------');
       
       // Get payment details
       const payment = await storage.getPaymentByReference(reference);

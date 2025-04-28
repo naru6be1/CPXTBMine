@@ -2021,7 +2021,9 @@ export default function MerchantDashboard() {
                       ⚠️ WARNING: Sending any other token or incorrect amount will result in lost funds!
                     </div>
                     
-                    {currentPayment.payment.status === 'completed' ? (
+                    {currentPayment.payment.status === 'completed' && 
+                      currentPayment.payment.transactionHash && 
+                      currentPayment.payment.receivedAmount > 0 ? (
                       <div className="text-sm text-black dark:text-white bg-green-100 dark:bg-green-950 p-3 rounded-lg border-2 border-green-500 dark:border-green-600 font-medium shadow-md flex items-center gap-2">
                         <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                         <div className="flex-1">
@@ -2095,7 +2097,9 @@ export default function MerchantDashboard() {
                     
                     <div className="space-y-2">
                       <Label>Status</Label>
-                      {currentPayment.payment.status === 'completed' ? (
+                      {currentPayment.payment.status === 'completed' &&
+                      currentPayment.payment.transactionHash && 
+                      currentPayment.payment.receivedAmount > 0 ? (
                         <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center gap-2 animate-pulse">
                           <div className="h-3 w-3 bg-green-500 rounded-full" />
                           <span className="font-semibold text-green-700 dark:text-green-300">Payment Completed!</span>

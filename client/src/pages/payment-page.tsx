@@ -830,11 +830,11 @@ export default function PaymentPage() {
     // regardless of server-side status (this fixes the "QR code scanned but payment not showing completed" bug)
     const hasTransactionAndSufficientPayment = hasTransactionHash && hasReceivedEnough;
     
+    // FIXED: Only consider a payment completed if we've actually received enough coins
+    // or the server has explicitly marked it as completed
     const isEffectivelyCompleted = (
       isExplicitlyCompleted || 
-      hasZeroRemaining || 
-      hasReceivedEnough || 
-      (hasTransactionHash && !isPartialWithInsufficientPayment) ||
+      (hasReceivedEnough && receivedAmount > 0) || 
       hasTransactionAndSufficientPayment
     );
     

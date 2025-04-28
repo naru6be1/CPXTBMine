@@ -2099,13 +2099,13 @@ export default function MerchantDashboard() {
                     <div className="space-y-2">
                       <Label>Status</Label>
                       {currentPayment.payment.status === 'completed' ? (
-                        <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg border border-green-300 dark:border-green-700 flex items-center justify-end">
+                        <div className="flex justify-end mb-2">
                           {currentPayment.payment.transactionHash && (
                             <a 
                               href={`https://basescan.org/tx/${currentPayment.payment.transactionHash}`} 
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs bg-green-200 dark:bg-green-800 px-2 py-1 rounded flex items-center gap-1 text-green-800 dark:text-green-200"
+                              className="text-xs px-2 py-1 rounded flex items-center gap-1"
                             >
                               <ExternalLink className="h-3 w-3" />
                               View Transaction

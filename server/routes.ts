@@ -238,9 +238,10 @@ const authenticateMerchant = async (req: Request, res: Response, next: NextFunct
   }
 };
 
-// Utility to generate a payment reference
+// Utility to generate a payment reference - no longer uses order ID as requested
 const generatePaymentReference = () => {
-  return `CPXTB-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+  // Generate a completely random reference with no order ID
+  return `${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 };
 
 // Function to calculate CPXTB amount based on USD amount and current exchange rate

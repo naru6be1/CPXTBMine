@@ -221,14 +221,23 @@ async function processTransferEvent(
               const wss = (global as any).wss;
               
               if (wss) {
+                // CRITICAL SECURITY FIX: Never send a "completed" status when payment has 0 coins
+                // This is a major security enhancement to prevent false success notifications
+                let finalStatus = paymentStatus;
+                if (shouldComplete && totalReceivedAmount <= 0) {
+                  // Override status if marked completed but has no actual payment
+                  finalStatus = 'pending';
+                  console.log('⚠️ SECURITY ALERT: Attempted to mark payment as completed with 0 coins received. Overriding to pending.');
+                }
+
                 // Create enhanced notification payload with security information
                 const notificationPayload = {
                   type: 'paymentStatusUpdate',
                   merchantId: payment.merchantId, // Include merchantId to filter recipients
                   paymentId: payment.id,
                   paymentReference: payment.paymentReference,
-                  // Use the updated status that reflects total amount received
-                  status: shouldComplete ? 'completed' : paymentStatus,
+                  // Use the corrected status that ensures we never mark a payment as complete without coins
+                  status: finalStatus,
                   transactionHash: txHash,
                   timestamp: new Date().toISOString(),
                   // Include received and required amounts to calculate remaining amount
@@ -237,17 +246,19 @@ async function processTransferEvent(
                   requiredAmount: requiredAmount.toString(),
                   amountCpxtb: payment.amountCpxtb,
                   // Use the already calculated remaining amount value
-                  remainingAmount: shouldComplete ? '0.000000' : remainingAmount,
-                  // ENHANCED SECURITY: Add security fields to notification
+                  remainingAmount: shouldComplete && totalReceivedAmount > 0 ? '0.000000' : remainingAmount,
+                  // ENHANCED SECURITY: Add security fields to notification with consistent naming
                   securityStatus: securityCheck,
+                  securityCheck: securityCheck, // Added for backward compatibility
                   validationTimestamp: new Date().toISOString(),
                   // Include security indicators for UI handling
-                  // Only allow payment completion if security checks passed
-                  isSecureTransaction: securityCheck === 'passed',
+                  // Only allow payment completion if security checks passed AND coins received
+                  isSecureTransaction: securityCheck === 'passed' && totalReceivedAmount > 0,
                   verificationDetails: {
                     receivedPercentage: (totalReceivedAmount / requiredAmount * 100).toFixed(2) + '%',
                     hasActualCoins: totalReceivedAmount > 0,
                     isVerifiedOnBlockchain: true,
+                    paymentAmountValid: totalReceivedAmount > 0,
                   }
                 };
                 

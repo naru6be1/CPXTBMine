@@ -355,8 +355,11 @@ export default function PaymentPage() {
           // Only show success notification if security verification has passed
           const securityPassed = data.securityStatus === 'passed' || data.securityCheck === 'passed';
           
+          // CRITICAL FIX: Ensure we have an actual payment before showing any notification
+          const hasActualPayment = !!receivedAmount && receivedAmount > 0;
+          
           if (data.status === 'completed' && 
-              receivedAmount > 0 && 
+              hasActualPayment && 
               hasValidTxHash && 
               securityPassed && // CRITICAL FIX: Only consider successful if security checks pass
               conditions.hasTransactionHash) {
@@ -374,7 +377,7 @@ export default function PaymentPage() {
             
             // Show success modal only when we've actually received coins AND have transaction hash
             setShowSuccessModal(true);
-          } else if (data.status === 'partial') {
+          } else if (data.status === 'partial' && hasActualPayment) { // Only show partial notification if we have actual coins
             // Use remaining amount provided by server, or calculate it if not available
             const remainingAmount = data.remainingAmount || (() => {
               console.log("WebSocket update: calculating remaining amount from scratch");
@@ -1304,14 +1307,14 @@ export default function PaymentPage() {
       
       {/* Payment notification modals */}
       <PaymentSuccessNotification 
-        isVisible={showSuccessModal}
+        isVisible={showSuccessModal && !!payment?.receivedAmount && Number(payment?.receivedAmount) > 0} // Only show if actual payment received
         reference={payment?.paymentReference || ''}
         securityVerified={payment?.securityStatus === 'passed'} // Add security verification
         onClose={() => setShowSuccessModal(false)}
       />
       
       <PaymentPartialNotification
-        isVisible={showPartialModal}
+        isVisible={showPartialModal && !!payment?.receivedAmount && Number(payment?.receivedAmount) > 0} // Only show if actual payment received
         reference={payment?.paymentReference || ''}
         remainingAmount={partialAmount}
         onClose={() => setShowPartialModal(false)}

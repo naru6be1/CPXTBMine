@@ -1094,6 +1094,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { reference } = req.params;
       console.log(`Public payment page requested for reference: ${reference}`);
       
+      // TEMPORARY DEBUGGING: Add special logging for the payment we want to check
+      if (reference === 'CPXTB-7F499A61563E6598') {
+        console.log('----------------------------');
+        console.log('SPECIAL DEBUG - CHECKING TARGET PAYMENT: CPXTB-7F499A61563E6598');
+        console.log('----------------------------');
+      }
+      
       // Get payment details
       const payment = await storage.getPaymentByReference(reference);
       

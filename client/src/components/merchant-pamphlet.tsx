@@ -283,8 +283,8 @@ export function MerchantPamphlet({
         // Calculate position for QR code - find its relative position in the pamphlet
         const qrBoxSize = Math.min(pdfWidth * 0.25, pdfHeight * 0.25); // Take smaller dimension for consistent sizing
         const qrPosition = {
-          x: pdfWidth * 0.12, // Moved further left
-          y: pdfHeight * 0.30, // Moved further up
+          x: pdfWidth * 0.15, // Moved toward right
+          y: pdfHeight * 0.25, // Moved further up
           width: qrBoxSize, // Square sizing based on page dimensions
           height: qrBoxSize // Square, so same as width
         };

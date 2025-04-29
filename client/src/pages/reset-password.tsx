@@ -33,9 +33,12 @@ export default function ResetPasswordPage() {
   const [location] = useLocation();
   const [resetComplete, setResetComplete] = useState(false);
   
-  // Extract token from URL
-  const searchParams = new URLSearchParams(location.split('?')[1]);
+  // Extract token from URL with improved handling
+  const urlParts = location.split('?');
+  const queryString = urlParts.length > 1 ? urlParts[1] : '';
+  const searchParams = new URLSearchParams(queryString);
   const token = searchParams.get('token') || '';
+  console.log('Reset password page loaded with token:', token);
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),

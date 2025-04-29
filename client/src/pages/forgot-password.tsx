@@ -57,9 +57,12 @@ export default function ForgotPasswordPage() {
     setResetLink(null);
     forgotPasswordMutation.mutate(data, {
       onSuccess: (response: any) => {
+        console.log('Forgot password response:', response);
         // In development mode, check if the response contains a development token
         if (isDev && response.devToken) {
-          setResetLink(`${window.location.origin}/reset-password?token=${response.devToken}`);
+          const resetUrl = `${window.location.origin}/reset-password?token=${response.devToken}`;
+          console.log('Generated reset link:', resetUrl);
+          setResetLink(resetUrl);
         }
       }
     });

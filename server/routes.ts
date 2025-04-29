@@ -719,7 +719,14 @@ function setupAuth(app: Express) {
     try {
       const { token, newPassword } = req.body;
       
+      console.log('Received password reset request with token:', {
+        tokenProvided: !!token,
+        tokenLength: token ? token.length : 0,
+        passwordProvided: !!newPassword
+      });
+      
       if (!token || !newPassword) {
+        console.log('Missing required fields for password reset');
         return res.status(400).json({ message: "Token and new password are required" });
       }
       
@@ -727,8 +734,11 @@ function setupAuth(app: Express) {
       const user = await storage.getUserByResetToken(token);
       
       if (!user) {
+        console.log('Could not find user with the provided reset token');
         return res.status(400).json({ message: "Invalid or expired token" });
       }
+      
+      console.log(`Valid reset token for user: ${user.username}`);
       
       // Hash the new password
       const hashedPassword = await hashPassword(newPassword);
@@ -737,9 +747,11 @@ function setupAuth(app: Express) {
       const success = await storage.resetPassword(token, hashedPassword);
       
       if (!success) {
+        console.log('Failed to reset password for user:', user.username);
         return res.status(500).json({ message: "Failed to reset password" });
       }
       
+      console.log(`Successfully reset password for user: ${user.username}`);
       res.status(200).json({ message: "Password has been reset successfully" });
     } catch (error: any) {
       console.error("Reset password error:", error);

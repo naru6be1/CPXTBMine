@@ -220,21 +220,36 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserByResetToken(token: string): Promise<User | undefined> {
-    if (!token) return undefined;
+    if (!token) {
+      console.log('Token validation failed: Token is empty');
+      return undefined;
+    }
     
     const currentTime = new Date();
+    console.log(`Validating reset token: ${token}`);
     
-    const [user] = await db
+    // First check if token exists at all
+    const [tokenUser] = await db
       .select()
       .from(users)
-      .where(
-        and(
-          eq(users.resetPasswordToken, token),
-          gte(users.resetPasswordExpires as any, currentTime)
-        )
-      );
+      .where(eq(users.resetPasswordToken, token));
       
-    return user;
+    if (!tokenUser) {
+      console.log('Token validation failed: No user found with this token');
+      return undefined;
+    }
+    
+    // Then check if token is expired
+    if (tokenUser.resetPasswordExpires && tokenUser.resetPasswordExpires < currentTime) {
+      console.log('Token validation failed: Token has expired', {
+        tokenExpiry: tokenUser.resetPasswordExpires,
+        currentTime: currentTime
+      });
+      return undefined;
+    }
+    
+    console.log('Token validation successful for user:', tokenUser.username);
+    return tokenUser;
   }
   
   async resetPassword(token: string, newPassword: string): Promise<boolean> {

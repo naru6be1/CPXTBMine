@@ -12,6 +12,40 @@ import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
 import { PLATFORM_NAME } from "@shared/constants";
 
+// SVG watermark for merchant agreement (legal document watermark)
+const merchantWatermarkSvg = `
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B6539;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#D4AF37;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="80" fill="url(#grad1)" />
+  <circle cx="100" cy="100" r="70" fill="none" stroke="#8B6539" stroke-width="2" stroke-opacity="0.3" />
+  <circle cx="100" cy="100" r="60" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-opacity="0.3" />
+  <path d="M70,80 L130,80 L150,120 L50,120 Z" fill="#8B6539" fill-opacity="0.3" />
+  <text x="100" y="105" font-family="Arial" font-size="12" text-anchor="middle" fill="#5D4037" fill-opacity="0.7">OFFICIAL DOCUMENT</text>
+  <text x="100" y="85" font-family="Arial" font-size="10" text-anchor="middle" fill="#5D4037" fill-opacity="0.7">MERCHANT AGREEMENT</text>
+</svg>`;
+
+// SVG watermark for LLC agreement (legal document watermark with different colors)
+const llcWatermarkSvg = `
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A5276;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#5DADE2;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="80" fill="url(#grad2)" />
+  <circle cx="100" cy="100" r="70" fill="none" stroke="#1A5276" stroke-width="2" stroke-opacity="0.3" />
+  <circle cx="100" cy="100" r="60" fill="none" stroke="#5DADE2" stroke-width="1.5" stroke-opacity="0.3" />
+  <path d="M60,75 L140,75 L160,125 L40,125 Z" fill="#1A5276" fill-opacity="0.3" />
+  <text x="100" y="105" font-family="Arial" font-size="12" text-anchor="middle" fill="#154360" fill-opacity="0.7">OFFICIAL DOCUMENT</text>
+  <text x="100" y="85" font-family="Arial" font-size="10" text-anchor="middle" fill="#154360" fill-opacity="0.7">LLC AGREEMENT</text>
+</svg>`;
+
 // Document types
 type DocumentType = 'merchant' | 'llc';
 
@@ -127,14 +161,27 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add watermark-like text in the background
-      doc.setTextColor(200, 200, 200); // Light gray for watermark
-      doc.setFontSize(60);
-      doc.setFont('helvetica', 'italic');
-      doc.text('LEGAL DOCUMENT', pageWidth / 2, pageHeight / 2, { 
-        align: 'center',
-        angle: 45
-      });
+      // Add SVG watermark image in header
+      try {
+        // Create a data URL from the SVG
+        const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(merchantWatermarkSvg);
+        
+        // Add SVG watermark to top center of document
+        doc.addImage(svgDataUrl, 'SVG', pageWidth / 2 - 40, 10, 80, 80);
+        
+        console.log('Added merchant watermark SVG to document');
+      } catch (error) {
+        console.error('Error adding SVG watermark:', error);
+        
+        // Fallback to text watermark if SVG fails
+        doc.setTextColor(200, 200, 200); // Light gray for watermark
+        doc.setFontSize(60);
+        doc.setFont('helvetica', 'italic');
+        doc.text('LEGAL DOCUMENT', pageWidth / 2, pageHeight / 2, { 
+          align: 'center',
+          angle: 45
+        });
+      }
       
       // Add serial number in the top right (simulating stamp paper numbering)
       doc.setFontSize(8);
@@ -312,6 +359,19 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
+      // Add smaller SVG watermark to continuation page
+      try {
+        // Create a data URL from the SVG
+        const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(merchantWatermarkSvg);
+        
+        // Add smaller SVG watermark to top center of document
+        doc.addImage(svgDataUrl, 'SVG', pageWidth / 2 - 30, 10, 60, 60);
+        
+        console.log('Added merchant watermark SVG to continuation page');
+      } catch (error) {
+        console.error('Error adding SVG watermark to continuation page:', error);
+      }
+      
       // Add serial number in the top right (continuing from previous page)
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100); // Dark gray
@@ -454,14 +514,27 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add watermark-like text in the background
-      doc.setTextColor(220, 230, 230); // Light blue-gray for watermark
-      doc.setFontSize(60);
-      doc.setFont('helvetica', 'italic');
-      doc.text('LLC DOCUMENT', pageWidth / 2, pageHeight / 2, { 
-        align: 'center',
-        angle: 45
-      });
+      // Add SVG watermark image in header
+      try {
+        // Create a data URL from the SVG
+        const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(llcWatermarkSvg);
+        
+        // Add SVG watermark to top center of document
+        doc.addImage(svgDataUrl, 'SVG', pageWidth / 2 - 40, 10, 80, 80);
+        
+        console.log('Added LLC watermark SVG to document');
+      } catch (error) {
+        console.error('Error adding LLC SVG watermark:', error);
+        
+        // Fallback to text watermark if SVG fails
+        doc.setTextColor(220, 230, 230); // Light blue-gray for watermark
+        doc.setFontSize(60);
+        doc.setFont('helvetica', 'italic');
+        doc.text('LLC DOCUMENT', pageWidth / 2, pageHeight / 2, { 
+          align: 'center',
+          angle: 45
+        });
+      }
       
       // Add serial number in the top right (simulating stamp paper numbering)
       doc.setFontSize(8);
@@ -602,6 +675,19 @@ export function LegalDocuments() {
       // Bottom right corner ornament
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
+      
+      // Add smaller SVG watermark to continuation page
+      try {
+        // Create a data URL from the SVG
+        const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(llcWatermarkSvg);
+        
+        // Add smaller SVG watermark to top center of document
+        doc.addImage(svgDataUrl, 'SVG', pageWidth / 2 - 30, 10, 60, 60);
+        
+        console.log('Added LLC watermark SVG to continuation page');
+      } catch (error) {
+        console.error('Error adding LLC SVG watermark to continuation page:', error);
+      }
       
       // Add serial number in the top right (continuing from previous page)
       doc.setFontSize(8);

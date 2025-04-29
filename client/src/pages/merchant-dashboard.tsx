@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Redirect, useLocation } from "wouter";
+import { Redirect, useLocation, Link } from "wouter";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,8 @@ import {
   CircleDollarSign,
   Globe,
   Eye,
-  ArrowLeft
+  ArrowLeft,
+  User
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -58,7 +59,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useWallet } from "@/hooks/use-wallet";
 import { useAuth } from "@/hooks/use-auth";
 import { QRCodeSVG } from 'qrcode.react';
-import { User } from "@shared/schema";
+import { User as UserType } from "@shared/schema";
 import { PaymentNotification, PaymentSuccessNotification } from "@/components/payment-notification";
 import { MerchantPamphlet } from "@/components/merchant-pamphlet";
 import jsPDF from "jspdf";
@@ -148,7 +149,7 @@ export default function MerchantDashboard() {
   const [applyingTemplate, setApplyingTemplate] = useState<boolean | string>(false);
 
   // Get user data
-  const { data: userData } = useQuery<User>({
+  const { data: userData } = useQuery<UserType>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });

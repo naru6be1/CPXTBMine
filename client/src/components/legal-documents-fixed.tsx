@@ -141,7 +141,7 @@ export function LegalDocuments() {
       doc.setTextColor(100, 100, 100); // Dark gray
       doc.setFont('helvetica', 'bold');
       const serialNumber = 'CPXTB-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 15);
+      doc.text(`Serial No: ${serialNumber}`, pageWidth - 45, 15);
       
       // Add government-like seal in top left
       doc.setFillColor(139, 101, 57); // Brown seal color

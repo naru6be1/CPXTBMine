@@ -1,122 +1,105 @@
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { Link, useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
+import { AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
-import { PLATFORM_NAME } from "@shared/constants";
-
-// Form validation schema
-const resetPasswordSchema = z.object({
-  newPassword: z.string()
-    .min(8, { message: "Password must be at least 8 characters long" })
-    .max(64, { message: "Password cannot exceed 64 characters" }),
-  confirmPassword: z.string(),
-}).refine(data => data.newPassword === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
-
-type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPasswordPage() {
-  const [location, navigate] = useLocation();
-  const { toast } = useToast();
-  const [resetToken, setResetToken] = useState<string | null>(null);
-  const [resetSuccess, setResetSuccess] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [token, setToken] = useState("");
+  const [resetComplete, setResetComplete] = useState(false);
   const [tokenError, setTokenError] = useState(false);
-
-  // Get token from URL
+  const { toast } = useToast();
+  const [location] = useLocation();
+  
   useEffect(() => {
+    // Extract token from URL query parameters
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
-
-    if (!token) {
-      setTokenError(true);
-      toast({
-        variant: "destructive",
-        title: "Invalid token",
-        description: "The password reset link is invalid or has expired.",
-      });
+    const tokenParam = params.get("token");
+    
+    if (tokenParam) {
+      setToken(tokenParam);
     } else {
-      setResetToken(token);
+      setTokenError(true);
     }
-  }, [toast]);
+  }, [location]);
 
-  // Initialize form
-  const form = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      newPassword: "",
-      confirmPassword: "",
-    },
-  });
-
-  // Define reset password mutation
   const resetPasswordMutation = useMutation({
-    mutationFn: async (data: { token: string; newPassword: string }) => {
-      const response = await apiRequest("POST", "/api/reset-password", data);
-      return response.json();
+    mutationFn: async (data: { token: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/reset-password", data);
+      return await res.json();
     },
-    onSuccess: (data) => {
-      setResetSuccess(true);
+    onSuccess: () => {
+      setResetComplete(true);
       toast({
         title: "Password reset successful",
-        description: "Your password has been reset successfully. You can now log in with your new password.",
+        description: "Your password has been reset successfully",
       });
-
-      // Redirect to login page after 3 seconds
-      setTimeout(() => {
-        navigate("/auth");
-      }, 3000);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to reset password. The link may have expired.",
+        description: error.message || "Failed to reset password. Please try again.",
+        variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: ResetPasswordFormValues) => {
-    if (!resetToken) return;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     
-    resetPasswordMutation.mutate({
-      token: resetToken,
-      newPassword: data.newPassword,
-    });
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    resetPasswordMutation.mutate({ token, password });
   };
 
   if (tokenError) {
     return (
-      <div className="flex min-h-screen bg-gradient-to-b from-background to-muted/30">
-        <div className="container flex max-w-screen-xl flex-col items-center justify-center py-12">
-          <Card className="w-full max-w-md shadow-lg">
-            <CardHeader className="space-y-1 text-center">
-              <CardTitle className="text-2xl font-bold">Invalid Reset Link</CardTitle>
+      <div className="flex min-h-screen items-center justify-center p-4 bg-muted/30">
+        <div className="w-full max-w-md">
+          <Card>
+            <CardHeader>
+              <CardTitle>Invalid Reset Link</CardTitle>
+              <CardDescription>
+                The password reset link is invalid or has expired
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
-                  The password reset link is invalid or has expired. Please request a new password reset link.
+                  Please request a new password reset link from the forgot password page.
                 </AlertDescription>
               </Alert>
             </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button onClick={() => navigate("/forgot-password")}>
-                Request New Link
-              </Button>
+            <CardFooter>
+              <Link href="/forgot-password">
+                <Button className="w-full">Request New Reset Link</Button>
+              </Link>
             </CardFooter>
           </Card>
         </div>
@@ -125,103 +108,86 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container flex max-w-screen-xl flex-col items-center justify-center py-12">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+    <div className="flex min-h-screen items-center justify-center p-4 bg-muted/30">
+      <div className="w-full max-w-md">
+        <div className="mb-8">
+          <Link href="/auth" className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to login
+          </Link>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Reset Your Password</CardTitle>
             <CardDescription>
-              Create a new password for your account
+              Enter a new password for your account
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {resetSuccess ? (
-              <div className="space-y-4">
-                <Alert className="border-green-500 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-200">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  <AlertTitle>Password Reset Successful!</AlertTitle>
-                  <AlertDescription>
-                    Your password has been reset successfully. You will be redirected to the login page shortly.
-                  </AlertDescription>
-                </Alert>
-                <div className="text-center">
-                  <Button variant="outline" onClick={() => navigate("/auth")}>
-                    Go to Login
-                  </Button>
-                </div>
+
+          {resetComplete ? (
+            <CardContent>
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-600">Password reset complete!</AlertTitle>
+                <AlertDescription>
+                  Your password has been reset successfully. You can now log in with your new password.
+                </AlertDescription>
+              </Alert>
+              <div className="mt-6 text-center">
+                <Link href="/auth">
+                  <Button>Return to Login</Button>
+                </Link>
               </div>
-            ) : (
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            {...field}
-                            disabled={resetPasswordMutation.isPending}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          At least 8 characters long
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            {...field}
-                            disabled={resetPasswordMutation.isPending}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
+            </CardContent>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">New Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter your new password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="Confirm your new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {resetPasswordMutation.isError && (
+                    <Alert variant="destructive" className="text-sm py-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>
+                        {resetPasswordMutation.error?.message || "Failed to reset password"}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+                <CardFooter>
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full"
                     disabled={resetPasswordMutation.isPending}
                   >
-                    {resetPasswordMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Resetting...
-                      </>
-                    ) : (
-                      "Reset Password"
-                    )}
+                    {resetPasswordMutation.isPending ? "Resetting Password..." : "Reset Password"}
                   </Button>
-                </form>
-              </Form>
-            )}
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <div className="text-center text-sm text-muted-foreground">
-              <Link href="/auth" className="text-primary hover:underline">
-                Back to login
-              </Link>
-            </div>
-            <div className="text-center text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} {PLATFORM_NAME}. All rights reserved.
-            </div>
-          </CardFooter>
+                </CardFooter>
+              </form>
+            </>
+          )}
         </Card>
       </div>
     </div>

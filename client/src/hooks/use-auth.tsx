@@ -11,6 +11,9 @@ interface User {
   id: number;
   username: string;
   referralCode?: string;
+  email?: string | null;
+  resetPasswordToken?: string | null;
+  resetPasswordExpires?: string | null;
 }
 
 type AuthContextType = {
@@ -31,6 +34,7 @@ type RegisterData = {
   username: string;
   password: string;
   referralCode?: string;
+  email?: string;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);

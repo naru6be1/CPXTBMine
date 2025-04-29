@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, User } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { type User as SchemaUser } from '@shared/schema';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 
 // Use the User type as is but cast when needed
 type User = SchemaUser;
@@ -28,8 +28,21 @@ type EmailFormValues = z.infer<typeof emailSchema>;
 export default function ProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { address } = useWallet();
+  const { address, isConnected } = useWallet();
   const [emailUpdateSuccess, setEmailUpdateSuccess] = useState(false);
+  const [, navigate] = useLocation();
+  
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!user && !isConnected) {
+      toast({
+        title: "Authentication Required",
+        description: "Please connect your wallet or sign in to view your profile.",
+        variant: "destructive"
+      });
+      navigate("/auth");
+    }
+  }, [user, isConnected, navigate, toast]);
   
   const form = useForm<EmailFormValues>({
     resolver: zodResolver(emailSchema),

@@ -1,6 +1,7 @@
 import { Redirect, Route } from "wouter";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useWallet } from "@/hooks/use-wallet";
 
 export function ProtectedRoute({
   path,
@@ -10,6 +11,10 @@ export function ProtectedRoute({
   component: React.ComponentType<any>;
 }) {
   const { user, isLoading } = useAuth();
+  const { isConnected } = useWallet();
+
+  // Debug logs
+  console.log("Protected Route Check:", { path, isLoading, isAuthenticated: !!user, isWalletConnected: isConnected });
 
   if (isLoading) {
     return (
@@ -21,6 +26,7 @@ export function ProtectedRoute({
     );
   }
 
+  // Ensure user is authenticated or has wallet connected
   if (!user) {
     console.log("User not authenticated, redirecting to auth page");
     return (

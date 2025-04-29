@@ -695,9 +695,19 @@ function setupAuth(app: Express) {
       }
       
       console.log(`Successfully processed password reset for email: ${email}`);
-      res.status(200).json({ 
-        message: "If your email is in our system, you will receive a password reset link shortly" 
-      });
+      
+      // In development mode, include the token in the response
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Development mode: Including reset token in response');
+        res.status(200).json({ 
+          message: "If your email is in our system, you will receive a password reset link shortly",
+          devToken: token  // Only included in development mode
+        });
+      } else {
+        res.status(200).json({ 
+          message: "If your email is in our system, you will receive a password reset link shortly" 
+        });
+      }
     } catch (error: any) {
       console.error("Forgot password error:", error);
       res.status(500).json({ message: "Error processing request: " + error.message });

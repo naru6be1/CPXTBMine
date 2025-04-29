@@ -3,7 +3,7 @@ import { Separator } from "@/components/ui/separator";
 
 export default function LegalPage() {
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 bg-background text-foreground">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Legal Documents</h1>
         <p className="text-muted-foreground mt-2 max-w-3xl mx-auto">

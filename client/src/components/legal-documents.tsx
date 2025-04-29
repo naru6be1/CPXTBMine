@@ -512,7 +512,7 @@ export function LegalDocuments() {
   
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <Card className="shadow-lg border-border">
+      <Card className="shadow-lg border-border bg-card text-card-foreground">
         <CardHeader className="bg-muted/40">
           <CardTitle className="flex items-center gap-2">
             <FilePenLine className="h-5 w-5" />
@@ -558,7 +558,7 @@ export function LegalDocuments() {
                         value={field.value}
                         onChange={(e) => updateMerchantField(index, e.target.value)}
                         placeholder={field.placeholder}
-                        className="w-full p-2 border border-border rounded-md"
+                        className="w-full p-2 border border-border rounded-md bg-card text-card-foreground"
                         required={field.required}
                       />
                     </div>
@@ -592,7 +592,7 @@ export function LegalDocuments() {
                         value={field.value}
                         onChange={(e) => updateLlcField(index, e.target.value)}
                         placeholder={field.placeholder}
-                        className="w-full p-2 border border-border rounded-md"
+                        className="w-full p-2 border border-border rounded-md bg-card text-card-foreground"
                         required={field.required}
                       />
                     </div>

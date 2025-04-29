@@ -127,14 +127,7 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add watermark-like text in the background
-      doc.setTextColor(200, 200, 200); // Light gray for watermark
-      doc.setFontSize(60);
-      doc.setFont('helvetica', 'italic');
-      doc.text('LEGAL DOCUMENT', pageWidth / 2, pageHeight / 2, { 
-        align: 'center',
-        angle: 45
-      });
+      // Removed watermark-like text in the background as requested
       
       // Add serial number in the top right (simulating stamp paper numbering) that crosses the border
       // First create a small white background patch that goes over the border
@@ -468,14 +461,7 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add watermark-like text in the background
-      doc.setTextColor(220, 230, 230); // Light blue-gray for watermark
-      doc.setFontSize(60);
-      doc.setFont('helvetica', 'italic');
-      doc.text('LLC DOCUMENT', pageWidth / 2, pageHeight / 2, { 
-        align: 'center',
-        angle: 45
-      });
+      // Removed watermark-like text in the background as requested
       
       // Add serial number in the top right (simulating stamp paper numbering) that crosses the border
       // First create a small white background patch that goes over the border

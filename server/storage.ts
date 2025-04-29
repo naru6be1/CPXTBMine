@@ -13,12 +13,17 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getUserByReferralCode(code: string): Promise<User | undefined>;
   getReferralStats(referralCode: string): Promise<{
     totalReferrals: number;
     totalRewards: string;
   }>;
+  updateUserEmail(userId: number, email: string): Promise<User>;
+  createPasswordResetToken(email: string): Promise<string | null>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  resetPassword(token: string, newPassword: string): Promise<boolean>;
 
   // Mining plan methods
   createMiningPlan(plan: InsertMiningPlan): Promise<MiningPlan>;
@@ -103,6 +108,17 @@ export class DatabaseStorage implements IStorage {
 
     return user;
   }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!email) return undefined;
+    
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+      
+    return user;
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     // Always normalize username (wallet address)
@@ -167,6 +183,77 @@ export class DatabaseStorage implements IStorage {
       totalReferrals,
       totalRewards: totalRewards.toFixed(2)
     };
+  }
+  
+  async updateUserEmail(userId: number, email: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ email })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    return updatedUser;
+  }
+  
+  async createPasswordResetToken(email: string): Promise<string | null> {
+    const user = await this.getUserByEmail(email);
+    if (!user) {
+      return null;
+    }
+    
+    // Generate a random token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date();
+    // Token expires in 1 hour
+    expires.setHours(expires.getHours() + 1);
+    
+    // Update the user with the reset token and expiry
+    await db
+      .update(users)
+      .set({
+        resetPasswordToken: token,
+        resetPasswordExpires: expires
+      })
+      .where(eq(users.id, user.id));
+      
+    return token;
+  }
+  
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    if (!token) return undefined;
+    
+    const currentTime = new Date();
+    
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.resetPasswordToken, token),
+          gte(users.resetPasswordExpires as any, currentTime)
+        )
+      );
+      
+    return user;
+  }
+  
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    const user = await this.getUserByResetToken(token);
+    
+    if (!user) {
+      return false;
+    }
+    
+    await db
+      .update(users)
+      .set({
+        password: newPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null
+      })
+      .where(eq(users.id, user.id));
+      
+    return true;
   }
 
   // Mining plan methods

@@ -50,8 +50,19 @@ export default function ForgotPasswordPage() {
     },
   });
 
+  const [resetLink, setResetLink] = useState<string | null>(null);
+  const isDev = import.meta.env.MODE === 'development';
+
   const onSubmit = (data: ForgotPasswordFormValues) => {
-    forgotPasswordMutation.mutate(data);
+    setResetLink(null);
+    forgotPasswordMutation.mutate(data, {
+      onSuccess: (response: any) => {
+        // In development mode, check if the response contains a development token
+        if (isDev && response.devToken) {
+          setResetLink(`${window.location.origin}/reset-password?token=${response.devToken}`);
+        }
+      }
+    });
   };
 
   return (
@@ -88,6 +99,24 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-muted-foreground">
                 Don't see it? Check your spam folder or request another link.
               </p>
+              
+              {/* Development mode reset link display */}
+              {isDev && resetLink && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <h4 className="text-sm font-semibold text-yellow-800 mb-1">Development Mode</h4>
+                  <p className="text-xs text-yellow-700 mb-2">
+                    This reset link is only displayed in development mode:
+                  </p>
+                  <div className="p-2 bg-yellow-100 rounded overflow-x-auto text-xs">
+                    <a 
+                      href={resetLink} 
+                      className="text-blue-600 hover:underline break-all"
+                    >
+                      {resetLink}
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <Form {...form}>

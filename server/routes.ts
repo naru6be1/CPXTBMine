@@ -649,7 +649,10 @@ function setupAuth(app: Express) {
     try {
       const { email } = req.body;
       
+      console.log(`Received password reset request for email: ${email}`);
+      
       if (!email) {
+        console.log("Password reset request missing email");
         return res.status(400).json({ message: "Email is required" });
       }
       
@@ -658,26 +661,40 @@ function setupAuth(app: Express) {
       
       // For security, always return success even if the email doesn't exist
       if (!user) {
+        console.log(`User with email ${email} not found in database`);
         return res.status(200).json({ 
           message: "If your email is in our system, you will receive a password reset link shortly" 
         });
       }
       
+      console.log(`Found user for password reset: ${user.username}`);
+      
       // Generate a reset token
       const token = await storage.createPasswordResetToken(email);
       
       if (!token) {
+        console.error(`Failed to generate reset token for user ${user.username}`);
         return res.status(500).json({ message: "Failed to generate reset token" });
       }
+      
+      console.log(`Generated reset token for user ${user.username}`);
       
       // Send the password reset email
       const emailSent = await sendPasswordResetEmail(email, token, user.username);
       
       if (!emailSent) {
-        console.error("Failed to send password reset email to:", email);
+        console.error(`Failed to send password reset email to: ${email}`);
+        // In development mode, we'll still return success since the token is logged to console
+        if (process.env.NODE_ENV !== 'production') {
+          console.log("Development mode: Proceeding despite email failure");
+          return res.status(200).json({ 
+            message: "If your email is in our system, you will receive a password reset link shortly" 
+          });
+        }
         return res.status(500).json({ message: "Failed to send password reset email" });
       }
       
+      console.log(`Successfully processed password reset for email: ${email}`);
       res.status(200).json({ 
         message: "If your email is in our system, you will receive a password reset link shortly" 
       });

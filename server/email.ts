@@ -1,17 +1,44 @@
 import nodemailer from 'nodemailer';
 import { CONTACT_EMAIL, PLATFORM_NAME } from '@shared/constants';
 
-// Create a transporter using your domain email credentials
-// This will be configured based on the user's actual email service
-export const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.example.com', // Will be replaced with actual SMTP server
-  port: parseInt(process.env.EMAIL_PORT || '587'),
-  secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER || CONTACT_EMAIL,
-    pass: process.env.EMAIL_PASSWORD || '',
-  },
-});
+// Determine if we're in development mode
+const isDev = process.env.NODE_ENV !== 'production';
+
+// For development, use ethereal.email (fake SMTP service for testing)
+let devTransporter: nodemailer.Transporter | null = null;
+
+// Production email transporter
+let prodTransporter: nodemailer.Transporter | null = null;
+
+// Initialize the appropriate transporter
+export let transporter: nodemailer.Transporter;
+
+// Setup transporters
+if (isDev) {
+  console.log("Using development email mode - emails will be logged to console");
+  
+  // For development, we'll create a test account and log the links
+  transporter = nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false,
+    auth: {
+      user: 'dev@example.com', // These will be ignored in our dev implementation
+      pass: 'password',
+    },
+  });
+} else {
+  // For production, use the configured SMTP server
+  transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.example.com',
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: process.env.EMAIL_SECURE === 'true',
+    auth: {
+      user: process.env.EMAIL_USER || CONTACT_EMAIL,
+      pass: process.env.EMAIL_PASSWORD || '',
+    },
+  });
+}
 
 /**
  * Send a password reset email
@@ -26,6 +53,20 @@ export async function sendPasswordResetEmail(
     const baseUrl = process.env.BASE_URL || 'https://cpxtb.io';
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
     
+    // In development mode, just log the reset URL and return success
+    if (isDev) {
+      console.log('\n==============================================================');
+      console.log('DEVELOPMENT MODE: Password Reset Email');
+      console.log('==============================================================');
+      console.log(`To: ${email}`);
+      console.log(`Username: ${username}`);
+      console.log(`Reset Token: ${resetToken}`);
+      console.log(`Reset URL: ${resetUrl}`);
+      console.log('==============================================================\n');
+      return true;
+    }
+    
+    // For production, actually send the email
     console.log(`Sending password reset email to ${email} with reset URL: ${resetUrl}`);
     
     const mailOptions = {

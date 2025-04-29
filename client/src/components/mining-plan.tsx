@@ -423,6 +423,7 @@ function SocialShareButtons({ amount, type }: { amount: string | undefined, type
 function SlotCountdownTimer({ planType }: { planType: PlanType }) {
   const [countdown, setCountdown] = useState<string>("");
   const [availableSlots, setAvailableSlots] = useState<number>(0);
+  const [slotDecreaseCounter, setSlotDecreaseCounter] = useState<number>(0);
   
   // Generate a random number of slots based on plan type
   // Use consistent values based on the plan type
@@ -430,20 +431,34 @@ function SlotCountdownTimer({ planType }: { planType: PlanType }) {
     const getRandomSlots = () => {
       // Make gold more scarce, bronze more abundant
       if (planType === 'gold') {
-        return Math.floor(Math.random() * 4) + 2; // 2-5 slots
+        return Math.floor(Math.random() * 3) + 1; // 1-3 slots (more urgent!)
       } else if (planType === 'silver') {
-        return Math.floor(Math.random() * 6) + 5; // 5-10 slots
+        return Math.floor(Math.random() * 4) + 2; // 2-5 slots
       } else {
-        return Math.floor(Math.random() * 10) + 10; // 10-19 slots
+        return Math.floor(Math.random() * 6) + 5; // 5-10 slots
       }
     };
     
     setAvailableSlots(getRandomSlots());
     
-    // Set a random expiration time (3-12 hours from now)
-    const hourMultiplier = planType === 'gold' ? 3 : planType === 'silver' ? 6 : 12;
+    // Set a short expiration time to create urgency
+    const hourMultiplier = planType === 'gold' ? 1 : planType === 'silver' ? 2 : 3;
     const expiryTime = new Date();
     expiryTime.setHours(expiryTime.getHours() + hourMultiplier);
+    
+    // Randomly decrease available slots over time to create urgency
+    const slotDecreaseInterval = setInterval(() => {
+      setSlotDecreaseCounter(prev => {
+        const newCounter = prev + 1;
+        
+        // Every 30-60 seconds, decrease available slots if more than 1
+        if (newCounter >= Math.floor(Math.random() * 30) + 30) {
+          setAvailableSlots(slots => slots > 1 ? slots - 1 : slots);
+          return 0; // Reset counter
+        }
+        return newCounter;
+      });
+    }, 1000);
     
     const updateCountdown = () => {
       const now = new Date();
@@ -451,9 +466,10 @@ function SlotCountdownTimer({ planType }: { planType: PlanType }) {
       
       if (diff <= 0) {
         setCountdown("Restocking soon!");
-        // Reset slots after expiry
+        // Reset slots after expiry, but with fewer available
         setTimeout(() => {
-          setAvailableSlots(getRandomSlots());
+          const newSlots = Math.max(1, getRandomSlots() - 1); // Even fewer slots after reset
+          setAvailableSlots(newSlots);
           expiryTime.setHours(expiryTime.getHours() + hourMultiplier);
         }, 5000);
         return;
@@ -469,35 +485,44 @@ function SlotCountdownTimer({ planType }: { planType: PlanType }) {
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
     
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      clearInterval(slotDecreaseInterval);
+    };
   }, [planType]);
   
-  const slotColor = availableSlots <= 3 ? "text-red-500" : 
-                    availableSlots <= 8 ? "text-yellow-500" : 
+  const slotColor = availableSlots <= 2 ? "text-red-500 animate-pulse" : 
+                    availableSlots <= 5 ? "text-yellow-500" : 
                     "text-green-500";
   
   return (
     <div className="mt-2 pt-2 border-t border-border/50">
       <div className="flex items-center justify-between text-xs">
         <span className={`font-semibold ${slotColor}`}>
-          {availableSlots} {availableSlots === 1 ? 'slot' : 'slots'} left
+          {availableSlots <= 2 && <AlarmClock className="inline-block w-3 h-3 mr-1" />}
+          <strong>{availableSlots} {availableSlots === 1 ? 'slot' : 'slots'} remaining!</strong>
         </span>
-        <span className="font-medium text-muted-foreground">
-          Resets in: {countdown}
+        <span className="font-medium text-red-400">
+          Offer ends in: {countdown}
         </span>
       </div>
       
       {/* Progress bar showing slots availability */}
-      <div className="w-full h-1.5 bg-background rounded-full mt-1.5 overflow-hidden">
+      <div className="w-full h-2 bg-background rounded-full mt-1.5 overflow-hidden">
         <div 
-          className={cn("h-full rounded-full", {
-            "bg-red-500": availableSlots <= 3,
-            "bg-yellow-500": availableSlots > 3 && availableSlots <= 8,
-            "bg-green-500": availableSlots > 8
+          className={cn("h-full rounded-full transition-all duration-1000", {
+            "bg-red-500 animate-pulse": availableSlots <= 2,
+            "bg-yellow-500": availableSlots > 2 && availableSlots <= 5,
+            "bg-green-500": availableSlots > 5
           })}
-          style={{ width: `${Math.min(100, (availableSlots / 20) * 100)}%` }}
+          style={{ width: `${Math.min(100, (availableSlots / 10) * 100)}%` }}
         />
       </div>
+      {availableSlots <= 3 && (
+        <p className="text-xs text-red-500 mt-1 animate-pulse">
+          Hurry! These slots are selling fast!
+        </p>
+      )}
     </div>
   );
 }

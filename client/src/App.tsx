@@ -30,8 +30,8 @@ const AuthPage = lazy(() => import("@/pages/auth-page"));
 const MerchantDashboard = lazy(() => import("@/pages/merchant-dashboard"));
 const PaymentPage = lazy(() => import("@/pages/payment-page"));
 const LegalPage = lazy(() => import("@/pages/legal-page"));
-const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password"));
-const ResetPasswordPage = lazy(() => import("@/pages/reset-password"));
+const ForgotPasswordPage = lazy(() => import("./pages/forgot-password"));
+const ResetPasswordPage = lazy(() => import("./pages/reset-password"));
 
 // No games
 

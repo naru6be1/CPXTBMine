@@ -49,7 +49,7 @@ export default function AuthPage() {
       return;
     }
     
-    const userData = {
+    const userData: any = {
       username: registerForm.username,
       password: registerForm.password,
       referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`

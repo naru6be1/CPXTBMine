@@ -85,6 +85,7 @@ function Router() {
         <Route path="/contact" component={ContactPage} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
+        <Route path="/legal-documents" component={LegalPage} />
         <Route path="/auth" component={AuthPage} />
         <ProtectedRoute path="/merchant" component={MerchantDashboard} />
         <Route path="/payment" component={PaymentPage} />

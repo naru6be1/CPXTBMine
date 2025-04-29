@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Link } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,6 +11,8 @@ import { WagmiConfig } from 'wagmi';
 import { ProtectedRoute } from "./lib/protected-route";
 import { scheduleMemoryCleanup, preloadImages } from "./lib/performance-optimizations";
 import { AuthProvider } from "./hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { User } from "lucide-react";
 
 // Lazy-loaded components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -126,7 +128,13 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <HamburgerMenu />
-            <div className="fixed top-4 right-4 z-50">
+            <div className="fixed top-4 right-4 z-50 flex items-center space-x-2">
+              <Link href="/profile">
+                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">Profile</span>
+                </Button>
+              </Link>
               <LiveUserCount />
             </div>
             <Router />

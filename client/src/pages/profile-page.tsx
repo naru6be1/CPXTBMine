@@ -11,9 +11,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
 import { type User as SchemaUser } from '@shared/schema';
+import { Link } from 'wouter';
 
 // Use the User type as is but cast when needed
 type User = SchemaUser;

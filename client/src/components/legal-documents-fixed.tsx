@@ -85,6 +85,7 @@ export function LegalDocuments() {
       
       console.log('Setting up document dimensions...');
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
       const contentWidth = pageWidth - (margin * 2);
       
@@ -95,17 +96,74 @@ export function LegalDocuments() {
         doc.text(lines, x, y);
         return y + (lines.length * lineHeight);
       };
-    
+      
+      // Add stamp paper / bond paper style header and border
+      // Background color for the header (light beige for stamp paper look)
+      doc.setFillColor(245, 241, 231); // Light beige color for stamp paper
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      // Add decorative border
+      doc.setDrawColor(139, 101, 57); // Brown border color
+      doc.setLineWidth(0.5);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S'); // Outer border
+      
+      // Add ornamental pattern in the corners
+      const cornerSize = 15;
+      // Top left corner ornament
+      doc.setDrawColor(139, 101, 57);
+      doc.setLineWidth(0.7);
+      doc.line(5, 5, 5 + cornerSize, 5); // Top horizontal
+      doc.line(5, 5, 5, 5 + cornerSize); // Left vertical
+      
+      // Top right corner ornament
+      doc.line(pageWidth - 5, 5, pageWidth - 5 - cornerSize, 5); // Top horizontal
+      doc.line(pageWidth - 5, 5, pageWidth - 5, 5 + cornerSize); // Right vertical
+      
+      // Bottom left corner ornament
+      doc.line(5, pageHeight - 5, 5 + cornerSize, pageHeight - 5); // Bottom horizontal
+      doc.line(5, pageHeight - 5, 5, pageHeight - 5 - cornerSize); // Left vertical
+      
+      // Bottom right corner ornament
+      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
+      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
+      
+      // Add watermark-like text in the background
+      doc.setTextColor(200, 200, 200); // Light gray for watermark
+      doc.setFontSize(60);
+      doc.setFont('helvetica', 'italic');
+      doc.text('LEGAL DOCUMENT', pageWidth / 2, pageHeight / 2, { 
+        align: 'center',
+        angle: 45
+      });
+      
+      // Add serial number in the top right (simulating stamp paper numbering)
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100); // Dark gray
+      doc.setFont('helvetica', 'bold');
+      const serialNumber = 'CPXTB-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 15);
+      
+      // Add government-like seal in top left
+      doc.setFillColor(139, 101, 57); // Brown seal color
+      doc.circle(25, 20, 10, 'F');
+      doc.setTextColor(255, 255, 255); // White text for seal
+      doc.setFontSize(7);
+      doc.text('OFFICIAL', 25, 19, { align: 'center' });
+      doc.text('DOCUMENT', 25, 22, { align: 'center' });
+      
+      // Reset styles for regular content
+      doc.setTextColor(0, 0, 0); // Black text for content
+      
       // Title
       doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
       const title = 'MERCHANT AGREEMENT FOR CPXTB TOKEN PAYMENTS';
-      doc.text(title, pageWidth / 2, 20, { align: 'center' });
+      doc.text(title, pageWidth / 2, 50, { align: 'center' });
       
       // Introduction
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      let y = 30;
+      let y = 60; // Adjusted to start after the title
       
       y = addWrappedText(
         `THIS MERCHANT AGREEMENT (the "Agreement") is entered into as of ${merchantFields[6].value} (the "Effective Date"), by and between:`,
@@ -224,6 +282,45 @@ export function LegalDocuments() {
       
       // Add new page for signatures
       doc.addPage();
+      
+      // Apply the same stamp paper style to new page
+      // Background color for the header (light beige for stamp paper look)
+      doc.setFillColor(245, 241, 231); // Light beige color for stamp paper
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      // Add decorative border
+      doc.setDrawColor(139, 101, 57); // Brown border color
+      doc.setLineWidth(0.5);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S'); // Outer border
+      
+      // Add ornamental pattern in the corners
+      // Top left corner ornament
+      doc.setDrawColor(139, 101, 57);
+      doc.setLineWidth(0.7);
+      doc.line(5, 5, 5 + cornerSize, 5); // Top horizontal
+      doc.line(5, 5, 5, 5 + cornerSize); // Left vertical
+      
+      // Top right corner ornament
+      doc.line(pageWidth - 5, 5, pageWidth - 5 - cornerSize, 5); // Top horizontal
+      doc.line(pageWidth - 5, 5, pageWidth - 5, 5 + cornerSize); // Right vertical
+      
+      // Bottom left corner ornament
+      doc.line(5, pageHeight - 5, 5 + cornerSize, pageHeight - 5); // Bottom horizontal
+      doc.line(5, pageHeight - 5, 5, pageHeight - 5 - cornerSize); // Left vertical
+      
+      // Bottom right corner ornament
+      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
+      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
+      
+      // Add serial number in the top right (continuing from previous page)
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100); // Dark gray
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 15);
+      
+      // Reset text color
+      doc.setTextColor(0, 0, 0); // Black text for content
+      
       y = 20;
       
       doc.setFont('helvetica', 'bold');
@@ -312,6 +409,7 @@ export function LegalDocuments() {
       
       console.log('Setting up LLC document dimensions...');
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
       const contentWidth = pageWidth - (margin * 2);
       
@@ -322,17 +420,77 @@ export function LegalDocuments() {
         doc.text(lines, x, y);
         return y + (lines.length * lineHeight);
       };
-    
+      
+      // Add stamp paper / bond paper style header and border
+      // Background color for the header (light blue/green for legal paper look)
+      doc.setFillColor(233, 240, 243); // Light blue-green color for legal paper
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      // Add decorative border
+      doc.setDrawColor(70, 130, 130); // Blue-green border color
+      doc.setLineWidth(0.5);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S'); // Outer border
+      
+      // Add double border for more formal look
+      doc.rect(8, 8, pageWidth - 16, pageHeight - 16, 'S'); // Inner border
+      
+      // Add ornamental pattern in the corners
+      const cornerSize = 15;
+      // Top left corner ornament
+      doc.setDrawColor(70, 130, 130);
+      doc.setLineWidth(0.7);
+      doc.line(5, 5, 5 + cornerSize, 5); // Top horizontal
+      doc.line(5, 5, 5, 5 + cornerSize); // Left vertical
+      
+      // Top right corner ornament
+      doc.line(pageWidth - 5, 5, pageWidth - 5 - cornerSize, 5); // Top horizontal
+      doc.line(pageWidth - 5, 5, pageWidth - 5, 5 + cornerSize); // Right vertical
+      
+      // Bottom left corner ornament
+      doc.line(5, pageHeight - 5, 5 + cornerSize, pageHeight - 5); // Bottom horizontal
+      doc.line(5, pageHeight - 5, 5, pageHeight - 5 - cornerSize); // Left vertical
+      
+      // Bottom right corner ornament
+      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
+      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
+      
+      // Add watermark-like text in the background
+      doc.setTextColor(220, 230, 230); // Light blue-gray for watermark
+      doc.setFontSize(60);
+      doc.setFont('helvetica', 'italic');
+      doc.text('LLC DOCUMENT', pageWidth / 2, pageHeight / 2, { 
+        align: 'center',
+        angle: 45
+      });
+      
+      // Add serial number in the top right (simulating stamp paper numbering)
+      doc.setFontSize(8);
+      doc.setTextColor(50, 100, 100); // Blue-green
+      doc.setFont('helvetica', 'bold');
+      const serialNumber = 'LLC-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 15);
+      
+      // Add formal seal in top left
+      doc.setFillColor(70, 130, 130); // Blue-green seal color
+      doc.circle(25, 20, 10, 'F');
+      doc.setTextColor(255, 255, 255); // White text for seal
+      doc.setFontSize(7);
+      doc.text('OFFICIAL', 25, 19, { align: 'center' });
+      doc.text('LLC DOC', 25, 22, { align: 'center' });
+      
+      // Reset styles for regular content
+      doc.setTextColor(0, 0, 0); // Black text for content
+      
       // Title
       doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
       const title = 'LLC OPERATING AGREEMENT FOR CRYPTOCURRENCY BUSINESS';
-      doc.text(title, pageWidth / 2, 20, { align: 'center' });
+      doc.text(title, pageWidth / 2, 50, { align: 'center' });
       
       // Introduction
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      let y = 30;
+      let y = 60; // Adjusted to start after the title
       
       // Agreement intro
       y = addWrappedText(
@@ -412,6 +570,48 @@ export function LegalDocuments() {
       
       // Add a new page for more content
       doc.addPage();
+      
+      // Apply the same stamp paper style to new page
+      // Background color for the header (light blue/green for legal paper look)
+      doc.setFillColor(233, 240, 243); // Light blue-green color for legal paper
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      // Add decorative border
+      doc.setDrawColor(70, 130, 130); // Blue-green border color
+      doc.setLineWidth(0.5);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S'); // Outer border
+      
+      // Add double border for more formal look
+      doc.rect(8, 8, pageWidth - 16, pageHeight - 16, 'S'); // Inner border
+      
+      // Add ornamental pattern in the corners
+      // Top left corner ornament
+      doc.setDrawColor(70, 130, 130);
+      doc.setLineWidth(0.7);
+      doc.line(5, 5, 5 + cornerSize, 5); // Top horizontal
+      doc.line(5, 5, 5, 5 + cornerSize); // Left vertical
+      
+      // Top right corner ornament
+      doc.line(pageWidth - 5, 5, pageWidth - 5 - cornerSize, 5); // Top horizontal
+      doc.line(pageWidth - 5, 5, pageWidth - 5, 5 + cornerSize); // Right vertical
+      
+      // Bottom left corner ornament
+      doc.line(5, pageHeight - 5, 5 + cornerSize, pageHeight - 5); // Bottom horizontal
+      doc.line(5, pageHeight - 5, 5, pageHeight - 5 - cornerSize); // Left vertical
+      
+      // Bottom right corner ornament
+      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
+      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
+      
+      // Add serial number in the top right (continuing from previous page)
+      doc.setFontSize(8);
+      doc.setTextColor(50, 100, 100); // Blue-green
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 15);
+      
+      // Reset text color
+      doc.setTextColor(0, 0, 0); // Black text for content
+      
       y = 20;
       
       y = addWrappedText(

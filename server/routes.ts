@@ -573,6 +573,9 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Import email utility
+import { sendPasswordResetEmail } from './email';
+
 function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
@@ -604,20 +607,25 @@ function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
+    try {
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const user = await storage.createUser({
+        ...req.body,
+        password: await hashPassword(req.body.password),
+      });
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(user);
+      });
+    } catch (error: any) {
+      console.error('Error during registration:', error);
+      res.status(500).json({ message: "Registration failed: " + error.message });
     }
-
-    const user = await storage.createUser({
-      ...req.body,
-      password: await hashPassword(req.body.password),
-    });
-
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
@@ -634,6 +642,108 @@ function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
+  });
+  
+  // Forgot password - request reset link
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Find the user by email
+      const user = await storage.getUserByEmail(email);
+      
+      // For security, always return success even if the email doesn't exist
+      if (!user) {
+        return res.status(200).json({ 
+          message: "If your email is in our system, you will receive a password reset link shortly" 
+        });
+      }
+      
+      // Generate a reset token
+      const token = await storage.createPasswordResetToken(email);
+      
+      if (!token) {
+        return res.status(500).json({ message: "Failed to generate reset token" });
+      }
+      
+      // Send the password reset email
+      const emailSent = await sendPasswordResetEmail(email, token, user.username);
+      
+      if (!emailSent) {
+        console.error("Failed to send password reset email to:", email);
+        return res.status(500).json({ message: "Failed to send password reset email" });
+      }
+      
+      res.status(200).json({ 
+        message: "If your email is in our system, you will receive a password reset link shortly" 
+      });
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Error processing request: " + error.message });
+    }
+  });
+  
+  // Reset password with token
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+      
+      // Verify token and update password
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Reset the password
+      const success = await storage.resetPassword(token, hashedPassword);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to reset password" });
+      }
+      
+      res.status(200).json({ message: "Password has been reset successfully" });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Error processing request: " + error.message });
+    }
+  });
+  
+  // Update user email
+  app.post("/api/update-email", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "You must be logged in to update your email" });
+      }
+      
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Update the user's email
+      const updatedUser = await storage.updateUserEmail((req.user as any).id, email);
+      
+      res.status(200).json({ 
+        message: "Email updated successfully",
+        user: updatedUser
+      });
+    } catch (error: any) {
+      console.error("Update email error:", error);
+      res.status(500).json({ message: "Error updating email: " + error.message });
+    }
   });
 }
 

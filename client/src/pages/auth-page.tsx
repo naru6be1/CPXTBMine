@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Redirect } from "wouter";
+import { Redirect, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function AuthPage() {
@@ -24,7 +24,8 @@ export default function AuthPage() {
   const [registerForm, setRegisterForm] = useState({
     username: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    email: ""
   });
   
   // Form handlers
@@ -48,11 +49,18 @@ export default function AuthPage() {
       return;
     }
     
-    registerMutation.mutate({
+    const userData = {
       username: registerForm.username,
       password: registerForm.password,
       referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-    });
+    };
+    
+    // Add email if provided
+    if (registerForm.email.trim()) {
+      userData.email = registerForm.email.trim();
+    }
+    
+    registerMutation.mutate(userData);
   };
   
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +125,7 @@ export default function AuthPage() {
                       />
                     </div>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="flex flex-col space-y-4">
                     <Button 
                       type="submit" 
                       className="w-full"
@@ -125,6 +133,17 @@ export default function AuthPage() {
                     >
                       {loginMutation.isPending ? "Logging in..." : "Login"}
                     </Button>
+                    <div className="text-center">
+                      <Link href="/forgot-password">
+                        <Button 
+                          variant="link" 
+                          className="p-0 text-sm text-muted-foreground"
+                          type="button"
+                        >
+                          Forgot password?
+                        </Button>
+                      </Link>
+                    </div>
                   </CardFooter>
                 </form>
               </Card>
@@ -174,6 +193,20 @@ export default function AuthPage() {
                         onChange={handleRegisterChange}
                         required
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-email">Email (optional)</Label>
+                      <Input
+                        id="register-email"
+                        name="email"
+                        type="email"
+                        placeholder="Your email address"
+                        value={registerForm.email}
+                        onChange={handleRegisterChange}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        For password recovery and account notifications
+                      </p>
                     </div>
                   </CardContent>
                   <CardFooter>

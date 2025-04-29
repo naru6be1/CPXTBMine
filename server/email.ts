@@ -22,7 +22,9 @@ export async function sendPasswordResetEmail(
   username: string
 ): Promise<boolean> {
   try {
-    const resetUrl = `${process.env.BASE_URL || 'https://cpxtb.io'}/reset-password?token=${resetToken}`;
+    // Get origin from request or use fallback
+    const baseUrl = process.env.BASE_URL || 'https://cpxtb.io';
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
       from: `"${PLATFORM_NAME}" <${CONTACT_EMAIL}>`,

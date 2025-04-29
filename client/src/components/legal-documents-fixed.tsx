@@ -141,7 +141,7 @@ export function LegalDocuments() {
       doc.setTextColor(100, 100, 100); // Dark gray
       doc.setFont('helvetica', 'bold');
       const serialNumber = 'CPXTB-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-      doc.text(`Serial No: ${serialNumber}`, pageWidth - 45, 15);
+      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 15);
       
       // Add government-like seal in top left
       doc.setFillColor(139, 101, 57); // Brown seal color
@@ -316,7 +316,7 @@ export function LegalDocuments() {
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100); // Dark gray
       doc.setFont('helvetica', 'bold');
-      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 45, 15);
+      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 15);
       
       // Reset text color
       doc.setTextColor(0, 0, 0); // Black text for content
@@ -468,7 +468,7 @@ export function LegalDocuments() {
       doc.setTextColor(50, 100, 100); // Blue-green
       doc.setFont('helvetica', 'bold');
       const serialNumber = 'LLC-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-      doc.text(`Serial No: ${serialNumber}`, pageWidth - 45, 15);
+      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 15);
       
       // Add formal seal in top left
       doc.setFillColor(70, 130, 130); // Blue-green seal color
@@ -607,7 +607,7 @@ export function LegalDocuments() {
       doc.setFontSize(8);
       doc.setTextColor(50, 100, 100); // Blue-green
       doc.setFont('helvetica', 'bold');
-      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 45, 15);
+      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 15);
       
       // Reset text color
       doc.setTextColor(0, 0, 0); // Black text for content

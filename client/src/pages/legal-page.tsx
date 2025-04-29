@@ -1,4 +1,4 @@
-import { LegalDocuments } from "@/components/legal-documents";
+import { LegalDocuments } from "@/components/legal-documents-fixed";
 import { Separator } from "@/components/ui/separator";
 
 export default function LegalPage() {

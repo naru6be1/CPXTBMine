@@ -77,7 +77,7 @@ export function LegalDocuments() {
   // Generate merchant agreement PDF
   const generateMerchantAgreement = async () => {
     try {
-      console.log('Initializing jsPDF...');
+      console.log('Initializing jsPDF for merchant agreement...');
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',

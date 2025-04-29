@@ -129,12 +129,6 @@ function App() {
           <AuthProvider>
             <HamburgerMenu />
             <div className="fixed top-4 right-4 z-50 flex items-center space-x-2">
-              <Link href="/profile">
-                <Button variant="outline" className="flex items-center gap-1">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">My Profile</span>
-                </Button>
-              </Link>
               <LiveUserCount />
             </div>
             <Router />

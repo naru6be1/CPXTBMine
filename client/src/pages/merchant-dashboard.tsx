@@ -64,6 +64,22 @@ import { MerchantPamphlet } from "@/components/merchant-pamphlet";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// Profile button component
+function ProfileButton() {
+  return (
+    <Link href="/profile">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="flex items-center gap-1 hover:bg-blue-50 border-blue-200"
+      >
+        <User className="h-4 w-4" />
+        My Profile
+      </Button>
+    </Link>
+  );
+}
+
 // Logout button component
 function LogoutButton() {
   const { logoutMutation } = useAuth();
@@ -1466,7 +1482,10 @@ export default function MerchantDashboard() {
         <h1 className="text-3xl font-bold">Merchant Dashboard</h1>
         <div className="flex items-center gap-2">
           {userData && (
-            <LogoutButton />
+            <>
+              <ProfileButton />
+              <LogoutButton />
+            </>
           )}
         </div>
       </div>

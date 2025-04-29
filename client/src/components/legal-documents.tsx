@@ -75,18 +75,27 @@ export function LegalDocuments() {
   };
   
   // Generate merchant agreement PDF
-  const generateMerchantAgreement = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const contentWidth = pageWidth - (margin * 2);
-    
-    // Helper function to add wrapped text
-    const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
-      const lines = doc.splitTextToSize(text, maxWidth);
-      doc.text(lines, x, y);
-      return y + (lines.length * lineHeight);
-    };
+  const generateMerchantAgreement = async () => {
+    try {
+      console.log('Initializing jsPDF...');
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      console.log('Setting up document dimensions...');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      const contentWidth = pageWidth - (margin * 2);
+      
+      // Helper function to add wrapped text
+      const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+        console.log(`Adding text at position (${x}, ${y}): ${text.substring(0, 30)}...`);
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, y);
+        return y + (lines.length * lineHeight);
+      };
     
     // Title
     doc.setFontSize(20);
@@ -286,18 +295,27 @@ export function LegalDocuments() {
   };
   
   // Generate LLC agreement PDF
-  const generateLlcAgreement = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const contentWidth = pageWidth - (margin * 2);
-    
-    // Helper function to add wrapped text
-    const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
-      const lines = doc.splitTextToSize(text, maxWidth);
-      doc.text(lines, x, y);
-      return y + (lines.length * lineHeight);
-    };
+  const generateLlcAgreement = async () => {
+    try {
+      console.log('Initializing jsPDF for LLC agreement...');
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      console.log('Setting up LLC document dimensions...');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      const contentWidth = pageWidth - (margin * 2);
+      
+      // Helper function to add wrapped text
+      const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+        console.log(`Adding LLC text at position (${x}, ${y}): ${text.substring(0, 30)}...`);
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, y);
+        return y + (lines.length * lineHeight);
+      };
     
     // Title
     doc.setFontSize(20);
@@ -476,18 +494,27 @@ export function LegalDocuments() {
     
     // Save the PDF
     doc.save('CPXTB_LLC_Operating_Agreement.pdf');
+    } catch (error) {
+      console.error('Error in generateLlcAgreement:', error);
+      throw error;
+    }
   };
   
   // Handle document generation
   const handleGenerateDocument = async () => {
     try {
       setIsGenerating(true);
+      console.log('Starting document generation process...');
       
       if (documentType === 'merchant') {
-        generateMerchantAgreement();
+        console.log('Generating merchant agreement...');
+        await generateMerchantAgreement();
       } else {
-        generateLlcAgreement();
+        console.log('Generating LLC agreement...');
+        await generateLlcAgreement();
       }
+      
+      console.log('Document generation completed');
       
       // Show success toast
       toast({
@@ -502,7 +529,7 @@ export function LegalDocuments() {
       // Show error toast
       toast({
         title: "Document Generation Failed",
-        description: "There was an error generating your document. Please try again.",
+        description: "There was an error generating your document. Please try again: " + (error instanceof Error ? error.message : String(error)),
         variant: "destructive",
       });
     } finally {

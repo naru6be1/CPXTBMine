@@ -127,31 +127,11 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add image-based watermark using shapes and text
-      // Create a circular seal/stamp
-      doc.setFillColor(205, 175, 149, 0.6); // Beige/gold with transparency
-      doc.circle(pageWidth / 2, 25, 15, 'F');
-      
-      // Add inner circle
-      doc.setDrawColor(139, 101, 57, 0.8); // Darker brown with transparency
-      doc.setLineWidth(0.5);
-      doc.circle(pageWidth / 2, 25, 12, 'S');
-      
-      // Add text in the watermark
-      doc.setTextColor(100, 70, 30, 0.8); // Dark brown with transparency
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.text('OFFICIAL', pageWidth / 2, 22, { align: 'center' });
-      doc.text('DOCUMENT', pageWidth / 2, 26, { align: 'center' });
-      doc.setFontSize(5);
-      doc.text('COIN PREDICTION TOOL', pageWidth / 2, 30, { align: 'center' });
-      doc.text('ON BASE LLC', pageWidth / 2, 33, { align: 'center' });
-      
-      // Add diagonal "MERCHANT AGREEMENT" text as watermark
-      doc.setTextColor(200, 190, 180, 0.3); // Light beige with high transparency
-      doc.setFontSize(40);
+      // Add watermark-like text in the background
+      doc.setTextColor(200, 200, 200); // Light gray for watermark
+      doc.setFontSize(60);
       doc.setFont('helvetica', 'italic');
-      doc.text('MERCHANT AGREEMENT', pageWidth / 2, pageHeight / 2, { 
+      doc.text('LEGAL DOCUMENT', pageWidth / 2, pageHeight / 2, { 
         align: 'center',
         angle: 45
       });
@@ -332,26 +312,6 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add image-based watermark to continuation page
-      // Create a circular seal/stamp (slightly smaller than first page)
-      doc.setFillColor(205, 175, 149, 0.6); // Beige/gold with transparency
-      doc.circle(pageWidth / 2, 22, 12, 'F');
-      
-      // Add inner circle
-      doc.setDrawColor(139, 101, 57, 0.8); // Darker brown with transparency
-      doc.setLineWidth(0.5);
-      doc.circle(pageWidth / 2, 22, 10, 'S');
-      
-      // Add text in the watermark
-      doc.setTextColor(100, 70, 30, 0.8); // Dark brown with transparency
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'bold');
-      doc.text('OFFICIAL', pageWidth / 2, 20, { align: 'center' });
-      doc.text('DOCUMENT', pageWidth / 2, 24, { align: 'center' });
-      doc.setFontSize(4);
-      doc.text('COIN PREDICTION TOOL', pageWidth / 2, 27, { align: 'center' });
-      doc.text('ON BASE LLC', pageWidth / 2, 29, { align: 'center' });
-      
       // Add serial number in the top right (continuing from previous page)
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100); // Dark gray
@@ -494,31 +454,11 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add image-based watermark using shapes and text
-      // Create a circular seal/stamp
-      doc.setFillColor(175, 205, 220, 0.6); // Blue-green with transparency
-      doc.circle(pageWidth / 2, 25, 15, 'F');
-      
-      // Add inner circle
-      doc.setDrawColor(70, 130, 150, 0.8); // Darker blue with transparency
-      doc.setLineWidth(0.5);
-      doc.circle(pageWidth / 2, 25, 12, 'S');
-      
-      // Add text in the watermark
-      doc.setTextColor(20, 60, 80, 0.8); // Dark blue with transparency
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.text('OFFICIAL', pageWidth / 2, 22, { align: 'center' });
-      doc.text('LLC DOCUMENT', pageWidth / 2, 26, { align: 'center' });
-      doc.setFontSize(5);
-      doc.text('COIN PREDICTION TOOL', pageWidth / 2, 30, { align: 'center' });
-      doc.text('ON BASE LLC', pageWidth / 2, 33, { align: 'center' });
-      
-      // Add diagonal "LLC OPERATING AGREEMENT" text as watermark
-      doc.setTextColor(200, 220, 230, 0.3); // Light blue with high transparency
-      doc.setFontSize(40);
+      // Add watermark-like text in the background
+      doc.setTextColor(220, 230, 230); // Light blue-gray for watermark
+      doc.setFontSize(60);
       doc.setFont('helvetica', 'italic');
-      doc.text('LLC AGREEMENT', pageWidth / 2, pageHeight / 2, { 
+      doc.text('LLC DOCUMENT', pageWidth / 2, pageHeight / 2, { 
         align: 'center',
         angle: 45
       });
@@ -662,26 +602,6 @@ export function LegalDocuments() {
       // Bottom right corner ornament
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
-      
-      // Add image-based watermark to LLC continuation page
-      // Create a circular seal/stamp (slightly smaller than first page)
-      doc.setFillColor(175, 205, 220, 0.6); // Blue-green with transparency
-      doc.circle(pageWidth / 2, 22, 12, 'F');
-      
-      // Add inner circle
-      doc.setDrawColor(70, 130, 150, 0.8); // Darker blue with transparency
-      doc.setLineWidth(0.5);
-      doc.circle(pageWidth / 2, 22, 10, 'S');
-      
-      // Add text in the watermark
-      doc.setTextColor(20, 60, 80, 0.8); // Dark blue with transparency
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'bold');
-      doc.text('OFFICIAL', pageWidth / 2, 20, { align: 'center' });
-      doc.text('LLC DOCUMENT', pageWidth / 2, 24, { align: 'center' });
-      doc.setFontSize(4);
-      doc.text('COIN PREDICTION TOOL', pageWidth / 2, 27, { align: 'center' });
-      doc.text('ON BASE LLC', pageWidth / 2, 29, { align: 'center' });
       
       // Add serial number in the top right (continuing from previous page)
       doc.setFontSize(8);

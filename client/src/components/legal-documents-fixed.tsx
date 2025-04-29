@@ -136,12 +136,19 @@ export function LegalDocuments() {
         angle: 45
       });
       
-      // Add serial number in the top right (simulating stamp paper numbering)
+      // Add serial number in the top right (simulating stamp paper numbering) that crosses the border
+      // First create a small white background patch that goes over the border
+      doc.setFillColor(255, 255, 255); 
+      doc.rect(pageWidth - 35, 3, 30, 10, 'F');
+      
+      // Then add the serial number text crossing the border
       doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100); // Dark gray
+      doc.setTextColor(139, 101, 57); // Brown color matching the border
       doc.setFont('helvetica', 'bold');
       const serialNumber = 'CPXTB-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 15);
+      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 8, { 
+        align: 'right'
+      });
       
       // Add government-like seal in top left
       doc.setFillColor(139, 101, 57); // Brown seal color
@@ -312,11 +319,18 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add serial number in the top right (continuing from previous page)
+      // Add serial number in the top right (continuing from previous page) that crosses the border
+      // First create a small white background patch that goes over the border
+      doc.setFillColor(255, 255, 255); 
+      doc.rect(pageWidth - 45, 3, 40, 10, 'F');
+      
+      // Then add the serial number text crossing the border
       doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100); // Dark gray
+      doc.setTextColor(139, 101, 57); // Brown color matching the border
       doc.setFont('helvetica', 'bold');
-      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 15);
+      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 8, { 
+        align: 'right'
+      });
       
       // Reset text color
       doc.setTextColor(0, 0, 0); // Black text for content
@@ -463,12 +477,19 @@ export function LegalDocuments() {
         angle: 45
       });
       
-      // Add serial number in the top right (simulating stamp paper numbering)
+      // Add serial number in the top right (simulating stamp paper numbering) that crosses the border
+      // First create a small white background patch that goes over the border
+      doc.setFillColor(255, 255, 255); 
+      doc.rect(pageWidth - 35, 3, 30, 10, 'F');
+      
+      // Then add the serial number text crossing the border
       doc.setFontSize(8);
-      doc.setTextColor(50, 100, 100); // Blue-green
+      doc.setTextColor(70, 130, 130); // Blue-green color matching the border
       doc.setFont('helvetica', 'bold');
       const serialNumber = 'LLC-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 15);
+      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 8, { 
+        align: 'right'
+      });
       
       // Add formal seal in top left
       doc.setFillColor(70, 130, 130); // Blue-green seal color
@@ -603,11 +624,18 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Add serial number in the top right (continuing from previous page)
+      // Add serial number in the top right (continuing from previous page) that crosses the border
+      // First create a small white background patch that goes over the border
+      doc.setFillColor(255, 255, 255); 
+      doc.rect(pageWidth - 45, 3, 40, 10, 'F');
+      
+      // Then add the serial number text crossing the border
       doc.setFontSize(8);
-      doc.setTextColor(50, 100, 100); // Blue-green
+      doc.setTextColor(70, 130, 130); // Blue-green color matching the border
       doc.setFont('helvetica', 'bold');
-      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 15);
+      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 8, { 
+        align: 'right'
+      });
       
       // Reset text color
       doc.setTextColor(0, 0, 0); // Black text for content

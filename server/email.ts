@@ -26,6 +26,8 @@ export async function sendPasswordResetEmail(
     const baseUrl = process.env.BASE_URL || 'https://cpxtb.io';
     const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
     
+    console.log(`Sending password reset email to ${email} with reset URL: ${resetUrl}`);
+    
     const mailOptions = {
       from: `"${PLATFORM_NAME}" <${CONTACT_EMAIL}>`,
       to: email,
@@ -71,6 +73,13 @@ The ${PLATFORM_NAME} Team`,
     return true;
   } catch (error) {
     console.error('Error sending password reset email:', error);
+    console.error('Email configuration:', {
+      host: process.env.EMAIL_HOST || 'not set',
+      port: process.env.EMAIL_PORT || 'not set',
+      secure: process.env.EMAIL_SECURE || 'not set',
+      user: process.env.EMAIL_USER ? '(set)' : '(not set)',
+      pass: process.env.EMAIL_PASSWORD ? '(set)' : '(not set)'
+    });
     return false;
   }
 }

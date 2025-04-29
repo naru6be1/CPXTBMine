@@ -51,6 +51,13 @@ app.use((req, res, next) => {
   try {
     log("Starting server initialization...");
 
+    // Set BASE_URL for password reset links if not set
+    if (!process.env.BASE_URL) {
+      const port = process.env.PORT || 5000;
+      process.env.BASE_URL = `http://0.0.0.0:${port}`;
+      log(`Setting BASE_URL to ${process.env.BASE_URL} for password reset emails`);
+    }
+
     // Check for required environment variables
     if (!process.env.DATABASE_URL) {
       const errorMessage = 'Critical: DATABASE_URL environment variable is missing. Please ensure it is set in your deployment environment.';

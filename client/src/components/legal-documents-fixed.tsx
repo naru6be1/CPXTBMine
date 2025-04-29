@@ -174,7 +174,7 @@ export function LegalDocuments() {
       y += 10;
       doc.setFont('helvetica', 'bold');
       y = addWrappedText(
-        `${PLATFORM_NAME} ("Platform Provider")`,
+        `Coin Prediction Tool On Base LLC ("Platform Provider")`,
         margin, y, contentWidth, 6
       );
       
@@ -351,7 +351,7 @@ export function LegalDocuments() {
       
       y += 15;
       doc.setFont('helvetica', 'bold');
-      doc.text('PLATFORM PROVIDER:', margin, y);
+      doc.text('Coin Prediction Tool On Base LLC:', margin, y);
       doc.setFont('helvetica', 'normal');
       
       y += 15;
@@ -683,7 +683,7 @@ export function LegalDocuments() {
       
       y += 15;
       doc.setFont('helvetica', 'bold');
-      doc.text('MEMBER SIGNATURE:', margin, y);
+      doc.text('Coin Prediction Tool On Base LLC MEMBER SIGNATURE:', margin, y);
       doc.setFont('helvetica', 'normal');
       
       y += 15;

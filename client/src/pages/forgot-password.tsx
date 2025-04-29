@@ -32,7 +32,14 @@ export default function ForgotPasswordPage() {
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: ForgotPasswordFormValues) => {
       const res = await apiRequest('POST', '/api/forgot-password', data);
-      return await res.json();
+      const result = await res.json();
+      
+      // Check if the response indicates no user found with this email
+      if (res.status === 404) {
+        throw new Error("No account found with this email address. If you haven't set up your email yet, please go to your profile page first.");
+      }
+      
+      return result;
     },
     onSuccess: () => {
       setEmailSent(true);

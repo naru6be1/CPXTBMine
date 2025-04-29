@@ -1,6 +1,6 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Gift, Pickaxe, Users, Award, Shield, BookOpen, MessageCircle, Info, FileText, AlertTriangle, Store, LogOut, LogIn, FileSignature } from "lucide-react";
+import { Menu, Gift, Pickaxe, Users, Award, Shield, BookOpen, MessageCircle, Info, FileText, AlertTriangle, Store, LogOut, LogIn, FileSignature, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -127,6 +127,12 @@ export function HamburgerMenu() {
                 <div className="px-4 py-2 text-sm">
                   Signed in as <span className="font-semibold">{user.username}</span>
                 </div>
+                <Link href="/profile">
+                  <Button variant="ghost" className="w-full justify-start" onClick={handleMenuItemClick}>
+                    <User className="mr-2 h-4 w-4" />
+                    My Profile
+                  </Button>
+                </Link>
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-100" 

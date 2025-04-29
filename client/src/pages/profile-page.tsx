@@ -86,7 +86,7 @@ export default function ProfilePage() {
             {user?.referredBy && (
               <div>
                 <h3 className="font-medium text-sm text-muted-foreground mb-1">Referred By</h3>
-                <p className="font-mono text-sm">{user.referredBy}</p>
+                <p className="font-mono text-sm">{user.referredBy as string}</p>
               </div>
             )}
           </CardContent>

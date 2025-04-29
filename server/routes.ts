@@ -659,11 +659,11 @@ function setupAuth(app: Express) {
       // Find the user by email
       const user = await storage.getUserByEmail(email);
       
-      // For security, always return success even if the email doesn't exist
+      // We're modifying this to return a 404 so our client can give better guidance
       if (!user) {
         console.log(`User with email ${email} not found in database`);
-        return res.status(200).json({ 
-          message: "If your email is in our system, you will receive a password reset link shortly" 
+        return res.status(404).json({ 
+          message: "Email address not found. Please update your profile with your email address first." 
         });
       }
       

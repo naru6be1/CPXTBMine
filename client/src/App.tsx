@@ -32,6 +32,7 @@ const PaymentPage = lazy(() => import("@/pages/payment-page"));
 const LegalPage = lazy(() => import("@/pages/legal-page"));
 const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password"));
 const ResetPasswordPage = lazy(() => import("@/pages/reset-password"));
+const ProfilePage = lazy(() => import("@/pages/profile-page"));
 
 // No games
 
@@ -91,6 +92,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
+        <ProtectedRoute path="/profile" component={ProfilePage} />
         <ProtectedRoute path="/merchant" component={MerchantDashboard} />
         <Route path="/payment" component={PaymentPage} />
         <Route path="/payment/:reference" component={PaymentPage} />

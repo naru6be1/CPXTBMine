@@ -13,7 +13,10 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 import { useWallet } from '@/hooks/use-wallet';
-import { User } from '@shared/schema';
+import { type User as SchemaUser } from '@shared/schema';
+
+// Use the User type as is but cast when needed
+type User = SchemaUser;
 
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -83,10 +86,11 @@ export default function ProfilePage() {
               <p className="font-mono text-sm">{user?.referralCode || 'Not available'}</p>
             </div>
             
-            {user?.referredBy && (
+            {/* Display referred by information if present */}
+            {(user as any)?.referredBy && (
               <div>
                 <h3 className="font-medium text-sm text-muted-foreground mb-1">Referred By</h3>
-                <p className="font-mono text-sm">{user.referredBy as string}</p>
+                <p className="font-mono text-sm">{(user as any).referredBy}</p>
               </div>
             )}
           </CardContent>
@@ -159,13 +163,14 @@ export default function ProfilePage() {
             <p className="text-sm text-muted-foreground mb-4">
               If you need to reset your password, you must have an email address associated with your account.
             </p>
-            <Button
-              variant="outline"
-              onClick={() => window.location.href = '/forgot-password'}
-              disabled={!user?.email}
-            >
-              Reset Password
-            </Button>
+            <Link href="/forgot-password">
+              <Button
+                variant="outline"
+                disabled={!user?.email}
+              >
+                Reset Password
+              </Button>
+            </Link>
             
             {!user?.email && (
               <p className="mt-2 text-sm text-amber-600">

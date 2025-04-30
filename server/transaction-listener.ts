@@ -192,6 +192,27 @@ async function processTransferEvent(
                 })
                 .where(eq(payments.id, payment.id));
               
+              // Send email notification to merchant for completed payment
+              try {
+                // Import the email function dynamically to avoid circular dependencies
+                const { sendPaymentConfirmationEmail } = await import('./email');
+                
+                // Fetch the updated payment to ensure we have the latest data
+                const updatedPayment = await storage.getPayment(payment.id);
+                
+                if (updatedPayment) {
+                  // Send the payment confirmation email
+                  const emailSent = await sendPaymentConfirmationEmail(merchant, updatedPayment);
+                  if (emailSent) {
+                    console.log(`✉️ Payment confirmation email sent to ${merchant.contactEmail} for payment ${payment.id}`);
+                  } else {
+                    console.error(`❌ Failed to send payment confirmation email to ${merchant.contactEmail} for payment ${payment.id}`);
+                  }
+                }
+              } catch (emailError) {
+                console.error(`Error sending payment confirmation email: ${emailError}`);
+              }
+              
               console.log(`✅ Payment ${payment.id} (${payment.paymentReference}) SECURELY marked as completed with tx hash ${txHash}`);
             } else {
               await db.update(payments)

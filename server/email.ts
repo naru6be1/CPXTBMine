@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { CONTACT_EMAIL, PLATFORM_NAME } from '@shared/constants';
+import { Payment, Merchant } from '@shared/schema';
 
 // Determine if we're in development mode
 const isDev = process.env.NODE_ENV !== 'production';
@@ -176,6 +177,175 @@ The ${PLATFORM_NAME} Team`,
     if (isDev) {
       console.log('DEVELOPMENT MODE: Email sending failed, but returning success for testing purposes.');
       console.log('Use the URL printed above to test password reset.');
+      return true;
+    }
+    
+    return false;
+  }
+}
+
+/**
+ * Send a payment confirmation email to a merchant
+ */
+export async function sendPaymentConfirmationEmail(
+  merchant: Merchant,
+  payment: Payment
+): Promise<boolean> {
+  // Get the merchant's email
+  const email = merchant.contactEmail;
+  const businessName = merchant.businessName;
+  const baseUrl = process.env.BASE_URL || 'https://cpxtbmining.com';
+  const merchantDashboardUrl = `${baseUrl}/merchant-dashboard`;
+  
+  // Format the payment amount with proper decimal places
+  const amountCpxtb = parseFloat(payment.amountCpxtb.toString()).toFixed(8);
+  const amountUsd = parseFloat(payment.amountUsd.toString()).toFixed(2);
+  
+  // Format the payment date
+  const paymentDate = payment.completedAt 
+    ? new Date(payment.completedAt).toLocaleString()
+    : new Date().toLocaleString();
+  
+  // Generate transaction explorer URL
+  const txExplorerUrl = payment.transactionHash 
+    ? `https://basescan.org/tx/${payment.transactionHash}`
+    : '';
+  
+  // Always log the payment details for debugging purposes
+  console.log('\n==============================================================');
+  console.log(`PAYMENT CONFIRMATION for ${businessName}`);
+  console.log('==============================================================');
+  console.log(`To: ${email}`);
+  console.log(`Payment Reference: ${payment.paymentReference}`);
+  console.log(`Amount: ${amountCpxtb} CPXTB (${amountUsd} USD)`);
+  console.log(`Transaction Hash: ${payment.transactionHash || 'N/A'}`);
+  console.log(`Payment Date: ${paymentDate}`);
+  console.log('==============================================================\n');
+  
+  // In development mode, just log the information and return success
+  if (isDev) {
+    console.log('DEVELOPMENT MODE: Not sending actual payment confirmation email.');
+    return true;
+  }
+  
+  // For production, try to send the email
+  try {
+    // Make sure the transporter exists
+    if (!transporter) {
+      console.warn('Email transporter not initialized. Creating a new one...');
+      transporter = await createTransporter();
+    }
+    
+    console.log(`Sending payment confirmation email to ${email}...`);
+    
+    const mailOptions = {
+      from: `"${PLATFORM_NAME}" <${CONTACT_EMAIL}>`,
+      to: email,
+      subject: `${PLATFORM_NAME} - Payment Confirmation`,
+      text: 
+`Hello ${businessName},
+
+We're pleased to inform you that a payment has been successfully processed.
+
+Payment Details:
+- Payment Reference: ${payment.paymentReference}
+- Order ID: ${payment.orderId || 'N/A'}
+- Amount: ${amountCpxtb} CPXTB (${amountUsd} USD)
+- Date: ${paymentDate}
+- Transaction Hash: ${payment.transactionHash || 'N/A'}
+${txExplorerUrl ? `- Transaction Link: ${txExplorerUrl}` : ''}
+
+You can view detailed information about this payment in your merchant dashboard:
+${merchantDashboardUrl}
+
+Thank you for using ${PLATFORM_NAME} for your cryptocurrency payment processing.
+
+Best regards,
+The ${PLATFORM_NAME} Team`,
+      html: 
+`<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background-color: #3b82f6; padding: 20px; text-align: center; color: white;">
+    <h1>${PLATFORM_NAME}</h1>
+  </div>
+  <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
+    <p>Hello <strong>${businessName}</strong>,</p>
+    <p>We're pleased to inform you that a payment has been successfully processed.</p>
+    
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+      <h2 style="margin-top: 0; font-size: 18px; color: #0f172a;">Payment Details</h2>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Payment Reference:</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${payment.paymentReference}</td>
+        </tr>
+        ${payment.orderId ? `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Order ID:</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${payment.orderId}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Amount:</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${amountCpxtb} CPXTB (${amountUsd} USD)</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Date:</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${paymentDate}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Transaction Hash:</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: 500; word-break: break-all;">
+            ${payment.transactionHash || 'N/A'}
+          </td>
+        </tr>
+      </table>
+      ${txExplorerUrl ? `
+      <div style="margin-top: 16px; text-align: center;">
+        <a href="${txExplorerUrl}" target="_blank" style="background-color: #334155; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 14px;">
+          View Transaction on BaseScan
+        </a>
+      </div>
+      ` : ''}
+    </div>
+    
+    <p>You can view detailed information about this payment in your merchant dashboard:</p>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${merchantDashboardUrl}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+        View Merchant Dashboard
+      </a>
+    </div>
+    
+    <p>Thank you for using ${PLATFORM_NAME} for your cryptocurrency payment processing.</p>
+    <p>Best regards,<br>The ${PLATFORM_NAME} Team</p>
+  </div>
+  <div style="background-color: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #6b7280;">
+    <p>© ${new Date().getFullYear()} ${PLATFORM_NAME}. All rights reserved.</p>
+  </div>
+</div>`
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Payment confirmation email sent:', info.messageId);
+    
+    // For Ethereal email in development, provide the preview URL
+    if (info.messageId && isDev && info.previewURL) {
+      console.log('Preview URL:', info.previewURL);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending payment confirmation email:', error);
+    console.error('Email configuration:', {
+      host: process.env.EMAIL_HOST || 'not set',
+      port: process.env.EMAIL_PORT || 'not set',
+      secure: process.env.EMAIL_SECURE || 'not set',
+      user: process.env.EMAIL_USER ? '(set)' : '(not set)',
+      pass: process.env.EMAIL_PASSWORD ? '(set)' : '(not set)',
+    });
+    
+    // If in development, still consider this a success so testing can continue
+    if (isDev) {
+      console.log('DEVELOPMENT MODE: Payment confirmation email sending failed, but returning success for testing purposes.');
       return true;
     }
     

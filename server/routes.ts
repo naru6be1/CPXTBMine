@@ -681,14 +681,18 @@ function setupAuth(app: Express) {
       
       // Send the password reset email
       const emailSent = await sendPasswordResetEmail(email, token, user.username);
+      const isDev = process.env.NODE_ENV !== 'production';
       
       if (!emailSent) {
         console.error(`Failed to send password reset email to: ${email}`);
         // In development mode, we'll still return success since the token is logged to console
-        if (process.env.NODE_ENV !== 'production') {
+        if (isDev) {
           console.log("Development mode: Proceeding despite email failure");
+          
+          // Always include the token in development mode
           return res.status(200).json({ 
-            message: "If your email is in our system, you will receive a password reset link shortly" 
+            message: "If your email is in our system, you will receive a password reset link shortly",
+            devToken: token // Include token for testing
           });
         }
         return res.status(500).json({ message: "Failed to send password reset email" });
@@ -696,12 +700,18 @@ function setupAuth(app: Express) {
       
       console.log(`Successfully processed password reset for email: ${email}`);
       
-      // In development mode, include the token in the response
-      if (process.env.NODE_ENV !== 'production') {
+      // In development mode, always include the token in the response
+      if (isDev) {
         console.log('Development mode: Including reset token in response');
+        const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+        const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+        
+        console.log(`Reset URL for testing: ${resetUrl}`);
+        
         res.status(200).json({ 
           message: "If your email is in our system, you will receive a password reset link shortly",
-          devToken: token  // Only included in development mode
+          devToken: token,  // Only included in development mode
+          resetUrl: resetUrl // Include full URL for easy testing
         });
       } else {
         res.status(200).json({ 

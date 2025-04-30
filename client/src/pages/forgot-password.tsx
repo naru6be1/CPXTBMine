@@ -65,11 +65,20 @@ export default function ForgotPasswordPage() {
     forgotPasswordMutation.mutate(data, {
       onSuccess: (response: any) => {
         console.log('Forgot password response:', response);
-        // In development mode, check if the response contains a development token
-        if (isDev && response.devToken) {
-          const resetUrl = `${window.location.origin}/reset-password?token=${response.devToken}`;
-          console.log('Generated reset link:', resetUrl);
-          setResetLink(resetUrl);
+        
+        // In development mode, check if the response contains a reset URL or token
+        if (isDev) {
+          // If server provided a complete URL, use that
+          if (response.resetUrl) {
+            console.log('Server provided reset URL:', response.resetUrl);
+            setResetLink(response.resetUrl);
+          } 
+          // Otherwise if we have a dev token, construct the URL
+          else if (response.devToken) {
+            const resetUrl = `${window.location.origin}/reset-password?token=${response.devToken}`;
+            console.log('Generated reset link from token:', resetUrl);
+            setResetLink(resetUrl);
+          }
         }
       }
     });
@@ -112,12 +121,12 @@ export default function ForgotPasswordPage() {
               
               {/* Development mode reset link display */}
               {isDev && resetLink && (
-                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <h4 className="text-sm font-semibold text-yellow-800 mb-1">Development Mode</h4>
-                  <p className="text-xs text-yellow-700 mb-2">
-                    This reset link is only displayed in development mode:
+                <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-md">
+                  <h4 className="text-sm font-semibold text-yellow-800 mb-2">Development Mode Reset Link</h4>
+                  <p className="text-xs text-yellow-700 mb-3">
+                    Since we're in development mode, you can use this direct link to reset your password:
                   </p>
-                  <div className="p-2 bg-yellow-100 rounded overflow-x-auto text-xs">
+                  <div className="p-3 bg-yellow-100 rounded-md overflow-x-auto text-xs mb-3">
                     <a 
                       href={resetLink} 
                       className="text-blue-600 hover:underline break-all"
@@ -125,6 +134,14 @@ export default function ForgotPasswordPage() {
                       {resetLink}
                     </a>
                   </div>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-yellow-100 hover:bg-yellow-200 border-yellow-300 text-yellow-800"
+                    onClick={() => window.open(resetLink, '_blank')}
+                  >
+                    Open Reset Link in New Tab
+                  </Button>
                 </div>
               )}
             </div>

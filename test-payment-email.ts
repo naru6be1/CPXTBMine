@@ -70,7 +70,14 @@ async function testEmailNotification() {
     
     if (result) {
       console.log('\n✅ Email sending successful!');
-      console.log('In development mode, the email is not actually sent but logged to the console.');
+      const isEmailDevMode = process.env.NODE_ENV !== 'production' && 
+        !(process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASSWORD);
+      
+      if (isEmailDevMode) {
+        console.log('In development mode, the email is not actually sent but logged to the console.');
+      } else {
+        console.log('Email was sent to the real recipient using the configured SMTP server.');
+      }
     } else {
       console.error('\n❌ Email sending failed.');
     }

@@ -172,7 +172,7 @@ The ${PLATFORM_NAME} Team`,
     console.log('Password reset email sent:', info.messageId);
     
     // For Ethereal email in development, provide the preview URL
-    if (info.messageId && isDev && info.previewURL) {
+    if (info.messageId && isEmailDevMode && info.previewURL) {
       console.log('Preview URL:', info.previewURL);
     }
     
@@ -189,7 +189,7 @@ The ${PLATFORM_NAME} Team`,
     });
     
     // If in development, still consider this a success so testing can continue
-    if (isDev) {
+    if (isEmailDevMode) {
       console.log('DEVELOPMENT MODE: Email sending failed, but returning success for testing purposes.');
       console.log('Use the URL printed above to test password reset.');
       return true;
@@ -238,7 +238,7 @@ export async function sendPaymentConfirmationEmail(
   console.log('==============================================================\n');
   
   // In development mode, just log the information and return success
-  if (isDev) {
+  if (isEmailDevMode) {
     console.log('DEVELOPMENT MODE: Not sending actual payment confirmation email.');
     return true;
   }
@@ -343,7 +343,7 @@ The ${PLATFORM_NAME} Team`,
     console.log('Payment confirmation email sent:', info.messageId);
     
     // For Ethereal email in development, provide the preview URL
-    if (info.messageId && isDev && info.previewURL) {
+    if (info.messageId && isEmailDevMode && info.previewURL) {
       console.log('Preview URL:', info.previewURL);
     }
     
@@ -359,7 +359,7 @@ The ${PLATFORM_NAME} Team`,
     });
     
     // If in development, still consider this a success so testing can continue
-    if (isDev) {
+    if (isEmailDevMode) {
       console.log('DEVELOPMENT MODE: Payment confirmation email sending failed, but returning success for testing purposes.');
       return true;
     }

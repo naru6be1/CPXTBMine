@@ -96,8 +96,6 @@ export function LegalDocuments() {
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
       doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
       
-      // Removed watermark-like text in the background as requested
-      
       // Add serial number in the top right (simulating stamp paper numbering) that crosses the border
       // First create a small white background patch that goes over the border
       doc.setFillColor(255, 255, 255); 
@@ -325,369 +323,42 @@ export function LegalDocuments() {
       doc.setFont('helvetica', 'bold');
       y = addWrappedText('IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.', margin, y, contentWidth, 6);
       
-      y += 15;
+      y += 20;
       doc.setFont('helvetica', 'bold');
-      doc.text('Coin Prediction Tool On Base LLC:', margin, y);
+      doc.text('PLATFORM PROVIDER:', margin, y);
+      
+      y += 10;
       doc.setFont('helvetica', 'normal');
-      
-      y += 15;
-      doc.text('Signature: _______________________________', margin, y);
+      doc.text('Signature: ___________________________', margin, y);
       
       y += 10;
-      doc.text(`Name: _______________________________`, margin, y);
+      doc.text('Print Name: ___________________________', margin, y);
       
       y += 10;
-      doc.text('Title: _______________________________', margin, y);
-      
-      y += 10;
-      doc.text(`Date: _______________________________`, margin, y);
+      doc.text('Title: ___________________________', margin, y);
       
       y += 20;
       doc.setFont('helvetica', 'bold');
       doc.text('MERCHANT:', margin, y);
+      
+      y += 10;
       doc.setFont('helvetica', 'normal');
-      
-      y += 15;
-      doc.text('Signature: _______________________________', margin, y);
+      doc.text('Signature: ___________________________', margin, y);
       
       y += 10;
-      doc.text(`Name: ${merchantFields[2].value}`, margin, y);
+      doc.text(`Print Name: ${merchantFields[2].value}`, margin, y);
       
       y += 10;
-      doc.text(`Business Name: ${merchantFields[0].value}`, margin, y);
+      doc.text(`Email: ${merchantFields[3].value}`, margin, y);
       
-      y += 10;
-      doc.text(`Date: ${merchantFields[6].value}`, margin, y);
+      // Save document
+      console.log('Saving merchant agreement...');
+      const fileName = merchantFields[0].value.replace(/\s+/g, '-').toLowerCase() + '-merchant-agreement.pdf';
+      doc.save(fileName);
+      console.log(`Merchant agreement saved as ${fileName}`);
       
-      y += 10;
-      doc.text(`Wallet Address: ${merchantFields[5].value}`, margin, y);
-      
-      // Save the PDF
-      console.log('Saving merchant agreement PDF...');
-      doc.save('CPXTB_Merchant_Agreement.pdf');
-      console.log('Merchant agreement PDF saved successfully');
-      return true;
     } catch (error) {
       console.error('Error in generateMerchantAgreement:', error);
-      throw error;
-    }
-  };
-  
-  // Generate LLC agreement PDF
-  const generateLlcAgreement = async () => {
-    try {
-      console.log('Initializing jsPDF for LLC agreement...');
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      console.log('Setting up LLC document dimensions...');
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentWidth = pageWidth - (margin * 2);
-      
-      // Helper function to add wrapped text
-      const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
-        console.log(`Adding LLC text at position (${x}, ${y}): ${text.substring(0, 30)}...`);
-        const lines = doc.splitTextToSize(text, maxWidth);
-        doc.text(lines, x, y);
-        return y + (lines.length * lineHeight);
-      };
-      
-      // Add stamp paper / bond paper style header and border
-      // Background color for the header (light blue/green for legal paper look)
-      doc.setFillColor(233, 240, 243); // Light blue-green color for legal paper
-      doc.rect(0, 0, pageWidth, 40, 'F');
-      
-      // Add decorative border
-      doc.setDrawColor(70, 130, 130); // Blue-green border color
-      doc.setLineWidth(0.5);
-      doc.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S'); // Outer border
-      
-      // Add double border for more formal look
-      doc.rect(8, 8, pageWidth - 16, pageHeight - 16, 'S'); // Inner border
-      
-      // Add ornamental pattern in the corners
-      const cornerSize = 15;
-      // Top left corner ornament
-      doc.setDrawColor(70, 130, 130);
-      doc.setLineWidth(0.7);
-      doc.line(5, 5, 5 + cornerSize, 5); // Top horizontal
-      doc.line(5, 5, 5, 5 + cornerSize); // Left vertical
-      
-      // Top right corner ornament
-      doc.line(pageWidth - 5, 5, pageWidth - 5 - cornerSize, 5); // Top horizontal
-      doc.line(pageWidth - 5, 5, pageWidth - 5, 5 + cornerSize); // Right vertical
-      
-      // Bottom left corner ornament
-      doc.line(5, pageHeight - 5, 5 + cornerSize, pageHeight - 5); // Bottom horizontal
-      doc.line(5, pageHeight - 5, 5, pageHeight - 5 - cornerSize); // Left vertical
-      
-      // Bottom right corner ornament
-      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
-      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
-      
-      // Removed watermark-like text in the background as requested
-      
-      // Add serial number in the top right (simulating stamp paper numbering) that crosses the border
-      // First create a small white background patch that goes over the border
-      doc.setFillColor(255, 255, 255); 
-      doc.rect(pageWidth - 35, 3, 30, 10, 'F');
-      
-      // Then add the serial number text crossing the border
-      doc.setFontSize(8);
-      doc.setTextColor(70, 130, 130); // Blue-green color matching the border
-      doc.setFont('helvetica', 'bold');
-      const serialNumber = 'LLC-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-      doc.text(`Serial No: ${serialNumber}`, pageWidth - 15, 8, { 
-        align: 'right'
-      });
-      
-      // Add formal seal in top left
-      doc.setFillColor(70, 130, 130); // Blue-green seal color
-      doc.circle(25, 20, 10, 'F');
-      doc.setTextColor(255, 255, 255); // White text for seal
-      doc.setFontSize(7);
-      doc.text('OFFICIAL', 25, 19, { align: 'center' });
-      doc.text('LLC DOC', 25, 22, { align: 'center' });
-      
-      // Reset styles for regular content
-      doc.setTextColor(0, 0, 0); // Black text for content
-      
-      // Title
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      const title = 'LLC OPERATING AGREEMENT FOR CRYPTOCURRENCY BUSINESS';
-      doc.text(title, pageWidth / 2, 50, { align: 'center' });
-      
-      // Introduction
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      let y = 60; // Adjusted to start after the title
-      
-      // Agreement intro
-      y = addWrappedText(
-        `THIS LIMITED LIABILITY COMPANY OPERATING AGREEMENT (the "Agreement") is made and entered into as of ${llcFields[7].value} (the "Effective Date") by and among the Members of ${llcFields[0].value}, a limited liability company organized under the laws of the State of ${llcFields[6].value} (the "Company").`,
-        margin, y, contentWidth, 6
-      );
-      
-      // Article I
-      y += 15;
-      doc.setFont('helvetica', 'bold');
-      y = addWrappedText('ARTICLE I - COMPANY FORMATION', margin, y, contentWidth, 6);
-      y += 3;
-      doc.setFont('helvetica', 'normal');
-      
-      y = addWrappedText(
-        '1.1 FORMATION. The Members have formed a Limited Liability Company named ' + 
-        llcFields[0].value + ' by filing the Articles of Organization with the Secretary of State in the State of ' + 
-        llcFields[6].value + '. The operation of the Company shall be governed by the terms of this Agreement and the applicable laws of the State of ' + 
-        llcFields[6].value + '.',
-        margin, y, contentWidth, 6
-      );
-      
-      y += 15;
-      y = addWrappedText(
-        '1.2 PURPOSE. The primary purpose of the Company is to engage in the business of cryptocurrency trading, mining, and payment processing, specifically utilizing the CPXTB token on the Base blockchain network.',
-        margin, y, contentWidth, 6
-      );
-      
-      y += 15;
-      y = addWrappedText(
-        '1.3 PRINCIPAL PLACE OF BUSINESS. The Company\'s principal place of business shall be at ' + 
-        llcFields[1].value + ', or such other place as the Members may from time to time designate.',
-        margin, y, contentWidth, 6
-      );
-      
-      // Article II
-      y += 15;
-      doc.setFont('helvetica', 'bold');
-      y = addWrappedText('ARTICLE II - MEMBERSHIP', margin, y, contentWidth, 6);
-      y += 3;
-      doc.setFont('helvetica', 'normal');
-      
-      y = addWrappedText(
-        '2.1 INITIAL MEMBERS. The initial Member(s) of the Company is/are:',
-        margin, y, contentWidth, 6
-      );
-      
-      y += 8;
-      y = addWrappedText(
-        'Name: ' + llcFields[2].value,
-        margin + 10, y, contentWidth, 6
-      );
-      
-      y += 6;
-      y = addWrappedText(
-        'Title: ' + llcFields[3].value,
-        margin + 10, y, contentWidth, 6
-      );
-      
-      // Article III - Cryptocurrency Operations
-      y += 15;
-      doc.setFont('helvetica', 'bold');
-      y = addWrappedText('ARTICLE III - CRYPTOCURRENCY OPERATIONS', margin, y, contentWidth, 6);
-      y += 3;
-      doc.setFont('helvetica', 'normal');
-      
-      y = addWrappedText(
-        '3.1 CRYPTOCURRENCY ASSETS. The Company shall maintain cryptocurrency assets, including CPXTB tokens, for operational purposes. The Company acknowledges the volatility and risks associated with cryptocurrency investments.',
-        margin, y, contentWidth, 6
-      );
-      
-      y += 15;
-      y = addWrappedText(
-        '3.2 WALLETS AND SECURITY. The Company shall implement industry-standard security measures to protect its cryptocurrency holdings, including but not limited to multi-signature wallets, cold storage solutions, and regular security audits.',
-        margin, y, contentWidth, 6
-      );
-      
-      // Add a new page for more content
-      doc.addPage();
-      
-      // Apply the same stamp paper style to new page
-      // Background color for the header (light blue/green for legal paper look)
-      doc.setFillColor(233, 240, 243); // Light blue-green color for legal paper
-      doc.rect(0, 0, pageWidth, 40, 'F');
-      
-      // Add decorative border
-      doc.setDrawColor(70, 130, 130); // Blue-green border color
-      doc.setLineWidth(0.5);
-      doc.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S'); // Outer border
-      
-      // Add double border for more formal look
-      doc.rect(8, 8, pageWidth - 16, pageHeight - 16, 'S'); // Inner border
-      
-      // Add ornamental pattern in the corners
-      // Top left corner ornament
-      doc.setDrawColor(70, 130, 130);
-      doc.setLineWidth(0.7);
-      doc.line(5, 5, 5 + cornerSize, 5); // Top horizontal
-      doc.line(5, 5, 5, 5 + cornerSize); // Left vertical
-      
-      // Top right corner ornament
-      doc.line(pageWidth - 5, 5, pageWidth - 5 - cornerSize, 5); // Top horizontal
-      doc.line(pageWidth - 5, 5, pageWidth - 5, 5 + cornerSize); // Right vertical
-      
-      // Bottom left corner ornament
-      doc.line(5, pageHeight - 5, 5 + cornerSize, pageHeight - 5); // Bottom horizontal
-      doc.line(5, pageHeight - 5, 5, pageHeight - 5 - cornerSize); // Left vertical
-      
-      // Bottom right corner ornament
-      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5 - cornerSize, pageHeight - 5); // Bottom horizontal
-      doc.line(pageWidth - 5, pageHeight - 5, pageWidth - 5, pageHeight - 5 - cornerSize); // Right vertical
-      
-      // Add serial number in the top right (continuing from previous page) that crosses the border
-      // First create a small white background patch that goes over the border
-      doc.setFillColor(255, 255, 255); 
-      doc.rect(pageWidth - 45, 3, 40, 10, 'F');
-      
-      // Then add the serial number text crossing the border
-      doc.setFontSize(8);
-      doc.setTextColor(70, 130, 130); // Blue-green color matching the border
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Serial No: ${serialNumber} (continued)`, pageWidth - 15, 8, { 
-        align: 'right'
-      });
-      
-      // Reset text color
-      doc.setTextColor(0, 0, 0); // Black text for content
-      
-      y = 20;
-      
-      y = addWrappedText(
-        '3.3 COMPLIANCE. The Company shall comply with all applicable laws and regulations regarding cryptocurrency operations, including anti-money laundering (AML) and know-your-customer (KYC) requirements, tax reporting obligations, and any registration or licensing requirements applicable to cryptocurrency businesses.',
-        margin, y, contentWidth, 6
-      );
-      
-      // Article IV - Taxation
-      y += 15;
-      doc.setFont('helvetica', 'bold');
-      y = addWrappedText('ARTICLE IV - TAXATION', margin, y, contentWidth, 6);
-      y += 3;
-      doc.setFont('helvetica', 'normal');
-      
-      y = addWrappedText(
-        '4.1 TAX CLASSIFICATION. The Company shall be taxed as specified in the Articles of Organization. The Company\'s Tax Identification Number (EIN) is: ' + llcFields[5].value,
-        margin, y, contentWidth, 6
-      );
-      
-      y += 15;
-      y = addWrappedText(
-        '4.2 CRYPTOCURRENCY TAXATION. The Company acknowledges that cryptocurrency transactions may be subject to capital gains tax and other tax obligations. The Company shall maintain detailed records of all cryptocurrency transactions for tax reporting purposes.',
-        margin, y, contentWidth, 6
-      );
-      
-      // Article V - Dissolution
-      y += 15;
-      doc.setFont('helvetica', 'bold');
-      y = addWrappedText('ARTICLE V - DISSOLUTION', margin, y, contentWidth, 6);
-      y += 3;
-      doc.setFont('helvetica', 'normal');
-      
-      y = addWrappedText(
-        '5.1 DISSOLUTION. The Company shall be dissolved upon the occurrence of any of the following events:\n' +
-        '(a) By unanimous written agreement of all Members;\n' +
-        '(b) The sale or transfer of all or substantially all of the Company\'s assets;\n' +
-        '(c) As required by law or judicial decree.',
-        margin, y, contentWidth, 6
-      );
-      
-      y += 20;
-      y = addWrappedText(
-        '5.2 WINDING UP. Upon dissolution, the Company shall wind up its affairs, liquidate its cryptocurrency assets, and distribute any remaining assets to the Members in accordance with their ownership interests.',
-        margin, y, contentWidth, 6
-      );
-      
-      // Article VI - Miscellaneous
-      y += 15;
-      doc.setFont('helvetica', 'bold');
-      y = addWrappedText('ARTICLE VI - MISCELLANEOUS', margin, y, contentWidth, 6);
-      y += 3;
-      doc.setFont('helvetica', 'normal');
-      
-      y = addWrappedText(
-        '6.1 ENTIRE AGREEMENT. This Agreement constitutes the entire understanding and agreement among the Members with respect to the subject matter hereof.',
-        margin, y, contentWidth, 6
-      );
-      
-      y += 15;
-      y = addWrappedText(
-        '6.2 GOVERNING LAW. This Agreement shall be governed by and construed in accordance with the laws of the State of ' + llcFields[6].value + '.',
-        margin, y, contentWidth, 6
-      );
-      
-      // Signatures
-      y += 20;
-      doc.setFont('helvetica', 'bold');
-      y = addWrappedText('IN WITNESS WHEREOF, the Members have executed this Agreement as of the Effective Date.', margin, y, contentWidth, 6);
-      
-      y += 15;
-      doc.setFont('helvetica', 'bold');
-      doc.text('Coin Prediction Tool On Base LLC MEMBER SIGNATURE:', margin, y);
-      doc.setFont('helvetica', 'normal');
-      
-      y += 15;
-      doc.text('Signature: _______________________________', margin, y);
-      
-      y += 10;
-      doc.text(`Name: ${llcFields[2].value}`, margin, y);
-      
-      y += 10;
-      doc.text(`Title: ${llcFields[3].value}`, margin, y);
-      
-      y += 10;
-      doc.text(`Date: ${llcFields[7].value}`, margin, y);
-      
-      // Save the PDF
-      console.log('Saving LLC agreement PDF...');
-      doc.save('CPXTB_LLC_Operating_Agreement.pdf');
-      console.log('LLC agreement PDF saved successfully');
-      return true;
-    } catch (error) {
-      console.error('Error in generateLlcAgreement:', error);
       throw error;
     }
   };

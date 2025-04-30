@@ -621,7 +621,8 @@ export class DatabaseStorage implements IStorage {
     receivedAmount?: number,
     requiredAmount?: number,
     remainingAmount?: string,
-    securityMetadata?: string
+    securityMetadata?: string,
+    emailSent?: boolean
   ): Promise<Payment> {
     const updates: any = { 
       status, 

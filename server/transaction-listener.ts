@@ -192,22 +192,32 @@ async function processTransferEvent(
                 })
                 .where(eq(payments.id, payment.id));
               
-              // Send email notification to merchant for completed payment
+              // Send email notification to merchant for completed payment (if not already sent)
               try {
-                // Import the email function dynamically to avoid circular dependencies
-                const { sendPaymentConfirmationEmail } = await import('./email');
-                
                 // Fetch the updated payment to ensure we have the latest data
                 const updatedPayment = await storage.getPayment(payment.id);
                 
-                if (updatedPayment) {
+                if (updatedPayment && !updatedPayment.emailSent) {
+                  // Import the email function dynamically to avoid circular dependencies
+                  const { sendPaymentConfirmationEmail } = await import('./email');
+                  
                   // Send the payment confirmation email
                   const emailSent = await sendPaymentConfirmationEmail(merchant, updatedPayment);
+                  
                   if (emailSent) {
                     console.log(`✉️ Payment confirmation email sent to ${merchant.contactEmail} for payment ${payment.id}`);
+                    
+                    // Mark the payment as having had its email sent
+                    await db.update(payments)
+                      .set({ emailSent: true })
+                      .where(eq(payments.id, payment.id));
+                      
+                    console.log(`✓ Payment ${payment.id} marked as having had email sent`);
                   } else {
                     console.error(`❌ Failed to send payment confirmation email to ${merchant.contactEmail} for payment ${payment.id}`);
                   }
+                } else if (updatedPayment && updatedPayment.emailSent) {
+                  console.log(`ℹ️ Payment confirmation email already sent for payment ${payment.id}`);
                 }
               } catch (emailError) {
                 console.error(`Error sending payment confirmation email: ${emailError}`);

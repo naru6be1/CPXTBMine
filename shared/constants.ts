@@ -5,7 +5,7 @@ export const BASE_CHAIN_ID = 8453;
 
 // Platform-related constants
 export const PLATFORM_NAME = "CPXTB Platform";
-export const PLATFORM_URL = "https://cpxtb.io";
+export const PLATFORM_URL = "https://cpxtbmining.com";
 
 // Contact information
 export const CONTACT_EMAIL = "info@coinpredictiontool.com";

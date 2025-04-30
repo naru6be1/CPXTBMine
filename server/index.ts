@@ -53,21 +53,9 @@ app.use((req, res, next) => {
 
     // Set BASE_URL for password reset links if not set
     if (!process.env.BASE_URL) {
-      // Get the Replit domain, or use a fallback local URL
-      const replitDomain = process.env.REPL_SLUG && process.env.REPL_OWNER 
-        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-        : null;
-      
-      // Check if we have the standard Replit domain
-      if (replitDomain) {
-        process.env.BASE_URL = replitDomain;
-        log(`Setting BASE_URL to Replit domain: ${process.env.BASE_URL} for password reset emails`);
-      } else {
-        // Fallback to localhost with port
-        const port = process.env.PORT || 5000;
-        process.env.BASE_URL = `http://localhost:${port}`;
-        log(`Setting BASE_URL to localhost: ${process.env.BASE_URL} for password reset emails`);
-      }
+      // Use the production domain for the application
+      process.env.BASE_URL = 'https://cpxtbmining.com';
+      log(`Setting BASE_URL to production domain: ${process.env.BASE_URL} for password reset emails`);
     }
 
     // Check for required environment variables

@@ -83,7 +83,7 @@ export async function sendPasswordResetEmail(
   username: string
 ): Promise<boolean> {
   // Get origin from request or use fallback
-  const baseUrl = process.env.BASE_URL || 'https://cpxtb.io';
+  const baseUrl = process.env.BASE_URL || 'https://cpxtbmining.com';
   const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
   
   // Always log the reset URL for debugging purposes

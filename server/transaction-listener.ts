@@ -207,11 +207,8 @@ async function processTransferEvent(
                   if (emailSent) {
                     console.log(`✉️ Payment confirmation email sent to ${merchant.contactEmail} for payment ${payment.id}`);
                     
-                    // Mark the payment as having had its email sent
-                    await db.update(payments)
-                      .set({ emailSent: true })
-                      .where(eq(payments.id, payment.id));
-                      
+                    // Mark the payment as having had its email sent using the storage method
+                    await storage.markPaymentEmailSent(payment.id);
                     console.log(`✓ Payment ${payment.id} marked as having had email sent`);
                   } else {
                     console.error(`❌ Failed to send payment confirmation email to ${merchant.contactEmail} for payment ${payment.id}`);

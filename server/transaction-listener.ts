@@ -192,33 +192,8 @@ async function processTransferEvent(
                 })
                 .where(eq(payments.id, payment.id));
               
-              // Send email notification to merchant for completed payment (if not already sent)
-              try {
-                // Fetch the updated payment to ensure we have the latest data
-                const updatedPayment = await storage.getPayment(payment.id);
-                
-                if (updatedPayment && !updatedPayment.emailSent) {
-                  // Import the email function dynamically to avoid circular dependencies
-                  const { sendPaymentConfirmationEmail } = await import('./email');
-                  
-                  // Send the payment confirmation email
-                  const emailSent = await sendPaymentConfirmationEmail(merchant, updatedPayment);
-                  
-                  if (emailSent) {
-                    console.log(`✉️ Payment confirmation email sent to ${merchant.contactEmail} for payment ${payment.id}`);
-                    
-                    // Mark the payment as having had its email sent using the storage method
-                    await storage.markPaymentEmailSent(payment.id);
-                    console.log(`✓ Payment ${payment.id} marked as having had email sent`);
-                  } else {
-                    console.error(`❌ Failed to send payment confirmation email to ${merchant.contactEmail} for payment ${payment.id}`);
-                  }
-                } else if (updatedPayment && updatedPayment.emailSent) {
-                  console.log(`ℹ️ Payment confirmation email already sent for payment ${payment.id}`);
-                }
-              } catch (emailError) {
-                console.error(`Error sending payment confirmation email: ${emailError}`);
-              }
+              // NOTE: Email notifications are now centralized and handled by the storage.updatePaymentStatus method
+              // No need to send emails here to prevent duplicates
               
               console.log(`✅ Payment ${payment.id} (${payment.paymentReference}) SECURELY marked as completed with tx hash ${txHash}`);
             } else {

@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { CONTACT_EMAIL, PLATFORM_NAME } from '@shared/constants';
 import { Payment, Merchant } from '@shared/schema';
+import { storage } from './storage';
 
 // Determine if we're in development mode
 const isDev = process.env.NODE_ENV !== 'production';
@@ -206,6 +207,12 @@ export async function sendPaymentConfirmationEmail(
   merchant: Merchant,
   payment: Payment
 ): Promise<boolean> {
+  // Skip sending if email was already sent for this payment
+  if (payment.emailSent) {
+    console.log(`Email already sent for payment ${payment.id}, skipping`);
+    return true;
+  }
+
   // Get the merchant's email
   const email = merchant.contactEmail;
   const businessName = merchant.businessName;
@@ -345,6 +352,15 @@ The ${PLATFORM_NAME} Team`,
     // For Ethereal email in development, provide the preview URL
     if (info.messageId && isEmailDevMode && info.previewURL) {
       console.log('Preview URL:', info.previewURL);
+    }
+    
+    // Update the payment record to mark email as sent
+    try {
+      // Use the storage method to mark the email as sent
+      await storage.markPaymentEmailSent(payment.id);
+      console.log(`✓ Payment ${payment.id} marked as having email sent in database`);
+    } catch (dbError) {
+      console.error(`Error updating emailSent flag for payment ${payment.id}:`, dbError);
     }
     
     return true;

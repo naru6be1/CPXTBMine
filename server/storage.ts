@@ -614,6 +614,16 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(payments.createdAt));
   }
   
+  async markPaymentEmailSent(paymentId: number): Promise<Payment> {
+    const [updatedPayment] = await db
+      .update(payments)
+      .set({ emailSent: true })
+      .where(eq(payments.id, paymentId))
+      .returning();
+      
+    return updatedPayment;
+  }
+  
   async updatePaymentStatus(
     paymentId: number, 
     status: string, 
@@ -628,6 +638,11 @@ export class DatabaseStorage implements IStorage {
       status, 
       updatedAt: new Date() 
     };
+    
+    // Update emailSent flag if provided
+    if (emailSent !== undefined) {
+      updates.emailSent = emailSent;
+    }
     
     // If payment is completed, add completion timestamp
     if (status === 'completed') {

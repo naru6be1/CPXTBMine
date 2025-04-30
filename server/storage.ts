@@ -653,6 +653,10 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date() 
     };
     
+    // Get current payment status to check if completing for the first time
+    const currentPayment = await this.getPayment(paymentId);
+    let isNewlyCompleted = status === 'completed' && currentPayment && currentPayment.status !== 'completed';
+    
     // Update emailSent flag if provided
     if (emailSent !== undefined) {
       updates.emailSent = emailSent;
@@ -726,6 +730,8 @@ export class DatabaseStorage implements IStorage {
           updates.status = 'completed';
           updates.completedAt = new Date();
           updates.remainingAmount = '0.000000';
+          // Set isNewlyCompleted flag since we're changing status here
+          isNewlyCompleted = true;
         } else {
           console.log(`Payment ${paymentId}: Security checks NOT PASSED, keeping as ${status} despite sufficient amount`);
           // Add warning to metadata
@@ -741,7 +747,40 @@ export class DatabaseStorage implements IStorage {
       .set(updates)
       .where(eq(payments.id, paymentId))
       .returning();
-      
+    
+    // AUTOMATIC EMAIL: Send confirmation email when payment is completed for the first time
+    // and email has not been sent yet
+    if (isNewlyCompleted && updatedPayment && !updatedPayment.emailSent) {
+      try {
+        console.log(`Payment ${paymentId} newly completed - sending confirmation email...`);
+        
+        // Get the merchant info
+        const merchant = await this.getMerchant(updatedPayment.merchantId);
+        
+        if (merchant) {
+          // Import the email function dynamically to avoid circular dependencies
+          const { sendPaymentConfirmationEmail } = await import('./email');
+          
+          // Send the payment confirmation email
+          const emailSent = await sendPaymentConfirmationEmail(merchant, updatedPayment);
+          
+          if (emailSent) {
+            console.log(`✉️ Payment confirmation email sent to ${merchant.contactEmail} for payment ${paymentId}`);
+            
+            // Mark the payment as having had its email sent
+            await this.markPaymentEmailSent(paymentId);
+            console.log(`✓ Payment ${paymentId} marked as having had email sent`);
+          } else {
+            console.error(`❌ Failed to send payment confirmation email to ${merchant.contactEmail} for payment ${paymentId}`);
+          }
+        } else {
+          console.error(`⚠️ Cannot send email for payment ${paymentId} - merchant not found`);
+        }
+      } catch (emailError) {
+        console.error(`Error sending payment confirmation email: ${emailError}`);
+      }
+    }
+    
     return updatedPayment;
   }
   

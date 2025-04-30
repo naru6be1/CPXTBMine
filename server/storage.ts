@@ -61,6 +61,7 @@ export interface IStorage {
   getPayment(id: number): Promise<Payment | undefined>;
   getPaymentByReference(paymentReference: string): Promise<Payment | undefined>;
   getPaymentsByMerchant(merchantId: number): Promise<Payment[]>;
+  markPaymentEmailSent(paymentId: number): Promise<Payment>;
   updatePaymentStatus(
     paymentId: number, 
     status: string, 
@@ -78,9 +79,22 @@ export interface IStorage {
     totalAmountUsd: number;
     totalAmountCpxtb: string;
   }>;
+  
+  // Utility methods
+  executeQuery(query: string, params?: any[]): Promise<{ rows: any[] }>;
 }
 
 export class DatabaseStorage implements IStorage {
+  // Utility methods
+  async executeQuery(query: string, params?: any[]): Promise<{ rows: any[] }> {
+    try {
+      const result = await db.execute(sql.raw(query, params || []));
+      return { rows: result };
+    } catch (error) {
+      console.error('Error executing raw query:', error);
+      return { rows: [] };
+    }
+  }
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));

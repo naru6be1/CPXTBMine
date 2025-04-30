@@ -217,7 +217,7 @@ export async function sendPaymentConfirmationEmail(
   const email = merchant.contactEmail;
   const businessName = merchant.businessName;
   const baseUrl = process.env.BASE_URL || 'https://cpxtbmining.com';
-  const merchantDashboardUrl = `${baseUrl}/merchant-dashboard`;
+  const merchantDashboardUrl = `${baseUrl}/merchant`;
   
   // Format the payment amount with proper decimal places
   const amountCpxtb = parseFloat(payment.amountCpxtb.toString()).toFixed(8);

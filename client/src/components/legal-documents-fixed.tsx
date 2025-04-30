@@ -1,19 +1,10 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import { Loader2, Download, FileText, FilePenLine, Lock } from "lucide-react";
+import { Loader2, Download, FileText, FilePenLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
 import { PLATFORM_NAME } from "@shared/constants";
-
-// Document types
-type DocumentType = 'merchant' | 'llc';
 
 // Interface for document fields
 interface DocumentField {
@@ -26,7 +17,6 @@ interface DocumentField {
 
 export function LegalDocuments() {
   const { toast } = useToast();
-  const [documentType, setDocumentType] = useState<DocumentType>('merchant');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Merchant document fields
@@ -40,21 +30,6 @@ export function LegalDocuments() {
     { name: 'effectiveDate', value: '', placeholder: 'Effective Date', required: true, type: 'date' },
   ]);
 
-  // LLC document fields
-  const [llcFields, setLlcFields] = useState<DocumentField[]>([
-    { name: 'llcName', value: '', placeholder: 'LLC Name', required: true, type: 'text' },
-    { name: 'llcAddress', value: '', placeholder: 'LLC Address', required: true, type: 'text' },
-    { name: 'memberName', value: '', placeholder: 'Member Name', required: true, type: 'text' },
-    { name: 'memberTitle', value: '', placeholder: 'Member Title', required: true, type: 'text' },
-    { name: 'memberEmail', value: '', placeholder: 'Member Email', required: true, type: 'email' },
-    { name: 'taxId', value: '', placeholder: 'Tax ID (EIN)', required: true, type: 'text' },
-    { name: 'stateOfFormation', value: '', placeholder: 'State of Formation', required: true, type: 'text' },
-    { name: 'formationDate', value: '', placeholder: 'Date of Formation', required: true, type: 'date' },
-  ]);
-
-  // Get current fields based on document type
-  const currentFields = documentType === 'merchant' ? merchantFields : llcFields;
-
   // Update field values
   const updateMerchantField = (index: number, value: string) => {
     const newFields = [...merchantFields];
@@ -62,15 +37,9 @@ export function LegalDocuments() {
     setMerchantFields(newFields);
   };
 
-  const updateLlcField = (index: number, value: string) => {
-    const newFields = [...llcFields];
-    newFields[index].value = value;
-    setLlcFields(newFields);
-  };
-
   // Check if form is valid
   const isFormValid = () => {
-    return currentFields.every(field => !field.required || field.value.trim() !== '');
+    return merchantFields.every(field => !field.required || field.value.trim() !== '');
   };
 
   // Generate merchant agreement PDF
@@ -729,20 +698,15 @@ export function LegalDocuments() {
       setIsGenerating(true);
       console.log('Starting document generation process...');
       
-      if (documentType === 'merchant') {
-        console.log('Generating merchant agreement...');
-        await generateMerchantAgreement();
-      } else {
-        console.log('Generating LLC agreement...');
-        await generateLlcAgreement();
-      }
+      console.log('Generating merchant agreement...');
+      await generateMerchantAgreement();
       
       console.log('Document generation completed');
       
       // Show success toast
       toast({
         title: "Document Generated",
-        description: `The ${documentType === 'merchant' ? 'Merchant Agreement' : 'LLC Operating Agreement'} has been generated and downloaded successfully.`,
+        description: "The Merchant Agreement has been generated and downloaded successfully.",
         variant: "default",
       });
       
@@ -769,88 +733,41 @@ export function LegalDocuments() {
             Legal Documents
           </CardTitle>
           <CardDescription>
-            Generate and download legal documents for merchants and LLC owners
+            Generate and download legal documents for merchants
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <Tabs 
-            defaultValue="merchant" 
-            onValueChange={(value) => setDocumentType(value as DocumentType)}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="merchant">Merchant Agreement</TabsTrigger>
-              <TabsTrigger value="llc">LLC Operating Agreement</TabsTrigger>
-            </TabsList>
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4 rounded-md mb-6">
+              <h3 className="text-lg font-medium text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-2">
+                <FileText className="h-5 w-5" />
+                Merchant Agreement
+              </h3>
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                This agreement outlines the terms and conditions for merchants accepting CPXTB token payments through our platform.
+                Fill out the form below to generate a customized Merchant Agreement document.
+              </p>
+            </div>
             
-            <TabsContent value="merchant" className="mt-6">
-              <div className="space-y-4">
-                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4 rounded-md mb-6">
-                  <h3 className="text-lg font-medium text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-2">
-                    <FileText className="h-5 w-5" />
-                    Merchant Agreement
-                  </h3>
-                  <p className="text-sm text-blue-700 dark:text-blue-400">
-                    This agreement outlines the terms and conditions for merchants accepting CPXTB token payments through our platform.
-                    Fill out the form below to generate a customized Merchant Agreement document.
-                  </p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {merchantFields.map((field, index) => (
+                <div key={field.name} className="space-y-2">
+                  <label htmlFor={field.name} className="text-sm font-medium">
+                    {field.placeholder} {field.required && <span className="text-red-500">*</span>}
+                  </label>
+                  <input
+                    id={field.name}
+                    type={field.type}
+                    value={field.value}
+                    onChange={(e) => updateMerchantField(index, e.target.value)}
+                    placeholder={field.placeholder}
+                    className="w-full p-2 border border-border rounded-md bg-card text-card-foreground"
+                    required={field.required}
+                  />
                 </div>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  {merchantFields.map((field, index) => (
-                    <div key={field.name} className="space-y-2">
-                      <label htmlFor={field.name} className="text-sm font-medium">
-                        {field.placeholder} {field.required && <span className="text-red-500">*</span>}
-                      </label>
-                      <input
-                        id={field.name}
-                        type={field.type}
-                        value={field.value}
-                        onChange={(e) => updateMerchantField(index, e.target.value)}
-                        placeholder={field.placeholder}
-                        className="w-full p-2 border border-border rounded-md bg-card text-card-foreground"
-                        required={field.required}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="llc" className="mt-6">
-              <div className="space-y-4">
-                <div className="bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800 p-4 rounded-md mb-6">
-                  <h3 className="text-lg font-medium text-purple-800 dark:text-purple-300 flex items-center gap-2 mb-2">
-                    <Lock className="h-5 w-5" />
-                    LLC Operating Agreement
-                  </h3>
-                  <p className="text-sm text-purple-700 dark:text-purple-400">
-                    This document establishes the legal structure for your LLC operating a cryptocurrency business.
-                    Fill out the form below to generate a customized LLC Operating Agreement.
-                  </p>
-                </div>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  {llcFields.map((field, index) => (
-                    <div key={field.name} className="space-y-2">
-                      <label htmlFor={field.name} className="text-sm font-medium">
-                        {field.placeholder} {field.required && <span className="text-red-500">*</span>}
-                      </label>
-                      <input
-                        id={field.name}
-                        type={field.type}
-                        value={field.value}
-                        onChange={(e) => updateLlcField(index, e.target.value)}
-                        placeholder={field.placeholder}
-                        className="w-full p-2 border border-border rounded-md bg-card text-card-foreground"
-                        required={field.required}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+              ))}
+            </div>
+          </div>
         </CardContent>
         <CardFooter className="bg-muted/20 p-4 flex justify-end">
           <Button
@@ -866,7 +783,7 @@ export function LegalDocuments() {
             ) : (
               <>
                 <Download className="h-4 w-4" />
-                Download {documentType === 'merchant' ? 'Merchant Agreement' : 'LLC Agreement'}
+                Download Merchant Agreement
               </>
             )}
           </Button>

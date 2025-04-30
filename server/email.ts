@@ -5,12 +5,19 @@ import { Payment, Merchant } from '@shared/schema';
 // Determine if we're in development mode
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Determine if we have email configuration, which means we should use production email mode
+// even if the application is in development mode
+const hasEmailConfig = process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASSWORD;
+
+// For email purposes, we're in dev mode only if we're in dev AND have no email config
+const isEmailDevMode = isDev && !hasEmailConfig;
+
 // Initialize the transporter variable
 export let transporter: nodemailer.Transporter;
 
 // Set up a function to create the transporter
 async function createTransporter() {
-  if (isDev) {
+  if (isEmailDevMode) {
     console.log("Using development email mode - emails will be logged to console");
     
     try {
@@ -47,7 +54,15 @@ async function createTransporter() {
     }
   } else {
     // For production, use the configured SMTP server
-    console.log("Using production email configuration");
+    console.log("Using production email configuration with:", {
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.EMAIL_SECURE === 'true',
+      auth: {
+        user: process.env.EMAIL_USER ? process.env.EMAIL_USER.substring(0, 3) + '...' : 'not set',
+        pass: process.env.EMAIL_PASSWORD ? '********' : 'not set',
+      }
+    });
     return nodemailer.createTransport({
       host: process.env.EMAIL_HOST || 'smtp.example.com',
       port: parseInt(process.env.EMAIL_PORT || '587'),
@@ -98,7 +113,7 @@ export async function sendPasswordResetEmail(
   
   // In development mode, just log the information and return success
   // This way we can always test the reset functionality even if email isn't working
-  if (isDev) {
+  if (isEmailDevMode) {
     console.log('DEVELOPMENT MODE: Not sending actual email. Use the URL above to test.');
     return true;
   }

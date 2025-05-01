@@ -378,9 +378,34 @@ The ${PLATFORM_NAME} Team`,
     
     // Update the payment record to mark email as sent
     try {
+      // CRITICAL FIX: First verify the payment status hasn't changed since we started processing
+      const { db } = await import('./db');
+      const { payments, eq } = await import('@shared/schema');
+      
+      const [latestPayment] = await db.select()
+        .from(payments)
+        .where(eq(payments.id, payment.id));
+      
+      // If the payment status changed, abort the email sending process
+      if (latestPayment && latestPayment.emailSent) {
+        console.log(`⚠️ WARNING: Payment ${payment.id} emailSent flag changed to TRUE while sending email. Possible race condition detected!`);
+        return true; // Return success to avoid retries
+      }
+      
       // Use the storage method to mark the email as sent
       await storage.markPaymentEmailSent(payment.id);
       console.log(`✓ Payment ${payment.id} marked as having email sent in database`);
+      
+      // Final verification to detect race conditions
+      const [verifiedPayment] = await db.select()
+        .from(payments)
+        .where(eq(payments.id, payment.id));
+      
+      if (verifiedPayment && verifiedPayment.emailSent) {
+        console.log(`✅ Successfully verified payment ${payment.id} has emailSent=true`);
+      } else {
+        console.error(`❌ CRITICAL ERROR: Payment ${payment.id} still has emailSent=false after update!`);
+      }
     } catch (dbError) {
       console.error(`Error updating emailSent flag for payment ${payment.id}:`, dbError);
     }

@@ -6,7 +6,7 @@ import {
   type Payment, type InsertPayment 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, gte, sql, desc, lt, asc } from "drizzle-orm";
+import { eq, and, or, gte, sql, desc, lt, asc, QueryResult } from "drizzle-orm";
 import crypto from "crypto";
 
 export interface IStorage {
@@ -656,6 +656,11 @@ export class DatabaseStorage implements IStorage {
       console.log(`🔒 Acquired email processing lock for payment ${paymentId}`);
       
       try {
+        // CRITICAL FIX: Use a database-level advisory lock to ensure only one process can update this payment
+        // This is the most reliable way to prevent race conditions in a multi-process environment
+        await db.execute(sql`SELECT pg_advisory_xact_lock(${paymentId})`);
+        console.log(`🔐 Acquired database-level advisory lock for payment ${paymentId}`);
+        
         // Double-check that the payment hasn't been marked already
         const [currentPayment] = await db
           .select()
@@ -667,19 +672,41 @@ export class DatabaseStorage implements IStorage {
           return currentPayment;
         }
         
-        // Only update if not already marked as sent
-        console.log(`📧 Marking payment ${paymentId} as having email sent (emailSent=true)`);
+        // Force a small delay to help prevent near-simultaneous calls
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Use UPDATE ... WHERE NOT emailSent to ensure only 1 process can mark as sent
+        console.log(`📧 Marking payment ${paymentId} as having email sent using atomic operation`);
+        
         const [updatedPayment] = await db
           .update(payments)
           .set({ emailSent: true })
-          .where(eq(payments.id, paymentId))
+          .where(
+            and(
+              eq(payments.id, paymentId),
+              eq(payments.emailSent, false) // Only update if not already marked as sent
+            )
+          )
           .returning();
         
+        // Another check: if the update didn't affect any rows, it means emailSent was already true
+        if (!updatedPayment) {
+          // The update didn't affect any rows, so get the current payment data
+          const [currentPayment] = await db
+            .select()
+            .from(payments)
+            .where(eq(payments.id, paymentId));
+            
+          console.log(`⚠️ Advisory lock acquired but no update performed for payment ${paymentId} - emailSent is already ${currentPayment?.emailSent}`);
+          return currentPayment;
+        }
+        
+        console.log(`✅ Successfully marked payment ${paymentId} as having email sent`);
         return updatedPayment;
       } finally {
         // Release the lock regardless of outcome
         this.emailProcessingLock.delete(paymentId);
-        console.log(`🔓 Released email processing lock for payment ${paymentId}`);
+        console.log(`🔓 Released memory lock for payment ${paymentId}`);
       }
     } catch (error) {
       // Make sure to release the lock in case of errors

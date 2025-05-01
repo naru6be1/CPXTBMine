@@ -232,8 +232,13 @@ export function mathChallengeMiddleware(
     // Increment request count
     client.count++;
     
+    // Log for debugging
+    console.log(`Client ${ip} request count: ${client.count}, threshold: ${requestThreshold}`);
+    
+    // For testing purposes, drastically lower the threshold
     // Check if we need to issue a challenge
     if (client.count > requestThreshold) {
+      console.log(`Threshold exceeded! Issuing challenge to ${ip}`);
       // Reset count but within window to not lose track of frequent requests
       client.count = Math.max(1, Math.floor(client.count / 2));
       

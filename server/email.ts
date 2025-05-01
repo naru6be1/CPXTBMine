@@ -245,10 +245,13 @@ export async function sendPaymentConfirmationEmail(
   const amountCpxtb = parseFloat(payment.amountCpxtb.toString()).toFixed(8);
   const amountUsd = parseFloat(payment.amountUsd.toString()).toFixed(2);
   
-  // Format the payment date
-  const paymentDate = payment.completedAt 
-    ? new Date(payment.completedAt).toLocaleString()
-    : new Date().toLocaleString();
+  // Format the payment date - use ISO string format which can be converted to local time on client
+  const paymentTimestamp = payment.completedAt 
+    ? new Date(payment.completedAt).toISOString()
+    : new Date().toISOString();
+    
+  // Format for server-side logging
+  const paymentDate = new Date(paymentTimestamp).toLocaleString();
   
   // Generate transaction explorer URL
   const txExplorerUrl = payment.transactionHash 
@@ -295,7 +298,7 @@ Payment Details:
 - Payment Reference: ${payment.paymentReference}
 - Order ID: ${payment.orderId || 'N/A'}
 - Amount: ${amountCpxtb} CPXTB (${amountUsd} USD)
-- Date: ${paymentDate}
+- Date: <span data-timestamp="${paymentTimestamp}" class="payment-timestamp">${paymentDate}</span>
 - Transaction Hash: ${payment.transactionHash || 'N/A'}
 ${txExplorerUrl ? `- Transaction Link: ${txExplorerUrl}` : ''}
 
@@ -334,7 +337,23 @@ The ${PLATFORM_NAME} Team`,
         </tr>
         <tr>
           <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Date:</td>
-          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${paymentDate}</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: 500;">
+            <span data-timestamp="${paymentTimestamp}" class="payment-timestamp">${paymentDate}</span>
+            <script>
+              document.addEventListener('DOMContentLoaded', function() {
+                try {
+                  const timestampElements = document.querySelectorAll('.payment-timestamp');
+                  timestampElements.forEach(el => {
+                    const isoTimestamp = el.getAttribute('data-timestamp');
+                    if (isoTimestamp) {
+                      const date = new Date(isoTimestamp);
+                      el.textContent = date.toLocaleString();
+                    }
+                  });
+                } catch (e) {}
+              });
+            </script>
+          </td>
         </tr>
         <tr>
           <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; color: #64748b;">Transaction Hash:</td>

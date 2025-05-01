@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direct Challenge Tester</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .log {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: monospace;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .progress-container {
+      margin-top: 20px;
+    }
+    .progress-bar {
+      height: 20px;
+      background-color: #e0e0e0;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .progress {
+      height: 100%;
+      background-color: #4CAF50;
+      border-radius: 10px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .challenge-form {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #4CAF50;
+      border-radius: 8px;
+      background-color: #f1f8e9;
+      display: none;
+    }
+    input[type="number"] {
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 200px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Direct Challenge Tester</h1>
+  <p>This page makes rapid API requests to trigger the challenge protection system.</p>
+  
+  <div class="container">
+    <h2>Test Configuration</h2>
+    <p><strong>Target URL:</strong> <span id="target-url">/api/mining-plans</span></p>
+    <p><strong>Request Threshold:</strong> <span id="request-threshold">10</span> requests</p>
+    <p><strong>Time Window:</strong> <span id="time-window">30</span> seconds</p>
+    
+    <button id="start-test">Start Test</button>
+    <button id="stop-test" disabled>Stop Test</button>
+    
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div id="progress" class="progress"></div>
+      </div>
+      <p><strong>Requests sent:</strong> <span id="requests-count">0</span></p>
+    </div>
+  </div>
+  
+  <div id="challenge-form" class="challenge-form">
+    <h2>Challenge Detected!</h2>
+    <p><strong>Token:</strong> <span id="challenge-token"></span></p>
+    <p><strong>Equation:</strong> <span id="challenge-equation"></span></p>
+    <p><strong>Level:</strong> <span id="challenge-level"></span></p>
+    
+    <label for="solution">Your solution:</label>
+    <input type="number" id="solution" placeholder="Enter your answer">
+    
+    <button id="submit-solution">Submit Solution</button>
+  </div>
+  
+  <div class="container">
+    <h2>Log</h2>
+    <div id="log" class="log"></div>
+  </div>
+  
+  <script>
+    // Elements
+    const startButton = document.getElementById('start-test');
+    const stopButton = document.getElementById('stop-test');
+    const progressBar = document.getElementById('progress');
+    const requestsCount = document.getElementById('requests-count');
+    const logElement = document.getElementById('log');
+    const challengeForm = document.getElementById('challenge-form');
+    const challengeToken = document.getElementById('challenge-token');
+    const challengeEquation = document.getElementById('challenge-equation');
+    const challengeLevel = document.getElementById('challenge-level');
+    const solutionInput = document.getElementById('solution');
+    const submitSolutionButton = document.getElementById('submit-solution');
+    
+    // State
+    let testRunning = false;
+    let requestsSent = 0;
+    let requestInterval;
+    let currentChallenge = null;
+    
+    // Helper functions
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+    
+    function updateProgress() {
+      const threshold = parseInt(document.getElementById('request-threshold').textContent);
+      const progress = Math.min(100, (requestsSent / threshold) * 100);
+      progressBar.style.width = `${progress}%`;
+      requestsCount.textContent = requestsSent;
+    }
+    
+    function resetUI() {
+      requestsSent = 0;
+      updateProgress();
+      startButton.disabled = false;
+      stopButton.disabled = true;
+      challengeForm.style.display = 'none';
+    }
+    
+    // Start test
+    startButton.addEventListener('click', () => {
+      if (testRunning) return;
+      
+      testRunning = true;
+      requestsSent = 0;
+      startButton.disabled = true;
+      stopButton.disabled = false;
+      challengeForm.style.display = 'none';
+      
+      const targetUrl = document.getElementById('target-url').textContent;
+      log(`Starting test against ${targetUrl}`);
+      log('Sending requests until challenge appears...');
+      
+      // Send requests rapidly
+      requestInterval = setInterval(async () => {
+        if (!testRunning) return;
+        
+        requestsSent++;
+        updateProgress();
+        
+        try {
+          log(`Sending request #${requestsSent}...`);
+          const response = await fetch(targetUrl);
+          
+          if (response.status === 429) {
+            // We've hit rate limiting with a challenge
+            log(`Received 429 response - Challenge triggered!`);
+            
+            try {
+              const data = await response.json();
+              
+              if (data.challenge) {
+                currentChallenge = data.challenge;
+                
+                log(`Challenge details: ${JSON.stringify(currentChallenge)}`);
+                
+                // Update the challenge form
+                challengeToken.textContent = currentChallenge.token;
+                challengeEquation.textContent = currentChallenge.equation;
+                challengeLevel.textContent = `Level ${currentChallenge.level}`;
+                challengeForm.style.display = 'block';
+                solutionInput.value = '';
+                solutionInput.focus();
+                
+                // Stop sending requests
+                clearInterval(requestInterval);
+                testRunning = false;
+                stopButton.disabled = true;
+              }
+            } catch (error) {
+              log(`Error parsing challenge: ${error.message}`);
+            }
+          } else {
+            log(`Response status: ${response.status}`);
+          }
+        } catch (error) {
+          log(`Error: ${error.message}`);
+        }
+      }, 100); // Send a request every 100ms
+    });
+    
+    // Stop test
+    stopButton.addEventListener('click', () => {
+      testRunning = false;
+      clearInterval(requestInterval);
+      log('Test stopped manually.');
+      resetUI();
+    });
+    
+    // Submit solution
+    submitSolutionButton.addEventListener('click', async () => {
+      if (!currentChallenge) {
+        log('No active challenge to solve');
+        return;
+      }
+      
+      const solution = solutionInput.value.trim();
+      if (!solution) {
+        log('Please enter a solution');
+        return;
+      }
+      
+      log(`Submitting solution: ${solution} for challenge token: ${currentChallenge.token}`);
+      
+      try {
+        submitSolutionButton.disabled = true;
+        
+        const response = await fetch('/api/verify-challenge', {
+          headers: {
+            'x-math-challenge-token': currentChallenge.token,
+            'x-math-challenge-response': solution
+          }
+        });
+        
+        log(`Verification response status: ${response.status}`);
+        
+        if (response.ok) {
+          log('✅ Challenge solved successfully!');
+          
+          // Test if we can access the endpoint now
+          const targetUrl = document.getElementById('target-url').textContent;
+          log(`Testing access to ${targetUrl} after solving the challenge...`);
+          
+          const accessResponse = await fetch(targetUrl);
+          log(`Access response status: ${accessResponse.status}`);
+          
+          if (accessResponse.ok) {
+            log('✅ Access granted! Challenge system is working correctly.');
+          } else {
+            log('❌ Access still denied after solving the challenge.');
+          }
+          
+          challengeForm.style.display = 'none';
+          currentChallenge = null;
+        } else {
+          log('❌ Failed to solve the challenge.');
+          
+          try {
+            const errorData = await response.json();
+            log(`Error: ${JSON.stringify(errorData)}`);
+          } catch (e) {
+            log('Could not parse error response');
+          }
+        }
+      } catch (error) {
+        log(`Error submitting solution: ${error.message}`);
+      } finally {
+        submitSolutionButton.disabled = false;
+      }
+    });
+    
+    // Allow Enter key to submit solution
+    solutionInput.addEventListener('keyup', (event) => {
+      if (event.key === 'Enter') {
+        submitSolutionButton.click();
+      }
+    });
+    
+    // Initialize log
+    log('Direct Challenge Tester loaded. Click "Start Test" to begin.');
+  </script>
+</body>
+</html>

@@ -171,50 +171,13 @@ async function processTransferEvent(
               JSON.stringify(securityMetadata) // Store security check metadata
             );
             
-            // Extra safety - update directly in database too with security information
+            // FIXED: No longer doing direct DB updates to avoid duplicating email notifications
+            // Instead, we rely completely on the storage.updatePaymentStatus method which handles emails appropriately
             if (shouldComplete && securityCheck === 'passed') {
-              await db.update(payments)
-                .set({
-                  status: 'completed', // Always use 'completed' here to ensure consistency
-                  transactionHash: txHash,
-                  updatedAt: new Date(),
-                  completedAt: new Date(),
-                  receivedAmount: totalReceivedAmount.toString(), // Use total amount received
-                  requiredAmount: requiredAmount.toString(),
-                  remainingAmount: '0.000000', // Explicitly set to zero
-                  securityStatus: 'passed',
-                  securityVerifiedAt: new Date(),
-                  metadata: JSON.stringify({
-                    securityStatus: 'passed',
-                    verifiedAt: new Date().toISOString(),
-                    validationReport
-                  })
-                })
-                .where(eq(payments.id, payment.id));
-              
-              // NOTE: Email notifications are now centralized and handled by the storage.updatePaymentStatus method
-              // No need to send emails here to prevent duplicates
-              
+              // Just log the outcome - actual update was done above via storage.updatePaymentStatus
               console.log(`✅ Payment ${payment.id} (${payment.paymentReference}) SECURELY marked as completed with tx hash ${txHash}`);
             } else {
-              await db.update(payments)
-                .set({
-                  status: paymentStatus,
-                  transactionHash: txHash,
-                  updatedAt: new Date(),
-                  receivedAmount: totalReceivedAmount.toString(), // Use the summed amount
-                  requiredAmount: requiredAmount.toString(),
-                  remainingAmount: remainingAmount.toString(),
-                  securityStatus: securityCheck,
-                  securityVerifiedAt: new Date(),
-                  metadata: JSON.stringify({
-                    securityStatus: securityCheck,
-                    partialVerifiedAt: new Date().toISOString(),
-                    validationReport
-                  })
-                })
-                .where(eq(payments.id, payment.id));
-              
+              // Just log the outcome - actual update was done above via storage.updatePaymentStatus
               console.log(`🔄 Payment ${payment.id} marked as ${paymentStatus} with security status ${securityCheck}, tx hash ${txHash}, received: ${receivedAmount}, required: ${requiredAmount}`);
             }
             

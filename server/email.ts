@@ -245,10 +245,28 @@ export async function sendPaymentConfirmationEmail(
   const amountCpxtb = parseFloat(payment.amountCpxtb.toString()).toFixed(8);
   const amountUsd = parseFloat(payment.amountUsd.toString()).toFixed(2);
   
-  // Format the payment date
+  // Format the payment date - ALWAYS use server-side timestamp from database
   const paymentDate = payment.completedAt 
-    ? new Date(payment.completedAt).toLocaleString()
-    : new Date().toLocaleString();
+    ? new Date(payment.completedAt).toLocaleString('en-US', {
+        year: 'numeric', 
+        month: 'numeric', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: true,
+        timeZone: 'UTC'  // Use UTC for consistency across all servers/devices
+      })
+    : new Date().toLocaleString('en-US', {
+        year: 'numeric', 
+        month: 'numeric', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: true,
+        timeZone: 'UTC'  // Use UTC for consistency
+      }) + ' (Current server time)';
   
   // Generate transaction explorer URL
   const txExplorerUrl = payment.transactionHash 

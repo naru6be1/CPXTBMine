@@ -12,10 +12,11 @@ async function checkAndFixDuplicateEmails() {
     console.log('PAYMENT EMAIL DUPLICATE FIX TOOL');
     console.log('=================================================');
     
-    // List of problematic payment references reported by users
+    // List of payment references to check
     const problematicReferences = [
-      'F7E5ECE8C61E3569B7FB6079', 
-      'A2E6EB713A74CB29E63D3398'
+      'F7E5ECE8C61E3569B7FB6079',  // Previously had duplicate emails
+      'A2E6EB713A74CB29E63D3398',  // Previously had duplicate emails
+      'BAFD9D482F6B02F37EC53CC2'   // New payment processed with fix in place
     ];
     
     console.log(`Checking status for ${problematicReferences.length} payment references...`);
@@ -62,7 +63,7 @@ async function checkAndFixDuplicateEmails() {
         }
         
         // Also check if there are any missing payment attributes
-        const missingAttributes = [];
+        const missingAttributes: string[] = [];
         if (!payment.transactionHash) missingAttributes.push('transactionHash');
         if (!payment.receivedAmount) missingAttributes.push('receivedAmount');
         if (!payment.requiredAmount) missingAttributes.push('requiredAmount');

@@ -17,6 +17,7 @@ import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { startPaymentMonitoring } from "./transaction-listener";
+import { registerTestChallengeRoutes } from "./test-challenge-route";
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
@@ -795,9 +796,6 @@ function setupAuth(app: Express) {
     }
   });
 }
-
-// Import the test challenge routes
-import { registerTestChallengeRoutes } from "./test-challenge-route";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register test challenge routes for easier debugging/testing
@@ -2019,6 +2017,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   console.log("Payment monitoring service activated - automatically detecting blockchain transactions");
+  
+  // Register test challenge routes for testing the challenge system
+  console.log("Registering test challenge routes for anti-DDoS testing");
+  registerTestChallengeRoutes(app);
 
   return httpServer;
 }

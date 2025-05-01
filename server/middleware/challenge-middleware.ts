@@ -177,11 +177,18 @@ export function mathChallengeMiddleware(
       return next();
     }
     
-    // In test mode, use a fixed client ID instead of IP
+    // In test mode, use a fixed client ID instead of IP to ensure all requests hit the same counter
     const ip = TESTING_MODE ? 'test-client' : (req.ip || req.socket.remoteAddress || 'unknown');
     const now = Date.now();
     
+    // Add more debug information
     console.log(`Client ${ip} accessing ${req.path} at ${new Date(now).toISOString()}, threshold=${requestThreshold}`);
+    console.log(`Request parameters: method=${req.method}, path=${req.path}, query=${JSON.stringify(req.query)}`);
+    console.log(`Headers: user-agent=${req.headers['user-agent']}, x-forwarded-for=${req.headers['x-forwarded-for']}`);
+    
+    // Force challenge after 10 consecutive requests regardless of time window (extreme testing measure)
+    const FORCE_CHALLENGE_AFTER = 10;
+    const totalClients = clients.size;
     
     // Check if client has a challenge token and is responding to a challenge
     const challengeToken = req.headers['x-math-challenge-token'] as string;
@@ -240,14 +247,18 @@ export function mathChallengeMiddleware(
     client.count++;
     
     // Log for debugging
-    console.log(`Client ${ip} request count: ${client.count}, threshold: ${requestThreshold}`);
+    console.log(`Client ${ip} request count: ${client.count}, threshold: ${requestThreshold}, FORCE_AFTER=${FORCE_CHALLENGE_AFTER}`);
     
     // For testing purposes, drastically lower the threshold
-    // Check if we need to issue a challenge
-    if (client.count > requestThreshold) {
-      console.log(`Threshold exceeded! Issuing challenge to ${ip}`);
-      // Reset count but within window to not lose track of frequent requests
-      client.count = 0; // Completely reset the count for testing purposes
+    // Check if we need to issue a challenge - either exceeding rate threshold OR absolute request count
+    if (client.count > requestThreshold || client.count >= FORCE_CHALLENGE_AFTER) {
+      console.log(`Threshold exceeded! Issuing challenge to ${ip} with count ${client.count} > ${requestThreshold}`);
+      
+      // IMPORTANT: The issue was here - we were setting count to 0 after triggering a challenge
+      // This prevented subsequent challenges from triggering because the count reset
+      // Instead, we will only reduce the count slightly so it can trigger again quickly
+      client.count = Math.max(requestThreshold - 1, client.count - 2);
+      console.log(`Set client count to ${client.count} after threshold trigger`);
       
       // Increase challenge level based on frequency
       client.challengeLevel = Math.min(5, client.challengeLevel + 1);

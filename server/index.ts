@@ -20,8 +20,8 @@ app.use(express.urlencoded({ extended: false }));
 // Configure anti-DDoS mathematical challenge middleware with VERY low thresholds for testing
 // Only apply to authenticated API routes and sensitive operations
 const securityChallenge = mathChallengeMiddleware(
-  3,  // Allow only 3 requests before challenges (extremely low for testing)
-  5000, // 5 seconds window (very short for testing)
+  2,  // Allow only 2 requests before challenges (ultra low for testing)
+  2000, // 2 seconds window (extremely short for testing)
   [    // Protected paths
     '/api/payments', 
     '/api/withdraw',

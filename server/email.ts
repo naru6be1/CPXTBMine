@@ -343,7 +343,11 @@ Payment Details:
 - Payment Reference: ${payment.paymentReference}
 - Order ID: ${payment.orderId || 'N/A'}
 - Amount: ${amountCpxtb} CPXTB (${amountUsd} USD)
-- Date: <span data-timestamp="${paymentTimestamp}" class="payment-timestamp">${paymentDate}</span>
+- Date: ${paymentDate}
+- Time (UTC): ${utcTime}
+- Time (US East): ${estTime}
+- Time (US West): ${pstTime}
+- Time (Asia): ${asiaTime}
 - Transaction Hash: ${payment.transactionHash || 'N/A'}
 ${txExplorerUrl ? `- Transaction Link: ${txExplorerUrl}` : ''}
 

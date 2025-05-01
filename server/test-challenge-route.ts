@@ -135,6 +135,20 @@ export function registerTestChallengeRoutes(app: any) {
     }
   });
   
+  // Add a route that always returns a challenge - simulates rate limiting being triggered
+  app.get('/api/force-challenge', (req: Request, res: Response) => {
+    const level = parseInt(req.query.level as string) || 1;
+    const challengeData = createNewChallenge(level);
+    
+    console.log(`Forced challenge route called with level ${level}, generating challenge`);
+    
+    // Return a 429 response that mimics the real challenge middleware
+    res.status(429).json({
+      error: 'Too many requests',
+      challenge: challengeData
+    });
+  });
+  
   // Simple function to create a new challenge
   function createNewChallenge(level: number) {
     const { equation, solution } = generateMathChallenge(level);

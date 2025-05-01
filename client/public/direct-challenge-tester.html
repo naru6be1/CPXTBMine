@@ -76,17 +76,66 @@
       border-radius: 4px;
       width: 200px;
     }
+    .test-modes {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .test-mode-button {
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: #f8f9fa;
+    }
+    .test-mode-button.active {
+      background-color: #e3f2fd;
+      border-color: #2196F3;
+      color: #0d47a1;
+      font-weight: bold;
+    }
+    .level-select {
+      margin-top: 15px;
+    }
+    select {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
   </style>
 </head>
 <body>
   <h1>Direct Challenge Tester</h1>
-  <p>This page makes rapid API requests to trigger the challenge protection system.</p>
+  <p>This page tests the mathematical challenge protection system.</p>
   
   <div class="container">
-    <h2>Test Configuration</h2>
-    <p><strong>Target URL:</strong> <span id="target-url">/api/mining-plans</span></p>
-    <p><strong>Request Threshold:</strong> <span id="request-threshold">10</span> requests</p>
-    <p><strong>Time Window:</strong> <span id="time-window">30</span> seconds</p>
+    <h2>Test Mode</h2>
+    <div class="test-modes">
+      <div class="test-mode-button active" data-mode="rapid-requests">Rapid Requests Mode</div>
+      <div class="test-mode-button" data-mode="force-challenge">Force Challenge Mode</div>
+    </div>
+    
+    <div id="rapid-requests-config">
+      <h3>Rapid Requests Configuration</h3>
+      <p><strong>Target URL:</strong> <span id="target-url">/api/mining-plans</span></p>
+      <p><strong>Request Threshold:</strong> <span id="request-threshold">3</span> requests</p>
+      <p><strong>Time Window:</strong> <span id="time-window">5</span> seconds</p>
+    </div>
+    
+    <div id="force-challenge-config" style="display: none;">
+      <h3>Force Challenge Configuration</h3>
+      <p>This mode directly triggers a challenge without rate limiting.</p>
+      <div class="level-select">
+        <label for="challenge-level-select">Challenge Difficulty Level:</label>
+        <select id="challenge-level-select">
+          <option value="1">Level 1 (Easy)</option>
+          <option value="2">Level 2 (Medium)</option>
+          <option value="3">Level 3 (Hard)</option>
+          <option value="4">Level 4 (Very Hard)</option>
+          <option value="5">Level 5 (Extreme)</option>
+        </select>
+      </div>
+    </div>
     
     <button id="start-test">Start Test</button>
     <button id="stop-test" disabled>Stop Test</button>
@@ -129,12 +178,17 @@
     const challengeLevel = document.getElementById('challenge-level');
     const solutionInput = document.getElementById('solution');
     const submitSolutionButton = document.getElementById('submit-solution');
+    const testModeButtons = document.querySelectorAll('.test-mode-button');
+    const rapidRequestsConfig = document.getElementById('rapid-requests-config');
+    const forceChallengeConfig = document.getElementById('force-challenge-config');
+    const challengeLevelSelect = document.getElementById('challenge-level-select');
     
     // State
     let testRunning = false;
     let requestsSent = 0;
     let requestInterval;
     let currentChallenge = null;
+    let currentTestMode = 'rapid-requests';
     
     // Helper functions
     function log(message) {
@@ -158,6 +212,31 @@
       challengeForm.style.display = 'none';
     }
     
+    // Test mode selection
+    testModeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        if (testRunning) return; // Don't allow mode change while testing
+        
+        // Update UI
+        testModeButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        // Set test mode
+        currentTestMode = button.dataset.mode;
+        
+        // Show/hide relevant config sections
+        if (currentTestMode === 'rapid-requests') {
+          rapidRequestsConfig.style.display = 'block';
+          forceChallengeConfig.style.display = 'none';
+        } else {
+          rapidRequestsConfig.style.display = 'none';
+          forceChallengeConfig.style.display = 'block';
+        }
+        
+        log(`Switched to ${currentTestMode === 'rapid-requests' ? 'Rapid Requests' : 'Force Challenge'} mode`);
+      });
+    });
+    
     // Start test
     startButton.addEventListener('click', () => {
       if (testRunning) return;
@@ -168,26 +247,70 @@
       stopButton.disabled = false;
       challengeForm.style.display = 'none';
       
-      const targetUrl = document.getElementById('target-url').textContent;
-      log(`Starting test against ${targetUrl}`);
-      log('Sending requests until challenge appears...');
-      
-      // Send requests rapidly
-      requestInterval = setInterval(async () => {
-        if (!testRunning) return;
+      if (currentTestMode === 'rapid-requests') {
+        // Rapid requests mode
+        const targetUrl = document.getElementById('target-url').textContent;
+        log(`Starting rapid requests test against ${targetUrl}`);
+        log('Sending requests until challenge appears...');
         
-        requestsSent++;
-        updateProgress();
-        
-        try {
-          log(`Sending request #${requestsSent}...`);
-          const response = await fetch(targetUrl);
+        // Send requests rapidly
+        requestInterval = setInterval(async () => {
+          if (!testRunning) return;
           
-          if (response.status === 429) {
-            // We've hit rate limiting with a challenge
-            log(`Received 429 response - Challenge triggered!`);
+          requestsSent++;
+          updateProgress();
+          
+          try {
+            log(`Sending request #${requestsSent}...`);
+            const response = await fetch(targetUrl);
             
-            try {
+            if (response.status === 429) {
+              // We've hit rate limiting with a challenge
+              log(`Received 429 response - Challenge triggered!`);
+              
+              try {
+                const data = await response.json();
+                
+                if (data.challenge) {
+                  currentChallenge = data.challenge;
+                  
+                  log(`Challenge details: ${JSON.stringify(currentChallenge)}`);
+                  
+                  // Update the challenge form
+                  challengeToken.textContent = currentChallenge.token;
+                  challengeEquation.textContent = currentChallenge.equation;
+                  challengeLevel.textContent = `Level ${currentChallenge.level}`;
+                  challengeForm.style.display = 'block';
+                  solutionInput.value = '';
+                  solutionInput.focus();
+                  
+                  // Stop sending requests
+                  clearInterval(requestInterval);
+                  testRunning = false;
+                  stopButton.disabled = true;
+                }
+              } catch (error) {
+                log(`Error parsing challenge: ${error.message}`);
+              }
+            } else {
+              log(`Response status: ${response.status}`);
+            }
+          } catch (error) {
+            log(`Error: ${error.message}`);
+          }
+        }, 100); // Send a request every 100ms
+      } else {
+        // Force challenge mode
+        (async () => {
+          const level = challengeLevelSelect.value;
+          log(`Forcing challenge at difficulty level ${level}...`);
+          
+          try {
+            const response = await fetch(`/api/force-challenge?level=${level}`);
+            
+            if (response.status === 429) {
+              log(`Challenge successfully forced (status ${response.status})`);
+              
               const data = await response.json();
               
               if (data.challenge) {
@@ -202,22 +325,19 @@
                 challengeForm.style.display = 'block';
                 solutionInput.value = '';
                 solutionInput.focus();
-                
-                // Stop sending requests
-                clearInterval(requestInterval);
-                testRunning = false;
-                stopButton.disabled = true;
               }
-            } catch (error) {
-              log(`Error parsing challenge: ${error.message}`);
+            } else {
+              log(`Unexpected response status: ${response.status}`);
             }
-          } else {
-            log(`Response status: ${response.status}`);
+          } catch (error) {
+            log(`Error forcing challenge: ${error.message}`);
           }
-        } catch (error) {
-          log(`Error: ${error.message}`);
-        }
-      }, 100); // Send a request every 100ms
+          
+          testRunning = false;
+          stopButton.disabled = true;
+          startButton.disabled = false;
+        })();
+      }
     });
     
     // Stop test
@@ -246,16 +366,24 @@
       try {
         submitSolutionButton.disabled = true;
         
-        const response = await fetch('/api/verify-challenge', {
+        // Use the test challenge verify endpoint since we're testing
+        const response = await fetch('/api/test-challenge/verify', {
+          method: 'POST',
           headers: {
-            'x-math-challenge-token': currentChallenge.token,
-            'x-math-challenge-response': solution
-          }
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            token: currentChallenge.token,
+            solution: parseInt(solution, 10)
+          })
         });
         
         log(`Verification response status: ${response.status}`);
         
-        if (response.ok) {
+        const responseData = await response.json();
+        log(`Response: ${JSON.stringify(responseData)}`);
+        
+        if (response.ok && responseData.success) {
           log('✅ Challenge solved successfully!');
           
           // Test if we can access the endpoint now
@@ -276,11 +404,17 @@
         } else {
           log('❌ Failed to solve the challenge.');
           
-          try {
-            const errorData = await response.json();
-            log(`Error: ${JSON.stringify(errorData)}`);
-          } catch (e) {
-            log('Could not parse error response');
+          if (responseData.error) {
+            log(`Error: ${responseData.error}`);
+          }
+          
+          if (responseData.newChallenge) {
+            // Update to the new challenge
+            currentChallenge = responseData.newChallenge;
+            challengeToken.textContent = currentChallenge.token;
+            challengeEquation.textContent = currentChallenge.equation;
+            challengeLevel.textContent = `Level ${currentChallenge.level}`;
+            log(`New challenge issued at level ${currentChallenge.level}`);
           }
         }
       } catch (error) {
@@ -298,7 +432,11 @@
     });
     
     // Initialize log
-    log('Direct Challenge Tester loaded. Click "Start Test" to begin.');
+    log('Direct Challenge Tester loaded (v2.0)');
+    log('Two modes available:');
+    log('1. Rapid Requests: Sends many requests to trigger rate limiting');
+    log('2. Force Challenge: Directly triggers a challenge at a chosen difficulty level');
+    log('Click "Start Test" when ready.');
   </script>
 </body>
 </html>

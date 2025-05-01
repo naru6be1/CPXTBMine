@@ -6,7 +6,7 @@ import {
   type Payment, type InsertPayment 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, gte, sql, desc, lt, asc, QueryResult } from "drizzle-orm";
+import { eq, and, or, gte, sql, desc, lt, asc } from "drizzle-orm";
 import crypto from "crypto";
 
 export interface IStorage {
@@ -88,8 +88,27 @@ export class DatabaseStorage implements IStorage {
   // Utility methods
   async executeQuery(query: string, params?: any[]): Promise<{ rows: any[] }> {
     try {
-      const result = await db.execute(sql.raw(query, params || []));
-      return { rows: result };
+      // Create a prepared statement with the SQL directly
+      const sqlQuery = sql`${query}`;
+      
+      // Execute the query safely
+      const result = await db.execute(sqlQuery);
+      
+      // Handle different result types safely
+      let rows: any[] = [];
+      if (result && typeof result === 'object') {
+        if (Array.isArray(result)) {
+          rows = result;
+        } else if ('rows' in result) {
+          // Handle PostgreSQL native driver results
+          rows = (result as any).rows || [];
+        } else {
+          // Single row result
+          rows = [result];
+        }
+      }
+      
+      return { rows };
     } catch (error) {
       console.error('Error executing raw query:', error);
       return { rows: [] };

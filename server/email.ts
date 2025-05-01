@@ -380,7 +380,8 @@ The ${PLATFORM_NAME} Team`,
     try {
       // CRITICAL FIX: First verify the payment status hasn't changed since we started processing
       const { db } = await import('./db');
-      const { payments, eq } = await import('@shared/schema');
+      const { payments } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
       
       const [latestPayment] = await db.select()
         .from(payments)

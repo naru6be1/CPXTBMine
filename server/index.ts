@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import mathChallengeMiddleware from "./middleware/challenge-middleware";
 
 // Add more detailed startup logging
 log("Starting server initialization with enhanced logging...");
@@ -15,6 +16,29 @@ if (!process.env.DATABASE_URL) {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configure anti-DDoS mathematical challenge middleware
+// Only apply to authenticated API routes and sensitive operations
+const securityChallenge = mathChallengeMiddleware(
+  30,  // Allow 30 requests per minute before challenges
+  60000, // 1 minute window
+  [    // Protected paths
+    '/api/payments', 
+    '/api/withdraw',
+    '/api/user',
+    '/api/mining-plans',
+    '/api/merchants'
+  ],
+  [    // Excluded paths (even within protected paths)
+    '/api/health',
+    '/api/ping',
+    '/api/public',
+    '/api/prices'
+  ]
+);
+
+// Add DDoS protection middleware
+app.use(securityChallenge);
 
 // Add request logging middleware
 app.use((req, res, next) => {

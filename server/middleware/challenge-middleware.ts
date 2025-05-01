@@ -25,6 +25,47 @@ const DIFFICULTY_LEVELS = {
   5: { maxTerms: 6, maxValue: 100, operations: ['+', '-', '*', '/'] },// More complex
 };
 
+// List of known search engine crawler user agents
+const KNOWN_CRAWLERS = [
+  'googlebot',
+  'bingbot',
+  'yandexbot',
+  'duckduckbot',
+  'baiduspider',
+  'yahoo! slurp',
+  'facebookexternalhit',
+  'twitterbot',
+  'rogerbot',
+  'linkedinbot',
+  'embedly',
+  'quora link preview',
+  'showyoubot',
+  'outbrain',
+  'pinterest',
+  'slack',
+  'vkshare',
+  'w3c_validator'
+];
+
+// Public paths that should be excluded from challenges
+const PUBLIC_CONTENT_PATHS = [
+  '/about',
+  '/faq',
+  '/blog',
+  '/terms',
+  '/privacy',
+  '/contact',
+  '/assets',
+  '/images',
+  '/css',
+  '/js',
+  '/fonts',
+  '/sitemap.xml',
+  '/robots.txt',
+  '/',
+  '/home'
+];
+
 // Clean up expired challenges and old client records
 setInterval(() => {
   const now = Date.now();
@@ -87,7 +128,18 @@ function generateMathChallenge(level: number): { equation: string; solution: num
 }
 
 /**
+ * Checks if the user agent is from a known search engine crawler
+ */
+function isCrawler(userAgent: string): boolean {
+  if (!userAgent) return false;
+  
+  const lowerUA = userAgent.toLowerCase();
+  return KNOWN_CRAWLERS.some(crawler => lowerUA.includes(crawler));
+}
+
+/**
  * Express middleware that applies mathematical challenges based on request frequency
+ * With special handling for search engine crawlers and public content
  */
 export function mathChallengeMiddleware(
   requestThreshold = 20,     // Number of requests before activating challenges
@@ -95,14 +147,29 @@ export function mathChallengeMiddleware(
   protectedPaths = ['/api'], // Paths to protect with challenges
   excludedPaths = ['/api/health'] // Paths to exclude from challenges
 ) {
+  // Combine standard excluded paths with public content paths
+  const allExcludedPaths = [...excludedPaths, ...PUBLIC_CONTENT_PATHS];
+  
   return (req: Request, res: Response, next: NextFunction) => {
-    // Skip challenges for excluded paths
-    if (excludedPaths.some(path => req.path.startsWith(path))) {
+    const userAgent = req.headers['user-agent'] || '';
+    
+    // Always allow crawlers to access content without challenges
+    if (isCrawler(userAgent)) {
+      return next();
+    }
+    
+    // Skip challenges for excluded paths and public content
+    if (allExcludedPaths.some(path => req.path.startsWith(path) || req.path === path)) {
       return next();
     }
     
     // Only apply to protected paths
     if (!protectedPaths.some(path => req.path.startsWith(path))) {
+      return next();
+    }
+    
+    // Don't challenge static file requests
+    if (req.path.match(/\.(css|js|jpg|jpeg|png|gif|svg|ico|woff|woff2|ttf|eot)$/i)) {
       return next();
     }
     

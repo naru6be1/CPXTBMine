@@ -1,8 +1,8 @@
 import { Switch, Route, useLocation, Link } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, apiRequest } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { HamburgerMenu } from "@/components/hamburger-menu";
 import { LiveUserCount } from "@/components/live-user-count";
@@ -13,6 +13,8 @@ import { scheduleMemoryCleanup, preloadImages } from "./lib/performance-optimiza
 import { AuthProvider } from "./hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
+import { ChallengeSolver } from "@/components/challenge-solver";
+import { useToast } from "@/hooks/use-toast";
 
 // Lazy-loaded components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -107,6 +109,125 @@ function Router() {
   );
 }
 
+// Challenge interface for typing
+interface Challenge {
+  token: string;
+  equation: string;
+  level: number;
+}
+
+// Higher order component for handling DDoS protection challenges
+function withChallengeHandler(Component: React.ComponentType<any>) {
+  return function ChallengeHandlerWrapper(props: any) {
+    const [challenge, setChallenge] = useState<Challenge | null>(null);
+    const { toast } = useToast();
+    
+    // Override the global fetch to handle challenge responses
+    useEffect(() => {
+      const originalFetch = window.fetch;
+      
+      window.fetch = async function(input, init) {
+        try {
+          const response = await originalFetch(input, init);
+          
+          // If we get a 429 with a challenge, handle it
+          if (response.status === 429) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const clonedResponse = response.clone();
+              const data = await clonedResponse.json();
+              
+              if (data.challenge) {
+                setChallenge(data.challenge);
+                throw new Error('Anti-DDoS challenge required');
+              }
+            }
+          }
+          
+          return response;
+        } catch (error: unknown) {
+          if (error instanceof Error && error.message !== 'Anti-DDoS challenge required') {
+            console.error('Fetch error:', error);
+          }
+          throw error;
+        }
+      };
+      
+      // Modify the apiRequest method to handle challenges
+      const originalApiRequest = apiRequest;
+      const enhancedApiRequest = async (method: string, url: string, body?: any) => {
+        try {
+          return await originalApiRequest(method, url, body);
+        } catch (error: unknown) {
+          // Type guard for error object with status property
+          if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
+            // Type guard for error object with json method
+            if ('json' in error && typeof (error as any).json === 'function') {
+              const data = await (error as any).json();
+              if (data.challenge) {
+                setChallenge(data.challenge);
+                toast({
+                  title: "Security Check",
+                  description: "Please solve the quick math problem to continue",
+                  variant: "default",
+                });
+                throw new Error('Challenge required');
+              }
+            }
+          }
+          throw error;
+        }
+      };
+      
+      // @ts-ignore - we're adding a custom property for our needs
+      queryClient.apiRequest = enhancedApiRequest;
+      
+      return () => {
+        window.fetch = originalFetch;
+        // @ts-ignore - removing our custom property
+        delete queryClient.apiRequest;
+      };
+    }, [toast]);
+    
+    const handleChallengeComplete = async () => {
+      setChallenge(null);
+      toast({
+        title: "Success!",
+        description: "Security check passed. You can continue using the platform.",
+        variant: "default",
+      });
+    };
+    
+    const handleChallengeFailed = (errorMessage: string) => {
+      toast({
+        title: "Challenge Failed",
+        description: errorMessage || "Please try again or refresh the page.",
+        variant: "destructive",
+      });
+    };
+    
+    if (challenge) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg">
+            <h2 className="mb-4 text-xl font-semibold">Security Verification</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              To protect our platform from automated attacks, please solve this simple math problem:
+            </p>
+            <ChallengeSolver 
+              challenge={challenge}
+              onChallengeComplete={handleChallengeComplete}
+              onChallengeFailed={handleChallengeFailed}
+            />
+          </div>
+        </div>
+      );
+    }
+    
+    return <Component {...props} />;
+  };
+}
+
 function App() {
   // Initialize performance optimizations
   useEffect(() => {
@@ -140,4 +261,5 @@ function App() {
   );
 }
 
-export default App;
+// Export the App wrapped with our challenge handler for DDoS protection
+export default withChallengeHandler(App);

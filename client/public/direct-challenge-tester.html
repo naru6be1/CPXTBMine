@@ -111,18 +111,18 @@
   <div class="container">
     <h2>Test Mode</h2>
     <div class="test-modes">
-      <div class="test-mode-button active" data-mode="rapid-requests">Rapid Requests Mode</div>
-      <div class="test-mode-button" data-mode="force-challenge">Force Challenge Mode</div>
+      <div class="test-mode-button" data-mode="rapid-requests">Rapid Requests Mode</div>
+      <div class="test-mode-button active" data-mode="force-challenge">Force Challenge Mode</div>
     </div>
     
-    <div id="rapid-requests-config">
+    <div id="rapid-requests-config" style="display: none;">
       <h3>Rapid Requests Configuration</h3>
       <p><strong>Target URL:</strong> <span id="target-url">/api/mining-plans</span></p>
       <p><strong>Request Threshold:</strong> <span id="request-threshold">3</span> requests</p>
       <p><strong>Time Window:</strong> <span id="time-window">5</span> seconds</p>
     </div>
     
-    <div id="force-challenge-config" style="display: none;">
+    <div id="force-challenge-config">
       <h3>Force Challenge Configuration</h3>
       <p>This mode directly triggers a challenge without rate limiting.</p>
       <div class="level-select">
@@ -188,7 +188,7 @@
     let requestsSent = 0;
     let requestInterval;
     let currentChallenge = null;
-    let currentTestMode = 'rapid-requests';
+    let currentTestMode = 'force-challenge';
     
     // Helper functions
     function log(message) {
@@ -435,7 +435,8 @@
     log('Direct Challenge Tester loaded (v2.0)');
     log('Two modes available:');
     log('1. Rapid Requests: Sends many requests to trigger rate limiting');
-    log('2. Force Challenge: Directly triggers a challenge at a chosen difficulty level');
+    log('2. Force Challenge: Directly triggers a challenge at a chosen difficulty level (DEFAULT)');
+    log('Force Challenge mode is enabled by default since it is more reliable.');
     log('Click "Start Test" when ready.');
   </script>
 </body>

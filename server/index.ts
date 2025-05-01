@@ -19,17 +19,20 @@ app.use(express.urlencoded({ extended: false }));
 
 // Configure production-ready anti-DDoS protection with enhanced challenge middleware
 // Features both rate limiting and automatic challenges for critical endpoints
+// ONLY applied to API endpoints to ensure frontend pages are always accessible
 const securityChallenge = enhancedChallengeMiddleware(
   30,  // Standard rate limit: 30 requests 
   60000, // Standard time window: 60 seconds
-  [    // Protected paths - all API endpoints
+  [    // Protected paths - API endpoints only
     '/api'
   ],
   [    // Excluded paths (even within protected paths)
     '/api/health',
     '/api/ping',
     '/api/public',
-    '/api/prices'
+    '/api/prices',
+    '/api/users',  // Public user information
+    '/api/mining-plans/public'  // Public mining plan information
   ]
 );
 

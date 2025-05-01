@@ -62,7 +62,17 @@ const PUBLIC_CONTENT_PATHS = [
   '/sitemap.xml',
   '/robots.txt',
   '/',
-  '/home'
+  '/home',
+  '/index.html',
+  '/auth',
+  '/dashboard',
+  '/profile',
+  '/pricing',
+  '/mining-plans',
+  '/referrals',
+  '/merchant',
+  '/payment',
+  '/withdraw'
 ];
 
 // Highly sensitive paths that always require a challenge
@@ -230,7 +240,12 @@ export function enhancedChallengeMiddleware(
       return next();
     }
     
-    // Only apply to protected paths
+    // Only apply to API paths, allow all frontend routes without challenges
+    if (!req.path.startsWith('/api')) {
+      return next();
+    }
+    
+    // Only apply to protected paths within API routes
     if (!protectedPaths.some(path => req.path.startsWith(path))) {
       return next();
     }

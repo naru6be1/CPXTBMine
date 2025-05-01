@@ -797,6 +797,12 @@ function setupAuth(app: Express) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add a simple verification endpoint for the challenge system
+  app.get('/api/verify-challenge', (req, res) => {
+    // The challenge-middleware will handle the verification
+    // If we reach this point, the challenge was successfully solved
+    res.status(200).json({ success: true, message: "Challenge verified successfully" });
+  });
   // Set up authentication endpoints
   setupAuth(app);
   // Update user endpoint with additional logging and error handling

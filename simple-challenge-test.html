@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Challenge Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    input, select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 5px 0;
+      width: 200px;
+    }
+    .challenge-box {
+      background-color: #f1f8e9;
+      border: 1px solid #4CAF50;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      display: none;
+    }
+    .log {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: monospace;
+      height: 200px;
+      overflow-y: auto;
+    }
+    .level {
+      font-weight: bold;
+      color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <h1>Simple Challenge Test</h1>
+  <p>This page demonstrates the mathematical challenge system using the most reliable approach.</p>
+  
+  <div class="container">
+    <h2>Test Configuration</h2>
+    
+    <div>
+      <label for="level-select">Challenge Difficulty:</label>
+      <select id="level-select">
+        <option value="1">Level 1 (Easy - Addition)</option>
+        <option value="2">Level 2 (Medium - Addition & Subtraction)</option>
+        <option value="3">Level 3 (Hard - With Multiplication)</option>
+        <option value="4">Level 4 (Very Hard - All Operations)</option>
+        <option value="5">Level 5 (Extreme - Complex Equations)</option>
+      </select>
+    </div>
+    
+    <button id="generate-btn">Generate Challenge</button>
+  </div>
+  
+  <div id="challenge-box" class="challenge-box">
+    <h2>Your Challenge</h2>
+    <p><strong>Token:</strong> <span id="token"></span></p>
+    <p><strong>Equation:</strong> <span id="equation" style="font-size: 18px;"></span></p>
+    <p><strong>Difficulty:</strong> <span id="level" class="level"></span></p>
+    
+    <div>
+      <label for="solution">Enter solution:</label>
+      <input type="number" id="solution" placeholder="Your answer">
+    </div>
+    
+    <button id="submit-btn">Submit Solution</button>
+  </div>
+  
+  <div class="container">
+    <h2>Log</h2>
+    <div id="log" class="log"></div>
+  </div>
+  
+  <script>
+    // Elements
+    const levelSelect = document.getElementById('level-select');
+    const generateBtn = document.getElementById('generate-btn');
+    const challengeBox = document.getElementById('challenge-box');
+    const tokenElement = document.getElementById('token');
+    const equationElement = document.getElementById('equation');
+    const levelElement = document.getElementById('level');
+    const solutionInput = document.getElementById('solution');
+    const submitBtn = document.getElementById('submit-btn');
+    const logElement = document.getElementById('log');
+    
+    // State
+    let currentChallenge = null;
+    
+    // Helper functions
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      let className = '';
+      
+      switch(type) {
+        case 'success':
+          className = 'style="color: green;"';
+          break;
+        case 'error':
+          className = 'style="color: red;"';
+          break;
+        case 'warning':
+          className = 'style="color: orange;"';
+          break;
+      }
+      
+      logElement.innerHTML += `<div ${className}>[${timestamp}] ${message}</div>`;
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+    
+    // Generate challenge
+    generateBtn.addEventListener('click', async () => {
+      const level = levelSelect.value;
+      log(`Requesting level ${level} challenge...`);
+      
+      try {
+        const response = await fetch(`/api/force-challenge?level=${level}`);
+        
+        if (response.status === 429) {
+          log('Challenge received successfully!', 'success');
+          
+          const data = await response.json();
+          
+          if (data.challenge) {
+            currentChallenge = data.challenge;
+            
+            // Update UI
+            tokenElement.textContent = currentChallenge.token;
+            equationElement.textContent = currentChallenge.equation;
+            
+            const levelNames = [
+              'Easy (Addition only)',
+              'Medium (Addition & Subtraction)',
+              'Hard (With Multiplication)',
+              'Very Hard (All Operations)',
+              'Extreme (Complex Equations)'
+            ];
+            
+            levelElement.textContent = `Level ${currentChallenge.level} - ${levelNames[currentChallenge.level - 1] || ''}`;
+            
+            challengeBox.style.display = 'block';
+            solutionInput.value = '';
+            solutionInput.focus();
+            
+            log(`Challenge details: Token=${currentChallenge.token}, Equation="${currentChallenge.equation}"`);
+          } else {
+            log('Response did not contain a valid challenge', 'error');
+          }
+        } else {
+          log(`Unexpected response status: ${response.status}`, 'error');
+          const data = await response.text();
+          log(`Response: ${data}`, 'error');
+        }
+      } catch (error) {
+        log(`Error: ${error.message}`, 'error');
+      }
+    });
+    
+    // Submit solution
+    submitBtn.addEventListener('click', async () => {
+      if (!currentChallenge) {
+        log('No active challenge to solve!', 'error');
+        return;
+      }
+      
+      const solution = solutionInput.value.trim();
+      if (!solution) {
+        log('Please enter a solution', 'warning');
+        return;
+      }
+      
+      log(`Submitting solution: ${solution}`);
+      
+      try {
+        const response = await fetch('/api/test-challenge/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            token: currentChallenge.token,
+            solution: parseInt(solution, 10)
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          log('✅ Challenge solved successfully!', 'success');
+          
+          // Test if we can access the endpoint now
+          const accessResponse = await fetch('/api/mining-plans');
+          log(`Access test response: ${accessResponse.status} ${accessResponse.statusText}`);
+          
+          if (accessResponse.ok) {
+            log('✅ Access granted! Challenge system is working correctly.', 'success');
+          } else {
+            log('❌ Access still denied after solving the challenge.', 'error');
+          }
+          
+          challengeBox.style.display = 'none';
+          currentChallenge = null;
+        } else {
+          log('❌ Failed to solve the challenge.', 'error');
+          
+          if (data.error) {
+            log(`Error: ${data.error}`, 'error');
+          }
+          
+          if (data.correctSolution) {
+            log(`The correct answer was: ${data.correctSolution}`, 'warning');
+          }
+          
+          if (data.newChallenge) {
+            currentChallenge = data.newChallenge;
+            tokenElement.textContent = currentChallenge.token;
+            equationElement.textContent = currentChallenge.equation;
+            levelElement.textContent = `Level ${currentChallenge.level}`;
+            log(`New challenge issued at level ${currentChallenge.level}`, 'warning');
+            solutionInput.value = '';
+            solutionInput.focus();
+          }
+        }
+      } catch (error) {
+        log(`Error: ${error.message}`, 'error');
+      }
+    });
+    
+    // Allow Enter key to submit
+    solutionInput.addEventListener('keyup', (event) => {
+      if (event.key === 'Enter') {
+        submitBtn.click();
+      }
+    });
+    
+    // Initialize
+    log('Challenge test initialized. Select a difficulty level and click "Generate Challenge".');
+  </script>
+</body>
+</html>

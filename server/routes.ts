@@ -796,7 +796,13 @@ function setupAuth(app: Express) {
   });
 }
 
+// Import the test challenge routes
+import { registerTestChallengeRoutes } from "./test-challenge-route";
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register test challenge routes for easier debugging/testing
+  registerTestChallengeRoutes(app);
+  
   // Add a simple verification endpoint for the challenge system
   app.get('/api/verify-challenge', (req, res) => {
     // The challenge-middleware will handle the verification

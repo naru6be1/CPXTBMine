@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Math Challenge Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    h1, h2, h3 {
+      color: #333;
+    }
+    
+    .container {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 10px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    input[type="number"] {
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 200px;
+    }
+    
+    .equation {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2196F3;
+      margin: 15px 0;
+    }
+    
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    
+    .success {
+      background-color: #e8f5e9;
+      border-left: 5px solid #4CAF50;
+    }
+    
+    .error {
+      background-color: #ffebee;
+      border-left: 5px solid #f44336;
+    }
+    
+    .log {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: monospace;
+      height: 200px;
+      overflow-y: auto;
+    }
+    
+    .level-badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      margin-left: 10px;
+    }
+    
+    .level-1 { background-color: #4CAF50; } /* Easy */
+    .level-2 { background-color: #2196F3; } /* Basic */
+    .level-3 { background-color: #FF9800; } /* Medium */
+    .level-4 { background-color: #F44336; } /* Hard */
+    .level-5 { background-color: #9C27B0; } /* Extreme */
+  </style>
+</head>
+<body>
+  <h1>CPXTB Simple Math Challenge Test</h1>
+  <p>This page tests the math challenge feature that protects the API from DDoS attacks.</p>
+  
+  <div class="container">
+    <h2>Get a Challenge</h2>
+    <p>Select a difficulty level and click the button to get a math challenge.</p>
+    
+    <label for="level">Difficulty Level:</label>
+    <select id="level" name="level">
+      <option value="1">Level 1 (Easy)</option>
+      <option value="2">Level 2 (Basic)</option>
+      <option value="3">Level 3 (Medium)</option>
+      <option value="4">Level 4 (Hard)</option>
+      <option value="5">Level 5 (Extreme)</option>
+    </select>
+    
+    <button id="get-challenge">Get Challenge</button>
+    
+    <div id="challenge-container" style="display: none;">
+      <h3>Solve this equation:</h3>
+      <div id="equation" class="equation"></div>
+      
+      <label for="solution">Your answer:</label>
+      <input type="number" id="solution" placeholder="Enter your solution">
+      
+      <button id="submit-solution">Submit Solution</button>
+    </div>
+    
+    <div id="result" class="result" style="display: none;"></div>
+  </div>
+  
+  <div class="container">
+    <h2>Log</h2>
+    <div id="log" class="log"></div>
+  </div>
+  
+  <script>
+    // DOM elements
+    const levelSelect = document.getElementById('level');
+    const getChallengeButton = document.getElementById('get-challenge');
+    const challengeContainer = document.getElementById('challenge-container');
+    const equationElement = document.getElementById('equation');
+    const solutionInput = document.getElementById('solution');
+    const submitSolutionButton = document.getElementById('submit-solution');
+    const resultElement = document.getElementById('result');
+    const logElement = document.getElementById('log');
+    
+    // Challenge state
+    let currentChallenge = null;
+    
+    // Helper to add logs
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+    
+    // Get a challenge
+    getChallengeButton.addEventListener('click', async () => {
+      try {
+        const level = levelSelect.value;
+        log(`Requesting level ${level} challenge...`);
+        
+        const response = await fetch(`/api/test-challenge?level=${level}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        log(`Received challenge: ${data.equation} (Level ${data.level})`);
+        
+        // Update UI
+        equationElement.innerHTML = `
+          ${data.equation}
+          <span class="level-badge level-${data.level}">Level ${data.level}</span>
+        `;
+        
+        challengeContainer.style.display = 'block';
+        resultElement.style.display = 'none';
+        solutionInput.value = '';
+        solutionInput.focus();
+        
+        // Store challenge token
+        currentChallenge = data;
+      } catch (error) {
+        log(`Error: ${error.message}`);
+      }
+    });
+    
+    // Submit a solution
+    submitSolutionButton.addEventListener('click', async () => {
+      if (!currentChallenge) {
+        log('No active challenge to solve');
+        return;
+      }
+      
+      const solution = solutionInput.value.trim();
+      if (!solution) {
+        log('Please enter a solution');
+        return;
+      }
+      
+      log(`Submitting solution: ${solution} for challenge token: ${currentChallenge.token}`);
+      
+      try {
+        submitSolutionButton.disabled = true;
+        
+        const response = await fetch('/api/test-challenge/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: currentChallenge.token,
+            solution: solution
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          log('✅ Challenge solved successfully!');
+          resultElement.className = 'result success';
+          resultElement.innerHTML = `
+            <h3>Success!</h3>
+            <p>You've successfully solved the challenge.</p>
+          `;
+          resultElement.style.display = 'block';
+          challengeContainer.style.display = 'none';
+          currentChallenge = null;
+        } else {
+          log(`❌ Failed to solve challenge: ${data.error}`);
+          
+          if (data.correctSolution) {
+            log(`The correct solution was: ${data.correctSolution}`);
+          }
+          
+          resultElement.className = 'result error';
+          resultElement.innerHTML = `
+            <h3>Incorrect Solution</h3>
+            <p>${data.error}</p>
+            ${data.correctSolution ? `<p>The correct answer was: ${data.correctSolution}</p>` : ''}
+          `;
+          resultElement.style.display = 'block';
+          
+          // If a new challenge was issued due to failure
+          if (data.newChallenge) {
+            currentChallenge = data.newChallenge;
+            equationElement.innerHTML = `
+              ${data.newChallenge.equation}
+              <span class="level-badge level-${data.newChallenge.level}">Level ${data.newChallenge.level}</span>
+            `;
+            log(`New challenge issued: ${data.newChallenge.equation} (Level ${data.newChallenge.level})`);
+            solutionInput.value = '';
+            solutionInput.focus();
+          }
+        }
+      } catch (error) {
+        log(`Error: ${error.message}`);
+      } finally {
+        submitSolutionButton.disabled = false;
+      }
+    });
+    
+    // Allow Enter key to submit solution
+    solutionInput.addEventListener('keyup', (event) => {
+      if (event.key === 'Enter') {
+        submitSolutionButton.click();
+      }
+    });
+    
+    // Initialize
+    log('Test page loaded. Get a challenge to begin.');
+  </script>
+</body>
+</html>

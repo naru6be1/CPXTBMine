@@ -207,10 +207,32 @@ export async function sendPaymentConfirmationEmail(
   merchant: Merchant,
   payment: Payment
 ): Promise<boolean> {
-  // Skip sending if email was already sent for this payment
-  if (payment.emailSent) {
-    console.log(`Email already sent for payment ${payment.id}, skipping`);
-    return true;
+  // ENHANCED: Double-check that email hasn't been sent by directly querying the database
+  // This ensures we have the latest emailSent status even if there are concurrency issues
+  const { db } = await import('./db');
+  const { payments } = await import('@shared/schema');
+  const { eq } = await import('drizzle-orm');
+  
+  try {
+    // Get the latest payment status directly from the database
+    const [latestPayment] = await db.select()
+      .from(payments)
+      .where(eq(payments.id, payment.id));
+    
+    // If emailSent is true in either the parameter or the DB, skip sending
+    if (payment.emailSent || (latestPayment && latestPayment.emailSent)) {
+      console.log(`Email already sent for payment ${payment.id}, skipping (verified from DB)`);
+      return true;
+    }
+    
+    console.log(`Payment ${payment.id} email status verified as not sent yet, proceeding...`);
+  } catch (dbError) {
+    console.warn(`Error checking latest payment status for ${payment.id}, using provided status:`, dbError);
+    // Fall back to the provided payment object if DB query fails
+    if (payment.emailSent) {
+      console.log(`Email already sent for payment ${payment.id}, skipping (from parameter)`);
+      return true;
+    }
   }
 
   // Get the merchant's email

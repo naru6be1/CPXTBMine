@@ -628,14 +628,65 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(payments.createdAt));
   }
   
+  // Keep track of payments that are currently being processed to prevent race conditions
+  private emailProcessingLock = new Map<number, boolean>();
+
   async markPaymentEmailSent(paymentId: number): Promise<Payment> {
-    const [updatedPayment] = await db
-      .update(payments)
-      .set({ emailSent: true })
-      .where(eq(payments.id, paymentId))
-      .returning();
+    try {
+      // Check if this payment is already being processed
+      if (this.emailProcessingLock.get(paymentId)) {
+        console.log(`⚠️ Payment ${paymentId} is already being processed for email sending, waiting...`);
+        // Wait a bit and then check again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verify if the payment now has emailSent=true in the database
+        const [currentPayment] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.id, paymentId));
+          
+        if (currentPayment && currentPayment.emailSent) {
+          console.log(`📧 Payment ${paymentId} already has emailSent=true, skipping update`);
+          return currentPayment;
+        }
+      }
       
-    return updatedPayment;
+      // Acquire the lock
+      this.emailProcessingLock.set(paymentId, true);
+      console.log(`🔒 Acquired email processing lock for payment ${paymentId}`);
+      
+      try {
+        // Double-check that the payment hasn't been marked already
+        const [currentPayment] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.id, paymentId));
+          
+        if (currentPayment && currentPayment.emailSent) {
+          console.log(`📧 Payment ${paymentId} already has emailSent=true, skipping update`);
+          return currentPayment;
+        }
+        
+        // Only update if not already marked as sent
+        console.log(`📧 Marking payment ${paymentId} as having email sent (emailSent=true)`);
+        const [updatedPayment] = await db
+          .update(payments)
+          .set({ emailSent: true })
+          .where(eq(payments.id, paymentId))
+          .returning();
+        
+        return updatedPayment;
+      } finally {
+        // Release the lock regardless of outcome
+        this.emailProcessingLock.delete(paymentId);
+        console.log(`🔓 Released email processing lock for payment ${paymentId}`);
+      }
+    } catch (error) {
+      // Make sure to release the lock in case of errors
+      this.emailProcessingLock.delete(paymentId);
+      console.error(`Error in markPaymentEmailSent for payment ${paymentId}:`, error);
+      throw error;
+    }
   }
   
   async updatePaymentStatus(

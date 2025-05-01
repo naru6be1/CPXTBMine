@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDoS Challenge Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .btn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 10px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .btn-blue {
+      background-color: #2196F3;
+    }
+    .log {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .challenge-form {
+      border: 1px solid #4CAF50;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+      background-color: #f1f8e9;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    input[type="number"] {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 100%;
+      max-width: 300px;
+    }
+    .difficulty-1 { color: #4CAF50; }
+    .difficulty-2 { color: #2196F3; }
+    .difficulty-3 { color: #FFC107; }
+    .difficulty-4 { color: #FF9800; }
+    .difficulty-5 { color: #F44336; }
+  </style>
+</head>
+<body>
+  <h1>DDoS Protection Challenge Test</h1>
+  
+  <div class="card">
+    <h2>Test Configuration</h2>
+    <div class="input-group">
+      <label for="endpoint">Endpoint to test:</label>
+      <input type="text" id="endpoint" value="/api/mining-plans" style="width: 100%; padding: 8px; margin-top: 5px;">
+    </div>
+    <button id="start-test" class="btn btn-blue">Start Test</button>
+    <p>This will send multiple requests to trigger the challenge middleware.</p>
+  </div>
+  
+  <div id="challenge-container" style="display: none;" class="challenge-form">
+    <h3>Challenge Received</h3>
+    <div id="challenge-details"></div>
+    <div class="input-group">
+      <label for="solution">Your solution:</label>
+      <input type="number" id="solution" placeholder="Enter your answer">
+    </div>
+    <button id="submit-solution" class="btn">Submit Solution</button>
+  </div>
+  
+  <div id="log" class="log"></div>
+  
+  <script>
+    // Elements
+    const endpointInput = document.getElementById('endpoint');
+    const startButton = document.getElementById('start-test');
+    const logElement = document.getElementById('log');
+    const challengeContainer = document.getElementById('challenge-container');
+    const challengeDetails = document.getElementById('challenge-details');
+    const solutionInput = document.getElementById('solution');
+    const submitButton = document.getElementById('submit-solution');
+    
+    // State
+    let requestCount = 0;
+    let challengeData = null;
+    let testRunning = false;
+    
+    // Logging
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      logElement.textContent += `[${timestamp}] ${message}\n`;
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+    
+    // Start testing
+    startButton.addEventListener('click', async () => {
+      if (testRunning) return;
+      
+      testRunning = true;
+      requestCount = 0;
+      challengeContainer.style.display = 'none';
+      logElement.textContent = '';
+      startButton.textContent = 'Test Running...';
+      
+      const endpoint = endpointInput.value || '/api/mining-plans';
+      
+      log(`Starting test against endpoint: ${endpoint}`);
+      log('Sending requests until challenge appears...');
+      
+      await sendRequests(endpoint);
+      
+      startButton.textContent = 'Start Test';
+      testRunning = false;
+    });
+    
+    // Send requests until challenge triggered
+    async function sendRequests(endpoint) {
+      while (testRunning) {
+        requestCount++;
+        log(`Request #${requestCount}...`);
+        
+        try {
+          const response = await fetch(endpoint);
+          log(`Status: ${response.status}`);
+          
+          if (response.status === 429) {
+            // Challenge triggered
+            log('🛡️ Challenge triggered!');
+            
+            try {
+              const data = await response.json();
+              if (data.challenge) {
+                challengeData = data.challenge;
+                
+                const difficultyClass = `difficulty-${challengeData.level}`;
+                const levelText = ['Easy', 'Basic', 'Medium', 'Hard', 'Extreme'][challengeData.level - 1] || 'Unknown';
+                
+                challengeDetails.innerHTML = `
+                  <p><strong>Token:</strong> ${challengeData.token}</p>
+                  <p><strong>Equation:</strong> <span style="font-size: 18px; font-weight: bold;">${challengeData.equation}</span></p>
+                  <p><strong>Difficulty:</strong> <span class="${difficultyClass}">${levelText} (Level ${challengeData.level})</span></p>
+                `;
+                
+                challengeContainer.style.display = 'block';
+                solutionInput.focus();
+                
+                log(`Challenge equation: ${challengeData.equation}`);
+                log(`Challenge difficulty: Level ${challengeData.level}`);
+                break;
+              }
+            } catch (e) {
+              log(`Error parsing challenge: ${e.message}`);
+            }
+          }
+          
+          // Wait a bit between requests
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (error) {
+          log(`Error: ${error.message}`);
+          break;
+        }
+      }
+    }
+    
+    // Submit solution
+    submitButton.addEventListener('click', async () => {
+      if (!challengeData) {
+        log('No active challenge to solve');
+        return;
+      }
+      
+      const solution = solutionInput.value.trim();
+      if (!solution) {
+        log('Please enter a solution');
+        return;
+      }
+      
+      log(`Submitting solution: ${solution}`);
+      submitButton.disabled = true;
+      
+      try {
+        const response = await fetch('/api/verify-challenge', {
+          headers: {
+            'x-math-challenge-token': challengeData.token,
+            'x-math-challenge-response': solution
+          }
+        });
+        
+        log(`Verification response status: ${response.status}`);
+        
+        if (response.ok) {
+          log('✅ Challenge solved successfully!');
+          
+          // Test if we can access the endpoint now
+          log('Testing access after solving the challenge...');
+          const accessTest = await fetch(endpointInput.value);
+          log(`Access test status: ${accessTest.status}`);
+          
+          if (accessTest.ok) {
+            log('✅ Access granted! The challenge system is working correctly.');
+          } else {
+            log('❌ Access still denied after solving the challenge.');
+          }
+          
+          challengeContainer.style.display = 'none';
+          challengeData = null;
+        } else {
+          log('❌ Failed to solve the challenge.');
+          try {
+            const errorData = await response.json();
+            log(`Error: ${JSON.stringify(errorData, null, 2)}`);
+            
+            // Check if we got a new challenge
+            if (errorData.newChallenge) {
+              challengeData = errorData.newChallenge;
+              
+              const difficultyClass = `difficulty-${challengeData.level}`;
+              const levelText = ['Easy', 'Basic', 'Medium', 'Hard', 'Extreme'][challengeData.level - 1] || 'Unknown';
+              
+              challengeDetails.innerHTML = `
+                <p><strong>Token:</strong> ${challengeData.token}</p>
+                <p><strong>Equation:</strong> <span style="font-size: 18px; font-weight: bold;">${challengeData.equation}</span></p>
+                <p><strong>Difficulty:</strong> <span class="${difficultyClass}">${levelText} (Level ${challengeData.level})</span></p>
+                <p><strong>Note:</strong> Incorrect solution, difficulty increased!</p>
+              `;
+              
+              log(`New challenge equation: ${challengeData.equation}`);
+              log(`New challenge difficulty: Level ${challengeData.level}`);
+            }
+          } catch (e) {
+            log(`Error parsing response: ${e.message}`);
+          }
+        }
+      } catch (error) {
+        log(`Error submitting solution: ${error.message}`);
+      }
+      
+      submitButton.disabled = false;
+      solutionInput.value = '';
+      solutionInput.focus();
+    });
+    
+    // Allow Enter key to submit solution
+    solutionInput.addEventListener('keyup', (event) => {
+      if (event.key === 'Enter') {
+        submitButton.click();
+      }
+    });
+    
+    // Initial log
+    log('DDoS Challenge Test ready. Click "Start Test" to begin.');
+  </script>
+</body>
+</html>

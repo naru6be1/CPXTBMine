@@ -17,11 +17,11 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Configure anti-DDoS mathematical challenge middleware
+// Configure anti-DDoS mathematical challenge middleware with lower thresholds for testing
 // Only apply to authenticated API routes and sensitive operations
 const securityChallenge = mathChallengeMiddleware(
-  30,  // Allow 30 requests per minute before challenges
-  60000, // 1 minute window
+  10,  // Allow only 10 requests before challenges (lowered for testing)
+  30000, // 30 seconds window (shortened for testing)
   [    // Protected paths
     '/api/payments', 
     '/api/withdraw',

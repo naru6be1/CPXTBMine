@@ -134,7 +134,7 @@ export function MerchantAgreement() {
       y += 10;
       doc.setFont('helvetica', 'bold');
       y = addWrappedText(
-        `${PLATFORM_NAME}, a blockchain payment solutions provider ("Platform Provider")`,
+        `${PLATFORM_NAME} (Coin Prediction Tool On Base LLC), a blockchain payment solutions provider ("Platform Provider")`,
         margin, y, contentWidth, 6
       );
       
@@ -344,7 +344,7 @@ export function MerchantAgreement() {
       doc.setTextColor(0, 0, 0);
       
       // Signature lines - Platform Provider
-      doc.text(`${PLATFORM_NAME}`, margin + 5, y + 25);
+      doc.text(`${PLATFORM_NAME} (Coin Prediction Tool On Base LLC)`, margin + 5, y + 25);
       doc.text('By: _______________________________', margin + 5, y + 40);
       doc.text('Name: ____________________________', margin + 5, y + 55);
       doc.text('Title: _____________________________', margin + 5, y + 70);

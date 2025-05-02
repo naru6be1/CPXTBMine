@@ -554,10 +554,14 @@ export function LegalDocuments() {
     
     // Article V - Dissolution
     y += 15;
+    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
+    doc.rect(margin, y, contentWidth, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('ARTICLE V - DISSOLUTION', margin, y, contentWidth, 6);
-    y += 3;
+    doc.setTextColor(255, 255, 255); // White text for section headers
+    y = addWrappedText('ARTICLE V - DISSOLUTION', margin + 2, y + 5, contentWidth, 6);
+    y += 6;
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Reset to black for regular text
     
     y = addWrappedText(
       '5.1 DISSOLUTION. The Company shall be dissolved upon the occurrence of any of the following events:\n' +
@@ -575,10 +579,14 @@ export function LegalDocuments() {
     
     // Article VI - Miscellaneous
     y += 15;
+    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
+    doc.rect(margin, y, contentWidth, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('ARTICLE VI - MISCELLANEOUS', margin, y, contentWidth, 6);
-    y += 3;
+    doc.setTextColor(255, 255, 255); // White text for section headers
+    y = addWrappedText('ARTICLE VI - MISCELLANEOUS', margin + 2, y + 5, contentWidth, 6);
+    y += 6;
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Reset to black for regular text
     
     y = addWrappedText(
       '6.1 ENTIRE AGREEMENT. This Agreement constitutes the entire understanding and agreement among the Members with respect to the subject matter hereof.',
@@ -594,12 +602,12 @@ export function LegalDocuments() {
     // Signatures
     y += 20;
     // Add a decorative line above signatures
-    doc.setDrawColor(accentColor);
+    doc.setDrawColor(accentColorR, accentColorG, accentColorB);
     doc.setLineWidth(0.5);
     doc.line(margin, y, pageWidth - margin, y);
     y += 10;
     
-    doc.setFillColor(accentColor);
+    doc.setFillColor(accentColorR, accentColorG, accentColorB);
     doc.rect(margin, y, contentWidth, 7, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 255, 255); // White text for section header
@@ -617,7 +625,7 @@ export function LegalDocuments() {
     
     // Member signature header
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(accentColor);
+    doc.setTextColor(accentColorR, accentColorG, accentColorB);
     doc.text('MEMBER SIGNATURE:', margin + 5, y + 10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);

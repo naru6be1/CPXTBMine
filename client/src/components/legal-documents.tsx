@@ -256,7 +256,7 @@ export function LegalDocuments() {
       );
       
       y += 25;
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
@@ -277,7 +277,7 @@ export function LegalDocuments() {
       doc.addPage();
       y = 20;
       
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
@@ -293,7 +293,7 @@ export function LegalDocuments() {
       );
       
       y += 15;
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
@@ -313,12 +313,12 @@ export function LegalDocuments() {
       // Signatures
       y += 20;
       // Add a decorative line above signatures
-      doc.setDrawColor(accentColor);
+      doc.setDrawColor(accentColorR, accentColorG, accentColorB);
       doc.setLineWidth(0.5);
       doc.line(margin, y, pageWidth - margin, y);
       y += 10;
       
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section header
@@ -337,7 +337,7 @@ export function LegalDocuments() {
       
       // Platform Provider header
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(accentColor);
+      doc.setTextColor(accentColorR, accentColorG, accentColorB);
       doc.text('PLATFORM PROVIDER:', margin + 5, y + 10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
@@ -362,7 +362,7 @@ export function LegalDocuments() {
       
       // Merchant header
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(accentColor);
+      doc.setTextColor(accentColorR, accentColorG, accentColorB);
       doc.text('MERCHANT:', margin + 5, y + 10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);

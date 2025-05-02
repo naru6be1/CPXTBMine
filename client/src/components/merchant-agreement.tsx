@@ -114,6 +114,11 @@ export function MerchantAgreement() {
       const title = 'MERCHANT AGREEMENT FOR CPXTB TOKEN PAYMENTS';
       doc.text(title, pageWidth / 2, 20, { align: 'center' });
       
+      // Add page number to footer of first page
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 1 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      
       // Introduction
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
@@ -270,10 +275,11 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
-      // Add new page for signatures
+      // Always add a new page for section 6 and signatures
       doc.addPage();
       y = 20;
       
+      // Section 6 header
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
@@ -309,15 +315,11 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
-      // Signature section
-      y += 25;
+      // Signature section - Always start on a new page
+      doc.addPage();
+      y = 20;
       
-      // Add decorative line above signatures
-      doc.setDrawColor(accentColorR, accentColorG, accentColorB);
-      doc.setLineWidth(0.5);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 10;
-      
+      // Add signature header
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');

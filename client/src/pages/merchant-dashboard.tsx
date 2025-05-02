@@ -1126,7 +1126,7 @@ export default function MerchantDashboard() {
   // ENHANCED: This useEffect adds aggressive polling for payment status on QR code tab
   // similar to the polling mechanism in payment-page.tsx
   useEffect(() => {
-    if (activeTab === "qrcode" && currentPayment?.payment?.reference && selectedMerchant?.apiKey) {
+    if (activeTab === "qrcode" && currentPayment?.payment && (currentPayment.payment.reference || currentPayment.payment.paymentReference) && selectedMerchant?.apiKey) {
       console.log("🔄 Setting up aggressive payment status polling for QR code tab");
       
       // Define a function to fetch payment status with enhanced validation
@@ -1134,7 +1134,9 @@ export default function MerchantDashboard() {
         try {
           // Add cache-busting timestamp
           const timestamp = Date.now();
-          const response = await fetch(`/api/payments/${currentPayment.payment.reference}?t=${timestamp}`, {
+          // Use either reference or paymentReference property, whichever is available
+          const paymentRef = currentPayment.payment.reference || currentPayment.payment.paymentReference;
+          const response = await fetch(`/api/payments/${paymentRef}?t=${timestamp}`, {
             headers: {
               'X-API-Key': selectedMerchant.apiKey,
               'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -1988,7 +1990,7 @@ export default function MerchantDashboard() {
                       </p>
                       <div className="flex items-center gap-2">
                         <Input
-                          value={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
+                          value={`${window.location.origin}/payment/${currentPayment.payment.reference || currentPayment.payment.paymentReference}`}
                           readOnly
                           className="text-xs font-mono"
                         />
@@ -1996,7 +1998,7 @@ export default function MerchantDashboard() {
                           variant="outline"
                           size="icon"
                           onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/payment/${currentPayment.payment.reference}`);
+                            navigator.clipboard.writeText(`${window.location.origin}/payment/${currentPayment.payment.reference || currentPayment.payment.paymentReference}`);
                             toast({
                               title: "Copied",
                               description: "Payment link copied to clipboard",
@@ -2007,7 +2009,7 @@ export default function MerchantDashboard() {
                         </Button>
                       </div>
                       <a 
-                        href={`${window.location.origin}/payment/${currentPayment.payment.reference}`}
+                        href={`${window.location.origin}/payment/${currentPayment.payment.reference || currentPayment.payment.paymentReference}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs mt-2 text-primary hover:underline"
@@ -2061,14 +2063,14 @@ export default function MerchantDashboard() {
                       <Label>Payment Reference</Label>
                       <div className="flex items-center gap-2">
                         <Input 
-                          value={currentPayment.payment.reference}
+                          value={currentPayment.payment.reference || currentPayment.payment.paymentReference}
                           readOnly
                         />
                         <Button 
                           variant="outline" 
                           size="icon"
                           onClick={() => {
-                            navigator.clipboard.writeText(currentPayment.payment.reference);
+                            navigator.clipboard.writeText(currentPayment.payment.reference || currentPayment.payment.paymentReference);
                             toast({
                               title: "Copied",
                               description: "Payment reference copied to clipboard",

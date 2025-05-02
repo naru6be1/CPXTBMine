@@ -71,6 +71,7 @@ export function MerchantAgreement() {
       
       console.log('Setting up document dimensions...');
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
       const contentWidth = pageWidth - (margin * 2);
       

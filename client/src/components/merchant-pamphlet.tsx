@@ -272,20 +272,23 @@ export function MerchantPamphlet({
       
       // Skip content capture entirely - direct PDF generation is more reliable
       
-      // Create a new PDF document with letter size for better content fit
+      // Create a new PDF document with A4 size optimized for mobile viewing
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'letter'
+        format: 'a4',
+        compress: true,
+        putOnlyUsedFonts: true
       });
       
-      // Letter dimensions are 215.9 x 279.4 mm (8.5 x 11 inches)
-      const pageWidth = 215.9;
-      const pageHeight = 279.4;
+      // A4 dimensions are 210 x 297 mm
+      const pageWidth = 210;
+      const pageHeight = 297;
       
       // First create a white background for entire page to avoid any black areas
+      // Apply white background to entire page with extra padding to ensure no black edges
       doc.setFillColor(255, 255, 255); // Pure white
-      doc.rect(0, 0, pageWidth, pageHeight, 'F');
+      doc.rect(-10, -10, pageWidth + 20, pageHeight + 20, 'F'); // Extended beyond page boundaries
       
       // Define margins
       const margins = {
@@ -346,22 +349,23 @@ export function MerchantPamphlet({
         doc.text("Scan this QR code with any crypto wallet", pageWidth / 2, yPosition, { align: "center" });
         yPosition += 7;
         
-        // Add wallet address in a box with monospace font
-        doc.setDrawColor(200, 200, 200);
-        doc.setFillColor(243, 244, 246); // Light gray background
+        // Add wallet address in a box with monospace font - enhanced visibility
+        doc.setDrawColor(59, 130, 246); // Blue border for better visibility
+        doc.setFillColor(248, 250, 252); // Lighter background for better contrast
         const addressBoxWidth = 160; // Increased width to better fit the address
-        const addressBoxHeight = 10; // Slightly reduced height since we only need one line
+        const addressBoxHeight = 12; // Slightly taller height for better readability
         const addressBoxX = (pageWidth - addressBoxWidth) / 2;
         
-        doc.roundedRect(addressBoxX, yPosition, addressBoxWidth, addressBoxHeight, 1, 1, 'FD');
+        // Draw border and fill box
+        doc.roundedRect(addressBoxX, yPosition, addressBoxWidth, addressBoxHeight, 2, 2, 'FD');
         
         // Add wallet address text
-        doc.setFont("courier", "normal"); // Use monospace font
-        doc.setFontSize(7); // Smaller font size to fit the address on one line
-        doc.setTextColor(31, 41, 55); // Dark gray text
+        doc.setFont("courier", "bold"); // Bold monospace font for better visibility
+        doc.setFontSize(8); // Slightly larger font size for better readability
+        doc.setTextColor(0, 0, 0); // Pure black text for maximum contrast
         
         // Display address on a single line
-        doc.text(walletAddress, pageWidth / 2, yPosition + 5, { align: "center" });
+        doc.text(walletAddress, pageWidth / 2, yPosition + 6, { align: "center" });
         
         yPosition += addressBoxHeight + 10;
       }
@@ -431,10 +435,10 @@ export function MerchantPamphlet({
         // Calculate the height needed for both the step and description
         const boxHeight = 16; // Reduced height to save vertical space
         
-        // Add rounded rectangle for step text - increased height to fit both lines
+        // Add rounded rectangle for step text - smaller width for A4 format
         doc.setFillColor(248, 250, 252); // Very light blue/gray
         doc.setDrawColor(230, 236, 245); // Light blue border
-        doc.roundedRect(circleX + 7, yPosition - 6, 170, boxHeight, 1, 1, 'FD');
+        doc.roundedRect(circleX + 7, yPosition - 6, 165, boxHeight, 1, 1, 'FD');
         
         // Add step text
         doc.setFont("helvetica", "bold");

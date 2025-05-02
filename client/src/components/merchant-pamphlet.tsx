@@ -400,15 +400,15 @@ export function MerchantPamphlet({
       const lineStartY = yPosition;
       const circleX = 15;
       
-      // Calculate total steps height
-      const stepsHeight = steps.length * 14;
+      // Calculate total steps height - adjusted for taller boxes
+      const stepsHeight = steps.length * 22; // Using taller step boxes
       
-      // Draw line first (in the background)
+      // Draw line first (in the background) - extended to match taller boxes
       doc.setDrawColor(220, 230, 250); // Light blue line
       doc.setLineWidth(1.5);
-      doc.line(circleX, lineStartY - 2, circleX, lineStartY + stepsHeight - 10);
+      doc.line(circleX, lineStartY - 2, circleX, lineStartY + stepsHeight);
       
-      // Draw boxes for steps
+      // Draw boxes for steps - fixed to contain text properly
       steps.forEach((step, index) => {
         // Draw larger circle with drop shadow effect
         doc.setFillColor(245, 247, 250); // Light gray background for shadow
@@ -424,25 +424,28 @@ export function MerchantPamphlet({
         doc.setFontSize(10);
         doc.text((index + 1).toString(), circleX, yPosition, { align: "center" });
         
-        // Add rounded rectangle for step text
+        // Calculate the height needed for both the step and description
+        const boxHeight = 18; // Fixed height to fit both step title and description
+        
+        // Add rounded rectangle for step text - increased height to fit both lines
         doc.setFillColor(248, 250, 252); // Very light blue/gray
         doc.setDrawColor(230, 236, 245); // Light blue border
-        doc.roundedRect(circleX + 7, yPosition - 6, 170, 12, 1, 1, 'FD');
+        doc.roundedRect(circleX + 7, yPosition - 6, 170, boxHeight, 1, 1, 'FD');
         
         // Add step text
         doc.setFont("helvetica", "bold");
         doc.setTextColor(59, 130, 246); // Blue text
         doc.setFontSize(11);
-        doc.text(step, circleX + 11, yPosition);
+        doc.text(step, circleX + 11, yPosition - 1); // Position slightly higher
         
         // Add step description
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139); // Slate gray text
-        doc.text(stepDescriptions[index], circleX + 11, yPosition + 8);
+        doc.text(stepDescriptions[index], circleX + 11, yPosition + 6); // Position lower
         
-        // Move to next step position
-        yPosition += 14;
+        // Move to next step position, adding enough space for the taller boxes
+        yPosition += boxHeight + 4;
       });
       
       yPosition += 8;

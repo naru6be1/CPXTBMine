@@ -398,7 +398,7 @@ export function MerchantPamphlet({
         <div className="text-center">
           <div 
             ref={qrCodeRef} 
-            className="qr-code-wrapper border-4 border-primary rounded-lg bg-white mb-3 inline-flex items-center justify-center"
+            className="qr-code-wrapper border-4 border-primary rounded-lg bg-white mb-4 inline-flex items-center justify-center"
             style={{ width: '212px', height: '212px', padding: '6px' }}
           >
             {prerenderedQrCode ? (
@@ -422,7 +422,7 @@ export function MerchantPamphlet({
             )}
           </div>
           <p className="text-sm text-gray-500 mb-2">Scan this QR code with any crypto wallet</p>
-          <div className="bg-gray-100 p-2 rounded text-xs font-mono break-all text-gray-800 border border-gray-300">
+          <div className="bg-gray-100 p-2 rounded text-xs font-mono break-all">
             {walletAddress}
           </div>
         </div>
@@ -442,29 +442,13 @@ export function MerchantPamphlet({
             <li className="flex items-start">
               <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">2</span>
               <div>
-                <p className="font-medium">Buy Ethereum on Base network</p>
-                <p className="text-sm text-gray-600">Use your wallet's exchange feature to purchase ETH on Base network</p>
-              </div>
-            </li>
-            
-            <li className="flex items-start">
-              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">3</span>
-              <div>
-                <p className="font-medium">Swap ETH to CPXTB on Base network</p>
-                <p className="text-sm text-gray-600">Use a DEX like BaseSwap to convert ETH to CPXTB token</p>
-              </div>
-            </li>
-            
-            <li className="flex items-start">
-              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">4</span>
-              <div>
                 <p className="font-medium">Scan the QR code or enter wallet address</p>
                 <p className="text-sm text-gray-600">Make sure you're sending <strong>CPXTB tokens</strong>, not ETH or BASE coins</p>
               </div>
             </li>
             
             <li className="flex items-start">
-              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">5</span>
+              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">3</span>
               <div>
                 <p className="font-medium">Enter the exact amount in CPXTB</p>
                 <p className="text-sm text-gray-600">We'll provide the exact CPXTB amount at checkout</p>
@@ -472,7 +456,7 @@ export function MerchantPamphlet({
             </li>
             
             <li className="flex items-start">
-              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">6</span>
+              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">4</span>
               <div>
                 <p className="font-medium">Confirm and send your payment</p>
                 <p className="text-sm text-gray-600">Transaction confirmation usually takes 10-30 seconds</p>
@@ -496,7 +480,7 @@ export function MerchantPamphlet({
         
         <div className="mt-4 text-sm text-gray-500">
           <p>CPXTB Token Contract Address:</p>
-          <code className="bg-gray-100 p-1 rounded text-xs font-mono text-gray-800 border border-gray-300">{CPXTB_TOKEN_ADDRESS}</code>
+          <code className="bg-gray-100 p-1 rounded text-xs font-mono">{CPXTB_TOKEN_ADDRESS}</code>
         </div>
         
         <div className="mt-6 text-center text-gray-500 text-sm">
@@ -504,111 +488,38 @@ export function MerchantPamphlet({
         </div>
       </div>
 
-      {/* Special print-only version that's completely separate from the regular display */}
-      <div className="hidden">
-        <div className="print-only-pamphlet" style={{ display: 'none' }}>
-          {/* QR code section - moved to absolute positioning to avoid page flow issues */}
-          <div style={{ position: 'absolute', top: '-20mm', left: '0', right: '0', textAlign: 'center', zIndex: 1000, margin: '0', padding: '0' }}>
-            <div style={{ display: 'inline-block', border: '4px solid #3b82f6', borderRadius: '8px', padding: '4px', backgroundColor: 'white', width: '140px', height: '140px', margin: '0 auto' }}>
-              {prerenderedQrCode && (
-                <img 
-                  src={prerenderedQrCode} 
-                  alt="QR code for wallet"
-                  width={132}
-                  height={132}
-                  style={{ display: 'block', margin: '0 auto' }}
-                />
-              )}
-            </div>
-            <p style={{ fontSize: '12px', margin: '8px 0 4px 0', color: '#1f2937', fontWeight: 'bold' }}>
-              Scan this QR code with any crypto wallet
-            </p>
-            <div style={{ 
-              fontSize: '10px', 
-              fontFamily: 'monospace', 
-              padding: '8px', 
-              backgroundColor: '#f3f4f6', 
-              border: '1px solid #d1d5db', 
-              borderRadius: '4px',
-              color: '#1f2937',
-              maxWidth: '220px',
-              margin: '0 auto',
-              wordBreak: 'break-all'
-            }}>
-              {walletAddress}
-            </div>
-          </div>
-          
-          {/* Instructions */}
-          <div style={{ marginTop: '12px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '12px 0 8px 0', color: '#1f2937' }}>How to Pay with CPXTB</h3>
-            <ol style={{ paddingLeft: '20px', margin: '0', color: '#1f2937' }}>
-              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Open your crypto wallet app</li>
-              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Buy Ethereum on Base network</li>
-              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Swap ETH to CPXTB on Base network</li>
-              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Scan the QR code or enter wallet address above</li>
-              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Enter the exact amount in CPXTB</li>
-              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Confirm and send your payment</li>
-            </ol>
-            
-            <div style={{ 
-              margin: '12px 0', 
-              padding: '8px', 
-              backgroundColor: '#fffbeb', 
-              border: '1px solid #fbbf24', 
-              borderRadius: '6px',
-              fontSize: '12px',
-              color: '#92400e'
-            }}>
-              <p style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>⚠️ Important: Only send CPXTB tokens</p>
-              <p style={{ margin: '0', fontSize: '11px' }}>Sending any other cryptocurrency may result in permanent loss of funds.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page {
-            margin: 0 !important;
-            padding: 0 !important;
-            size: portrait;
+          body * {
+            visibility: hidden;
+          }
+          .merchant-pamphlet-container,
+          .merchant-pamphlet-container * {
+            visibility: visible;
+          }
+          .merchant-pamphlet-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
           }
           
-          body * {
+          .qr-code-wrapper {
+            margin-left: auto;
+            margin-right: auto;
+            border-width: 4px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          
+          .print\\:hidden {
             display: none !important;
           }
           
-          /* Show only our print-specific version */
-          .print-only-pamphlet {
+          .print\\:block {
             display: block !important;
-            visibility: visible !important;
-            position: absolute;
-            top: 0 !important; /* Place at the very top */
-            left: 0;
-            width: 100%;
-            padding: 0 !important; /* Remove all padding */
-            margin: 0 !important; /* Remove all margins */
-          }
-          
-          .print-only-pamphlet * {
-            visibility: visible !important;
-            display: block !important;
-          }
-          
-          /* Add business name after QR code to maintain context */
-          .print-only-pamphlet:after {
-            content: "${businessName}";
-            font-size: 14px;
-            font-weight: bold;
-            text-align: center;
-            color: #1f2937 !important;
-            margin-top: -5px !important;
-            display: block !important;
-            position: absolute;
-            bottom: 10px;
-            width: 100%;
-            left: 0;
           }
         }
       `}} />

@@ -442,13 +442,29 @@ export function MerchantPamphlet({
             <li className="flex items-start">
               <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">2</span>
               <div>
+                <p className="font-medium">Buy Ethereum on Base network</p>
+                <p className="text-sm text-gray-600">Use your wallet's exchange feature to purchase ETH on Base network</p>
+              </div>
+            </li>
+            
+            <li className="flex items-start">
+              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">3</span>
+              <div>
+                <p className="font-medium">Swap ETH to CPXTB on Base network</p>
+                <p className="text-sm text-gray-600">Use a DEX like BaseSwap to convert ETH to CPXTB token</p>
+              </div>
+            </li>
+            
+            <li className="flex items-start">
+              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">4</span>
+              <div>
                 <p className="font-medium">Scan the QR code or enter wallet address</p>
                 <p className="text-sm text-gray-600">Make sure you're sending <strong>CPXTB tokens</strong>, not ETH or BASE coins</p>
               </div>
             </li>
             
             <li className="flex items-start">
-              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">3</span>
+              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">5</span>
               <div>
                 <p className="font-medium">Enter the exact amount in CPXTB</p>
                 <p className="text-sm text-gray-600">We'll provide the exact CPXTB amount at checkout</p>
@@ -456,7 +472,7 @@ export function MerchantPamphlet({
             </li>
             
             <li className="flex items-start">
-              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">4</span>
+              <span className="flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-primary text-white font-bold mr-2">6</span>
               <div>
                 <p className="font-medium">Confirm and send your payment</p>
                 <p className="text-sm text-gray-600">Transaction confirmation usually takes 10-30 seconds</p>

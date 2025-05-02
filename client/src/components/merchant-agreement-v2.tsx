@@ -283,35 +283,35 @@ export function MerchantAgreement() {
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
-      y = addWrappedText('6. GOVERNING LAW AND DISPUTE RESOLUTION', margin + 2, y + 5, contentWidth, 6);
+      y = addWrappedText('3. GOVERNING LAW AND DISPUTE RESOLUTION', margin + 2, y + 5, contentWidth, 6);
       y += 6;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
-        '6.1 Governing Law. This Agreement shall be governed by and construed in accordance with the laws of the jurisdiction in which Platform Provider is registered, without giving effect to any choice of law or conflict of law provisions.\n\n' +
-        '6.2 Dispute Resolution. Any dispute, controversy, or claim arising out of or relating to this Agreement, or the breach, termination, or invalidity thereof, shall be settled by arbitration in accordance with the rules of the arbitration institution in the jurisdiction where Platform Provider is registered. The number of arbitrators shall be one. The language of arbitration shall be English.\n\n' +
-        '6.3 Waiver of Class Actions. MERCHANT AGREES THAT ANY CLAIM OR DISPUTE AGAINST PLATFORM PROVIDER SHALL BE RESOLVED ON AN INDIVIDUAL BASIS AND WAIVES ANY RIGHT TO PARTICIPATE IN A CLASS ACTION OR CONSOLIDATED ACTION.',
+        '3.1 Governing Law. This Agreement shall be governed by and construed in accordance with the laws of the jurisdiction in which Platform Provider is registered, without giving effect to any choice of law or conflict of law provisions.\n\n' +
+        '3.2 Dispute Resolution. Any dispute, controversy, or claim arising out of or relating to this Agreement, or the breach, termination, or invalidity thereof, shall be settled by arbitration in accordance with the rules of the arbitration institution in the jurisdiction where Platform Provider is registered. The number of arbitrators shall be one. The language of arbitration shall be English.\n\n' +
+        '3.3 Waiver of Class Actions. MERCHANT AGREES THAT ANY CLAIM OR DISPUTE AGAINST PLATFORM PROVIDER SHALL BE RESOLVED ON AN INDIVIDUAL BASIS AND WAIVES ANY RIGHT TO PARTICIPATE IN A CLASS ACTION OR CONSOLIDATED ACTION.',
         margin, y, contentWidth, 6
       );
       
-      // Section 7
+      // Section 4
       y += 20;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
-      y = addWrappedText('7. MISCELLANEOUS', margin + 2, y + 5, contentWidth, 6);
+      y = addWrappedText('4. MISCELLANEOUS', margin + 2, y + 5, contentWidth, 6);
       y += 6;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
-        '7.1 Entire Agreement. This Agreement constitutes the entire understanding between the parties with respect to the subject matter hereof and supersedes all prior agreements, negotiations, and discussions between the parties relating to the same.\n\n' +
-        '7.2 Amendments. This Agreement may only be amended by a written document signed by both parties.\n\n' +
-        '7.3 Force Majeure. Neither party shall be liable for any failure or delay in performance under this Agreement due to causes beyond its reasonable control, including but not limited to acts of God, war, terrorism, civil unrest, fire, explosion, accident, flood, strikes, labor disputes, Internet or blockchain network disruptions.\n\n' +
-        '7.4 Relationship of Parties. Nothing in this Agreement shall be construed to create a partnership, joint venture, or agency relationship between the parties. Neither party has the authority to bind the other or to incur obligations on the other\'s behalf.\n\n' +
-        '7.5 Notices. All notices under this Agreement shall be in writing and delivered to the addresses set forth below, or to such other address as either party may designate in writing.',
+        '4.1 Entire Agreement. This Agreement constitutes the entire understanding between the parties with respect to the subject matter hereof and supersedes all prior agreements, negotiations, and discussions between the parties relating to the same.\n\n' +
+        '4.2 Amendments. This Agreement may only be amended by a written document signed by both parties.\n\n' +
+        '4.3 Force Majeure. Neither party shall be liable for any failure or delay in performance under this Agreement due to causes beyond its reasonable control, including but not limited to acts of God, war, terrorism, civil unrest, fire, explosion, accident, flood, strikes, labor disputes, Internet or blockchain network disruptions.\n\n' +
+        '4.4 Relationship of Parties. Nothing in this Agreement shall be construed to create a partnership, joint venture, or agency relationship between the parties. Neither party has the authority to bind the other or to incur obligations on the other\'s behalf.\n\n' +
+        '4.5 Notices. All notices under this Agreement shall be in writing and delivered to the addresses set forth below, or to such other address as either party may designate in writing.',
         margin, y, contentWidth, 6
       );
       

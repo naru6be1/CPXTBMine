@@ -10,7 +10,6 @@ import {
 import { Loader2, Download, FileText, FilePenLine, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
-import PDFDocument from 'pdfkit';
 import { PLATFORM_NAME } from "@shared/constants";
 
 // Document types
@@ -82,7 +81,10 @@ export function LegalDocuments() {
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        putOnlyUsedFonts: true,
+        compress: true,
+        floatPrecision: 16 // Higher precision for better color rendering
       });
       
       console.log('Setting up document dimensions...');
@@ -97,6 +99,15 @@ export function LegalDocuments() {
         doc.text(lines, x, y);
         return y + (lines.length * lineHeight);
       };
+      
+      // Enable better color rendering with document properties
+      (doc as any).setProperties({
+        title: 'CPXTB Merchant Agreement',
+        subject: 'Legal Agreement',
+        author: 'CPXTB Platform',
+        keywords: 'agreement, merchant, cpxtb, cryptocurrency',
+        creator: 'CPXTB Platform'
+      });
       
       // Set professional colors using RGB values for jsPDF compatibility
       const primaryColorR = 26;   // RGB for #1a457a
@@ -407,13 +418,19 @@ export function LegalDocuments() {
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        putOnlyUsedFonts: true,
+        compress: true,
+        floatPrecision: 16 // Higher precision for better color rendering
       });
       
       console.log('Setting up LLC document dimensions...');
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 20;
       const contentWidth = pageWidth - (margin * 2);
+      // Set PDF output intent for better color display
+      doc.setOutputIntentColorProfile();
+      
       // Navy blue color for headers - individual r,g,b values
       const accentColorR = 41; 
       const accentColorG = 65;

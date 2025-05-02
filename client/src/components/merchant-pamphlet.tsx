@@ -311,7 +311,7 @@ export function MerchantPamphlet({
       doc.setFontSize(13);
       doc.setTextColor(59, 130, 246); // Blue text
       doc.text("We Accept CPXTB Token Payments", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 15;
+      yPosition += 8; // Reduced gap between text and QR code
       
       // Add the QR code at the top section of the page - MOST IMPORTANT PART
       if (qrCodeImage) {

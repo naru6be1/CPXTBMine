@@ -524,10 +524,16 @@ export function MerchantPamphlet({
           .qr-code-wrapper {
             margin-left: auto;
             margin-right: auto;
+            margin-top: -40px !important; /* Move QR code up */
             border-width: 4px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
+          }
+          
+          /* Adjust spacing for better layout */
+          .text-center {
+            margin-top: -20px !important;
           }
           
           .print\\:hidden {

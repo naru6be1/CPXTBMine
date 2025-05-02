@@ -283,12 +283,10 @@ export function MerchantPamphlet({
       const pageWidth = 215.9;
       const pageHeight = 279.4;
       
-      // Add centered header with reduced width
+      // Add gradient header background
       const headerHeight = 40;
-      const headerWidth = 160; // Reduced width for better appearance
-      const headerX = (pageWidth - headerWidth) / 2; // Center the header
       doc.setFillColor(59, 130, 246); // Primary blue at top
-      doc.roundedRect(headerX, 0, headerWidth, headerHeight, 2, 2, 'F');
+      doc.rect(0, 0, pageWidth, headerHeight, 'F');
       
       // Set up initial position
       let yPosition = 15; // Start text in header
@@ -356,11 +354,9 @@ export function MerchantPamphlet({
         yPosition += addressBoxHeight + 10;
       }
       
-      // Add section header bar for instructions with reduced width to match the top header
+      // Add section header bar for instructions
       doc.setFillColor(240, 249, 255); // Light blue background
-      const sectionHeaderWidth = 160; // Matching the top header width
-      const sectionHeaderX = (pageWidth - sectionHeaderWidth) / 2;
-      doc.roundedRect(sectionHeaderX, yPosition - 7, sectionHeaderWidth, 14, 2, 2, 'F');
+      doc.rect(0, yPosition - 7, pageWidth, 14, 'F');
       
       // Add "How to Pay with CPXTB" section header
       doc.setFont("helvetica", "bold");
@@ -504,17 +500,14 @@ export function MerchantPamphlet({
       // Add footer with branding with clear separation from content
       yPosition += 15; // Add more space after warning box
       
-      // Add more visible footer box with reduced width to match headers
+      // Add more visible footer box
       doc.setFillColor(240, 249, 255); // Light blue background
-      const footerWidth = 160; // Matching the header width
-      const footerX = (pageWidth - footerWidth) / 2;
-      doc.roundedRect(footerX, yPosition - 10, footerWidth, 30, 2, 2, 'F');
+      doc.rect(0, yPosition - 10, pageWidth, 30, 'F');
       
-      // Add footer line with more visibility - adjusted to match footer width
+      // Add footer line with more visibility
       doc.setDrawColor(59, 130, 246); // Blue line
       doc.setLineWidth(0.5);
-      const lineMargin = 20; // Margin from edges of footer area
-      doc.line(footerX + lineMargin, yPosition, footerX + footerWidth - lineMargin, yPosition);
+      doc.line(20, yPosition, pageWidth - 20, yPosition);
       
       // Add footer text with more contrast
       doc.setFont("helvetica", "normal");

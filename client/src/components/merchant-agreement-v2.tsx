@@ -194,6 +194,21 @@ export function MerchantAgreement() {
       
       // Section 2 - Start on a new page
       doc.addPage();
+      
+      // Add header with the same style as page 1
+      doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
+      doc.rect(0, 0, pageWidth, 30, 'F');
+      
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255); // White text on blue background
+      doc.text('MERCHANT AGREEMENT (continued)', pageWidth / 2, 20, { align: 'center' });
+      
+      // Add decorative line under header
+      doc.setDrawColor(accentColorR, accentColorG, accentColorB);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 32, pageWidth - margin, 32);
+      
       y = 40; // Reset y position for the new page
       
       // Add page number with white background to ensure it doesn't overlap with content
@@ -280,7 +295,22 @@ export function MerchantAgreement() {
       
       // Add new page for Section 6 and Signatures
       doc.addPage();
-      y = 20;
+      
+      // Add header with the same style as previous pages
+      doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
+      doc.rect(0, 0, pageWidth, 30, 'F');
+      
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255); // White text on blue background
+      doc.text('MERCHANT AGREEMENT (continued)', pageWidth / 2, 20, { align: 'center' });
+      
+      // Add decorative line under header
+      doc.setDrawColor(accentColorR, accentColorG, accentColorB);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 32, pageWidth - margin, 32);
+      
+      y = 40; // Reset y position for the new page
       
       // Add page number to third page footer
       // First add a white background rectangle to ensure footer is readable
@@ -334,6 +364,21 @@ export function MerchantAgreement() {
       // Added extra footer margin to prevent content overlapping with footer
       if (y > pageHeight - (150 + footerMargin)) {
         doc.addPage();
+        
+        // Add header with the same style as previous pages
+        doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
+        doc.rect(0, 0, pageWidth, 30, 'F');
+        
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255); // White text on blue background
+        doc.text('MERCHANT AGREEMENT - SIGNATURES', pageWidth / 2, 20, { align: 'center' });
+        
+        // Add decorative line under header
+        doc.setDrawColor(accentColorR, accentColorG, accentColorB);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 32, pageWidth - margin, 32);
+        
         y = 40; // Reset y position on the new page
         
         // Add page number to signature page with white background

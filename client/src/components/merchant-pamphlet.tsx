@@ -72,7 +72,7 @@ export function MerchantPamphlet({
     return `ethereum:${walletAddress}?token=${CPXTB_TOKEN_ADDRESS}`;
   };
   
-  // Function to convert SVG QR code to data URL with better error handling
+  // Function to convert SVG QR code to data URL
   const getQRCodeDataUrl = async (qrCodeElement: SVGElement): Promise<string> => {
     // Get the QR code SVG as a string
     const svgString = new XMLSerializer().serializeToString(qrCodeElement);
@@ -86,101 +86,33 @@ export function MerchantPamphlet({
     // Create an Image element to load the SVG
     const img = new Image();
     
-    // Wait for the image to load with better error handling
-    return new Promise((resolve, reject) => {
+    // Wait for the image to load
+    return new Promise((resolve) => {
       img.onload = () => {
-        try {
-          // Create a canvas to draw the image
-          const canvas = document.createElement('canvas');
-          const scale = 3; // Increase scale for better quality
-          canvas.width = img.width * scale;
-          canvas.height = img.height * scale;
-          
-          // Draw the image on the canvas
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            throw new Error('Failed to get canvas context');
-          }
-          
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          // Convert the canvas to a data URL
-          const dataUrl = canvas.toDataURL('image/png');
-          
-          // Clean up
-          URL.revokeObjectURL(url);
-          
-          // Return the data URL
-          resolve(dataUrl);
-        } catch (error) {
-          URL.revokeObjectURL(url);
-          console.error('Error rendering QR code to canvas:', error);
-          
-          // Create a simple fallback QR code
-          const fallbackCanvas = document.createElement('canvas');
-          fallbackCanvas.width = 200;
-          fallbackCanvas.height = 200;
-          const fallbackCtx = fallbackCanvas.getContext('2d');
-          
-          if (fallbackCtx) {
-            fallbackCtx.fillStyle = '#FFFFFF';
-            fallbackCtx.fillRect(0, 0, 200, 200);
-            fallbackCtx.strokeStyle = '#000000';
-            fallbackCtx.lineWidth = 2;
-            fallbackCtx.strokeRect(10, 10, 180, 180);
-            
-            // Draw grid pattern to look like a QR code
-            fallbackCtx.fillStyle = '#000000';
-            for (let i = 0; i < 8; i++) {
-              for (let j = 0; j < 8; j++) {
-                if (Math.random() > 0.6) {
-                  fallbackCtx.fillRect(25 + i * 20, 25 + j * 20, 15, 15);
-                }
-              }
-            }
-            
-            // Draw positioning squares in corners
-            fallbackCtx.fillRect(25, 25, 40, 40);
-            fallbackCtx.fillRect(135, 25, 40, 40);
-            fallbackCtx.fillRect(25, 135, 40, 40);
-            
-            // White inner squares for the positioning markers
-            fallbackCtx.fillStyle = '#FFFFFF';
-            fallbackCtx.fillRect(35, 35, 20, 20);
-            fallbackCtx.fillRect(145, 35, 20, 20);
-            fallbackCtx.fillRect(35, 145, 20, 20);
-            
-            // Black inner squares
-            fallbackCtx.fillStyle = '#000000';
-            fallbackCtx.fillRect(40, 40, 10, 10);
-            fallbackCtx.fillRect(150, 40, 10, 10);
-            fallbackCtx.fillRect(40, 150, 10, 10);
-            
-            resolve(fallbackCanvas.toDataURL('image/png'));
-          } else {
-            reject(new Error('Failed to create fallback QR code'));
-          }
-        }
-      };
-      
-      img.onerror = (error) => {
+        // Create a canvas to draw the image
+        const canvas = document.createElement('canvas');
+        const scale = 2; // Increase scale for better quality
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        
+        // Draw the image on the canvas
+        const ctx = canvas.getContext('2d');
+        ctx!.fillStyle = '#ffffff';
+        ctx!.fillRect(0, 0, canvas.width, canvas.height);
+        ctx!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Convert the canvas to a data URL
+        const dataUrl = canvas.toDataURL('image/png');
+        
+        // Clean up
         URL.revokeObjectURL(url);
-        console.error('Error loading QR code image:', error);
-        reject(new Error('Failed to load QR code SVG as image'));
+        
+        // Return the data URL
+        resolve(dataUrl);
       };
       
       // Set the image source to the Blob URL
       img.src = url;
-      
-      // Add a timeout as a safety measure
-      setTimeout(() => {
-        if (!img.complete) {
-          URL.revokeObjectURL(url);
-          reject(new Error('Timed out waiting for QR code image to load'));
-        }
-      }, 5000);
     });
   };
 
@@ -270,298 +202,107 @@ export function MerchantPamphlet({
         }
       }
       
-      // Skip content capture entirely - direct PDF generation is more reliable
-      
-      // Create a new PDF document with A4 size optimized for mobile viewing
+      // Create new jsPDF instance
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4',
-        compress: true,
-        putOnlyUsedFonts: true
+        format: 'a4'
       });
       
-      // Add an initial fully white page background to eliminate any black areas
-      // This covers the entire page plus extra margins
-      doc.setFillColor(255, 255, 255); // Pure white
-      doc.rect(-20, -20, 250, 350, 'F'); // Significantly oversized to prevent any black edges
+      // Get pamphlet content element using ref if available
+      const content = pamphletRef.current;
       
-      // A4 dimensions are 210 x 297 mm
-      const pageWidth = 210;
-      const pageHeight = 297;
+      if (!content) {
+        console.error('Pamphlet content element not found');
+        document.body.removeChild(loadingDiv);
+        setIsGenerating(false);
+        
+        toast({
+          title: "PDF Generation Error",
+          description: "Could not find the pamphlet content. Please try again.",
+          variant: "destructive"
+        });
+        
+        return;
+      }
       
-      // Since we already added a full-page white background above, we don't need this
-      // But we'll add another white background layer for extra certainty
-      doc.setFillColor(255, 255, 255); // Pure white
-      doc.rect(-10, -10, pageWidth + 20, pageHeight + 50, 'F'); // Extended even further for mobile devices
+      // Clone the element to avoid modifying the original
+      const printContent = content.cloneNode(true) as HTMLElement;
       
-      // Define margins
-      const margins = {
-        top: 10,
-        bottom: 10,
-        left: 10,
-        right: 10
-      };
-      
-      // Add blue header with proper height and extended white background
-      // First create extra white area at the top to prevent any black edges
-      doc.setFillColor(255, 255, 255);
-      doc.rect(-10, -10, pageWidth + 20, margins.top + 15, 'F');
-      
-      // Then add the blue header
-      const headerHeight = 25; // Compact header
-      doc.setFillColor(59, 130, 246); // Primary blue color
-      doc.rect(0, margins.top, pageWidth, headerHeight, 'F');
-      
-      // Set up initial position - within header
-      let yPosition = margins.top + 15; // Positioned in the middle of header
-      
-      // Add title text in white on blue background
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.setTextColor(255, 255, 255);
-      doc.text("Payment Instructions", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 8;
-      
-      // Add Business Name as subtitle in header
-      doc.setFontSize(14);
-      doc.setTextColor(240, 240, 240);
-      doc.text(businessName, pageWidth / 2, yPosition, { align: "center" });
-      
-      // Move position to start content after header - calculate based on header and margins
-      yPosition = margins.top + headerHeight + 10;
-      
-      // Add tagline
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(13);
-      doc.setTextColor(59, 130, 246); // Blue text
-      doc.text("We Accept CPXTB Token Payments", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 8; // Reduced gap between text and QR code
-      
-      // Add the QR code at the top section of the page - MOST IMPORTANT PART
+      // Replace all QR code elements with simple image elements for better PDF rendering
       if (qrCodeImage) {
-        // Set QR code size (smaller to save vertical space)
-        const qrSize = 60; // mm - smaller size to fit more content
-        const qrX = (pageWidth - qrSize) / 2;
-        
-        // Add the QR code with border
-        // First add white background and border
-        doc.setDrawColor(59, 130, 246); // Blue border (#3b82f6)
-        doc.setFillColor(255, 255, 255);
-        doc.roundedRect(qrX - 2, yPosition - 2, qrSize + 4, qrSize + 4, 2, 2, 'FD');
-        
-        // Now add the QR code image
-        doc.addImage(qrCodeImage, 'PNG', qrX, yPosition, qrSize, qrSize);
-        yPosition += qrSize + 5;
-        
-        // Add scan instructions
-        doc.setFontSize(10);
-        doc.text("Scan this QR code with any crypto wallet", pageWidth / 2, yPosition, { align: "center" });
-        yPosition += 7;
-        
-        // Add wallet address in a box with monospace font - enhanced visibility
-        doc.setDrawColor(59, 130, 246); // Blue border for better visibility
-        doc.setFillColor(248, 250, 252); // Lighter background for better contrast
-        const addressBoxWidth = 160; // Increased width to better fit the address
-        const addressBoxHeight = 12; // Slightly taller height for better readability
-        const addressBoxX = (pageWidth - addressBoxWidth) / 2;
-        
-        // Draw border and fill box
-        doc.roundedRect(addressBoxX, yPosition, addressBoxWidth, addressBoxHeight, 2, 2, 'FD');
-        
-        // Add wallet address text
-        doc.setFont("courier", "bold"); // Bold monospace font for better visibility
-        doc.setFontSize(8); // Slightly larger font size for better readability
-        doc.setTextColor(0, 0, 0); // Pure black text for maximum contrast
-        
-        // Display address on a single line
-        doc.text(walletAddress, pageWidth / 2, yPosition + 6, { align: "center" });
-        
-        yPosition += addressBoxHeight + 10;
+        const qrWrapper = printContent.querySelector('.qr-code-wrapper');
+        if (qrWrapper) {
+          // Clear the wrapper and add a simple image
+          qrWrapper.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = qrCodeImage;
+          img.width = 200;
+          img.height = 200;
+          img.style.display = 'block';
+          qrWrapper.appendChild(img);
+        }
       }
       
-      // Add section header bar for instructions - ensure full width
-      doc.setFillColor(240, 249, 255); // Light blue background
-      doc.rect(0, yPosition - 7, pageWidth, 14, 'F');
+      // Append to body to make it visible for html2canvas but hide it
+      document.body.appendChild(printContent);
+      printContent.style.position = 'absolute';
+      printContent.style.left = '-9999px';
+      printContent.style.width = '794px'; // A4 width in pixels at 96 DPI
       
-      // Add "How to Pay with CPXTB" section header
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.setTextColor(59, 130, 246); // Blue text
-      doc.text("How to Pay with CPXTB", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 15;
+      // Wait a moment for everything to render
+      await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Add numbered steps with blue dots and connecting line
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
-      
-      const steps = [
-        "Open your crypto wallet app",
-        "Buy Ethereum on Base network",
-        "Swap ETH to CPXTB on Base network",
-        "Scan the QR code or enter wallet address",
-        "Enter the exact amount in CPXTB",
-        "Confirm and send your payment"
-      ];
-      
-      // Shorter descriptions to fit better
-      const stepDescriptions = [
-        "Any wallet that supports Base network",
-        "Purchase ETH on Base network",
-        "Use BaseSwap to convert ETH to CPXTB",
-        "Verify address matches exactly",
-        "Exact CPXTB amount provided at checkout",
-        "Confirmation takes 10-30 seconds"
-      ];
-      
-      // Draw a vertical line connecting all steps
-      const lineStartY = yPosition;
-      const circleX = 15;
-      
-      // Calculate total steps height - adjusted for taller boxes
-      const stepsHeight = steps.length * 22; // Using taller step boxes
-      
-      // Draw line first (in the background) - extended to match taller boxes
-      doc.setDrawColor(220, 230, 250); // Light blue line
-      doc.setLineWidth(1.5);
-      doc.line(circleX, lineStartY - 2, circleX, lineStartY + stepsHeight);
-      
-      // Draw boxes for steps - fixed to contain text properly
-      steps.forEach((step, index) => {
-        // Draw larger circle with drop shadow effect
-        doc.setFillColor(245, 247, 250); // Light gray background for shadow
-        doc.circle(circleX + 0.5, yPosition - 0.5, 3.5, 'F');
-        
-        // Draw actual circle
-        doc.setFillColor(59, 130, 246); // Blue (#3b82f6)
-        doc.circle(circleX, yPosition - 1, 3.5, 'F');
-        
-        // Add number in circle
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
-        doc.text((index + 1).toString(), circleX, yPosition, { align: "center" });
-        
-        // Calculate the height needed for both the step and description
-        const boxHeight = 16; // Reduced height to save vertical space
-        
-        // Add rounded rectangle for step text - smaller width for A4 format
-        doc.setFillColor(248, 250, 252); // Very light blue/gray
-        doc.setDrawColor(230, 236, 245); // Light blue border
-        doc.roundedRect(circleX + 7, yPosition - 6, 165, boxHeight, 1, 1, 'FD');
-        
-        // Add step text
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(59, 130, 246); // Blue text
-        doc.setFontSize(11);
-        doc.text(step, circleX + 11, yPosition - 1); // Position slightly higher
-        
-        // Add step description
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(100, 116, 139); // Slate gray text
-        doc.text(stepDescriptions[index], circleX + 11, yPosition + 6); // Position lower
-        
-        // Move to next step position, adding enough space for the taller boxes
-        yPosition += boxHeight + 4;
+      // Convert to canvas with html2canvas - use higher scale for better quality
+      const canvas = await html2canvas(printContent, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#FFFFFF',
+        logging: false
       });
       
-      yPosition += 8;
+      // Remove the cloned element after we're done with it
+      document.body.removeChild(printContent);
       
-      // Add warning box with attention-grabbing design but smaller
-      // First create a light orange gradient background
-      doc.setFillColor(255, 251, 235); // Light amber background
-      doc.setDrawColor(251, 191, 36); // Amber border
-      doc.setLineWidth(1.5);
-      doc.roundedRect(20, yPosition, pageWidth - 40, 20, 4, 4, 'FD');
+      const imgData = canvas.toDataURL('image/png');
       
-      // Add warning icon
-      const warningIconSize = 8;
-      const iconX = 30;
-      const iconY = yPosition + 12;
+      // Add image to PDF (fitting to page width while maintaining aspect ratio)
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      // Draw warning triangle
-      doc.setFillColor(251, 146, 60); // Orange fill
-      doc.setDrawColor(249, 115, 22); // Darker orange border
+      // Add white background to ensure visibility
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pdfWidth, pdfHeight, 'F');
       
-      // Triangle points
-      const trianglePoints = [
-        { x: iconX, y: iconY + warningIconSize/2 },
-        { x: iconX - warningIconSize/2, y: iconY - warningIconSize/2 },
-        { x: iconX + warningIconSize/2, y: iconY - warningIconSize/2 }
-      ];
+      // Add the image on top of the white background
+      doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       
-      // Draw filled triangle
-      doc.triangle(
-        trianglePoints[0].x, trianglePoints[0].y,
-        trianglePoints[1].x, trianglePoints[1].y,
-        trianglePoints[2].x, trianglePoints[2].y,
-        'F'
-      );
-      
-      // Add exclamation mark
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.text("!", iconX, iconY - 1, { align: "center" });
-      
-      // Add warning text with heading and body
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(194, 65, 12); // Deep orange text
-      doc.setFontSize(12);
-      doc.text("IMPORTANT: ONLY SEND CPXTB TOKENS", 45, yPosition + 8);
-      
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(146, 64, 14); // Amber text
-      doc.text("Sending any other cryptocurrency may result in permanent loss of funds.", 
-        45, yPosition + 16);
+      // If we have a QR code image, add it directly to the PDF as well for guaranteed visibility
+      if (qrCodeImage) {
+        // Calculate position for QR code - find its relative position in the pamphlet
+        const qrBoxSize = Math.min(pdfWidth * 0.25, pdfHeight * 0.25); // Take smaller dimension for consistent sizing
+        const qrPosition = {
+          x: pdfWidth * 0.132, // Moved very slightly right from previous position
+          y: pdfHeight * 0.272, // Moved very slightly up from previous position
+          width: qrBoxSize, // Square sizing based on page dimensions
+          height: qrBoxSize // Square, so same as width
+        };
         
-      // Add a small repeating pattern on the right side for visual interest
-      for (let i = 0; i < 3; i++) {
-        doc.setFillColor(253, 186, 116); // Light orange
-        doc.circle(pageWidth - 30, yPosition + 6 + (i * 6), 1, 'F');
+        // Draw a white background for the QR code with larger padding
+        doc.setFillColor(255, 255, 255);
+        doc.rect(qrPosition.x - 5, qrPosition.y - 5, qrPosition.width + 10, qrPosition.height + 10, 'F');
+        
+        // Draw a border with primary color
+        doc.setDrawColor(0, 78, 152); // Primary blue color 
+        doc.setLineWidth(1.5);
+        doc.rect(qrPosition.x - 5, qrPosition.y - 5, qrPosition.width + 10, qrPosition.height + 10, 'S');
+        
+        // Add the QR code image on top of this
+        doc.addImage(qrCodeImage, 'PNG', qrPosition.x, qrPosition.y, qrPosition.width, qrPosition.height);
       }
       
-      // Add footer with branding with clear separation from content
-      yPosition += 15; // Add more space after warning box
-      
-      // Ensure footer is properly positioned even on small screens
-      // Check if we're close to the bottom and adjust if needed
-      const minFooterPosition = pageHeight - margins.bottom - 30;
-      if (yPosition < minFooterPosition) {
-        yPosition = minFooterPosition;
-      }
-      
-      // Add extremely large white background at the bottom to prevent any black areas
-      doc.setFillColor(255, 255, 255); // Pure white background
-      doc.rect(-20, yPosition - 15, pageWidth + 40, 100, 'F'); // Much larger coverage for mobile devices
-      
-      // Add more visible footer box on top of white background
-      doc.setFillColor(240, 249, 255); // Light blue background
-      doc.rect(0, yPosition - 10, pageWidth, 30, 'F');
-      
-      // Add footer line with more visibility
-      doc.setDrawColor(59, 130, 246); // Blue line
-      doc.setLineWidth(0.5);
-      doc.line(20, yPosition, pageWidth - 20, yPosition);
-      
-      // Add footer text with more contrast
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9); // Slightly larger text
-      doc.setTextColor(59, 130, 246); // Blue text for visibility
-      doc.text(`Generated by CPXTB Platform | ${new Date().toLocaleDateString()}`, pageWidth / 2, yPosition + 5, { align: "center" });
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139); // Darker text
-      doc.text(`${businessName}`, pageWidth / 2, yPosition + 12, { align: "center" });
-      
-      // Add stylized version
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(7);
-      doc.setTextColor(59, 130, 246); // Blue version number
-      doc.text("v2.0", pageWidth - 20, yPosition + 5, { align: "right" });
-      
-      // Save the PDF with formatted filename
+      // Save the PDF
       doc.save(`${businessName.replace(/\s+/g, '_')}_Payment_Guide.pdf`);
       
       // Remove loading indicator
@@ -754,8 +495,8 @@ export function MerchantPamphlet({
         </p>
         
         <div className="mt-4 text-sm text-gray-500">
-          <p className="inline-block mr-2">CPXTB Token Contract Address:</p>
-          <code className="inline-block bg-gray-100 p-1 rounded text-xs font-mono text-gray-800 border border-gray-300">{CPXTB_TOKEN_ADDRESS}</code>
+          <p>CPXTB Token Contract Address:</p>
+          <code className="bg-gray-100 p-1 rounded text-xs font-mono text-gray-800 border border-gray-300">{CPXTB_TOKEN_ADDRESS}</code>
         </div>
         
         <div className="mt-6 text-center text-gray-500 text-sm">

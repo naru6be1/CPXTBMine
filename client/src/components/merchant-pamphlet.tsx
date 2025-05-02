@@ -315,8 +315,8 @@ export function MerchantPamphlet({
       
       // Add the QR code at the top section of the page - MOST IMPORTANT PART
       if (qrCodeImage) {
-        // Set QR code size (bigger than before)
-        const qrSize = 70; // mm - make it larger and more prominent
+        // Set QR code size (smaller to save vertical space)
+        const qrSize = 60; // mm - smaller size to fit more content
         const qrX = (pageWidth - qrSize) / 2;
         
         // Add the QR code with border
@@ -387,13 +387,14 @@ export function MerchantPamphlet({
         "Confirm and send your payment"
       ];
       
+      // Shorter descriptions to fit better
       const stepDescriptions = [
-        "Any wallet that supports Base network tokens",
-        "Use your wallet's exchange feature to purchase ETH on Base network",
-        "Use a DEX like BaseSwap to convert ETH to CPXTB token",
-        "Make sure to verify the address matches exactly",
-        "We'll provide the exact CPXTB amount at checkout",
-        "Transaction confirmation usually takes 10-30 seconds"
+        "Any wallet that supports Base network",
+        "Purchase ETH on Base network",
+        "Use BaseSwap to convert ETH to CPXTB",
+        "Verify address matches exactly",
+        "Exact CPXTB amount provided at checkout",
+        "Confirmation takes 10-30 seconds"
       ];
       
       // Draw a vertical line connecting all steps
@@ -425,7 +426,7 @@ export function MerchantPamphlet({
         doc.text((index + 1).toString(), circleX, yPosition, { align: "center" });
         
         // Calculate the height needed for both the step and description
-        const boxHeight = 18; // Fixed height to fit both step title and description
+        const boxHeight = 16; // Reduced height to save vertical space
         
         // Add rounded rectangle for step text - increased height to fit both lines
         doc.setFillColor(248, 250, 252); // Very light blue/gray
@@ -450,12 +451,12 @@ export function MerchantPamphlet({
       
       yPosition += 8;
       
-      // Add warning box with attention-grabbing design
+      // Add warning box with attention-grabbing design but smaller
       // First create a light orange gradient background
       doc.setFillColor(255, 251, 235); // Light amber background
       doc.setDrawColor(251, 191, 36); // Amber border
       doc.setLineWidth(1.5);
-      doc.roundedRect(20, yPosition, pageWidth - 40, 24, 4, 4, 'FD');
+      doc.roundedRect(20, yPosition, pageWidth - 40, 20, 4, 4, 'FD');
       
       // Add warning icon
       const warningIconSize = 8;

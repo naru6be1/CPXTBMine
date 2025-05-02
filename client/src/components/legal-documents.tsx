@@ -109,7 +109,7 @@ export function LegalDocuments() {
     let y = 30;
     
     y = addWrappedText(
-      `THIS MERCHANT AGREEMENT (the "Agreement") is entered into as of ${merchantFields[6].value} (the "Effective Date"), by and between:`,
+      `THIS MERCHANT AGREEMENT (the "Agreement") is made and entered into effective as of ${merchantFields[6].value} (the "Effective Date"), by and between the parties identified below:`,
       margin, y, contentWidth, 6
     );
     
@@ -117,7 +117,7 @@ export function LegalDocuments() {
     y += 10;
     doc.setFont('helvetica', 'bold');
     y = addWrappedText(
-      `${PLATFORM_NAME} ("Platform Provider")`,
+      `${PLATFORM_NAME}, a blockchain payment solutions provider ("Platform Provider")`,
       margin, y, contentWidth, 6
     );
     
@@ -131,7 +131,7 @@ export function LegalDocuments() {
     y += 6;
     doc.setFont('helvetica', 'bold');
     y = addWrappedText(
-      `${merchantFields[0].value} ("Merchant"), located at ${merchantFields[1].value}`,
+      `${merchantFields[0].value}, a ${merchantFields[4].value} ("Merchant"), with its principal place of business located at ${merchantFields[1].value}`,
       margin, y, contentWidth, 6
     );
     
@@ -146,19 +146,19 @@ export function LegalDocuments() {
     doc.setFont('helvetica', 'normal');
     
     y = addWrappedText(
-      'WHEREAS, Platform Provider operates a cryptocurrency payment processing platform that enables merchants to accept CPXTB tokens as payment for goods and services;',
+      'WHEREAS, Platform Provider has developed and operates a proprietary blockchain-based payment processing platform (the "Platform") that enables merchants to securely accept CPXTB tokens as payment for goods and services;',
       margin, y, contentWidth, 6
     );
     
     y += 8;
     y = addWrappedText(
-      'WHEREAS, Merchant desires to utilize the Platform to accept CPXTB tokens as payment for its goods and services;',
+      'WHEREAS, Merchant desires to utilize the Platform to accept CPXTB tokens as payment for its goods and services in accordance with the terms and conditions set forth herein;',
       margin, y, contentWidth, 6
     );
     
     y += 8;
     y = addWrappedText(
-      'NOW, THEREFORE, in consideration of the mutual covenants contained herein, the parties agree as follows:',
+      'NOW, THEREFORE, for good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the parties, intending to be legally bound, hereby agree as follows:',
       margin, y, contentWidth, 6
     );
     
@@ -170,7 +170,8 @@ export function LegalDocuments() {
     doc.setFont('helvetica', 'normal');
     
     y = addWrappedText(
-      'Platform Provider will provide Merchant with access to the Platform, which enables Merchant to accept CPXTB tokens as payment. The Platform includes payment processing, transaction verification, and merchant dashboard functionality.',
+      '1.1 Subject to the terms and conditions of this Agreement, Platform Provider shall provide Merchant with access to the Platform, which enables Merchant to accept CPXTB tokens as payment for goods and services.\n\n' +
+      '1.2 The Platform services include, but are not limited to: (a) secure payment processing infrastructure; (b) automated transaction verification on the Base blockchain network; (c) merchant dashboard with transaction reporting and analytics; (d) payment notification system; and (e) customizable customer-facing payment interfaces.',
       margin, y, contentWidth, 6
     );
     
@@ -181,21 +182,22 @@ export function LegalDocuments() {
     doc.setFont('helvetica', 'normal');
     
     y = addWrappedText(
-      '2.1 Merchant shall maintain accurate business information on the Platform.\n\n' +
-      '2.2 Merchant shall provide a valid blockchain wallet address to receive CPXTB token payments.\n\n' +
-      '2.3 Merchant agrees to comply with all applicable laws and regulations related to cryptocurrency transactions.\n\n' +
-      '2.4 Merchant acknowledges the volatility of cryptocurrency values and assumes all risks associated with accepting CPXTB tokens as payment.',
+      '2.1 Merchant Information. Merchant shall maintain accurate and up-to-date business information on the Platform, including but not limited to legal business name, contact information, and business description.\n\n' +
+      '2.2 Wallet Address. Merchant shall provide and maintain a valid blockchain wallet address on the Base network to receive CPXTB token payments. Merchant shall be solely responsible for the security and control of its wallet private keys.\n\n' +
+      '2.3 Legal Compliance. Merchant represents and warrants that it shall comply with all applicable laws, regulations, and industry standards related to cryptocurrency transactions, including but not limited to anti-money laundering (AML) requirements, tax reporting obligations, and consumer protection laws.\n\n' +
+      '2.4 Risk Acknowledgment. Merchant expressly acknowledges and accepts the inherent volatility of cryptocurrency values and assumes all risks associated with accepting CPXTB tokens as payment, including but not limited to price fluctuations, liquidity risks, and regulatory uncertainties.',
       margin, y, contentWidth, 6
     );
     
     y += 30;
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('3. FEES', margin, y, contentWidth, 6);
+    y = addWrappedText('3. FEES AND PAYMENT TERMS', margin, y, contentWidth, 6);
     y += 3;
     doc.setFont('helvetica', 'normal');
     
     y = addWrappedText(
-      'Platform Provider charges a 1% transaction fee on all completed CPXTB token payments. Fees are automatically calculated and deducted from each transaction.',
+      '3.1 Transaction Fee. Platform Provider shall charge a transaction fee equal to one percent (1.0%) of the value of all completed CPXTB token payments processed through the Platform ("Transaction Fee").\n\n' +
+      '3.2 Fee Calculation and Collection. The Transaction Fee shall be automatically calculated and deducted from each payment transaction at the time of settlement. Merchant hereby authorizes Platform Provider to deduct the applicable Transaction Fee from each payment prior to settlement to Merchant's wallet address.',
       margin, y, contentWidth, 6
     );
     
@@ -206,20 +208,24 @@ export function LegalDocuments() {
     doc.setFont('helvetica', 'normal');
     
     y = addWrappedText(
-      '4.1 This Agreement shall commence on the Effective Date and continue until terminated by either party.\n\n' +
-      '4.2 Either party may terminate this Agreement with 30 days\' written notice.\n\n' +
-      '4.3 Platform Provider may terminate this Agreement immediately if Merchant violates any terms of this Agreement.',
+      '4.1 Term. This Agreement shall commence on the Effective Date and continue in full force and effect until terminated in accordance with the provisions set forth herein (the "Term").\n\n' +
+      '4.2 Termination for Convenience. Either party may terminate this Agreement for any reason or no reason upon thirty (30) days\' prior written notice to the other party.\n\n' +
+      '4.3 Termination for Cause. Platform Provider may terminate this Agreement immediately and without prior notice if: (a) Merchant breaches any material term of this Agreement; (b) Merchant engages in any unlawful activity in connection with its use of the Platform; (c) Merchant's use of the Platform poses a security risk to Platform Provider or other Platform users; or (d) Platform Provider is required to do so by law or regulatory action.\n\n' +
+      '4.4 Effect of Termination. Upon termination of this Agreement: (a) Merchant shall immediately cease all use of the Platform; (b) Platform Provider shall settle all pending transactions in accordance with their terms; and (c) all rights and licenses granted to Merchant under this Agreement shall immediately terminate.',
       margin, y, contentWidth, 6
     );
     
     y += 25;
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('5. LIMITATION OF LIABILITY', margin, y, contentWidth, 6);
+    y = addWrappedText('5. REPRESENTATIONS, WARRANTIES, AND LIMITATION OF LIABILITY', margin, y, contentWidth, 6);
     y += 3;
     doc.setFont('helvetica', 'normal');
     
     y = addWrappedText(
-      'IN NO EVENT SHALL PLATFORM PROVIDER BE LIABLE FOR ANY INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF OR RELATED TO THIS AGREEMENT, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, REVENUE, OR DATA, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.',
+      '5.1 Merchant Representations and Warranties. Merchant represents and warrants that: (a) it has the full power and authority to enter into and perform its obligations under this Agreement; (b) its use of the Platform will comply with all applicable laws and regulations; and (c) it has obtained all necessary approvals, consents, and authorizations to accept cryptocurrency payments.\n\n' +
+      '5.2 Platform Provider Representations and Warranties. Platform Provider represents and warrants that: (a) it has the full power and authority to enter into and perform its obligations under this Agreement; and (b) the Platform will perform substantially in accordance with its documentation when used as authorized herein.\n\n' +
+      '5.3 Disclaimer of Warranties. EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, THE PLATFORM IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTY OF ANY KIND. PLATFORM PROVIDER EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.\n\n' +
+      '5.4 Limitation of Liability. IN NO EVENT SHALL PLATFORM PROVIDER BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO DAMAGES FOR LOSS OF PROFITS, GOODWILL, USE, DATA, OR OTHER INTANGIBLE LOSSES (EVEN IF PLATFORM PROVIDER HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES), RESULTING FROM THE USE OR INABILITY TO USE THE PLATFORM OR ANY OTHER MATTER RELATING TO THIS AGREEMENT.',
       margin, y, contentWidth, 6
     );
     
@@ -228,23 +234,27 @@ export function LegalDocuments() {
     y = 20;
     
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('6. GOVERNING LAW', margin, y, contentWidth, 6);
+    y = addWrappedText('6. GOVERNING LAW AND DISPUTE RESOLUTION', margin, y, contentWidth, 6);
     y += 3;
     doc.setFont('helvetica', 'normal');
     
     y = addWrappedText(
-      'This Agreement shall be governed by and construed in accordance with the laws of the jurisdiction in which Platform Provider is registered, without regard to conflict of law principles.',
+      '6.1 Governing Law. This Agreement shall be governed by and construed in accordance with the laws of the jurisdiction in which Platform Provider is registered, without giving effect to any choice of law or conflict of law provisions.\n\n' +
+      '6.2 Dispute Resolution. Any controversy or claim arising out of or relating to this Agreement, or the breach thereof, shall first be addressed through good faith negotiation between the parties. If such negotiation fails to resolve the dispute within thirty (30) days, either party may initiate binding arbitration in accordance with the rules of the American Arbitration Association. The arbitration shall take place in the jurisdiction where Platform Provider is headquartered, and judgment on the award rendered by the arbitrator(s) may be entered in any court having jurisdiction thereof.',
       margin, y, contentWidth, 6
     );
     
     y += 15;
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('7. ENTIRE AGREEMENT', margin, y, contentWidth, 6);
+    y = addWrappedText('7. MISCELLANEOUS PROVISIONS', margin, y, contentWidth, 6);
     y += 3;
     doc.setFont('helvetica', 'normal');
     
     y = addWrappedText(
-      'This Agreement constitutes the entire understanding between the parties concerning the subject matter hereof and supersedes all prior agreements, understandings, or negotiations.',
+      '7.1 Entire Agreement. This Agreement constitutes the entire understanding between the parties concerning the subject matter hereof and supersedes all prior agreements, understandings, or negotiations, whether written or oral.\n\n' +
+      '7.2 Amendments. No amendment or modification of this Agreement shall be valid or binding unless made in writing and signed by both parties.\n\n' +
+      '7.3 Assignment. Merchant may not assign this Agreement or any rights or obligations hereunder without the prior written consent of Platform Provider. Platform Provider may assign this Agreement to any successor to its business or assets.\n\n' +
+      '7.4 Force Majeure. Neither party shall be liable for any failure or delay in performance due to causes beyond its reasonable control, including but not limited to acts of God, natural disasters, pandemic, war, terrorism, riots, civil unrest, governmental actions, labor disputes, or internet or blockchain network disruptions.',
       margin, y, contentWidth, 6
     );
     

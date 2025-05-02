@@ -97,13 +97,17 @@ export function LegalDocuments() {
         return y + (lines.length * lineHeight);
       };
       
-      // Set professional colors
-      const primaryColor = '#1a457a';  // Professional navy blue
-      const accentColor = '#203864';   // Darker blue for headings
-      const linkColor = '#0056b3';     // Professional blue for links/highlights
+      // Set professional colors using RGB values for jsPDF compatibility
+      const primaryColorR = 26;   // RGB for #1a457a
+      const primaryColorG = 69;
+      const primaryColorB = 122;
+      
+      const accentColorR = 32;    // RGB for #203864
+      const accentColorG = 56;
+      const accentColorB = 100;
       
       // Add a subtle header with logo effect
-      doc.setFillColor(primaryColor);
+      doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
       doc.rect(0, 0, pageWidth, 30, 'F');
       
       // Title
@@ -120,7 +124,7 @@ export function LegalDocuments() {
       let y = 40; // Start content a bit lower to avoid header
       
       // Add decorative line under header
-      doc.setDrawColor(accentColor);
+      doc.setDrawColor(accentColorR, accentColorG, accentColorB);
       doc.setLineWidth(0.5);
       doc.line(margin, 32, pageWidth - margin, 32);
       
@@ -156,7 +160,7 @@ export function LegalDocuments() {
       doc.setFont('helvetica', 'normal');
       
       // Recitals
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
@@ -184,7 +188,7 @@ export function LegalDocuments() {
       
       // Agreement terms - 1. SERVICES
       y += 10;
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
@@ -200,7 +204,7 @@ export function LegalDocuments() {
       );
       
       y += 10;
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
@@ -218,7 +222,7 @@ export function LegalDocuments() {
       );
       
       y += 30;
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers
@@ -234,7 +238,7 @@ export function LegalDocuments() {
       );
       
       y += 10;
-      doc.setFillColor(accentColor);
+      doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section headers

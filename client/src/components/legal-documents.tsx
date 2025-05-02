@@ -97,16 +97,32 @@ export function LegalDocuments() {
         return y + (lines.length * lineHeight);
       };
       
+      // Set professional colors
+      const primaryColor = '#1a457a';  // Professional navy blue
+      const accentColor = '#203864';   // Darker blue for headings
+      const linkColor = '#0056b3';     // Professional blue for links/highlights
+      
+      // Add a subtle header with logo effect
+      doc.setFillColor(primaryColor);
+      doc.rect(0, 0, pageWidth, 30, 'F');
+      
       // Title
       doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255); // White text on blue background
       const title = 'MERCHANT AGREEMENT FOR CPXTB TOKEN PAYMENTS';
       doc.text(title, pageWidth / 2, 20, { align: 'center' });
       
       // Introduction
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      let y = 30;
+      doc.setTextColor(0, 0, 0); // Reset text color to black for body text
+      let y = 40; // Start content a bit lower to avoid header
+      
+      // Add decorative line under header
+      doc.setDrawColor(accentColor);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 32, pageWidth - margin, 32);
       
       y = addWrappedText(
         `THIS MERCHANT AGREEMENT (the "Agreement") is made and entered into effective as of ${merchantFields[6].value} (the "Effective Date"), by and between the parties identified below:`,
@@ -140,10 +156,14 @@ export function LegalDocuments() {
       doc.setFont('helvetica', 'normal');
       
       // Recitals
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      y = addWrappedText('RECITALS', margin, y, contentWidth, 6);
-      y += 3;
+      doc.setTextColor(255, 255, 255); // White text for section headers
+      y = addWrappedText('RECITALS', margin + 2, y + 5, contentWidth, 6);
+      y += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
         'WHEREAS, Platform Provider has developed and operates a proprietary blockchain-based payment processing platform (the "Platform") that enables merchants to securely accept CPXTB tokens as payment for goods and services;',
@@ -162,12 +182,16 @@ export function LegalDocuments() {
         margin, y, contentWidth, 6
       );
       
-      // Agreement terms
+      // Agreement terms - 1. SERVICES
       y += 10;
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      y = addWrappedText('1. SERVICES', margin, y, contentWidth, 6);
-      y += 3;
+      doc.setTextColor(255, 255, 255); // White text for section headers
+      y = addWrappedText('1. SERVICES', margin + 2, y + 5, contentWidth, 6);
+      y += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
         '1.1 Subject to the terms and conditions of this Agreement, Platform Provider shall provide Merchant with access to the Platform, which enables Merchant to accept CPXTB tokens as payment for goods and services.\n\n' +
@@ -176,10 +200,14 @@ export function LegalDocuments() {
       );
       
       y += 10;
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      y = addWrappedText('2. MERCHANT OBLIGATIONS', margin, y, contentWidth, 6);
-      y += 3;
+      doc.setTextColor(255, 255, 255); // White text for section headers
+      y = addWrappedText('2. MERCHANT OBLIGATIONS', margin + 2, y + 5, contentWidth, 6);
+      y += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
         '2.1 Merchant Information. Merchant shall maintain accurate and up-to-date business information on the Platform, including but not limited to legal business name, contact information, and business description.\n\n' +
@@ -190,10 +218,14 @@ export function LegalDocuments() {
       );
       
       y += 30;
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      y = addWrappedText('3. FEES AND PAYMENT TERMS', margin, y, contentWidth, 6);
-      y += 3;
+      doc.setTextColor(255, 255, 255); // White text for section headers
+      y = addWrappedText('3. FEES AND PAYMENT TERMS', margin + 2, y + 5, contentWidth, 6);
+      y += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
         '3.1 Transaction Fee. Platform Provider shall charge a transaction fee equal to one percent (1.0%) of the value of all completed CPXTB token payments processed through the Platform ("Transaction Fee").\n\n' +
@@ -202,10 +234,14 @@ export function LegalDocuments() {
       );
       
       y += 10;
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      y = addWrappedText('4. TERM AND TERMINATION', margin, y, contentWidth, 6);
-      y += 3;
+      doc.setTextColor(255, 255, 255); // White text for section headers
+      y = addWrappedText('4. TERM AND TERMINATION', margin + 2, y + 5, contentWidth, 6);
+      y += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
         '4.1 Term. This Agreement shall commence on the Effective Date and continue in full force and effect until terminated in accordance with the provisions set forth herein (the "Term").\n\n' +
@@ -216,10 +252,14 @@ export function LegalDocuments() {
       );
       
       y += 25;
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      y = addWrappedText('5. REPRESENTATIONS, WARRANTIES, AND LIMITATION OF LIABILITY', margin, y, contentWidth, 6);
-      y += 3;
+      doc.setTextColor(255, 255, 255); // White text for section headers
+      y = addWrappedText('5. REPRESENTATIONS, WARRANTIES, AND LIMITATION OF LIABILITY', margin + 2, y + 5, contentWidth, 6);
+      y += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
         '5.1 Merchant Representations and Warranties. Merchant represents and warrants that: (a) it has the full power and authority to enter into and perform its obligations under this Agreement; (b) its use of the Platform will comply with all applicable laws and regulations; and (c) it has obtained all necessary approvals, consents, and authorizations to accept cryptocurrency payments.\n\n' +
@@ -233,10 +273,14 @@ export function LegalDocuments() {
       doc.addPage();
       y = 20;
       
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      y = addWrappedText('6. GOVERNING LAW AND DISPUTE RESOLUTION', margin, y, contentWidth, 6);
-      y += 3;
+      doc.setTextColor(255, 255, 255); // White text for section headers
+      y = addWrappedText('6. GOVERNING LAW AND DISPUTE RESOLUTION', margin + 2, y + 5, contentWidth, 6);
+      y += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
         '6.1 Governing Law. This Agreement shall be governed by and construed in accordance with the laws of the jurisdiction in which Platform Provider is registered, without giving effect to any choice of law or conflict of law provisions.\n\n' +

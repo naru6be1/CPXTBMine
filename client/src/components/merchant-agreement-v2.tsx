@@ -94,10 +94,11 @@ export function MerchantAgreement() {
       const title = 'MERCHANT AGREEMENT FOR CPXTB TOKEN PAYMENTS';
       doc.text(title, pageWidth / 2, 20, { align: 'center' });
       
-      // Page 1 footer
+      // Page 1 footer - Add margin at bottom for footer
+      const footerMargin = 20; // Increased footer margin
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 1 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 1 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
       
       // Introduction
       doc.setFontSize(11);
@@ -193,7 +194,7 @@ export function MerchantAgreement() {
       // Add page number
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 3`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
       
       // Reset font for section header
       doc.setFontSize(10);
@@ -276,7 +277,7 @@ export function MerchantAgreement() {
       // Add page number to third page footer
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
       
       // Section 6
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
@@ -317,14 +318,15 @@ export function MerchantAgreement() {
       
       // Make sure we have a fresh page specifically for signatures
       // Calculate if we need to add a page (if there's not enough space)
-      if (y > pageHeight - 150) {
+      // Added extra footer margin to prevent content overlapping with footer
+      if (y > pageHeight - (150 + footerMargin)) {
         doc.addPage();
         y = 40; // Reset y position on the new page
         
         // Add page number to signature page
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
       }
       
       // Signature section header

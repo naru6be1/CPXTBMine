@@ -267,40 +267,160 @@ export function MerchantPamphlet({
       
       const imgData = canvas.toDataURL('image/png');
       
-      // Add image to PDF (fitting to page width while maintaining aspect ratio)
-      const pdfWidth = doc.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      // Instead of using the captured page image, we'll create a custom PDF layout directly
       
-      // Add white background to ensure visibility
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, 0, pdfWidth, pdfHeight, 'F');
+      // Create new jsPDF instance - A4 portrait
+      // Override previous instance
+      doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
       
-      // Add the image on top of the white background
-      doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // A4 dimensions are 210 x 297 mm
+      const pageWidth = 210;
+      const pageHeight = 297;
       
-      // If we have a QR code image, add it directly to the PDF as well for guaranteed visibility
+      // Set up initial position
+      let yPosition = 10; // Start at top with 10mm margin
+      
+      // Add business name as header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Payment Instructions", pageWidth / 2, yPosition, { align: "center" });
+      yPosition += 15;
+      
+      // Add Business Name
+      doc.setFontSize(16);
+      doc.text(businessName, pageWidth / 2, yPosition, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+      yPosition += 8;
+      doc.text("We Accept CPXTB Token Payments", pageWidth / 2, yPosition, { align: "center" });
+      yPosition += 15;
+      
+      // Add the QR code at the top section of the page - MOST IMPORTANT PART
       if (qrCodeImage) {
-        // Calculate position for QR code - find its relative position in the pamphlet
-        const qrBoxSize = Math.min(pdfWidth * 0.25, pdfHeight * 0.25); // Take smaller dimension for consistent sizing
-        const qrPosition = {
-          x: pdfWidth * 0.132, // Moved very slightly right from previous position
-          y: pdfHeight * 0.272, // Moved very slightly up from previous position
-          width: qrBoxSize, // Square sizing based on page dimensions
-          height: qrBoxSize // Square, so same as width
-        };
+        // Set QR code size (bigger than before)
+        const qrSize = 70; // mm - make it larger and more prominent
+        const qrX = (pageWidth - qrSize) / 2;
         
-        // Draw a white background for the QR code with larger padding
+        // Add the QR code with border
+        // First add white background and border
+        doc.setDrawColor(59, 130, 246); // Blue border (#3b82f6)
         doc.setFillColor(255, 255, 255);
-        doc.rect(qrPosition.x - 5, qrPosition.y - 5, qrPosition.width + 10, qrPosition.height + 10, 'F');
+        doc.roundedRect(qrX - 2, yPosition - 2, qrSize + 4, qrSize + 4, 2, 2, 'FD');
         
-        // Draw a border with primary color
-        doc.setDrawColor(0, 78, 152); // Primary blue color 
-        doc.setLineWidth(1.5);
-        doc.rect(qrPosition.x - 5, qrPosition.y - 5, qrPosition.width + 10, qrPosition.height + 10, 'S');
+        // Now add the QR code image
+        doc.addImage(qrCodeImage, 'PNG', qrX, yPosition, qrSize, qrSize);
+        yPosition += qrSize + 5;
         
-        // Add the QR code image on top of this
-        doc.addImage(qrCodeImage, 'PNG', qrPosition.x, qrPosition.y, qrPosition.width, qrPosition.height);
+        // Add scan instructions
+        doc.setFontSize(10);
+        doc.text("Scan this QR code with any crypto wallet", pageWidth / 2, yPosition, { align: "center" });
+        yPosition += 7;
+        
+        // Add wallet address in a box with monospace font
+        doc.setDrawColor(200, 200, 200);
+        doc.setFillColor(243, 244, 246); // Light gray background
+        const addressBoxWidth = 140;
+        const addressBoxHeight = 12;
+        const addressBoxX = (pageWidth - addressBoxWidth) / 2;
+        
+        doc.roundedRect(addressBoxX, yPosition, addressBoxWidth, addressBoxHeight, 1, 1, 'FD');
+        
+        // Add wallet address text
+        doc.setFont("courier", "normal"); // Use monospace font
+        doc.setFontSize(8);
+        doc.setTextColor(31, 41, 55); // Dark gray text
+        
+        // Check if we need to truncate or split the address
+        if (walletAddress.length > 40) {
+          // Split address in half to fit in box
+          const firstHalf = walletAddress.substring(0, Math.floor(walletAddress.length / 2));
+          const secondHalf = walletAddress.substring(Math.floor(walletAddress.length / 2));
+          
+          doc.text(firstHalf, pageWidth / 2, yPosition + 5, { align: "center" });
+          doc.text(secondHalf, pageWidth / 2, yPosition + 9, { align: "center" });
+        } else {
+          doc.text(walletAddress, pageWidth / 2, yPosition + 6, { align: "center" });
+        }
+        
+        yPosition += addressBoxHeight + 10;
       }
+      
+      // Add "How to Pay with CPXTB" section
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text("How to Pay with CPXTB", 20, yPosition);
+      yPosition += 10;
+      
+      // Add numbered steps with blue dots
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      
+      const steps = [
+        "Open your crypto wallet app",
+        "Buy Ethereum on Base network",
+        "Swap ETH to CPXTB on Base network",
+        "Scan the QR code or enter wallet address",
+        "Enter the exact amount in CPXTB",
+        "Confirm and send your payment"
+      ];
+      
+      const stepDescriptions = [
+        "Any wallet that supports Base network tokens",
+        "Use your wallet's exchange feature to purchase ETH on Base network",
+        "Use a DEX like BaseSwap to convert ETH to CPXTB token",
+        "Make sure to verify the address matches exactly",
+        "We'll provide the exact CPXTB amount at checkout",
+        "Transaction confirmation usually takes 10-30 seconds"
+      ];
+      
+      steps.forEach((step, index) => {
+        // Draw blue circle with number
+        doc.setFillColor(59, 130, 246); // Blue (#3b82f6)
+        doc.circle(15, yPosition - 1, 2.5, 'F');
+        
+        // Add number in circle
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.text((index + 1).toString(), 15, yPosition, { align: "center" });
+        
+        // Add step text
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(11);
+        doc.text(step, 20, yPosition);
+        
+        // Add step description
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(stepDescriptions[index], 20, yPosition + 4);
+        
+        yPosition += 12;
+      });
+      
+      yPosition += 5;
+      
+      // Add warning box
+      doc.setFillColor(255, 251, 235); // Light amber background
+      doc.setDrawColor(251, 191, 36); // Amber border
+      doc.roundedRect(20, yPosition, pageWidth - 40, 18, 3, 3, 'FD');
+      
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(146, 64, 14); // Amber text
+      doc.setFontSize(10);
+      doc.text("⚠️ Important: Only send CPXTB tokens", pageWidth / 2, yPosition + 6, { align: "center" });
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Sending any other cryptocurrency may result in permanent loss of funds.", 
+        pageWidth / 2, yPosition + 12, { align: "center" });
       
       // Save the PDF
       doc.save(`${businessName.replace(/\s+/g, '_')}_Payment_Guide.pdf`);

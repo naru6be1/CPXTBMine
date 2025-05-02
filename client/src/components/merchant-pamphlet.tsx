@@ -281,14 +281,19 @@ export function MerchantPamphlet({
         putOnlyUsedFonts: true
       });
       
+      // Add an initial fully white page background to eliminate any black areas
+      // This covers the entire page plus extra margins
+      doc.setFillColor(255, 255, 255); // Pure white
+      doc.rect(-20, -20, 250, 350, 'F'); // Significantly oversized to prevent any black edges
+      
       // A4 dimensions are 210 x 297 mm
       const pageWidth = 210;
       const pageHeight = 297;
       
-      // First create a white background for entire page to avoid any black areas
-      // Apply white background to entire page with extra padding to ensure no black edges
+      // Since we already added a full-page white background above, we don't need this
+      // But we'll add another white background layer for extra certainty
       doc.setFillColor(255, 255, 255); // Pure white
-      doc.rect(-10, -10, pageWidth + 20, pageHeight + 20, 'F'); // Extended beyond page boundaries
+      doc.rect(-10, -10, pageWidth + 20, pageHeight + 50, 'F'); // Extended even further for mobile devices
       
       // Define margins
       const margins = {
@@ -298,7 +303,12 @@ export function MerchantPamphlet({
         right: 10
       };
       
-      // Add blue header with proper height
+      // Add blue header with proper height and extended white background
+      // First create extra white area at the top to prevent any black edges
+      doc.setFillColor(255, 255, 255);
+      doc.rect(-10, -10, pageWidth + 20, margins.top + 15, 'F');
+      
+      // Then add the blue header
       const headerHeight = 25; // Compact header
       doc.setFillColor(59, 130, 246); // Primary blue color
       doc.rect(0, margins.top, pageWidth, headerHeight, 'F');
@@ -523,9 +533,9 @@ export function MerchantPamphlet({
         yPosition = minFooterPosition;
       }
       
-      // Add white background footer to avoid any black areas
+      // Add extremely large white background at the bottom to prevent any black areas
       doc.setFillColor(255, 255, 255); // Pure white background
-      doc.rect(0, yPosition - 15, pageWidth, 40, 'F');
+      doc.rect(-20, yPosition - 15, pageWidth + 40, 100, 'F'); // Much larger coverage for mobile devices
       
       // Add more visible footer box on top of white background
       doc.setFillColor(240, 249, 255); // Light blue background

@@ -506,10 +506,10 @@ export function MerchantPamphlet({
 
       {/* Special print-only version that's completely separate from the regular display */}
       <div className="hidden">
-        <div className="print-only-pamphlet" style={{ display: 'none', marginTop: '-60px' }}>
-          {/* QR code at the very top - no title above it */}
-          <div style={{ textAlign: 'center', marginTop: '-10px', paddingTop: '0' }}>
-            <div style={{ display: 'inline-block', border: '4px solid #3b82f6', borderRadius: '8px', padding: '4px', backgroundColor: 'white', width: '170px', height: '170px', marginTop: '-10px' }}>
+        <div className="print-only-pamphlet" style={{ display: 'none', marginTop: '-120px' }}>
+          {/* QR code at the very top - no title above it - moved even higher */}
+          <div style={{ textAlign: 'center', marginTop: '-50px', paddingTop: '0' }}>
+            <div style={{ display: 'inline-block', border: '4px solid #3b82f6', borderRadius: '8px', padding: '4px', backgroundColor: 'white', width: '170px', height: '170px', marginTop: '-20px' }}>
               {prerenderedQrCode && (
                 <img 
                   src={prerenderedQrCode} 
@@ -569,6 +569,12 @@ export function MerchantPamphlet({
 
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
+          @page {
+            margin-top: 0;
+            margin-bottom: 0;
+            size: portrait;
+          }
+          
           body * {
             display: none !important;
           }
@@ -578,10 +584,11 @@ export function MerchantPamphlet({
             display: block !important;
             visibility: visible !important;
             position: absolute;
-            top: -30px !important; /* Move everything up 30px from the top edge */
+            top: -80px !important; /* Move everything up 80px from the top edge */
             left: 0;
             width: 100%;
-            padding: 0 20px !important; /* Remove top padding */
+            padding: 0 !important; /* Remove all padding */
+            margin: 0 !important; /* Remove all margins */
           }
           
           .print-only-pamphlet * {

@@ -521,19 +521,47 @@ export function MerchantPamphlet({
             padding: 20px;
           }
           
-          /* Restructure the layout for print */
+          /* Completely reorder elements for print */
           .merchant-pamphlet-container > div:first-child {
-            margin-bottom: 10px !important;
+            margin-bottom: 0 !important;
+            text-align: center !important;
           }
           
+          /* Make the title and subtitle more compact */
+          .merchant-pamphlet-container > div:first-child h1 {
+            font-size: 24px !important;
+            margin-bottom: 0 !important;
+            margin-top: 0 !important;
+          }
+          
+          .merchant-pamphlet-container > div:first-child p {
+            font-size: 14px !important;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+          }
+          
+          /* Move QR section higher by changing the grid layout */
           .grid {
             display: block !important;
+          }
+          
+          /* Move QR code way up by changing display order */
+          .text-center {
+            position: absolute !important;
+            top: 50px !important;
+            left: 0 !important;
+            right: 0 !important;
+            text-align: center !important;
+            border-bottom: none !important;
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
           }
           
           .qr-code-wrapper {
             margin-left: auto !important;
             margin-right: auto !important;
             margin-top: 0 !important;
+            margin-bottom: 4px !important;
             border-width: 4px !important;
             display: flex !important;
             align-items: center !important;
@@ -552,8 +580,10 @@ export function MerchantPamphlet({
           /* Make the wallet address display properly */
           .text-center > p.text-sm.text-gray-500.mb-2 {
             margin-top: 5px !important;
+            margin-bottom: 3px !important;
             display: block !important;
             color: #1f2937 !important;
+            font-weight: bold !important;
           }
           
           .text-center > div.bg-gray-100 {
@@ -561,14 +591,17 @@ export function MerchantPamphlet({
             color: #1f2937 !important;
             background-color: #f3f4f6 !important;
             border: 1px solid #d1d5db !important;
-            margin-bottom: 10px !important;
+            margin-bottom: 5px !important;
+            font-size: 10px !important;
+            width: 220px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
           }
           
-          /* Adjust spacing for better layout */
-          .text-center {
-            margin-top: 0 !important;
-            padding-bottom: 10px !important;
-            text-align: center !important;
+          /* Move the instructions section below QR */
+          .grid > div:nth-child(2) {
+            margin-top: 265px !important; /* Space for QR + wallet address */
+            padding-top: 0 !important;
           }
           
           .print\\:hidden {
@@ -591,14 +624,66 @@ export function MerchantPamphlet({
             border: 1px solid #d1d5db !important;
           }
           
-          /* Make instructions clearer */
+          /* Make instructions clearer and more compact */
           .text-xl.font-bold.mb-4 {
-            margin-top: 15px !important;
-            margin-bottom: 10px !important;
+            margin-top: 0 !important;
+            margin-bottom: 8px !important;
+            font-size: 18px !important;
+          }
+          
+          ol.space-y-4 {
+            margin-top: 0 !important;
+            padding-left: 20px !important;
           }
           
           ol.space-y-4 li {
+            margin-bottom: 3px !important;
+          }
+          
+          ol.space-y-4 li > div p {
+            margin: 0 !important;
+            line-height: 1.2 !important;
+          }
+          
+          ol.space-y-4 li > div p.text-sm {
+            font-size: 10px !important;
+          }
+          
+          /* Reduce spacing of the warning box */
+          .mt-6.bg-amber-50 {
+            margin-top: 10px !important;
+            padding: 6px !important;
+          }
+          
+          .mt-6.bg-amber-50 p {
+            margin: 0 !important;
+            line-height: 1.2 !important;
+          }
+          
+          /* Footer section */
+          .mt-8.pt-6 {
+            margin-top: 10px !important;
+            padding-top: 10px !important;
+          }
+          
+          .mt-8.pt-6 h3 {
             margin-bottom: 5px !important;
+            font-size: 16px !important;
+          }
+          
+          .mt-8.pt-6 p {
+            margin: 0 !important;
+            line-height: 1.2 !important;
+            font-size: 12px !important;
+          }
+          
+          .mt-4.text-sm {
+            margin-top: 5px !important;
+          }
+          
+          .mt-6.text-center {
+            margin-top: 8px !important;
+            position: static !important;
           }
         }
       `}} />

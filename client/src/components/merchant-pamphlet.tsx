@@ -229,6 +229,19 @@ export function MerchantPamphlet({
       // Clone the element to avoid modifying the original
       const printContent = content.cloneNode(true) as HTMLElement;
       
+      // Remove the Download PDF button and its container from the PDF
+      const downloadButton = printContent.querySelector('button.print\\:hidden');
+      if (downloadButton) {
+        // First, try to remove the entire header section containing the button
+        let headerSection = downloadButton.closest('.flex.items-center.justify-between');
+        if (headerSection) {
+          headerSection.parentNode?.removeChild(headerSection);
+        } else {
+          // If we can't find the header, at least remove the button itself
+          downloadButton.parentNode?.removeChild(downloadButton);
+        }
+      }
+      
       // Replace all QR code elements with simple image elements for better PDF rendering
       if (qrCodeImage) {
         const qrWrapper = printContent.querySelector('.qr-code-wrapper');

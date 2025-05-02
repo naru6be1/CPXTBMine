@@ -506,12 +506,10 @@ export function MerchantPamphlet({
 
       {/* Special print-only version that's completely separate from the regular display */}
       <div className="hidden">
-        <div className="print-only-pamphlet" style={{ display: 'none' }}>
-          <h1 style={{ fontSize: '20px', textAlign: 'center', marginBottom: '8px' }}>{businessName}</h1>
-          
-          {/* QR code at the very top */}
-          <div style={{ textAlign: 'center', marginTop: '0px' }}>
-            <div style={{ display: 'inline-block', border: '4px solid #3b82f6', borderRadius: '8px', padding: '4px', backgroundColor: 'white', width: '170px', height: '170px' }}>
+        <div className="print-only-pamphlet" style={{ display: 'none', marginTop: '-60px' }}>
+          {/* QR code at the very top - no title above it */}
+          <div style={{ textAlign: 'center', marginTop: '-10px', paddingTop: '0' }}>
+            <div style={{ display: 'inline-block', border: '4px solid #3b82f6', borderRadius: '8px', padding: '4px', backgroundColor: 'white', width: '170px', height: '170px', marginTop: '-10px' }}>
               {prerenderedQrCode && (
                 <img 
                   src={prerenderedQrCode} 
@@ -580,15 +578,30 @@ export function MerchantPamphlet({
             display: block !important;
             visibility: visible !important;
             position: absolute;
-            top: 0;
+            top: -30px !important; /* Move everything up 30px from the top edge */
             left: 0;
             width: 100%;
-            padding: 20px;
+            padding: 0 20px !important; /* Remove top padding */
           }
           
           .print-only-pamphlet * {
             visibility: visible !important;
             display: block !important;
+          }
+          
+          /* Add business name after QR code to maintain context */
+          .print-only-pamphlet:after {
+            content: "${businessName}";
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            color: #1f2937 !important;
+            margin-top: -5px !important;
+            display: block !important;
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            left: 0;
           }
         }
       `}} />

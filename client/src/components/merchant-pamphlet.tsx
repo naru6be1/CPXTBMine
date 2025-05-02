@@ -283,23 +283,23 @@ export function MerchantPamphlet({
       const pageWidth = 215.9;
       const pageHeight = 279.4;
       
-      // Add gradient header background
-      const headerHeight = 40;
+      // Add gradient header background - reduced height
+      const headerHeight = 30; // Reduced from 40 to 30
       doc.setFillColor(59, 130, 246); // Primary blue at top
       doc.rect(0, 0, pageWidth, headerHeight, 'F');
       
-      // Set up initial position
-      let yPosition = 15; // Start text in header
+      // Set up initial position - adjusted for smaller header
+      let yPosition = 12; // Reduced from 15 to 12
       
       // Add title text in white on blue background
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
+      doc.setFontSize(18); // Reduced from 22 to 18
       doc.setTextColor(255, 255, 255);
       doc.text("Payment Instructions", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 12;
+      yPosition += 10; // Reduced from 12 to 10
       
       // Add Business Name as subtitle in header
-      doc.setFontSize(16);
+      doc.setFontSize(14); // Reduced from 16 to 14
       doc.setTextColor(240, 240, 240);
       doc.text(businessName, pageWidth / 2, yPosition, { align: "center" });
       

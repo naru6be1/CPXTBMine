@@ -1292,7 +1292,7 @@ export default function MerchantDashboard() {
         console.log("Cleared payment QR polling interval");
       };
     }
-  }, [activeTab, currentPayment?.payment?.reference, selectedMerchant, fetchPaymentHistory]);
+  }, [activeTab, currentPayment?.payment, selectedMerchant, fetchPaymentHistory]);
 
   // The ProtectedRoute component will now handle the authentication check
   // We don't need the manual redirect anymore since the component will only render
@@ -1368,7 +1368,9 @@ export default function MerchantDashboard() {
     // For partial payments, we need to update the UI but NOT show completion notification
     if (isPartialPayment && currentPayment && 
         currentPayment.payment && 
-        currentPayment.payment.reference === payment.paymentReference) {
+        (currentPayment.payment.reference === payment.paymentReference || 
+         currentPayment.payment.reference === payment.reference || 
+         currentPayment.payment.paymentReference === payment.paymentReference)) {
       
       console.log('💲 Updating current payment with partial payment data in merchant dashboard', {
         receivedAmount,
@@ -1425,7 +1427,9 @@ export default function MerchantDashboard() {
       // Update current payment status if this is the active payment
       if (currentPayment && 
           currentPayment.payment && 
-          currentPayment.payment.reference === payment.paymentReference) {
+          (currentPayment.payment.reference === payment.paymentReference || 
+           currentPayment.payment.reference === payment.reference || 
+           currentPayment.payment.paymentReference === payment.paymentReference)) {
         
         console.log('💰 Updating current payment status to completed in merchant dashboard');
         

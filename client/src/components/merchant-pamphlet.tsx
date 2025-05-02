@@ -506,17 +506,17 @@ export function MerchantPamphlet({
 
       {/* Special print-only version that's completely separate from the regular display */}
       <div className="hidden">
-        <div className="print-only-pamphlet" style={{ display: 'none', marginTop: '-120px' }}>
-          {/* QR code at the very top - no title above it - moved even higher */}
-          <div style={{ textAlign: 'center', marginTop: '-50px', paddingTop: '0' }}>
-            <div style={{ display: 'inline-block', border: '4px solid #3b82f6', borderRadius: '8px', padding: '4px', backgroundColor: 'white', width: '170px', height: '170px', marginTop: '-20px' }}>
+        <div className="print-only-pamphlet" style={{ display: 'none' }}>
+          {/* QR code section - moved to absolute positioning to avoid page flow issues */}
+          <div style={{ position: 'absolute', top: '-20mm', left: '0', right: '0', textAlign: 'center', zIndex: 1000, margin: '0', padding: '0' }}>
+            <div style={{ display: 'inline-block', border: '4px solid #3b82f6', borderRadius: '8px', padding: '4px', backgroundColor: 'white', width: '140px', height: '140px', margin: '0 auto' }}>
               {prerenderedQrCode && (
                 <img 
                   src={prerenderedQrCode} 
                   alt="QR code for wallet"
-                  width={160}
-                  height={160}
-                  style={{ display: 'block' }}
+                  width={132}
+                  height={132}
+                  style={{ display: 'block', margin: '0 auto' }}
                 />
               )}
             </div>
@@ -570,8 +570,8 @@ export function MerchantPamphlet({
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            margin-top: 0;
-            margin-bottom: 0;
+            margin: 0 !important;
+            padding: 0 !important;
             size: portrait;
           }
           
@@ -584,7 +584,7 @@ export function MerchantPamphlet({
             display: block !important;
             visibility: visible !important;
             position: absolute;
-            top: -80px !important; /* Move everything up 80px from the top edge */
+            top: 0 !important; /* Place at the very top */
             left: 0;
             width: 100%;
             padding: 0 !important; /* Remove all padding */

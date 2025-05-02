@@ -726,8 +726,8 @@ export function MerchantPamphlet({
         </p>
         
         <div className="mt-4 text-sm text-gray-500">
-          <p>CPXTB Token Contract Address:</p>
-          <code className="bg-gray-100 p-1 rounded text-xs font-mono text-gray-800 border border-gray-300">{CPXTB_TOKEN_ADDRESS}</code>
+          <p className="inline-block mr-2">CPXTB Token Contract Address:</p>
+          <code className="inline-block bg-gray-100 p-1 rounded text-xs font-mono text-gray-800 border border-gray-300">{CPXTB_TOKEN_ADDRESS}</code>
         </div>
         
         <div className="mt-6 text-center text-gray-500 text-sm">

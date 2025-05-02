@@ -283,22 +283,33 @@ export function MerchantPamphlet({
       const pageWidth = 210;
       const pageHeight = 297;
       
+      // Add gradient header background
+      const headerHeight = 40;
+      doc.setFillColor(59, 130, 246); // Primary blue at top
+      doc.rect(0, 0, pageWidth, headerHeight, 'F');
+      
       // Set up initial position
-      let yPosition = 10; // Start at top with 10mm margin
+      let yPosition = 15; // Start text in header
       
-      // Add business name as header
+      // Add title text in white on blue background
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(22);
+      doc.setTextColor(255, 255, 255);
       doc.text("Payment Instructions", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 15;
+      yPosition += 12;
       
-      // Add Business Name
+      // Add Business Name as subtitle in header
       doc.setFontSize(16);
+      doc.setTextColor(240, 240, 240);
       doc.text(businessName, pageWidth / 2, yPosition, { align: "center" });
+      
+      // Move position to start content after header
+      yPosition = headerHeight + 10;
+      
+      // Add tagline
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-      yPosition += 8;
+      doc.setFontSize(13);
+      doc.setTextColor(59, 130, 246); // Blue text
       doc.text("We Accept CPXTB Token Payments", pageWidth / 2, yPosition, { align: "center" });
       yPosition += 15;
       
@@ -352,14 +363,18 @@ export function MerchantPamphlet({
         yPosition += addressBoxHeight + 10;
       }
       
-      // Add "How to Pay with CPXTB" section
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.setTextColor(0, 0, 0);
-      doc.text("How to Pay with CPXTB", 20, yPosition);
-      yPosition += 10;
+      // Add section header bar for instructions
+      doc.setFillColor(240, 249, 255); // Light blue background
+      doc.rect(0, yPosition - 7, pageWidth, 14, 'F');
       
-      // Add numbered steps with blue dots
+      // Add "How to Pay with CPXTB" section header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(59, 130, 246); // Blue text
+      doc.text("How to Pay with CPXTB", pageWidth / 2, yPosition, { align: "center" });
+      yPosition += 15;
+      
+      // Add numbered steps with blue dots and connecting line
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       
@@ -381,50 +396,135 @@ export function MerchantPamphlet({
         "Transaction confirmation usually takes 10-30 seconds"
       ];
       
+      // Draw a vertical line connecting all steps
+      const lineStartY = yPosition;
+      const circleX = 15;
+      
+      // Calculate total steps height
+      const stepsHeight = steps.length * 14;
+      
+      // Draw line first (in the background)
+      doc.setDrawColor(220, 230, 250); // Light blue line
+      doc.setLineWidth(1.5);
+      doc.line(circleX, lineStartY - 2, circleX, lineStartY + stepsHeight - 10);
+      
+      // Draw boxes for steps
       steps.forEach((step, index) => {
-        // Draw blue circle with number
+        // Draw larger circle with drop shadow effect
+        doc.setFillColor(245, 247, 250); // Light gray background for shadow
+        doc.circle(circleX + 0.5, yPosition - 0.5, 3.5, 'F');
+        
+        // Draw actual circle
         doc.setFillColor(59, 130, 246); // Blue (#3b82f6)
-        doc.circle(15, yPosition - 1, 2.5, 'F');
+        doc.circle(circleX, yPosition - 1, 3.5, 'F');
         
         // Add number in circle
         doc.setFont("helvetica", "bold");
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(8);
-        doc.text((index + 1).toString(), 15, yPosition, { align: "center" });
+        doc.setFontSize(10);
+        doc.text((index + 1).toString(), circleX, yPosition, { align: "center" });
+        
+        // Add rounded rectangle for step text
+        doc.setFillColor(248, 250, 252); // Very light blue/gray
+        doc.setDrawColor(230, 236, 245); // Light blue border
+        doc.roundedRect(circleX + 7, yPosition - 6, 170, 12, 1, 1, 'FD');
         
         // Add step text
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(0, 0, 0);
+        doc.setTextColor(59, 130, 246); // Blue text
         doc.setFontSize(11);
-        doc.text(step, 20, yPosition);
+        doc.text(step, circleX + 11, yPosition);
         
         // Add step description
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
-        doc.text(stepDescriptions[index], 20, yPosition + 4);
+        doc.setTextColor(100, 116, 139); // Slate gray text
+        doc.text(stepDescriptions[index], circleX + 11, yPosition + 8);
         
-        yPosition += 12;
+        // Move to next step position
+        yPosition += 14;
       });
       
-      yPosition += 5;
+      yPosition += 8;
       
-      // Add warning box
+      // Add warning box with attention-grabbing design
+      // First create a light orange gradient background
       doc.setFillColor(255, 251, 235); // Light amber background
       doc.setDrawColor(251, 191, 36); // Amber border
-      doc.roundedRect(20, yPosition, pageWidth - 40, 18, 3, 3, 'FD');
+      doc.setLineWidth(1.5);
+      doc.roundedRect(20, yPosition, pageWidth - 40, 24, 4, 4, 'FD');
       
+      // Add warning icon
+      const warningIconSize = 8;
+      const iconX = 30;
+      const iconY = yPosition + 12;
+      
+      // Draw warning triangle
+      doc.setFillColor(251, 146, 60); // Orange fill
+      doc.setDrawColor(249, 115, 22); // Darker orange border
+      
+      // Triangle points
+      const trianglePoints = [
+        { x: iconX, y: iconY + warningIconSize/2 },
+        { x: iconX - warningIconSize/2, y: iconY - warningIconSize/2 },
+        { x: iconX + warningIconSize/2, y: iconY - warningIconSize/2 }
+      ];
+      
+      // Draw filled triangle
+      doc.triangle(
+        trianglePoints[0].x, trianglePoints[0].y,
+        trianglePoints[1].x, trianglePoints[1].y,
+        trianglePoints[2].x, trianglePoints[2].y,
+        'F'
+      );
+      
+      // Add exclamation mark
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(146, 64, 14); // Amber text
-      doc.setFontSize(10);
-      doc.text("⚠️ Important: Only send CPXTB tokens", pageWidth / 2, yPosition + 6, { align: "center" });
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text("!", iconX, iconY - 1, { align: "center" });
+      
+      // Add warning text with heading and body
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(194, 65, 12); // Deep orange text
+      doc.setFontSize(12);
+      doc.text("IMPORTANT: ONLY SEND CPXTB TOKENS", 45, yPosition + 8);
       
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
+      doc.setFontSize(10);
+      doc.setTextColor(146, 64, 14); // Amber text
       doc.text("Sending any other cryptocurrency may result in permanent loss of funds.", 
-        pageWidth / 2, yPosition + 12, { align: "center" });
+        45, yPosition + 16);
+        
+      // Add a small repeating pattern on the right side for visual interest
+      for (let i = 0; i < 3; i++) {
+        doc.setFillColor(253, 186, 116); // Light orange
+        doc.circle(pageWidth - 30, yPosition + 6 + (i * 6), 1, 'F');
+      }
       
-      // Save the PDF
+      // Add footer with branding
+      yPosition = pageHeight - 15;
+      
+      // Add subtle footer line
+      doc.setDrawColor(230, 230, 230);
+      doc.setLineWidth(0.5);
+      doc.line(20, yPosition - 5, pageWidth - 20, yPosition - 5);
+      
+      // Add footer text
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Generated by CPXTB Platform | ${new Date().toLocaleDateString()}`, pageWidth / 2, yPosition, { align: "center" });
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${businessName}`, pageWidth / 2, yPosition + 4, { align: "center" });
+      
+      // Add stylized version
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7);
+      doc.setTextColor(180, 180, 180);
+      doc.text("v2.0", pageWidth - 20, yPosition, { align: "right" });
+      
+      // Save the PDF with formatted filename
       doc.save(`${businessName.replace(/\s+/g, '_')}_Payment_Guide.pdf`);
       
       // Remove loading indicator

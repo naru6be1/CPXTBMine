@@ -321,11 +321,14 @@ export function MerchantAgreement() {
       
       // Add signature boxes
       y += 15;
+
+      // Create clearer signature boxes with more space between them
+      // Instead of side by side boxes, we'll place them one after another
       
       // Platform Provider signature box
       const bgColor = convertHexToRGB('#f0f5fb');
       doc.setFillColor(bgColor.r, bgColor.g, bgColor.b); // Light blue background
-      doc.roundedRect(margin, y, contentWidth/2 - 5, 80, 2, 2, 'F');
+      doc.roundedRect(margin, y, contentWidth, 60, 2, 2, 'F');
       
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(accentColorR, accentColorG, accentColorB);
@@ -336,24 +339,25 @@ export function MerchantAgreement() {
       // Signature lines - Platform Provider
       doc.text(`${PLATFORM_NAME} (Coin Prediction Tool On Base LLC)`, margin + 5, y + 25);
       doc.text('By: _______________________________', margin + 5, y + 40);
-      doc.text('Name: ____________________________', margin + 5, y + 55);
-      doc.text('Title: _____________________________', margin + 5, y + 70);
+      doc.text('Name: ____________________________', margin + contentWidth/2, y + 40);
       
-      // Merchant signature box
+      // Merchant signature box - placed below the Platform Provider box
+      y += 70; // Leave space between boxes
+      
       doc.setFillColor(bgColor.r, bgColor.g, bgColor.b); // Light blue background
-      doc.roundedRect(margin + contentWidth/2 + 5, y, contentWidth/2 - 5, 80, 2, 2, 'F');
+      doc.roundedRect(margin, y, contentWidth, 60, 2, 2, 'F');
       
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(accentColorR, accentColorG, accentColorB);
-      doc.text('MERCHANT:', margin + contentWidth/2 + 10, y + 10);
+      doc.text('MERCHANT:', margin + 5, y + 10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
       
       // Signature lines - Merchant
-      doc.text(`${merchantFields[0].value}`, margin + contentWidth/2 + 10, y + 25);
-      doc.text('By: _______________________________', margin + contentWidth/2 + 10, y + 40);
-      doc.text(`Name: ${merchantFields[2].value}`, margin + contentWidth/2 + 10, y + 55);
-      doc.text(`Date: ${merchantFields[6].value}`, margin + contentWidth/2 + 10, y + 70);
+      doc.text(`${merchantFields[0].value}`, margin + 5, y + 25);
+      doc.text('By: _______________________________', margin + 5, y + 40);
+      doc.text(`Name: ${merchantFields[2].value}`, margin + contentWidth/2, y + 40);
+      doc.text(`Date: ${merchantFields[6].value}`, margin + 5, y + 52);
       
       // Save the PDF
       doc.save('CPXTB_Merchant_Agreement.pdf');

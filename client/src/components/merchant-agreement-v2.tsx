@@ -186,8 +186,17 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
-      // Section 2
-      y += 10;
+      // Section 2 - Start on a new page
+      doc.addPage();
+      y = 40; // Reset y position for the new page
+      
+      // Add page number
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 3`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      
+      // Reset font for section header
+      doc.setFontSize(10);
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
@@ -264,10 +273,10 @@ export function MerchantAgreement() {
       doc.addPage();
       y = 20;
       
-      // Add page number to second page footer
+      // Add page number to third page footer
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - 10, { align: 'center' });
       
       // Section 6
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
@@ -315,7 +324,7 @@ export function MerchantAgreement() {
         // Add page number to signature page
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - 10, { align: 'center' });
       }
       
       // Signature section header

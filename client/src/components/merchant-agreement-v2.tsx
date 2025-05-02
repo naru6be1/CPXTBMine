@@ -306,58 +306,97 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
-      // Signature section
-      y += 25;
+      // Make sure we have a fresh page specifically for signatures
+      // Calculate if we need to add a page (if there's not enough space)
+      if (y > pageHeight - 150) {
+        doc.addPage();
+        y = 40; // Reset y position on the new page
+        
+        // Add page number to signature page
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      }
+      
+      // Signature section header
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255); // White text for section header
-      y = addWrappedText('SIGNATURES', margin + 2, y + 5, contentWidth, 6);
-      y += 10;
-      doc.setTextColor(0, 0, 0); // Reset to black for regular text
-      doc.setFont('helvetica', 'normal');
-      
-      y = addWrappedText('IN WITNESS WHEREOF, the parties hereto have executed this Agreement as of the Effective Date.', margin, y, contentWidth, 6);
-      
-      // Add signature boxes
+      doc.text('SIGNATURES', margin + 2, y + 5);
       y += 15;
-
-      // Create clearer signature boxes with more space between them
-      // Instead of side by side boxes, we'll place them one after another
       
-      // Platform Provider signature box
-      const bgColor = convertHexToRGB('#f0f5fb');
-      doc.setFillColor(bgColor.r, bgColor.g, bgColor.b); // Light blue background
-      doc.roundedRect(margin, y, contentWidth, 60, 2, 2, 'F');
+      // Witness text
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
+      doc.text('IN WITNESS WHEREOF, the parties hereto have executed this Agreement as of the Effective Date.', margin, y);
+      y += 20;
+      
+      // Create simple signature lines instead of boxes
+      // This approach is more reliable for PDF rendering
+      
+      // Platform Provider signature
+      doc.setLineWidth(0.2);
+      doc.setDrawColor(100, 100, 100);
+      
+      // First column - Platform Provider
+      doc.setFont('helvetica', 'bold');
+      doc.text('PLATFORM PROVIDER:', margin, y);
+      y += 10;
+      
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${PLATFORM_NAME}`, margin, y);
+      y += 20;
+      
+      // Signature line
+      doc.line(margin, y, margin + 70, y);
+      doc.text('Signature', margin, y + 5);
+      y += 15;
+      
+      // Name line
+      doc.line(margin, y, margin + 70, y);
+      doc.text('Name (Print)', margin, y + 5);
+      y += 15;
+      
+      // Title line
+      doc.line(margin, y, margin + 70, y);
+      doc.text('Title', margin, y + 5);
+      y += 15;
+      
+      // Date line
+      doc.line(margin, y, margin + 70, y);
+      doc.text('Date', margin, y + 5);
+      
+      // Reset y position for merchant column
+      y -= 45;
+      
+      // Second column - Merchant 
+      const col2X = margin + contentWidth / 2 + 10;
       
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(accentColorR, accentColorG, accentColorB);
-      doc.text('PLATFORM PROVIDER:', margin + 5, y + 10);
+      doc.text('MERCHANT:', col2X, y - 30);
+      
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0, 0, 0);
+      doc.text(`${merchantFields[0].value}`, col2X, y - 20);
       
-      // Signature lines - Platform Provider
-      doc.text(`${PLATFORM_NAME} (Coin Prediction Tool On Base LLC)`, margin + 5, y + 25);
-      doc.text('By: _______________________________', margin + 5, y + 40);
-      doc.text('Name: ____________________________', margin + contentWidth/2, y + 40);
+      // Signature line
+      doc.line(col2X, y, col2X + 70, y);
+      doc.text('Signature', col2X, y + 5);
+      y += 15;
       
-      // Merchant signature box - placed below the Platform Provider box
-      y += 70; // Leave space between boxes
+      // Name line
+      doc.line(col2X, y, col2X + 70, y);
+      doc.text(`Name: ${merchantFields[2].value}`, col2X, y + 5);
+      y += 15;
       
-      doc.setFillColor(bgColor.r, bgColor.g, bgColor.b); // Light blue background
-      doc.roundedRect(margin, y, contentWidth, 60, 2, 2, 'F');
+      // Title/Position line
+      doc.line(col2X, y, col2X + 70, y);
+      doc.text('Title/Position', col2X, y + 5);
+      y += 15;
       
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(accentColorR, accentColorG, accentColorB);
-      doc.text('MERCHANT:', margin + 5, y + 10);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0, 0, 0);
-      
-      // Signature lines - Merchant
-      doc.text(`${merchantFields[0].value}`, margin + 5, y + 25);
-      doc.text('By: _______________________________', margin + 5, y + 40);
-      doc.text(`Name: ${merchantFields[2].value}`, margin + contentWidth/2, y + 40);
-      doc.text(`Date: ${merchantFields[6].value}`, margin + 5, y + 52);
+      // Date line
+      doc.line(col2X, y, col2X + 70, y);
+      doc.text(`Date: ${merchantFields[6].value}`, col2X, y + 5);
       
       // Save the PDF
       doc.save('CPXTB_Merchant_Agreement.pdf');

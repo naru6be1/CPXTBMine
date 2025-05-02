@@ -12,8 +12,19 @@ import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
 import { PLATFORM_NAME } from "@shared/constants";
 
-// Document types
-type DocumentType = 'merchant' | 'llc';
+// Helper function to ensure colors render properly in the PDF 
+// by converting hex colors to direct RGB values
+function convertHexToRGB(hex: string): { r: number, g: number, b: number } {
+  // Remove the hash if it exists
+  hex = hex.replace('#', '');
+  
+  // Parse the hex values to RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  return { r, g, b };
+}
 
 // Interface for document fields
 interface DocumentField {
@@ -26,10 +37,9 @@ interface DocumentField {
 
 export function LegalDocuments() {
   const { toast } = useToast();
-  const [documentType, setDocumentType] = useState<DocumentType>('merchant');
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // State for document fields
+  // State for merchant agreement fields
   const [merchantFields, setMerchantFields] = useState<DocumentField[]>([
     { name: 'businessName', value: '', placeholder: 'Business Name', required: true, type: 'text' },
     { name: 'businessAddress', value: '', placeholder: 'Business Address', required: true, type: 'text' },
@@ -40,17 +50,6 @@ export function LegalDocuments() {
     { name: 'agreementDate', value: '', placeholder: 'Agreement Date', required: true, type: 'date' },
   ]);
   
-  const [llcFields, setLlcFields] = useState<DocumentField[]>([
-    { name: 'llcName', value: '', placeholder: 'LLC Name', required: true, type: 'text' },
-    { name: 'llcAddress', value: '', placeholder: 'LLC Registered Address', required: true, type: 'text' },
-    { name: 'ownerName', value: '', placeholder: 'LLC Owner Full Name', required: true, type: 'text' },
-    { name: 'ownerTitle', value: '', placeholder: 'Owner Title (e.g., Managing Member)', required: true, type: 'text' },
-    { name: 'ownerEmail', value: '', placeholder: 'Owner Email', required: true, type: 'email' },
-    { name: 'taxId', value: '', placeholder: 'Tax ID / EIN', required: true, type: 'text' },
-    { name: 'stateOfFormation', value: '', placeholder: 'State of Formation', required: true, type: 'text' },
-    { name: 'agreementDate', value: '', placeholder: 'Agreement Date', required: true, type: 'date' },
-  ]);
-  
   // Update field values for merchant agreement
   const updateMerchantField = (index: number, value: string) => {
     const updatedFields = [...merchantFields];
@@ -58,20 +57,9 @@ export function LegalDocuments() {
     setMerchantFields(updatedFields);
   };
   
-  // Update field values for LLC agreement
-  const updateLlcField = (index: number, value: string) => {
-    const updatedFields = [...llcFields];
-    updatedFields[index].value = value;
-    setLlcFields(updatedFields);
-  };
-  
-  // Current fields based on document type
-  const currentFields = documentType === 'merchant' ? merchantFields : llcFields;
-  const updateField = documentType === 'merchant' ? updateMerchantField : updateLlcField;
-  
   // Check if all required fields are filled
   const isFormValid = () => {
-    return currentFields.every(field => !field.required || field.value.trim() !== '');
+    return merchantFields.every(field => !field.required || field.value.trim() !== '');
   };
   
   // Generate merchant agreement PDF
@@ -110,13 +98,16 @@ export function LegalDocuments() {
       });
       
       // Set professional colors using RGB values for jsPDF compatibility
-      const primaryColorR = 26;   // RGB for #1a457a
-      const primaryColorG = 69;
-      const primaryColorB = 122;
+      // Using direct hex to RGB conversion to ensure proper color rendering
+      const primaryColor = convertHexToRGB('#1a457a');
+      const primaryColorR = primaryColor.r;
+      const primaryColorG = primaryColor.g;
+      const primaryColorB = primaryColor.b;
       
-      const accentColorR = 32;    // RGB for #203864
-      const accentColorG = 56;
-      const accentColorB = 100;
+      const accentColor = convertHexToRGB('#203864');
+      const accentColorR = accentColor.r;
+      const accentColorG = accentColor.g;
+      const accentColorB = accentColor.b;
       
       // Add a subtle header with logo effect
       doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
@@ -411,278 +402,7 @@ export function LegalDocuments() {
     }
   };
   
-  // Generate LLC agreement PDF
-  const generateLlcAgreement = async () => {
-    try {
-      console.log('Initializing jsPDF for LLC agreement...');
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        putOnlyUsedFonts: true,
-        compress: true,
-        floatPrecision: 16 // Higher precision for better color rendering
-      });
-      
-      console.log('Setting up LLC document dimensions...');
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 20;
-      const contentWidth = pageWidth - (margin * 2);
-      // Set PDF output intent for better color display
-      doc.setOutputIntentColorProfile();
-      
-      // Navy blue color for headers - individual r,g,b values
-      const accentColorR = 41; 
-      const accentColorG = 65;
-      const accentColorB = 148;
-      
-      // Helper function to add wrapped text
-      const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
-        console.log(`Adding LLC text at position (${x}, ${y}): ${text.substring(0, 30)}...`);
-        const lines = doc.splitTextToSize(text, maxWidth);
-        doc.text(lines, x, y);
-        return y + (lines.length * lineHeight);
-      };
-    
-    // Title
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    const title = 'LLC OPERATING AGREEMENT FOR CRYPTOCURRENCY BUSINESS';
-    doc.text(title, pageWidth / 2, 20, { align: 'center' });
-    
-    // Introduction
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    let y = 30;
-    
-    // Agreement intro
-    y = addWrappedText(
-      `THIS LIMITED LIABILITY COMPANY OPERATING AGREEMENT (the "Agreement") is made and entered into as of ${llcFields[7].value} (the "Effective Date") by and among the Members of ${llcFields[0].value}, a limited liability company organized under the laws of the State of ${llcFields[6].value} (the "Company").`,
-      margin, y, contentWidth, 6
-    );
-    
-    // Article I
-    y += 15;
-    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
-    doc.rect(margin, y, contentWidth, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255); // White text for section headers
-    y = addWrappedText('ARTICLE I - COMPANY FORMATION', margin + 2, y + 5, contentWidth, 6);
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0); // Reset to black for regular text
-    
-    y = addWrappedText(
-      '1.1 FORMATION. The Members have formed a Limited Liability Company named ' + 
-      llcFields[0].value + ' by filing the Articles of Organization with the Secretary of State in the State of ' + 
-      llcFields[6].value + '. The operation of the Company shall be governed by the terms of this Agreement and the applicable laws of the State of ' + 
-      llcFields[6].value + '.',
-      margin, y, contentWidth, 6
-    );
-    
-    y += 15;
-    y = addWrappedText(
-      '1.2 PURPOSE. The primary purpose of the Company is to engage in the business of cryptocurrency trading, mining, and payment processing, specifically utilizing the CPXTB token on the Base blockchain network.',
-      margin, y, contentWidth, 6
-    );
-    
-    y += 15;
-    y = addWrappedText(
-      '1.3 PRINCIPAL PLACE OF BUSINESS. The Company\'s principal place of business shall be at ' + 
-      llcFields[1].value + ', or such other place as the Members may from time to time designate.',
-      margin, y, contentWidth, 6
-    );
-    
-    // Article II
-    y += 15;
-    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
-    doc.rect(margin, y, contentWidth, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255); // White text for section headers
-    y = addWrappedText('ARTICLE II - MEMBERSHIP', margin + 2, y + 5, contentWidth, 6);
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0); // Reset to black for regular text
-    
-    y = addWrappedText(
-      '2.1 INITIAL MEMBERS. The initial Member(s) of the Company is/are:',
-      margin, y, contentWidth, 6
-    );
-    
-    y += 8;
-    y = addWrappedText(
-      'Name: ' + llcFields[2].value,
-      margin + 10, y, contentWidth, 6
-    );
-    
-    y += 6;
-    y = addWrappedText(
-      'Title: ' + llcFields[3].value,
-      margin + 10, y, contentWidth, 6
-    );
-    
-    // Article III - Cryptocurrency Operations
-    y += 15;
-    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
-    doc.rect(margin, y, contentWidth, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255); // White text for section headers
-    y = addWrappedText('ARTICLE III - CRYPTOCURRENCY OPERATIONS', margin + 2, y + 5, contentWidth, 6);
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0); // Reset to black for regular text
-    
-    y = addWrappedText(
-      '3.1 CRYPTOCURRENCY ASSETS. The Company shall maintain cryptocurrency assets, including CPXTB tokens, for operational purposes. The Company acknowledges the volatility and risks associated with cryptocurrency investments.',
-      margin, y, contentWidth, 6
-    );
-    
-    y += 15;
-    y = addWrappedText(
-      '3.2 WALLETS AND SECURITY. The Company shall implement industry-standard security measures to protect its cryptocurrency holdings, including but not limited to multi-signature wallets, cold storage solutions, and regular security audits.',
-      margin, y, contentWidth, 6
-    );
-    
-    // Add a new page for more content
-    doc.addPage();
-    y = 20;
-    
-    y = addWrappedText(
-      '3.3 COMPLIANCE. The Company shall comply with all applicable laws and regulations regarding cryptocurrency operations, including anti-money laundering (AML) and know-your-customer (KYC) requirements, tax reporting obligations, and any registration or licensing requirements applicable to cryptocurrency businesses.',
-      margin, y, contentWidth, 6
-    );
-    
-    // Article IV - Taxation
-    y += 15;
-    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
-    doc.rect(margin, y, contentWidth, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255); // White text for section headers
-    y = addWrappedText('ARTICLE IV - TAXATION', margin + 2, y + 5, contentWidth, 6);
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0); // Reset to black for regular text
-    
-    y = addWrappedText(
-      '4.1 TAX CLASSIFICATION. The Company shall be taxed as specified in the Articles of Organization. The Company\'s Tax Identification Number (EIN) is: ' + llcFields[5].value,
-      margin, y, contentWidth, 6
-    );
-    
-    y += 15;
-    y = addWrappedText(
-      '4.2 CRYPTOCURRENCY TAXATION. The Company acknowledges that cryptocurrency transactions may be subject to capital gains tax and other tax obligations. The Company shall maintain detailed records of all cryptocurrency transactions for tax reporting purposes.',
-      margin, y, contentWidth, 6
-    );
-    
-    // Article V - Dissolution
-    y += 15;
-    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
-    doc.rect(margin, y, contentWidth, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255); // White text for section headers
-    y = addWrappedText('ARTICLE V - DISSOLUTION', margin + 2, y + 5, contentWidth, 6);
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0); // Reset to black for regular text
-    
-    y = addWrappedText(
-      '5.1 DISSOLUTION. The Company shall be dissolved upon the occurrence of any of the following events:\n' +
-      '(a) By unanimous written agreement of all Members;\n' +
-      '(b) The sale or transfer of all or substantially all of the Company\'s assets;\n' +
-      '(c) As required by law or judicial decree.',
-      margin, y, contentWidth, 6
-    );
-    
-    y += 20;
-    y = addWrappedText(
-      '5.2 WINDING UP. Upon dissolution, the Company shall wind up its affairs, liquidate its cryptocurrency assets, and distribute any remaining assets to the Members in accordance with their ownership interests.',
-      margin, y, contentWidth, 6
-    );
-    
-    // Article VI - Miscellaneous
-    y += 15;
-    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
-    doc.rect(margin, y, contentWidth, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255); // White text for section headers
-    y = addWrappedText('ARTICLE VI - MISCELLANEOUS', margin + 2, y + 5, contentWidth, 6);
-    y += 6;
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0); // Reset to black for regular text
-    
-    y = addWrappedText(
-      '6.1 ENTIRE AGREEMENT. This Agreement constitutes the entire understanding and agreement among the Members with respect to the subject matter hereof.',
-      margin, y, contentWidth, 6
-    );
-    
-    y += 15;
-    y = addWrappedText(
-      '6.2 GOVERNING LAW. This Agreement shall be governed by and construed in accordance with the laws of the State of ' + llcFields[6].value + '.',
-      margin, y, contentWidth, 6
-    );
-    
-    // Signatures
-    y += 20;
-    // Add a decorative line above signatures
-    doc.setDrawColor(accentColorR, accentColorG, accentColorB);
-    doc.setLineWidth(0.5);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 10;
-    
-    doc.setFillColor(accentColorR, accentColorG, accentColorB);
-    doc.rect(margin, y, contentWidth, 7, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255); // White text for section header
-    y = addWrappedText('IN WITNESS WHEREOF', margin + 2, y + 5, contentWidth, 6);
-    y += 10;
-    doc.setTextColor(0, 0, 0); // Reset to black for regular text
-    doc.setFont('helvetica', 'normal');
-    
-    y = addWrappedText('The Members have executed this Agreement as of the Effective Date.', margin, y, contentWidth, 6);
-    
-    // Add signature box with light background
-    y += 15;
-    doc.setFillColor(240, 240, 245); // Light gray background
-    doc.roundedRect(margin, y, contentWidth, 70, 2, 2, 'F');
-    
-    // Member signature header
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(accentColorR, accentColorG, accentColorB);
-    doc.text('MEMBER SIGNATURE:', margin + 5, y + 10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    
-    // Signature lines
-    y += 25;
-    doc.text('Signature: _______________________________', margin + 5, y);
-    
-    y += 10;
-    doc.text(`Name: ${llcFields[2].value}`, margin + 5, y);
-    
-    y += 10;
-    doc.text(`Title: ${llcFields[3].value}`, margin + 5, y);
-    
-    y += 10;
-    doc.text(`Date: ${llcFields[7].value}`, margin + 5, y);
-    
-    // Add company info in a specialized box
-    y += 20;
-    doc.setFillColor(220, 225, 235); // Light blue background
-    doc.roundedRect(margin, y, contentWidth, 35, 2, 2, 'F');
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('LLC Information:', margin + 5, y + 10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Company Name: ${llcFields[0].value}`, margin + 5, y + 20);
-    doc.text(`State of Formation: ${llcFields[6].value}`, margin + 5, y + 30);
-    
-    // Save the PDF
-    doc.save('CPXTB_LLC_Operating_Agreement.pdf');
-    } catch (error) {
-      console.error('Error in generateLlcAgreement:', error);
-      throw error;
-    }
-  };
+
   
   // Handle document generation
   const handleGenerateDocument = async () => {

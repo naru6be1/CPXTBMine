@@ -398,7 +398,7 @@ export function MerchantPamphlet({
         <div className="text-center">
           <div 
             ref={qrCodeRef} 
-            className="qr-code-wrapper border-4 border-primary rounded-lg bg-white mb-4 inline-flex items-center justify-center"
+            className="qr-code-wrapper border-4 border-primary rounded-lg bg-white mb-3 inline-flex items-center justify-center"
             style={{ width: '212px', height: '212px', padding: '6px' }}
           >
             {prerenderedQrCode ? (
@@ -521,19 +521,54 @@ export function MerchantPamphlet({
             padding: 20px;
           }
           
+          /* Restructure the layout for print */
+          .merchant-pamphlet-container > div:first-child {
+            margin-bottom: 10px !important;
+          }
+          
+          .grid {
+            display: block !important;
+          }
+          
           .qr-code-wrapper {
-            margin-left: auto;
-            margin-right: auto;
-            margin-top: -40px !important; /* Move QR code up */
+            margin-left: auto !important;
+            margin-right: auto !important;
+            margin-top: 0 !important;
             border-width: 4px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
+            width: 170px !important;
+            height: 170px !important;
+            padding: 4px !important;
+          }
+          
+          .qr-code-wrapper img,
+          .qr-code-wrapper svg {
+            width: 160px !important;
+            height: 160px !important;
+          }
+          
+          /* Make the wallet address display properly */
+          .text-center > p.text-sm.text-gray-500.mb-2 {
+            margin-top: 5px !important;
+            display: block !important;
+            color: #1f2937 !important;
+          }
+          
+          .text-center > div.bg-gray-100 {
+            display: block !important;
+            color: #1f2937 !important;
+            background-color: #f3f4f6 !important;
+            border: 1px solid #d1d5db !important;
+            margin-bottom: 10px !important;
           }
           
           /* Adjust spacing for better layout */
           .text-center {
-            margin-top: -20px !important;
+            margin-top: 0 !important;
+            padding-bottom: 10px !important;
+            text-align: center !important;
           }
           
           .print\\:hidden {
@@ -544,9 +579,26 @@ export function MerchantPamphlet({
             display: block !important;
           }
           
-          /* Ensure wallet address is visible in print */
-          .font-mono {
-            color: #1f2937 !important; /* text-gray-800 */
+          /* Ensure all text is visible in print */
+          * {
+            color: #1f2937 !important;
+          }
+          
+          /* Contract address styling */
+          .text-sm.text-gray-500 code {
+            color: #1f2937 !important;
+            background-color: #f3f4f6 !important;
+            border: 1px solid #d1d5db !important;
+          }
+          
+          /* Make instructions clearer */
+          .text-xl.font-bold.mb-4 {
+            margin-top: 15px !important;
+            margin-bottom: 10px !important;
+          }
+          
+          ol.space-y-4 li {
+            margin-bottom: 5px !important;
           }
         }
       `}} />

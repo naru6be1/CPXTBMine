@@ -504,186 +504,91 @@ export function MerchantPamphlet({
         </div>
       </div>
 
+      {/* Special print-only version that's completely separate from the regular display */}
+      <div className="hidden">
+        <div className="print-only-pamphlet" style={{ display: 'none' }}>
+          <h1 style={{ fontSize: '20px', textAlign: 'center', marginBottom: '8px' }}>{businessName}</h1>
+          
+          {/* QR code at the very top */}
+          <div style={{ textAlign: 'center', marginTop: '0px' }}>
+            <div style={{ display: 'inline-block', border: '4px solid #3b82f6', borderRadius: '8px', padding: '4px', backgroundColor: 'white', width: '170px', height: '170px' }}>
+              {prerenderedQrCode && (
+                <img 
+                  src={prerenderedQrCode} 
+                  alt="QR code for wallet"
+                  width={160}
+                  height={160}
+                  style={{ display: 'block' }}
+                />
+              )}
+            </div>
+            <p style={{ fontSize: '12px', margin: '8px 0 4px 0', color: '#1f2937', fontWeight: 'bold' }}>
+              Scan this QR code with any crypto wallet
+            </p>
+            <div style={{ 
+              fontSize: '10px', 
+              fontFamily: 'monospace', 
+              padding: '8px', 
+              backgroundColor: '#f3f4f6', 
+              border: '1px solid #d1d5db', 
+              borderRadius: '4px',
+              color: '#1f2937',
+              maxWidth: '220px',
+              margin: '0 auto',
+              wordBreak: 'break-all'
+            }}>
+              {walletAddress}
+            </div>
+          </div>
+          
+          {/* Instructions */}
+          <div style={{ marginTop: '12px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '12px 0 8px 0', color: '#1f2937' }}>How to Pay with CPXTB</h3>
+            <ol style={{ paddingLeft: '20px', margin: '0', color: '#1f2937' }}>
+              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Open your crypto wallet app</li>
+              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Buy Ethereum on Base network</li>
+              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Swap ETH to CPXTB on Base network</li>
+              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Scan the QR code or enter wallet address above</li>
+              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Enter the exact amount in CPXTB</li>
+              <li style={{ marginBottom: '4px', fontSize: '12px' }}>Confirm and send your payment</li>
+            </ol>
+            
+            <div style={{ 
+              margin: '12px 0', 
+              padding: '8px', 
+              backgroundColor: '#fffbeb', 
+              border: '1px solid #fbbf24', 
+              borderRadius: '6px',
+              fontSize: '12px',
+              color: '#92400e'
+            }}>
+              <p style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>⚠️ Important: Only send CPXTB tokens</p>
+              <p style={{ margin: '0', fontSize: '11px' }}>Sending any other cryptocurrency may result in permanent loss of funds.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           body * {
-            visibility: hidden;
+            display: none !important;
           }
-          .merchant-pamphlet-container,
-          .merchant-pamphlet-container * {
-            visibility: visible;
-          }
-          .merchant-pamphlet-container {
+          
+          /* Show only our print-specific version */
+          .print-only-pamphlet {
+            display: block !important;
+            visibility: visible !important;
             position: absolute;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             padding: 20px;
           }
           
-          /* Completely reorder elements for print */
-          .merchant-pamphlet-container > div:first-child {
-            margin-bottom: 0 !important;
-            text-align: center !important;
-          }
-          
-          /* Make the title and subtitle more compact */
-          .merchant-pamphlet-container > div:first-child h1 {
-            font-size: 24px !important;
-            margin-bottom: 0 !important;
-            margin-top: 0 !important;
-          }
-          
-          .merchant-pamphlet-container > div:first-child p {
-            font-size: 14px !important;
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-          }
-          
-          /* Move QR section higher by changing the grid layout */
-          .grid {
+          .print-only-pamphlet * {
+            visibility: visible !important;
             display: block !important;
-          }
-          
-          /* Move QR code way up by changing display order */
-          .text-center {
-            position: absolute !important;
-            top: 50px !important;
-            left: 0 !important;
-            right: 0 !important;
-            text-align: center !important;
-            border-bottom: none !important;
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
-          }
-          
-          .qr-code-wrapper {
-            margin-left: auto !important;
-            margin-right: auto !important;
-            margin-top: 0 !important;
-            margin-bottom: 4px !important;
-            border-width: 4px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 170px !important;
-            height: 170px !important;
-            padding: 4px !important;
-          }
-          
-          .qr-code-wrapper img,
-          .qr-code-wrapper svg {
-            width: 160px !important;
-            height: 160px !important;
-          }
-          
-          /* Make the wallet address display properly */
-          .text-center > p.text-sm.text-gray-500.mb-2 {
-            margin-top: 5px !important;
-            margin-bottom: 3px !important;
-            display: block !important;
-            color: #1f2937 !important;
-            font-weight: bold !important;
-          }
-          
-          .text-center > div.bg-gray-100 {
-            display: block !important;
-            color: #1f2937 !important;
-            background-color: #f3f4f6 !important;
-            border: 1px solid #d1d5db !important;
-            margin-bottom: 5px !important;
-            font-size: 10px !important;
-            width: 220px !important;
-            margin-left: auto !important;
-            margin-right: auto !important;
-          }
-          
-          /* Move the instructions section below QR */
-          .grid > div:nth-child(2) {
-            margin-top: 265px !important; /* Space for QR + wallet address */
-            padding-top: 0 !important;
-          }
-          
-          .print\\:hidden {
-            display: none !important;
-          }
-          
-          .print\\:block {
-            display: block !important;
-          }
-          
-          /* Ensure all text is visible in print */
-          * {
-            color: #1f2937 !important;
-          }
-          
-          /* Contract address styling */
-          .text-sm.text-gray-500 code {
-            color: #1f2937 !important;
-            background-color: #f3f4f6 !important;
-            border: 1px solid #d1d5db !important;
-          }
-          
-          /* Make instructions clearer and more compact */
-          .text-xl.font-bold.mb-4 {
-            margin-top: 0 !important;
-            margin-bottom: 8px !important;
-            font-size: 18px !important;
-          }
-          
-          ol.space-y-4 {
-            margin-top: 0 !important;
-            padding-left: 20px !important;
-          }
-          
-          ol.space-y-4 li {
-            margin-bottom: 3px !important;
-          }
-          
-          ol.space-y-4 li > div p {
-            margin: 0 !important;
-            line-height: 1.2 !important;
-          }
-          
-          ol.space-y-4 li > div p.text-sm {
-            font-size: 10px !important;
-          }
-          
-          /* Reduce spacing of the warning box */
-          .mt-6.bg-amber-50 {
-            margin-top: 10px !important;
-            padding: 6px !important;
-          }
-          
-          .mt-6.bg-amber-50 p {
-            margin: 0 !important;
-            line-height: 1.2 !important;
-          }
-          
-          /* Footer section */
-          .mt-8.pt-6 {
-            margin-top: 10px !important;
-            padding-top: 10px !important;
-          }
-          
-          .mt-8.pt-6 h3 {
-            margin-bottom: 5px !important;
-            font-size: 16px !important;
-          }
-          
-          .mt-8.pt-6 p {
-            margin: 0 !important;
-            line-height: 1.2 !important;
-            font-size: 12px !important;
-          }
-          
-          .mt-4.text-sm {
-            margin-top: 5px !important;
-          }
-          
-          .mt-6.text-center {
-            margin-top: 8px !important;
-            position: static !important;
           }
         }
       `}} />

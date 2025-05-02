@@ -94,10 +94,20 @@ export function MerchantAgreement() {
       const title = 'MERCHANT AGREEMENT FOR CPXTB TOKEN PAYMENTS';
       doc.text(title, pageWidth / 2, 20, { align: 'center' });
       
-      // Page 1 footer
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 1 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      // Page 1 footer - use a variable to track total pages
+      let totalPages = 2; // Default is 2 pages
+      let currentPage = 1;
+      
+      // Function to add page numbers
+      const addPageNumber = (pageNum: number) => {
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page ${pageNum} of ${totalPages}`, 
+          pageWidth / 2, pageHeight - 10, { align: 'center' });
+      };
+      
+      // Add page number to first page
+      addPageNumber(currentPage);
       
       // Introduction
       doc.setFontSize(11);
@@ -264,10 +274,9 @@ export function MerchantAgreement() {
       doc.addPage();
       y = 20;
       
-      // Add page number to second page footer
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      // Add page number to second page
+      currentPage++;
+      addPageNumber(currentPage);
       
       // Section 6
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
@@ -312,10 +321,12 @@ export function MerchantAgreement() {
         doc.addPage();
         y = 40; // Reset y position on the new page
         
+        // Increment page counter and total pages counter if needed
+        currentPage++;
+        totalPages = currentPage;
+        
         // Add page number to signature page
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        addPageNumber(currentPage);
       }
       
       // Signature section header

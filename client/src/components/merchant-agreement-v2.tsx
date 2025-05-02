@@ -345,7 +345,7 @@ export function MerchantAgreement() {
       y += 10;
       
       doc.setFont('helvetica', 'normal');
-      doc.text("Coin Prediction Tool On Base (LLC)", margin, y);
+      doc.text("Coin Prediction Tool On Base LLC", margin, y);
       y += 20;
       
       // Signature line

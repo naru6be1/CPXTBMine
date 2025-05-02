@@ -283,29 +283,40 @@ export function MerchantPamphlet({
       const pageWidth = 215.9;
       const pageHeight = 279.4;
       
-      // Add gradient header background with top margin
-      const headerHeight = 25; // Further reduced height
-      const topMargin = 5; // Add a top margin to avoid any display issues
-      doc.setFillColor(59, 130, 246); // Primary blue at top
-      doc.rect(0, topMargin, pageWidth, headerHeight, 'F');
+      // First create a white background for entire page to avoid any black areas
+      doc.setFillColor(255, 255, 255); // Pure white
+      doc.rect(0, 0, pageWidth, pageHeight, 'F');
       
-      // Set up initial position - adjusted for smaller header with margin
-      let yPosition = topMargin + 10; // Positioned relative to the header with margin
+      // Define margins
+      const margins = {
+        top: 10,
+        bottom: 10,
+        left: 10,
+        right: 10
+      };
+      
+      // Add blue header with proper height
+      const headerHeight = 25; // Compact header
+      doc.setFillColor(59, 130, 246); // Primary blue color
+      doc.rect(0, margins.top, pageWidth, headerHeight, 'F');
+      
+      // Set up initial position - within header
+      let yPosition = margins.top + 15; // Positioned in the middle of header
       
       // Add title text in white on blue background
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18); // Reduced from 22 to 18
+      doc.setFontSize(18);
       doc.setTextColor(255, 255, 255);
       doc.text("Payment Instructions", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 10; // Reduced from 12 to 10
+      yPosition += 8;
       
       // Add Business Name as subtitle in header
-      doc.setFontSize(14); // Reduced from 16 to 14
+      doc.setFontSize(14);
       doc.setTextColor(240, 240, 240);
       doc.text(businessName, pageWidth / 2, yPosition, { align: "center" });
       
       // Move position to start content after header
-      yPosition = topMargin + headerHeight + 10;
+      yPosition = margins.top + headerHeight + 10;
       
       // Add tagline
       doc.setFont("helvetica", "normal");

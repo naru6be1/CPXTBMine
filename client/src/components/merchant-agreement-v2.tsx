@@ -96,6 +96,11 @@ export function MerchantAgreement() {
       
       // Page 1 footer - Add margin at bottom for footer
       const footerMargin = 20; // Increased footer margin
+      
+      // Add white background rectangle for footer to ensure it doesn't overlap with content
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, pageHeight - (footerMargin + 5), pageWidth, footerMargin + 5, 'F');
+      
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 1 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
@@ -191,7 +196,10 @@ export function MerchantAgreement() {
       doc.addPage();
       y = 40; // Reset y position for the new page
       
-      // Add page number
+      // Add page number with white background to ensure it doesn't overlap with content
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, pageHeight - (footerMargin + 5), pageWidth, footerMargin + 5, 'F');
+      
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
@@ -275,6 +283,11 @@ export function MerchantAgreement() {
       y = 20;
       
       // Add page number to third page footer
+      // First add a white background rectangle to ensure footer is readable
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, pageHeight - (footerMargin + 5), pageWidth, footerMargin + 5, 'F');
+      
+      // Then add the footer text
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
@@ -323,7 +336,10 @@ export function MerchantAgreement() {
         doc.addPage();
         y = 40; // Reset y position on the new page
         
-        // Add page number to signature page
+        // Add page number to signature page with white background
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, pageHeight - (footerMargin + 5), pageWidth, footerMargin + 5, 'F');
+        
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
         doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });

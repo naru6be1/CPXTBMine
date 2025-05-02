@@ -94,16 +94,10 @@ export function MerchantAgreement() {
       const title = 'MERCHANT AGREEMENT FOR CPXTB TOKEN PAYMENTS';
       doc.text(title, pageWidth / 2, 20, { align: 'center' });
       
-      // Page 1 footer - Add margin at bottom for footer
-      const footerMargin = 20; // Increased footer margin
-      
-      // Add white background rectangle for footer to ensure it doesn't overlap with content
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, pageHeight - (footerMargin + 5), pageWidth, footerMargin + 5, 'F');
-      
+      // Page 1 footer
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 1 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 1 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
       
       // Introduction
       doc.setFontSize(11);
@@ -192,35 +186,8 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
-      // Section 2 - Start on a new page
-      doc.addPage();
-      
-      // Add header with the same style as page 1
-      doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
-      doc.rect(0, 0, pageWidth, 30, 'F');
-      
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(255, 255, 255); // White text on blue background
-      doc.text('MERCHANT AGREEMENT (continued)', pageWidth / 2, 20, { align: 'center' });
-      
-      // Add decorative line under header
-      doc.setDrawColor(accentColorR, accentColorG, accentColorB);
-      doc.setLineWidth(0.5);
-      doc.line(margin, 32, pageWidth - margin, 32);
-      
-      y = 40; // Reset y position for the new page
-      
-      // Add page number with white background to ensure it doesn't overlap with content
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, pageHeight - (footerMargin + 5), pageWidth, footerMargin + 5, 'F');
-      
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
-      
-      // Reset font for section header
-      doc.setFontSize(10);
+      // Section 2
+      y += 10;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
@@ -295,32 +262,12 @@ export function MerchantAgreement() {
       
       // Add new page for Section 6 and Signatures
       doc.addPage();
+      y = 20;
       
-      // Add header with the same style as previous pages
-      doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
-      doc.rect(0, 0, pageWidth, 30, 'F');
-      
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(255, 255, 255); // White text on blue background
-      doc.text('MERCHANT AGREEMENT (continued)', pageWidth / 2, 20, { align: 'center' });
-      
-      // Add decorative line under header
-      doc.setDrawColor(accentColorR, accentColorG, accentColorB);
-      doc.setLineWidth(0.5);
-      doc.line(margin, 32, pageWidth - margin, 32);
-      
-      y = 40; // Reset y position for the new page
-      
-      // Add page number to third page footer
-      // First add a white background rectangle to ensure footer is readable
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, pageHeight - (footerMargin + 5), pageWidth, footerMargin + 5, 'F');
-      
-      // Then add the footer text
+      // Add page number to second page footer
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
       
       // Section 6
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
@@ -361,33 +308,14 @@ export function MerchantAgreement() {
       
       // Make sure we have a fresh page specifically for signatures
       // Calculate if we need to add a page (if there's not enough space)
-      // Added extra footer margin to prevent content overlapping with footer
-      if (y > pageHeight - (150 + footerMargin)) {
+      if (y > pageHeight - 150) {
         doc.addPage();
-        
-        // Add header with the same style as previous pages
-        doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
-        doc.rect(0, 0, pageWidth, 30, 'F');
-        
-        doc.setFontSize(20);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(255, 255, 255); // White text on blue background
-        doc.text('MERCHANT AGREEMENT - SIGNATURES', pageWidth / 2, 20, { align: 'center' });
-        
-        // Add decorative line under header
-        doc.setDrawColor(accentColorR, accentColorG, accentColorB);
-        doc.setLineWidth(0.5);
-        doc.line(margin, 32, pageWidth - margin, 32);
-        
         y = 40; // Reset y position on the new page
         
-        // Add page number to signature page with white background
-        doc.setFillColor(255, 255, 255);
-        doc.rect(0, pageHeight - (footerMargin + 5), pageWidth, footerMargin + 5, 'F');
-        
+        // Add page number to signature page
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 3 of 3`, pageWidth / 2, pageHeight - footerMargin, { align: 'center' });
+        doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
       }
       
       // Signature section header

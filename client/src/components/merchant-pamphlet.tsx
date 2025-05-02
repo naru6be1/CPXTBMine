@@ -229,6 +229,18 @@ export function MerchantPamphlet({
       // Clone the element to avoid modifying the original
       const printContent = content.cloneNode(true) as HTMLElement;
       
+      // IMPORTANT: Remove the download button from the PDF
+      // But keep the layout intact by replacing it with an empty div of the same height
+      const downloadButton = printContent.querySelector('button');
+      if (downloadButton && downloadButton.parentNode) {
+        const buttonParent = downloadButton.parentNode;
+        const placeholderDiv = document.createElement('div');
+        placeholderDiv.style.width = downloadButton.offsetWidth + 'px';
+        placeholderDiv.style.height = downloadButton.offsetHeight + 'px';
+        placeholderDiv.style.visibility = 'hidden';
+        buttonParent.replaceChild(placeholderDiv, downloadButton);
+      }
+      
       // Replace all QR code elements with simple image elements for better PDF rendering
       if (qrCodeImage) {
         const qrWrapper = printContent.querySelector('.qr-code-wrapper');
@@ -280,11 +292,12 @@ export function MerchantPamphlet({
       
       // If we have a QR code image, add it directly to the PDF as well for guaranteed visibility
       if (qrCodeImage) {
-        // Calculate position for QR code - find its relative position in the pamphlet
+        // Use absolute positioning for QR code to ensure it's in exactly the same place
+        // regardless of whether the button is visible or not
         const qrBoxSize = Math.min(pdfWidth * 0.25, pdfHeight * 0.25); // Take smaller dimension for consistent sizing
         const qrPosition = {
-          x: pdfWidth * 0.132, // Moved very slightly right from previous position
-          y: pdfHeight * 0.272, // Moved very slightly up from previous position
+          x: 25, // Fixed absolute position from left edge in mm
+          y: 75, // Fixed absolute position from top edge in mm
           width: qrBoxSize, // Square sizing based on page dimensions
           height: qrBoxSize // Square, so same as width
         };

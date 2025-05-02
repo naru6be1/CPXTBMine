@@ -272,16 +272,16 @@ export function MerchantPamphlet({
       
       // Skip content capture entirely - direct PDF generation is more reliable
       
-      // Create a new PDF document with custom layout
+      // Create a new PDF document with letter size for better content fit
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'letter'
       });
       
-      // A4 dimensions are 210 x 297 mm
-      const pageWidth = 210;
-      const pageHeight = 297;
+      // Letter dimensions are 215.9 x 279.4 mm (8.5 x 11 inches)
+      const pageWidth = 215.9;
+      const pageHeight = 279.4;
       
       // Add gradient header background
       const headerHeight = 40;

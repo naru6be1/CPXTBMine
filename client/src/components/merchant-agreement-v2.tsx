@@ -199,7 +199,7 @@ export function MerchantAgreement() {
       
       y = addWrappedText(
         '2.1 Merchant Information. Merchant shall maintain accurate and up-to-date business information on the Platform, including but not limited to legal business name, contact information, and business description.\n\n' +
-        '2.2 Wallet Address. Merchant shall provide and maintain a valid blockchain wallet address on the Base network to receive CPXTB token payments. Merchant shall be solely responsible for the security and control of its wallet private keys.\n\n' +
+        `2.2 Wallet Address. Merchant shall provide and maintain the following valid blockchain wallet address on the Base network to receive CPXTB token payments: ${merchantFields[5].value}. Merchant shall be solely responsible for the security and control of its wallet private keys.\n\n` +
         '2.3 Legal Compliance. Merchant represents and warrants that it shall comply with all applicable laws, regulations, and industry standards related to cryptocurrency transactions, including but not limited to anti-money laundering (AML) requirements, tax reporting obligations, and consumer protection laws.\n\n' +
         '2.4 Risk Acknowledgment. Merchant expressly acknowledges and accepts the inherent volatility of cryptocurrency values and assumes all risks associated with accepting CPXTB tokens as payment, including but not limited to price fluctuations, liquidity risks, and regulatory uncertainties.',
         margin, y, contentWidth, 6

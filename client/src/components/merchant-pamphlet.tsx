@@ -337,28 +337,19 @@ export function MerchantPamphlet({
         // Add wallet address in a box with monospace font
         doc.setDrawColor(200, 200, 200);
         doc.setFillColor(243, 244, 246); // Light gray background
-        const addressBoxWidth = 140;
-        const addressBoxHeight = 12;
+        const addressBoxWidth = 160; // Increased width to better fit the address
+        const addressBoxHeight = 10; // Slightly reduced height since we only need one line
         const addressBoxX = (pageWidth - addressBoxWidth) / 2;
         
         doc.roundedRect(addressBoxX, yPosition, addressBoxWidth, addressBoxHeight, 1, 1, 'FD');
         
         // Add wallet address text
         doc.setFont("courier", "normal"); // Use monospace font
-        doc.setFontSize(8);
+        doc.setFontSize(7); // Smaller font size to fit the address on one line
         doc.setTextColor(31, 41, 55); // Dark gray text
         
-        // Check if we need to truncate or split the address
-        if (walletAddress.length > 40) {
-          // Split address in half to fit in box
-          const firstHalf = walletAddress.substring(0, Math.floor(walletAddress.length / 2));
-          const secondHalf = walletAddress.substring(Math.floor(walletAddress.length / 2));
-          
-          doc.text(firstHalf, pageWidth / 2, yPosition + 5, { align: "center" });
-          doc.text(secondHalf, pageWidth / 2, yPosition + 9, { align: "center" });
-        } else {
-          doc.text(walletAddress, pageWidth / 2, yPosition + 6, { align: "center" });
-        }
+        // Display address on a single line
+        doc.text(walletAddress, pageWidth / 2, yPosition + 5, { align: "center" });
         
         yPosition += addressBoxHeight + 10;
       }

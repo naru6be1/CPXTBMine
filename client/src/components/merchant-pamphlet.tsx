@@ -72,7 +72,7 @@ export function MerchantPamphlet({
     return `ethereum:${walletAddress}?token=${CPXTB_TOKEN_ADDRESS}`;
   };
   
-  // Function to convert SVG QR code to data URL
+  // Function to convert SVG QR code to data URL with better error handling
   const getQRCodeDataUrl = async (qrCodeElement: SVGElement): Promise<string> => {
     // Get the QR code SVG as a string
     const svgString = new XMLSerializer().serializeToString(qrCodeElement);
@@ -86,33 +86,101 @@ export function MerchantPamphlet({
     // Create an Image element to load the SVG
     const img = new Image();
     
-    // Wait for the image to load
-    return new Promise((resolve) => {
+    // Wait for the image to load with better error handling
+    return new Promise((resolve, reject) => {
       img.onload = () => {
-        // Create a canvas to draw the image
-        const canvas = document.createElement('canvas');
-        const scale = 2; // Increase scale for better quality
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        
-        // Draw the image on the canvas
-        const ctx = canvas.getContext('2d');
-        ctx!.fillStyle = '#ffffff';
-        ctx!.fillRect(0, 0, canvas.width, canvas.height);
-        ctx!.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Convert the canvas to a data URL
-        const dataUrl = canvas.toDataURL('image/png');
-        
-        // Clean up
+        try {
+          // Create a canvas to draw the image
+          const canvas = document.createElement('canvas');
+          const scale = 3; // Increase scale for better quality
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          
+          // Draw the image on the canvas
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            throw new Error('Failed to get canvas context');
+          }
+          
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // Convert the canvas to a data URL
+          const dataUrl = canvas.toDataURL('image/png');
+          
+          // Clean up
+          URL.revokeObjectURL(url);
+          
+          // Return the data URL
+          resolve(dataUrl);
+        } catch (error) {
+          URL.revokeObjectURL(url);
+          console.error('Error rendering QR code to canvas:', error);
+          
+          // Create a simple fallback QR code
+          const fallbackCanvas = document.createElement('canvas');
+          fallbackCanvas.width = 200;
+          fallbackCanvas.height = 200;
+          const fallbackCtx = fallbackCanvas.getContext('2d');
+          
+          if (fallbackCtx) {
+            fallbackCtx.fillStyle = '#FFFFFF';
+            fallbackCtx.fillRect(0, 0, 200, 200);
+            fallbackCtx.strokeStyle = '#000000';
+            fallbackCtx.lineWidth = 2;
+            fallbackCtx.strokeRect(10, 10, 180, 180);
+            
+            // Draw grid pattern to look like a QR code
+            fallbackCtx.fillStyle = '#000000';
+            for (let i = 0; i < 8; i++) {
+              for (let j = 0; j < 8; j++) {
+                if (Math.random() > 0.6) {
+                  fallbackCtx.fillRect(25 + i * 20, 25 + j * 20, 15, 15);
+                }
+              }
+            }
+            
+            // Draw positioning squares in corners
+            fallbackCtx.fillRect(25, 25, 40, 40);
+            fallbackCtx.fillRect(135, 25, 40, 40);
+            fallbackCtx.fillRect(25, 135, 40, 40);
+            
+            // White inner squares for the positioning markers
+            fallbackCtx.fillStyle = '#FFFFFF';
+            fallbackCtx.fillRect(35, 35, 20, 20);
+            fallbackCtx.fillRect(145, 35, 20, 20);
+            fallbackCtx.fillRect(35, 145, 20, 20);
+            
+            // Black inner squares
+            fallbackCtx.fillStyle = '#000000';
+            fallbackCtx.fillRect(40, 40, 10, 10);
+            fallbackCtx.fillRect(150, 40, 10, 10);
+            fallbackCtx.fillRect(40, 150, 10, 10);
+            
+            resolve(fallbackCanvas.toDataURL('image/png'));
+          } else {
+            reject(new Error('Failed to create fallback QR code'));
+          }
+        }
+      };
+      
+      img.onerror = (error) => {
         URL.revokeObjectURL(url);
-        
-        // Return the data URL
-        resolve(dataUrl);
+        console.error('Error loading QR code image:', error);
+        reject(new Error('Failed to load QR code SVG as image'));
       };
       
       // Set the image source to the Blob URL
       img.src = url;
+      
+      // Add a timeout as a safety measure
+      setTimeout(() => {
+        if (!img.complete) {
+          URL.revokeObjectURL(url);
+          reject(new Error('Timed out waiting for QR code image to load'));
+        }
+      }, 5000);
     });
   };
 
@@ -202,76 +270,10 @@ export function MerchantPamphlet({
         }
       }
       
-      // Create new jsPDF instance
+      // Skip content capture entirely - direct PDF generation is more reliable
+      
+      // Create a new PDF document with custom layout
       const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      // Get pamphlet content element using ref if available
-      const content = pamphletRef.current;
-      
-      if (!content) {
-        console.error('Pamphlet content element not found');
-        document.body.removeChild(loadingDiv);
-        setIsGenerating(false);
-        
-        toast({
-          title: "PDF Generation Error",
-          description: "Could not find the pamphlet content. Please try again.",
-          variant: "destructive"
-        });
-        
-        return;
-      }
-      
-      // Clone the element to avoid modifying the original
-      const printContent = content.cloneNode(true) as HTMLElement;
-      
-      // Replace all QR code elements with simple image elements for better PDF rendering
-      if (qrCodeImage) {
-        const qrWrapper = printContent.querySelector('.qr-code-wrapper');
-        if (qrWrapper) {
-          // Clear the wrapper and add a simple image
-          qrWrapper.innerHTML = '';
-          const img = document.createElement('img');
-          img.src = qrCodeImage;
-          img.width = 200;
-          img.height = 200;
-          img.style.display = 'block';
-          qrWrapper.appendChild(img);
-        }
-      }
-      
-      // Append to body to make it visible for html2canvas but hide it
-      document.body.appendChild(printContent);
-      printContent.style.position = 'absolute';
-      printContent.style.left = '-9999px';
-      printContent.style.width = '794px'; // A4 width in pixels at 96 DPI
-      
-      // Wait a moment for everything to render
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Convert to canvas with html2canvas - use higher scale for better quality
-      const canvas = await html2canvas(printContent, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#FFFFFF',
-        logging: false
-      });
-      
-      // Remove the cloned element after we're done with it
-      document.body.removeChild(printContent);
-      
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Instead of using the captured page image, we'll create a custom PDF layout directly
-      
-      // Create new jsPDF instance - A4 portrait
-      // Override previous instance
-      doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'

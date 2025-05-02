@@ -315,7 +315,7 @@ export function MerchantPamphlet({
       doc.setTextColor(240, 240, 240);
       doc.text(businessName, pageWidth / 2, yPosition, { align: "center" });
       
-      // Move position to start content after header
+      // Move position to start content after header - calculate based on header and margins
       yPosition = margins.top + headerHeight + 10;
       
       // Add tagline
@@ -366,7 +366,7 @@ export function MerchantPamphlet({
         yPosition += addressBoxHeight + 10;
       }
       
-      // Add section header bar for instructions
+      // Add section header bar for instructions - ensure full width
       doc.setFillColor(240, 249, 255); // Light blue background
       doc.rect(0, yPosition - 7, pageWidth, 14, 'F');
       
@@ -512,7 +512,18 @@ export function MerchantPamphlet({
       // Add footer with branding with clear separation from content
       yPosition += 15; // Add more space after warning box
       
-      // Add more visible footer box
+      // Ensure footer is properly positioned even on small screens
+      // Check if we're close to the bottom and adjust if needed
+      const minFooterPosition = pageHeight - margins.bottom - 30;
+      if (yPosition < minFooterPosition) {
+        yPosition = minFooterPosition;
+      }
+      
+      // Add white background footer to avoid any black areas
+      doc.setFillColor(255, 255, 255); // Pure white background
+      doc.rect(0, yPosition - 15, pageWidth, 40, 'F');
+      
+      // Add more visible footer box on top of white background
       doc.setFillColor(240, 249, 255); // Light blue background
       doc.rect(0, yPosition - 10, pageWidth, 30, 'F');
       

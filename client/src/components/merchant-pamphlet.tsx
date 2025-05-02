@@ -283,13 +283,14 @@ export function MerchantPamphlet({
       const pageWidth = 215.9;
       const pageHeight = 279.4;
       
-      // Add gradient header background - reduced height
-      const headerHeight = 30; // Reduced from 40 to 30
+      // Add gradient header background with top margin
+      const headerHeight = 25; // Further reduced height
+      const topMargin = 5; // Add a top margin to avoid any display issues
       doc.setFillColor(59, 130, 246); // Primary blue at top
-      doc.rect(0, 0, pageWidth, headerHeight, 'F');
+      doc.rect(0, topMargin, pageWidth, headerHeight, 'F');
       
-      // Set up initial position - adjusted for smaller header
-      let yPosition = 12; // Reduced from 15 to 12
+      // Set up initial position - adjusted for smaller header with margin
+      let yPosition = topMargin + 10; // Positioned relative to the header with margin
       
       // Add title text in white on blue background
       doc.setFont("helvetica", "bold");
@@ -304,7 +305,7 @@ export function MerchantPamphlet({
       doc.text(businessName, pageWidth / 2, yPosition, { align: "center" });
       
       // Move position to start content after header
-      yPosition = headerHeight + 10;
+      yPosition = topMargin + headerHeight + 10;
       
       // Add tagline
       doc.setFont("helvetica", "normal");

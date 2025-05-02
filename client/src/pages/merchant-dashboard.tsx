@@ -2195,7 +2195,7 @@ export default function MerchantDashboard() {
                       The customer sends exactly <span className="bg-yellow-200 dark:bg-yellow-800 px-1 py-0.5 rounded font-bold">{Number(currentPayment.payment.amountCpxtb).toFixed(6)} CPXTB</span> to your wallet address:
                     </p>
                     <div className="flex items-center">
-                      <code className="text-xs bg-muted p-2 rounded-l block break-all w-full">
+                      <code className="text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded-l block break-all w-full text-black dark:text-white">
                         {currentPayment.payment.merchantWalletAddress || selectedMerchant?.walletAddress || ""}
                       </code>
                       <Button 
@@ -2244,7 +2244,7 @@ export default function MerchantDashboard() {
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium">Token Contract:</span>
                         <div className="flex items-center">
-                          <code className="text-xs bg-muted px-2 py-1 rounded-l">{CPXTB_TOKEN_ADDRESS}</code>
+                          <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-l text-black dark:text-white">{CPXTB_TOKEN_ADDRESS}</code>
                           <Button 
                             variant="outline" 
                             size="icon"

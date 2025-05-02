@@ -422,7 +422,7 @@ export function MerchantPamphlet({
             )}
           </div>
           <p className="text-sm text-gray-500 mb-2">Scan this QR code with any crypto wallet</p>
-          <div className="bg-gray-100 p-2 rounded text-xs font-mono break-all">
+          <div className="bg-gray-100 p-2 rounded text-xs font-mono break-all text-black">
             {walletAddress}
           </div>
         </div>
@@ -480,7 +480,7 @@ export function MerchantPamphlet({
         
         <div className="mt-4 text-sm text-gray-500">
           <p>CPXTB Token Contract Address:</p>
-          <code className="bg-gray-100 p-1 rounded text-xs font-mono">{CPXTB_TOKEN_ADDRESS}</code>
+          <code className="bg-gray-100 p-1 rounded text-xs font-mono text-black">{CPXTB_TOKEN_ADDRESS}</code>
         </div>
         
         <div className="mt-6 text-center text-gray-500 text-sm">

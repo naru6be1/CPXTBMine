@@ -349,29 +349,8 @@ export function MerchantPamphlet({
         <p className="text-sm text-gray-500">Generated from CPXTB Platform</p>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Payment Instructions</h2>
-        <Button 
-          onClick={handlePrint}
-          className="print:hidden flex items-center gap-2"
-          disabled={isGenerating}
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 9 L6 2 L18 2 L18 9"/>
-                <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
-                <path d="M6 14h12v8H6z"/>
-              </svg>
-              Download PDF
-            </>
-          )}
-        </Button>
       </div>
 
       <div className="text-center mb-8">

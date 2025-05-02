@@ -10,6 +10,7 @@ import {
 import { Loader2, Download, FileText, FilePenLine, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from 'jspdf';
+import PDFDocument from 'pdfkit';
 import { PLATFORM_NAME } from "@shared/constants";
 
 // Document types

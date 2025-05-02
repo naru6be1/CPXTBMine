@@ -95,7 +95,7 @@ export function MerchantAgreement() {
       doc.text(title, pageWidth / 2, 20, { align: 'center' });
       
       // Page 1 footer - use a variable to track total pages
-      let totalPages = 2; // Default is 2 pages
+      let totalPages = 3; // We'll use 3 pages in total
       let currentPage = 1;
       
       // Function to add page numbers
@@ -321,11 +321,10 @@ export function MerchantAgreement() {
         doc.addPage();
         y = 40; // Reset y position on the new page
         
-        // Increment page counter and total pages counter if needed
+        // This would now be page 3
         currentPage++;
-        totalPages = currentPage;
         
-        // Add page number to signature page
+        // Add page number to signature page (page 3)
         addPageNumber(currentPage);
       }
       

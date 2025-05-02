@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Download, FileText, FilePenLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import { PLATFORM_NAME } from "@shared/constants";
-import { convertHexToRGB, addWrappedText, createPDF, addPDFMetadata } from './pdf-utils/pdf-helper';
+import { addPDFMetadata, convertHexToRGB } from './pdf-utils/pdf-helper';
 
 // Interface for document fields
 interface DocumentField {
@@ -47,20 +47,32 @@ export function MerchantAgreement() {
   const generateMerchantAgreement = async () => {
     try {
       console.log('Initializing jsPDF for merchant agreement...');
-      // Create PDF with standard settings
-      const doc = createPDF();
       
-      // Add professional metadata
+      // Initialize jsPDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+      
+      // Add metadata
       addPDFMetadata(doc, 'CPXTB Merchant Agreement');
       
-      console.log('Setting up document dimensions...');
+      // Page dimensions and margins
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
       const contentWidth = pageWidth - (margin * 2);
       
-      // Set professional colors using RGB values for jsPDF compatibility
-      // Using direct hex to RGB conversion to ensure proper color rendering
+      // Helper function to add wrapped text
+      const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, y);
+        return y + (lines.length * lineHeight);
+      };
+      
+      // Set colors using RGB values for better compatibility
       const primaryColor = convertHexToRGB('#1a457a');
       const primaryColorR = primaryColor.r;
       const primaryColorG = primaryColor.g;
@@ -71,7 +83,7 @@ export function MerchantAgreement() {
       const accentColorG = accentColor.g;
       const accentColorB = accentColor.b;
       
-      // Add a subtle header with logo effect
+      // Add a header with logo effect
       doc.setFillColor(primaryColorR, primaryColorG, primaryColorB);
       doc.rect(0, 0, pageWidth, 30, 'F');
       
@@ -82,7 +94,7 @@ export function MerchantAgreement() {
       const title = 'MERCHANT AGREEMENT FOR CPXTB TOKEN PAYMENTS';
       doc.text(title, pageWidth / 2, 20, { align: 'center' });
       
-      // Add page number to footer of first page
+      // Page 1 footer
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 1 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
@@ -91,15 +103,15 @@ export function MerchantAgreement() {
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0); // Reset text color to black for body text
-      let y = 40; // Start content a bit lower to avoid header
+      let y = 40; // Start content below header
       
       // Add decorative line under header
       doc.setDrawColor(accentColorR, accentColorG, accentColorB);
       doc.setLineWidth(0.5);
       doc.line(margin, 32, pageWidth - margin, 32);
       
+      // Agreement intro
       y = addWrappedText(
-        doc,
         `THIS MERCHANT AGREEMENT (the "Agreement") is made and entered into effective as of ${merchantFields[6].value} (the "Effective Date"), by and between the parties identified below:`,
         margin, y, contentWidth, 6
       );
@@ -157,7 +169,7 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
-      // Agreement terms - 1. SERVICES
+      // Section 1
       y += 10;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
@@ -174,6 +186,7 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
+      // Section 2
       y += 10;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
@@ -192,6 +205,7 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
+      // Section 3
       y += 30;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
@@ -208,6 +222,7 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
+      // Section 4
       y += 10;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
@@ -226,6 +241,7 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
+      // Section 5
       y += 25;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
@@ -244,11 +260,16 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
-      // Always add a new page for section 6 and signatures
+      // Add new page for Section 6 and Signatures
       doc.addPage();
       y = 20;
       
-      // Section 6 header
+      // Add page number to second page footer
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      
+      // Section 6
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
@@ -265,6 +286,7 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
+      // Section 7
       y += 20;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
@@ -284,11 +306,8 @@ export function MerchantAgreement() {
         margin, y, contentWidth, 6
       );
       
-      // Signature section - Always start on a new page
-      doc.addPage();
-      y = 20;
-      
-      // Add signature header
+      // Signature section
+      y += 25;
       doc.setFillColor(accentColorR, accentColorG, accentColorB);
       doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
@@ -336,19 +355,10 @@ export function MerchantAgreement() {
       doc.text(`Name: ${merchantFields[2].value}`, margin + contentWidth/2 + 10, y + 55);
       doc.text(`Date: ${merchantFields[6].value}`, margin + contentWidth/2 + 10, y + 70);
       
-      // Document footer
-      y += 90;
-      doc.setDrawColor(accentColorR, accentColorG, accentColorB);
-      doc.setLineWidth(0.5);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 8;
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`CPXTB Merchant Agreement - ${merchantFields[0].value} - Page 2 of 2`, pageWidth / 2, y, { align: 'center' });
-      
       // Save the PDF
       doc.save('CPXTB_Merchant_Agreement.pdf');
       
+      return true;
     } catch (error) {
       console.error('Error in generateMerchantAgreement:', error);
       throw error;

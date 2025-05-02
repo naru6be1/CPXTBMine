@@ -1,4 +1,4 @@
-import { MerchantAgreement } from "@/components/merchant-agreement";
+import { MerchantAgreement } from "@/components/merchant-agreement-v2";
 import { Separator } from "@/components/ui/separator";
 
 export default function LegalPage() {

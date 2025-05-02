@@ -289,10 +289,14 @@ export function LegalDocuments() {
       );
       
       y += 15;
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      y = addWrappedText('7. MISCELLANEOUS PROVISIONS', margin, y, contentWidth, 6);
-      y += 3;
+      doc.setTextColor(255, 255, 255); // White text for section headers
+      y = addWrappedText('7. MISCELLANEOUS PROVISIONS', margin + 2, y + 5, contentWidth, 6);
+      y += 6;
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       
       y = addWrappedText(
         '7.1 Entire Agreement. This Agreement constitutes the entire understanding between the parties concerning the subject matter hereof and supersedes all prior agreements, understandings, or negotiations, whether written or oral.\n\n' +
@@ -304,45 +308,83 @@ export function LegalDocuments() {
       
       // Signatures
       y += 20;
-      doc.setFont('helvetica', 'bold');
-      y = addWrappedText('IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.', margin, y, contentWidth, 6);
+      // Add a decorative line above signatures
+      doc.setDrawColor(accentColor);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 10;
       
-      y += 15;
+      doc.setFillColor(accentColor);
+      doc.rect(margin, y, contentWidth, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.text('PLATFORM PROVIDER:', margin, y);
+      doc.setTextColor(255, 255, 255); // White text for section header
+      y = addWrappedText('IN WITNESS WHEREOF', margin + 2, y + 5, contentWidth, 6);
+      y += 10;
+      doc.setTextColor(0, 0, 0); // Reset to black for regular text
       doc.setFont('helvetica', 'normal');
       
+      y = addWrappedText('The parties have executed this Agreement as of the Effective Date.', margin, y, contentWidth, 6);
+      
+      // Add signature boxes with light backgrounds
       y += 15;
-      doc.text('Signature: _______________________________', margin, y);
+      // First signature box - Platform Provider
+      doc.setFillColor(240, 240, 245); // Light gray background
+      doc.roundedRect(margin, y, contentWidth, 65, 2, 2, 'F');
+      
+      // Platform Provider header
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(accentColor);
+      doc.text('PLATFORM PROVIDER:', margin + 5, y + 10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      // Signature lines
+      y += 25;
+      doc.text('Signature: _______________________________', margin + 5, y);
       
       y += 10;
-      doc.text(`Name: _______________________________`, margin, y);
+      doc.text(`Name: _______________________________`, margin + 5, y);
       
       y += 10;
-      doc.text('Title: _______________________________', margin, y);
+      doc.text('Title: _______________________________', margin + 5, y);
       
       y += 10;
-      doc.text(`Date: _______________________________`, margin, y);
+      doc.text(`Date: _______________________________`, margin + 5, y);
       
+      // Second signature box - Merchant
       y += 20;
+      doc.setFillColor(240, 240, 245); // Light gray background
+      doc.roundedRect(margin, y, contentWidth, 65, 2, 2, 'F');
+      
+      // Merchant header
       doc.setFont('helvetica', 'bold');
-      doc.text('MERCHANT:', margin, y);
+      doc.setTextColor(accentColor);
+      doc.text('MERCHANT:', margin + 5, y + 10);
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
       
+      // Merchant signature lines
+      y += 25;
+      doc.text('Signature: _______________________________', margin + 5, y);
+      
+      y += 10;
+      doc.text(`Name: ${merchantFields[2].value}`, margin + 5, y);
+      
+      y += 10;
+      doc.text(`Business Name: ${merchantFields[0].value}`, margin + 5, y);
+      
+      y += 10;
+      doc.text(`Date: ${merchantFields[6].value}`, margin + 5, y);
+      
+      // Add wallet address in a specialized box
       y += 15;
-      doc.text('Signature: _______________________________', margin, y);
+      doc.setFillColor(220, 225, 235); // Light blue background
+      doc.roundedRect(margin, y, contentWidth, 25, 2, 2, 'F');
       
-      y += 10;
-      doc.text(`Name: ${merchantFields[2].value}`, margin, y);
-      
-      y += 10;
-      doc.text(`Business Name: ${merchantFields[0].value}`, margin, y);
-      
-      y += 10;
-      doc.text(`Date: ${merchantFields[6].value}`, margin, y);
-      
-      y += 10;
-      doc.text(`Wallet Address: ${merchantFields[5].value}`, margin, y);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Wallet Address (Base Network):', margin + 5, y + 10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${merchantFields[5].value}`, margin + 5, y + 18);
       
       // Save the PDF
       doc.save('CPXTB_Merchant_Agreement.pdf');
@@ -367,6 +409,10 @@ export function LegalDocuments() {
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 20;
       const contentWidth = pageWidth - (margin * 2);
+      // Navy blue color for headers - individual r,g,b values
+      const accentColorR = 41; 
+      const accentColorG = 65;
+      const accentColorB = 148;
       
       // Helper function to add wrapped text
       const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
@@ -395,10 +441,14 @@ export function LegalDocuments() {
     
     // Article I
     y += 15;
+    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
+    doc.rect(margin, y, contentWidth, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('ARTICLE I - COMPANY FORMATION', margin, y, contentWidth, 6);
-    y += 3;
+    doc.setTextColor(255, 255, 255); // White text for section headers
+    y = addWrappedText('ARTICLE I - COMPANY FORMATION', margin + 2, y + 5, contentWidth, 6);
+    y += 6;
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Reset to black for regular text
     
     y = addWrappedText(
       '1.1 FORMATION. The Members have formed a Limited Liability Company named ' + 
@@ -423,10 +473,14 @@ export function LegalDocuments() {
     
     // Article II
     y += 15;
+    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
+    doc.rect(margin, y, contentWidth, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('ARTICLE II - MEMBERSHIP', margin, y, contentWidth, 6);
-    y += 3;
+    doc.setTextColor(255, 255, 255); // White text for section headers
+    y = addWrappedText('ARTICLE II - MEMBERSHIP', margin + 2, y + 5, contentWidth, 6);
+    y += 6;
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Reset to black for regular text
     
     y = addWrappedText(
       '2.1 INITIAL MEMBERS. The initial Member(s) of the Company is/are:',
@@ -447,10 +501,14 @@ export function LegalDocuments() {
     
     // Article III - Cryptocurrency Operations
     y += 15;
+    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
+    doc.rect(margin, y, contentWidth, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('ARTICLE III - CRYPTOCURRENCY OPERATIONS', margin, y, contentWidth, 6);
-    y += 3;
+    doc.setTextColor(255, 255, 255); // White text for section headers
+    y = addWrappedText('ARTICLE III - CRYPTOCURRENCY OPERATIONS', margin + 2, y + 5, contentWidth, 6);
+    y += 6;
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Reset to black for regular text
     
     y = addWrappedText(
       '3.1 CRYPTOCURRENCY ASSETS. The Company shall maintain cryptocurrency assets, including CPXTB tokens, for operational purposes. The Company acknowledges the volatility and risks associated with cryptocurrency investments.',
@@ -474,10 +532,14 @@ export function LegalDocuments() {
     
     // Article IV - Taxation
     y += 15;
+    doc.setFillColor(accentColorR, accentColorG, accentColorB); // Navy blue header
+    doc.rect(margin, y, contentWidth, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    y = addWrappedText('ARTICLE IV - TAXATION', margin, y, contentWidth, 6);
-    y += 3;
+    doc.setTextColor(255, 255, 255); // White text for section headers
+    y = addWrappedText('ARTICLE IV - TAXATION', margin + 2, y + 5, contentWidth, 6);
+    y += 6;
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0); // Reset to black for regular text
     
     y = addWrappedText(
       '4.1 TAX CLASSIFICATION. The Company shall be taxed as specified in the Articles of Organization. The Company\'s Tax Identification Number (EIN) is: ' + llcFields[5].value,
@@ -531,25 +593,58 @@ export function LegalDocuments() {
     
     // Signatures
     y += 20;
-    doc.setFont('helvetica', 'bold');
-    y = addWrappedText('IN WITNESS WHEREOF, the Members have executed this Agreement as of the Effective Date.', margin, y, contentWidth, 6);
+    // Add a decorative line above signatures
+    doc.setDrawColor(accentColor);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
     
-    y += 15;
+    doc.setFillColor(accentColor);
+    doc.rect(margin, y, contentWidth, 7, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.text('MEMBER SIGNATURE:', margin, y);
+    doc.setTextColor(255, 255, 255); // White text for section header
+    y = addWrappedText('IN WITNESS WHEREOF', margin + 2, y + 5, contentWidth, 6);
+    y += 10;
+    doc.setTextColor(0, 0, 0); // Reset to black for regular text
     doc.setFont('helvetica', 'normal');
     
+    y = addWrappedText('The Members have executed this Agreement as of the Effective Date.', margin, y, contentWidth, 6);
+    
+    // Add signature box with light background
     y += 15;
-    doc.text('Signature: _______________________________', margin, y);
+    doc.setFillColor(240, 240, 245); // Light gray background
+    doc.roundedRect(margin, y, contentWidth, 70, 2, 2, 'F');
+    
+    // Member signature header
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(accentColor);
+    doc.text('MEMBER SIGNATURE:', margin + 5, y + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    
+    // Signature lines
+    y += 25;
+    doc.text('Signature: _______________________________', margin + 5, y);
     
     y += 10;
-    doc.text(`Name: ${llcFields[2].value}`, margin, y);
+    doc.text(`Name: ${llcFields[2].value}`, margin + 5, y);
     
     y += 10;
-    doc.text(`Title: ${llcFields[3].value}`, margin, y);
+    doc.text(`Title: ${llcFields[3].value}`, margin + 5, y);
     
     y += 10;
-    doc.text(`Date: ${llcFields[7].value}`, margin, y);
+    doc.text(`Date: ${llcFields[7].value}`, margin + 5, y);
+    
+    // Add company info in a specialized box
+    y += 20;
+    doc.setFillColor(220, 225, 235); // Light blue background
+    doc.roundedRect(margin, y, contentWidth, 35, 2, 2, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('LLC Information:', margin + 5, y + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Company Name: ${llcFields[0].value}`, margin + 5, y + 20);
+    doc.text(`State of Formation: ${llcFields[6].value}`, margin + 5, y + 30);
     
     // Save the PDF
     doc.save('CPXTB_LLC_Operating_Agreement.pdf');

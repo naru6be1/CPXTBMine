@@ -2,9 +2,9 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 import BasicSocialLogin from '../components/BasicSocialLogin';
-import SimpleSocialLoginV2 from '../components/SimpleSocialLoginV2';
+import Web3AuthLogin from '../components/Web3AuthLogin';
 
 /**
  * Test page for the social login components
@@ -21,18 +21,18 @@ const SocialLoginTestPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert variant="warning" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Web3Auth Integration Issue</AlertTitle>
+            <Alert className="mb-6">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Updated Web3Auth Implementation</AlertTitle>
               <AlertDescription>
-                We're encountering issues with the Web3Auth integration related to the privateKeyProvider configuration.
-                While we resolve this, we've provided a basic demo version that simulates the login flow.
+                We've implemented a new version of the Web3Auth integration with improved configuration.
+                You can test both the working demo and the latest Web3Auth implementation.
               </AlertDescription>
             </Alert>
             
             <p className="mb-4">
               The working demo version shows how the login flow will work with social accounts,
-              while the Web3Auth version shows our progress on the actual blockchain integration.
+              while the Web3Auth version implements the actual blockchain wallet integration.
             </p>
           </CardContent>
         </Card>
@@ -40,13 +40,13 @@ const SocialLoginTestPage: React.FC = () => {
         <Tabs defaultValue="basic" className="mb-8">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="basic">Working Demo</TabsTrigger>
-            <TabsTrigger value="web3auth">Web3Auth (In Progress)</TabsTrigger>
+            <TabsTrigger value="web3auth">Web3Auth Integration</TabsTrigger>
           </TabsList>
           <TabsContent value="basic" className="mt-4">
             <BasicSocialLogin />
           </TabsContent>
           <TabsContent value="web3auth" className="mt-4">
-            <SimpleSocialLoginV2 />
+            <Web3AuthLogin />
           </TabsContent>
         </Tabs>
       </div>

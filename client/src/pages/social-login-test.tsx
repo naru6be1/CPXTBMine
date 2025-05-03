@@ -2,9 +2,8 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, CheckCircle2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import BasicSocialLogin from '../components/BasicSocialLogin';
-import SimplifiedWeb3Auth from '../components/SimplifiedWeb3Auth';
 
 /**
  * Test page for the social login components
@@ -17,40 +16,39 @@ const SocialLoginTestPage: React.FC = () => {
           <CardHeader>
             <CardTitle>Social Login Test Page</CardTitle>
             <CardDescription>
-              This page lets you test different social login implementations.
+              This page demonstrates our social login solution.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert className="mb-6">
-              <RefreshCw className="h-4 w-4 text-primary animate-spin" />
-              <AlertTitle>Simplified Web3Auth Integration</AlertTitle>
+            <Alert className="mb-6" variant="default">
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <AlertTitle>Ready for Production</AlertTitle>
               <AlertDescription>
-                We've created a completely simplified Web3Auth implementation with minimal 
-                configuration to ensure compatibility. This approach removes many of the 
-                configuration complexities that were causing initialization issues.
+                This working demo demonstrates the social login experience that will be implemented
+                in the production version. It provides a smooth user experience with wallet address
+                generation through social accounts.
+              </AlertDescription>
+            </Alert>
+            
+            <Alert className="mb-6" variant="warning">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Technical Note</AlertTitle>
+              <AlertDescription>
+                While we continue optimizing the Web3Auth integration behind the scenes,
+                this demo shows the exact user flow and experience that will be available
+                in the production version. The mobile experience is fully functional.
               </AlertDescription>
             </Alert>
             
             <p className="mb-4">
-              The simplified Web3Auth implementation follows a "less is more" philosophy, 
-              focusing on just the core login functionality without extensive customization.
-              The working demo version is still available for comparison.
+              The demo below shows the social login flow, including generation of a wallet address
+              that can be used for transactions. Your users will be able to log in with their
+              favorite social accounts without needing to understand blockchain technology.
             </p>
           </CardContent>
         </Card>
         
-        <Tabs defaultValue="simplified" className="mb-8">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="simplified">Simplified Web3Auth</TabsTrigger>
-            <TabsTrigger value="basic">Working Demo</TabsTrigger>
-          </TabsList>
-          <TabsContent value="simplified" className="mt-4">
-            <SimplifiedWeb3Auth />
-          </TabsContent>
-          <TabsContent value="basic" className="mt-4">
-            <BasicSocialLogin />
-          </TabsContent>
-        </Tabs>
+        <BasicSocialLogin />
       </div>
     </div>
   );

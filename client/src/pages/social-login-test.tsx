@@ -2,9 +2,9 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, CheckCircle2 } from 'lucide-react';
+import { Info, CheckCircle2, RefreshCw } from 'lucide-react';
 import BasicSocialLogin from '../components/BasicSocialLogin';
-import Web3AuthLoginV3 from '../components/Web3AuthLoginV3';
+import SimplifiedWeb3Auth from '../components/SimplifiedWeb3Auth';
 
 /**
  * Test page for the social login components
@@ -17,34 +17,35 @@ const SocialLoginTestPage: React.FC = () => {
           <CardHeader>
             <CardTitle>Social Login Test Page</CardTitle>
             <CardDescription>
-              This page lets you test different implementations of social login functionality.
+              This page lets you test different social login implementations.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Alert className="mb-6">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <AlertTitle>New Web3Auth Implementation</AlertTitle>
+              <RefreshCw className="h-4 w-4 text-primary animate-spin" />
+              <AlertTitle>Simplified Web3Auth Integration</AlertTitle>
               <AlertDescription>
-                We've rebuilt the Web3Auth integration with the latest package versions (6.1.4) and added
-                the required EthereumPrivateKeyProvider that was missing in previous implementations.
+                We've created a completely simplified Web3Auth implementation with minimal 
+                configuration to ensure compatibility. This approach removes many of the 
+                configuration complexities that were causing initialization issues.
               </AlertDescription>
             </Alert>
             
             <p className="mb-4">
-              The working demo version shows how the login flow will work with social accounts,
-              while the Web3Auth version implements the actual blockchain wallet integration
-              using the latest packages specifically compatible with our platform.
+              The simplified Web3Auth implementation follows a "less is more" philosophy, 
+              focusing on just the core login functionality without extensive customization.
+              The working demo version is still available for comparison.
             </p>
           </CardContent>
         </Card>
         
-        <Tabs defaultValue="web3auth" className="mb-8">
+        <Tabs defaultValue="simplified" className="mb-8">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="web3auth">Web3Auth v6.1.4</TabsTrigger>
+            <TabsTrigger value="simplified">Simplified Web3Auth</TabsTrigger>
             <TabsTrigger value="basic">Working Demo</TabsTrigger>
           </TabsList>
-          <TabsContent value="web3auth" className="mt-4">
-            <Web3AuthLoginV3 />
+          <TabsContent value="simplified" className="mt-4">
+            <SimplifiedWeb3Auth />
           </TabsContent>
           <TabsContent value="basic" className="mt-4">
             <BasicSocialLogin />

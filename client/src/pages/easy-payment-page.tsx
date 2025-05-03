@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { useSearch } from 'wouter/use-location';
 import { Web3AuthProvider } from '@/components/SocialLoginProvider';
 import EasyPaymentForm from '@/components/EasyPaymentForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,19 +7,38 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, ArrowLeft, ThumbsUp } from 'lucide-react';
 
 /**
+ * Helper function to get URL search params
+ */
+function useUrlParams() {
+  const [params, setParams] = useState<URLSearchParams>(new URLSearchParams(window.location.search));
+  
+  useEffect(() => {
+    // Update params when URL changes
+    const handleUrlChange = () => {
+      setParams(new URLSearchParams(window.location.search));
+    };
+    
+    window.addEventListener('popstate', handleUrlChange);
+    return () => window.removeEventListener('popstate', handleUrlChange);
+  }, []);
+  
+  return params;
+}
+
+/**
  * Easy Payment Page - loaded when a customer scans a QR code
  * Provides a simple interface for making payments with social login
  */
 const EasyPaymentPage = () => {
-  const search = useSearch();
   const [, setLocation] = useLocation();
   const [isSuccess, setIsSuccess] = useState(false);
+  const params = useUrlParams();
   
   // Extract payment details from URL parameters
-  const merchantAddress = new URLSearchParams(search).get('to') || '';
-  const amount = new URLSearchParams(search).get('amount') || '';
-  const amountUSD = new URLSearchParams(search).get('amountUSD') || '';
-  const reference = new URLSearchParams(search).get('ref') || '';
+  const merchantAddress = params.get('to') || '';
+  const amount = params.get('amount') || '';
+  const amountUSD = params.get('amountUSD') || '';
+  const reference = params.get('ref') || '';
   
   // Validation for required parameters
   const isMissingParams = !merchantAddress || !amount;

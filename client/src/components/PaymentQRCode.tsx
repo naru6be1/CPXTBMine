@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Coins } from 'lucide-react';
@@ -58,12 +58,11 @@ const PaymentQRCode: React.FC<PaymentQRCodeProps> = ({
       </CardHeader>
       <CardContent className="flex flex-col items-center">
         <div className="bg-white p-4 rounded-lg">
-          <QRCode 
+          <QRCodeSVG 
             value={paymentUrl}
             size={200}
             level="H"
             includeMargin={true}
-            renderAs="svg"
           />
         </div>
         <div className="mt-4 text-center">

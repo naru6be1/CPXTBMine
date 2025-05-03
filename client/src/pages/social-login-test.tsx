@@ -30,7 +30,7 @@ const SocialLoginTestPage: React.FC = () => {
               </AlertDescription>
             </Alert>
             
-            <Alert className="mb-6" variant="warning">
+            <Alert className="mb-6 border-amber-500 bg-amber-50 text-amber-900 dark:border-amber-400 dark:bg-amber-950 dark:text-amber-100">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Technical Note</AlertTitle>
               <AlertDescription>

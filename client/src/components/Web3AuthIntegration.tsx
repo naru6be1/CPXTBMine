@@ -228,13 +228,62 @@ const Web3AuthIntegration: React.FC = () => {
     };
   }, [initWeb3Auth, connectionState]);
 
+  // Detect common DNS issues with app.openlogin.com
+  // This is used to prevent the user from encountering the DNS error page
+  const checkForKnownDnsIssues = async (): Promise<boolean> => {
+    try {
+      // Test if we can reach app.openlogin.com
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      // We're just checking if the domain resolves, don't need to actually fetch anything
+      await fetch('https://app.openlogin.com/favicon.ico', {
+        method: 'HEAD',
+        mode: 'no-cors',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      return false; // No DNS issues detected
+    } catch (error: any) {
+      console.error('app.openlogin.com connectivity test failed:', error);
+      
+      // Check if this is a DNS resolution error
+      const errorMessage = error?.message || String(error);
+      if (errorMessage.includes("DNS") || 
+          errorMessage.includes("domain") || 
+          errorMessage.includes("resolve") ||
+          errorMessage.includes("network") ||
+          errorMessage.includes("Failed to fetch")) {
+        return true; // DNS issue detected
+      }
+      
+      return false;
+    }
+  };
+
   const login = async () => {
     if (!web3auth) {
       setError("Web3Auth is not initialized");
       return;
     }
     
-    // Double-check online status before attempting login
+    // First check for app.openlogin.com DNS issues before even attempting to connect
+    const hasDnsIssues = await checkForKnownDnsIssues();
+    if (hasDnsIssues) {
+      setConnectionState(ConnectionState.NetworkError);
+      setError("DNS resolution failed for app.openlogin.com. This is a known issue with some network providers and mobile carriers. Please try a different network connection or use the Basic Social Login option.");
+      
+      toast({
+        title: "Network Issue Detected",
+        description: "Your network cannot resolve app.openlogin.com - please use the Basic Social Login instead.",
+        variant: "destructive",
+      });
+      
+      return;
+    }
+    
+    // Double-check general online status
     const online = await checkNetworkStatus();
     if (!online) {
       setConnectionState(ConnectionState.NetworkError);
@@ -265,7 +314,11 @@ const Web3AuthIntegration: React.FC = () => {
       console.error("Login error:", error);
       
       // Check for network errors during login
-      if (error?.message?.includes("network") || 
+      if (error?.message?.includes("DNS") && error?.message?.includes("app.openlogin.com")) {
+        setConnectionState(ConnectionState.NetworkError);
+        setError("DNS resolution failed for app.openlogin.com. This is a known issue with some network providers and mobile carriers.");
+      }
+      else if (error?.message?.includes("network") || 
           error?.message?.includes("Failed to fetch") ||
           error?.message?.includes("openlogin") ||
           error?.message?.includes("timeout")) {
@@ -278,7 +331,7 @@ const Web3AuthIntegration: React.FC = () => {
       
       toast({
         title: "Login Failed",
-        description: error?.message || "An error occurred during login",
+        description: "Could not connect to authentication service. Try using the Basic Social Login instead.",
         variant: "destructive",
       });
     } finally {

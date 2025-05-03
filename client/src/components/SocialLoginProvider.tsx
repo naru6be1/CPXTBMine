@@ -1,10 +1,13 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { CHAIN_NAMESPACES, SafeEventEmitterProvider, WALLET_ADAPTERS } from '@web3auth/base';
+import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
 import { Web3Auth } from '@web3auth/modal';
 import { OpenloginAdapter } from '@web3auth/openlogin-adapter';
 import { ethers } from 'ethers';
 import { BASE_CHAIN_ID, CPXTB_TOKEN_ADDRESS } from '@shared/constants';
 import { useToast } from '@/hooks/use-toast';
+
+// Use IProvider instead of deprecated SafeEventEmitterProvider
+type SafeEventEmitterProvider = IProvider;
 
 // ABI for ERC20 token interface (minimal for transfer function)
 const ERC20_ABI = [
@@ -72,10 +75,8 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
             tickerName: "Ethereum",
           },
           uiConfig: {
-            theme: {
-              primary: "#00a8ff",
-              isDark: true
-            },
+            // Set a simplified theme config that works with v9
+            theme: "dark",
             loginMethodsOrder: ["google", "apple", "twitter", "discord"],
             defaultLanguage: "en",
             appLogo: "/assets/token-logo.png", // Your app logo
@@ -83,38 +84,25 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
           },
         });
 
-        // Configure OpenLogin adapter
+        // Configure OpenLogin adapter with simpler settings to avoid type errors
         const openloginAdapter = new OpenloginAdapter({
           loginSettings: {
             mfaLevel: "none",
           },
           adapterSettings: {
-            whiteLabel: {
-              // Correct white label settings
-              appName: "CPXTB Platform",
-              logoLight: "/assets/token-logo.png",
-              logoDark: "/assets/token-logo.png",
-              defaultLanguage: "en",
-              mode: "dark", // Use mode instead of theme
-            },
+            // Minimal settings to avoid compatibility issues
             uxMode: "popup",
-            network: "sapphire_mainnet",
+            network: "sapphire_mainnet"
           },
         });
         
         // Add adapter to Web3Auth
         web3auth.configureAdapter(openloginAdapter);
         
-        // Initialize Web3Auth
+        // Initialize Web3Auth with the correct modal config for v9.x
         await web3auth.initModal({
-          modalConfig: {
-            // Use the correct enum values for wallet adapters
-            openlogin: {
-              label: "Social Login",
-              showOnDesktop: true,
-              showOnMobile: true,
-            },
-          }
+          // Simplified initialization for newer version
+          // Don't specify modalConfig as it's causing compatibility issues
         });
         
         // Set state

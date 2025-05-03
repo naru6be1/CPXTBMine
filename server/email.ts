@@ -207,32 +207,69 @@ export async function sendPaymentConfirmationEmail(
   merchant: Merchant,
   payment: Payment
 ): Promise<boolean> {
-  // ENHANCED: Double-check that email hasn't been sent by directly querying the database
-  // This ensures we have the latest emailSent status even if there are concurrency issues
+  // ROBUST FIX: Implement an "update-first" approach to prevent duplicate emails
+  // This approach atomically marks the payment as having an email sent BEFORE actually sending the email
+  // This ensures that only one process can send an email for a given payment
+  
   const { db } = await import('./db');
   const { payments } = await import('@shared/schema');
-  const { eq } = await import('drizzle-orm');
+  const { eq, and, sql } = await import('drizzle-orm');
   
+  // Get a transaction-level advisory lock FIRST before doing anything else
+  // This ensures that only one process can execute this code block at a time for this specific payment
   try {
-    // Get the latest payment status directly from the database
+    console.log(`🔒 Attempting to acquire database lock for payment ${payment.id} BEFORE checking email status...`);
+    
+    // First acquire a database-level lock to ensure exclusivity
+    await db.execute(sql`SELECT pg_advisory_xact_lock(${payment.id})`);
+    console.log(`✅ Successfully acquired database lock for payment ${payment.id}`);
+    
+    // Now check if the email has already been sent (within the same transaction)
     const [latestPayment] = await db.select()
       .from(payments)
       .where(eq(payments.id, payment.id));
     
-    // If emailSent is true in either the parameter or the DB, skip sending
-    if (payment.emailSent || (latestPayment && latestPayment.emailSent)) {
-      console.log(`Email already sent for payment ${payment.id}, skipping (verified from DB)`);
+    // If emailSent is already true, skip sending
+    if (latestPayment && latestPayment.emailSent) {
+      console.log(`⚠️ Email already sent for payment ${payment.id}, skipping (verified with locked DB check)`);
       return true;
     }
     
-    console.log(`Payment ${payment.id} email status verified as not sent yet, proceeding...`);
+    // If we get here, the email definitely has not been sent
+    // CRITICAL CHANGE: Mark as emailSent=true BEFORE sending the email
+    // This ensures that even if email sending fails, we won't try again
+    console.log(`✅ Email not sent yet for payment ${payment.id}. Marking as sent BEFORE sending email...`);
+    
+    const [updatedPayment] = await db
+      .update(payments)
+      .set({ emailSent: true })
+      .where(
+        and(
+          eq(payments.id, payment.id),
+          eq(payments.emailSent, false) // Only update if not already marked as sent
+        )
+      )
+      .returning();
+    
+    if (!updatedPayment) {
+      console.log(`⚠️ Failed to mark payment ${payment.id} as sent. May have been marked by another process.`);
+      return true; // Consider this a success to prevent retries
+    }
+    
+    console.log(`✅ Successfully marked payment ${payment.id} as having email sent BEFORE sending`);
+    // Now proceed with sending the email - even if it fails, we won't send duplicates
   } catch (dbError) {
-    console.warn(`Error checking latest payment status for ${payment.id}, using provided status:`, dbError);
+    console.error(`❌ Database error when checking/marking payment ${payment.id}:`, dbError);
+    
     // Fall back to the provided payment object if DB query fails
     if (payment.emailSent) {
-      console.log(`Email already sent for payment ${payment.id}, skipping (from parameter)`);
+      console.log(`⚠️ Email already sent for payment ${payment.id}, skipping (from parameter)`);
       return true;
     }
+    
+    // If there was a DB error and the payment wasn't already marked as sent,
+    // we'll continue and try to send the email anyway
+    console.warn(`⚠️ Continuing with email send despite database error for payment ${payment.id}`);
   }
 
   // Get the merchant's email
@@ -437,28 +474,19 @@ The ${PLATFORM_NAME} Team`,
       console.log('Preview URL:', info.previewURL);
     }
     
-    // Update the payment record to mark email as sent
+    // IMPORTANT: We already marked the payment as emailSent=true BEFORE sending the email
+    // So we don't need to do it again - this prevents the duplicate email issue
+    console.log(`✅ Email successfully sent for payment ${payment.id} - no additional DB update needed`);
+    
+    // WARNING: Deliberately NOT updating emailSent flag here again to prevent race conditions
+    // Because we already did this at the start of the function, we are sure no duplicate emails will be sent
+    
+    // Just add a quick verification to log the current state
     try {
-      // CRITICAL FIX: First verify the payment status hasn't changed since we started processing
       const { db } = await import('./db');
       const { payments } = await import('@shared/schema');
       const { eq } = await import('drizzle-orm');
       
-      const [latestPayment] = await db.select()
-        .from(payments)
-        .where(eq(payments.id, payment.id));
-      
-      // If the payment status changed, abort the email sending process
-      if (latestPayment && latestPayment.emailSent) {
-        console.log(`⚠️ WARNING: Payment ${payment.id} emailSent flag changed to TRUE while sending email. Possible race condition detected!`);
-        return true; // Return success to avoid retries
-      }
-      
-      // Use the storage method to mark the email as sent
-      await storage.markPaymentEmailSent(payment.id);
-      console.log(`✓ Payment ${payment.id} marked as having email sent in database`);
-      
-      // Final verification to detect race conditions
       const [verifiedPayment] = await db.select()
         .from(payments)
         .where(eq(payments.id, payment.id));

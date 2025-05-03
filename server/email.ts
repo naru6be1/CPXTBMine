@@ -207,69 +207,23 @@ export async function sendPaymentConfirmationEmail(
   merchant: Merchant,
   payment: Payment
 ): Promise<boolean> {
-  // ROBUST FIX: Implement an "update-first" approach to prevent duplicate emails
-  // This approach atomically marks the payment as having an email sent BEFORE actually sending the email
-  // This ensures that only one process can send an email for a given payment
+  // SIMPLIFIED: This function now ONLY sends the email and does not modify the database
+  // The payment should already be marked as emailSent=true BEFORE this function is called
   
-  const { db } = await import('./db');
-  const { payments } = await import('@shared/schema');
-  const { eq, and, sql } = await import('drizzle-orm');
+  // SAFETY CHECK: If the payment parameter shows emailSent=true, skip sending
+  if (payment.emailSent) {
+    console.log(`⚠️ Email already marked as sent for payment ${payment.id}, skipping (from parameter check)`);
+    return true;
+  }
   
-  // Get a transaction-level advisory lock FIRST before doing anything else
-  // This ensures that only one process can execute this code block at a time for this specific payment
-  try {
-    console.log(`🔒 Attempting to acquire database lock for payment ${payment.id} BEFORE checking email status...`);
-    
-    // First acquire a database-level lock to ensure exclusivity
-    await db.execute(sql`SELECT pg_advisory_xact_lock(${payment.id})`);
-    console.log(`✅ Successfully acquired database lock for payment ${payment.id}`);
-    
-    // Now check if the email has already been sent (within the same transaction)
-    const [latestPayment] = await db.select()
-      .from(payments)
-      .where(eq(payments.id, payment.id));
-    
-    // If emailSent is already true, skip sending
-    if (latestPayment && latestPayment.emailSent) {
-      console.log(`⚠️ Email already sent for payment ${payment.id}, skipping (verified with locked DB check)`);
-      return true;
-    }
-    
-    // If we get here, the email definitely has not been sent
-    // CRITICAL CHANGE: Mark as emailSent=true BEFORE sending the email
-    // This ensures that even if email sending fails, we won't try again
-    console.log(`✅ Email not sent yet for payment ${payment.id}. Marking as sent BEFORE sending email...`);
-    
-    const [updatedPayment] = await db
-      .update(payments)
-      .set({ emailSent: true })
-      .where(
-        and(
-          eq(payments.id, payment.id),
-          eq(payments.emailSent, false) // Only update if not already marked as sent
-        )
-      )
-      .returning();
-    
-    if (!updatedPayment) {
-      console.log(`⚠️ Failed to mark payment ${payment.id} as sent. May have been marked by another process.`);
-      return true; // Consider this a success to prevent retries
-    }
-    
-    console.log(`✅ Successfully marked payment ${payment.id} as having email sent BEFORE sending`);
-    // Now proceed with sending the email - even if it fails, we won't send duplicates
-  } catch (dbError) {
-    console.error(`❌ Database error when checking/marking payment ${payment.id}:`, dbError);
-    
-    // Fall back to the provided payment object if DB query fails
-    if (payment.emailSent) {
-      console.log(`⚠️ Email already sent for payment ${payment.id}, skipping (from parameter)`);
-      return true;
-    }
-    
-    // If there was a DB error and the payment wasn't already marked as sent,
-    // we'll continue and try to send the email anyway
-    console.warn(`⚠️ Continuing with email send despite database error for payment ${payment.id}`);
+  // Log the current state for tracking purposes
+  console.log(`🚀 Preparing to send email for payment ${payment.id} (${payment.paymentReference})`);
+  console.log(`📧 Recipient: ${merchant.contactEmail}, Business: ${merchant.businessName}`);
+  
+  // Additional safety check - verify the merchant has a valid email
+  if (!merchant.contactEmail || !merchant.contactEmail.includes('@')) {
+    console.error(`❌ Invalid merchant email: ${merchant.contactEmail} for payment ${payment.id}`);
+    return false;
   }
 
   // Get the merchant's email

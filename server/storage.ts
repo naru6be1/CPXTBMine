@@ -647,62 +647,9 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(payments.createdAt));
   }
   
-  // Keep track of payments that are currently being processed to prevent race conditions
-  private emailProcessingLock = new Map<number, boolean>();
-
-  async markPaymentEmailSent(paymentId: number): Promise<Payment> {
-    try {
-      // ROBUST FIX: Implement a simpler, more direct approach to prevent duplicate emails
-      console.log(`🔒 Starting atomic email flag update for payment ${paymentId}`);
-      
-      // Get a database-level advisory lock
-      await db.execute(sql`SELECT pg_advisory_xact_lock(${paymentId})`);
-      console.log(`✅ Acquired database-level advisory lock for payment ${paymentId}`);
-      
-      // First check if the payment has already been marked as sent
-      const [currentPayment] = await db
-        .select()
-        .from(payments)
-        .where(eq(payments.id, paymentId));
-        
-      if (currentPayment && currentPayment.emailSent) {
-        console.log(`⚠️ Payment ${paymentId} already has emailSent=true, skipping update (verified with DB lock)`);
-        return currentPayment;
-      }
-      
-      // Update with a strict condition to prevent race conditions
-      console.log(`✅ Marking payment ${paymentId} as having email sent (emailSent=true) with atomic operation`);
-      
-      const [updatedPayment] = await db
-        .update(payments)
-        .set({ emailSent: true })
-        .where(
-          and(
-            eq(payments.id, paymentId),
-            eq(payments.emailSent, false) // Only update if not already marked as sent
-          )
-        )
-        .returning();
-      
-      // If no rows were updated, it means another process already marked it as sent
-      if (!updatedPayment) {
-        // Get the current payment data
-        const [latestPayment] = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.id, paymentId));
-          
-        console.log(`⚠️ No update performed for payment ${paymentId} - emailSent may already be true. Current value: ${latestPayment?.emailSent}`);
-        return latestPayment;
-      }
-      
-      console.log(`✅ Successfully marked payment ${paymentId} as having email sent`);
-      return updatedPayment;
-    } catch (error) {
-      console.error(`❌ Error in markPaymentEmailSent for payment ${paymentId}:`, error);
-      throw error;
-    }
-  }
+  // REMOVED: The markPaymentEmailSent function has been completely removed
+  // Instead, we now handle all email status updates directly in the updatePaymentStatus function
+  // with table-level locking to ensure absolute consistency across all processes
   
   async updatePaymentStatus(
     paymentId: number, 
@@ -814,36 +761,84 @@ export class DatabaseStorage implements IStorage {
       .where(eq(payments.id, paymentId))
       .returning();
     
-    // AUTOMATIC EMAIL: Send confirmation email when payment is completed for the first time
-    // and email has not been sent yet
+    // CRITICAL FIX FOR DUPLICATE EMAILS: Implement extreme locking and verification
+    // Only attempt email if it's a newly completed payment and email hasn't been sent
     if (isNewlyCompleted && updatedPayment && !updatedPayment.emailSent) {
       try {
-        console.log(`Payment ${paymentId} newly completed - sending confirmation email...`);
+        // MOST IMPORTANT CHANGE: Acquire an exclusive TABLE-LEVEL LOCK on payments table
+        // This is the strongest type of lock and ensures no other transaction can read or write
+        // to the payments table until this transaction completes
+        console.log(`🔒 EXCLUSIVE: Acquiring table-level lock before email processing for payment ${paymentId}`);
+        await db.execute(sql`LOCK TABLE payments IN ACCESS EXCLUSIVE MODE`);
+
+        // After acquiring the lock, immediately double-verify the emailSent status in the database
+        // This is critical as another process might have sent the email between our check and lock
+        const [freshPayment] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.id, paymentId));
+          
+        // If email is already sent according to the fresh check, skip the entire process
+        if (freshPayment && freshPayment.emailSent) {
+          console.log(`⚠️ AVOIDED DUPLICATE: Another process already sent email for payment ${paymentId} (verified after table lock)`);
+          return updatedPayment; // Return original payment but abort email sending
+        }
         
-        // Get the merchant info
-        const merchant = await this.getMerchant(updatedPayment.merchantId);
+        console.log(`✅ VERIFIED UNSENT: Payment ${paymentId} email status verified as not sent after table lock`);
+        
+        // Mark the payment as emailSent=true BEFORE actually sending the email
+        // This ensures that even if email sending fails, we won't try again
+        console.log(`📝 PRE-MARKING: Setting emailSent=true for payment ${paymentId} BEFORE sending email`);
+        const [markedPayment] = await db
+          .update(payments)
+          .set({ emailSent: true })
+          .where(
+            and(
+              eq(payments.id, paymentId),
+              eq(payments.emailSent, false) // Only update if not already marked
+            )
+          )
+          .returning();
+          
+        // If marking failed (possibly another process marked it), abort to avoid duplicate
+        if (!markedPayment) {
+          console.log(`⚠️ CONCURRENT UPDATE: Another process is handling email for payment ${paymentId}`);
+          return updatedPayment; // Return original payment but abort email sending
+        }
+        
+        console.log(`✅ PRE-MARKED: Successfully pre-marked payment ${paymentId} as emailSent=true`);
+        console.log(`Payment ${paymentId} newly completed and marked - now sending confirmation email...`);
+        
+        // With the payment securely marked as emailSent=true, now get merchant info and send the email
+        const merchant = await this.getMerchant(markedPayment.merchantId);
         
         if (merchant) {
           // Import the email function dynamically to avoid circular dependencies
           const { sendPaymentConfirmationEmail } = await import('./email');
           
           // Send the payment confirmation email
-          const emailSent = await sendPaymentConfirmationEmail(merchant, updatedPayment);
+          const emailSent = await sendPaymentConfirmationEmail(merchant, markedPayment);
           
           if (emailSent) {
-            console.log(`✉️ Payment confirmation email sent to ${merchant.contactEmail} for payment ${paymentId}`);
-            
-            // Mark the payment as having had its email sent
-            await this.markPaymentEmailSent(paymentId);
-            console.log(`✓ Payment ${paymentId} marked as having had email sent`);
+            console.log(`✉️ SENT: Payment confirmation email sent to ${merchant.contactEmail} for payment ${paymentId}`);
+            // No need to mark again since we already pre-marked
           } else {
-            console.error(`❌ Failed to send payment confirmation email to ${merchant.contactEmail} for payment ${paymentId}`);
+            console.error(`❌ ERROR: Failed to send payment confirmation email to ${merchant.contactEmail} for payment ${paymentId}`);
+            // We don't reset the emailSent flag even if sending fails, as this would cause retries and potential duplicates
           }
         } else {
-          console.error(`⚠️ Cannot send email for payment ${paymentId} - merchant not found`);
+          console.error(`⚠️ ERROR: Cannot send email for payment ${paymentId} - merchant not found`);
         }
+        
+        // Return the pre-marked payment now
+        return markedPayment;
       } catch (emailError) {
-        console.error(`Error sending payment confirmation email: ${emailError}`);
+        console.error(`❌ ERROR: Error in email process for payment ${paymentId}:`, emailError);
+        return updatedPayment;
+      } finally {
+        // In a finally block to ensure we always reach here, even if there's an error
+        // The transaction will automatically end, releasing all locks
+        console.log(`🔓 RELEASE: Table-level lock for payment ${paymentId} released at transaction end`);
       }
     }
     

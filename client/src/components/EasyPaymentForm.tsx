@@ -62,12 +62,40 @@ const EasyPaymentForm: React.FC<EasyPaymentFormProps> = ({
 
   const handleSocialLogin = async () => {
     try {
+      console.log("EasyPaymentForm: Initiating social login");
       await login();
+      console.log("EasyPaymentForm: Social login completed successfully");
     } catch (error) {
       console.error('Login failed:', error);
+      
+      // Get a more descriptive error message
+      let errorMessage = "There was an error logging in. Please try again.";
+      
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+        
+        // Provide more helpful error messages based on common issues
+        if (error.message.includes("popup")) {
+          errorMessage = "Popup was blocked. Please allow popups for this site and try again.";
+        } else if (error.message.includes("cancelled")) {
+          errorMessage = "Login was cancelled. Please try again when you're ready.";
+        } else if (error.message.includes("network")) {
+          errorMessage = "Network error. Please check your internet connection and try again.";
+        } else if (error.message.includes("Buffer")) {
+          errorMessage = "Browser compatibility issue. Please try using Chrome or Edge.";
+        } else {
+          // Use the actual error message if it's informative
+          errorMessage = error.message || errorMessage;
+        }
+      }
+      
       toast({
         title: "Login Failed",
-        description: "There was an error logging in. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }

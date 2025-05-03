@@ -67,12 +67,15 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
             chainId: "0x" + BASE_CHAIN_ID.toString(16), // 8453 in hex
             rpcTarget: "https://mainnet.base.org",
             displayName: "Base",
-            blockExplorer: "https://basescan.org",
+            blockExplorerUrl: "https://basescan.org",
             ticker: "ETH",
             tickerName: "Ethereum",
           },
           uiConfig: {
-            theme: "dark",
+            theme: {
+              primary: "#00a8ff",
+              isDark: true
+            },
             loginMethodsOrder: ["google", "apple", "twitter", "discord"],
             defaultLanguage: "en",
             appLogo: "/assets/token-logo.png", // Your app logo
@@ -87,12 +90,15 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
           },
           adapterSettings: {
             whiteLabel: {
-              name: "CPXTB Platform",
+              // Correct white label settings
+              appName: "CPXTB Platform",
               logoLight: "/assets/token-logo.png",
               logoDark: "/assets/token-logo.png",
               defaultLanguage: "en",
-              dark: true,
+              mode: "dark", // Use mode instead of theme
             },
+            uxMode: "popup",
+            network: "sapphire_mainnet",
           },
         });
         
@@ -102,7 +108,8 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
         // Initialize Web3Auth
         await web3auth.initModal({
           modalConfig: {
-            [WALLET_ADAPTERS.OPENLOGIN]: {
+            // Use the correct enum values for wallet adapters
+            openlogin: {
               label: "Social Login",
               showOnDesktop: true,
               showOnMobile: true,
@@ -139,14 +146,40 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     try {
       setIsLoading(true);
+      console.log("Attempting Web3Auth login...");
+      
+      // Add more detailed logging
+      console.log("Web3Auth state before connect:", {
+        initialized: !!web3auth,
+        connected: web3auth.connected,
+        clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID?.substring(0, 5) + "..." // Log partial clientId for debugging
+      });
+      
       const web3authProvider = await web3auth.connect();
+      console.log("Web3Auth connect successful, setting provider");
       setProvider(web3authProvider);
+      
       if (web3auth.connected) {
+        console.log("Getting user info after successful connection");
         const userInfo = await web3auth.getUserInfo();
+        console.log("User info retrieved:", userInfo ? "success" : "empty");
         setUser(userInfo);
+      } else {
+        console.log("Web3Auth connected is false after connect call");
       }
     } catch (error) {
       console.error("Error logging in:", error);
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error("Error name:", error.name);
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      toast({
+        title: "Login Error",
+        description: error instanceof Error ? error.message : "Failed to connect with Web3Auth",
+        variant: "destructive",
+      });
       throw error;
     } finally {
       setIsLoading(false);
@@ -179,9 +212,10 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
     
     try {
-      const ethersProvider = new ethers.providers.Web3Provider(provider as any);
+      // Use ethers v5 syntax with proper imports
+      const ethersProvider = new ethers.BrowserProvider(provider as any);
       const network = await ethersProvider.getNetwork();
-      return network.chainId;
+      return Number(network.chainId);
     } catch (error) {
       console.error("Error getting chain ID:", error);
       throw error;
@@ -195,8 +229,9 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
     
     try {
-      const ethersProvider = new ethers.providers.Web3Provider(provider as any);
-      const signer = ethersProvider.getSigner();
+      // Use ethers v5+ syntax
+      const ethersProvider = new ethers.BrowserProvider(provider as any);
+      const signer = await ethersProvider.getSigner();
       const userAddress = await signer.getAddress();
       
       // Create contract instance for the CPXTB token
@@ -212,8 +247,8 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Get balance
       const balance = await tokenContract.balanceOf(userAddress);
       
-      // Format the balance
-      return ethers.utils.formatUnits(balance, decimals);
+      // Format the balance using ethers v5+ syntax
+      return ethers.formatUnits(balance, decimals);
     } catch (error) {
       console.error("Error getting balance:", error);
       return "0";
@@ -227,9 +262,9 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
     
     try {
-      const ethersProvider = new ethers.providers.Web3Provider(provider as any);
-      const signer = ethersProvider.getSigner();
-      const userAddress = await signer.getAddress();
+      // Use ethers v5+ syntax
+      const ethersProvider = new ethers.BrowserProvider(provider as any);
+      const signer = await ethersProvider.getSigner();
       
       // Create contract instance for the CPXTB token
       const tokenContract = new ethers.Contract(
@@ -241,8 +276,8 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
       // Get token decimals
       const decimals = await tokenContract.decimals();
       
-      // Parse amount to the correct format
-      const parsedAmount = ethers.utils.parseUnits(amount, decimals);
+      // Parse amount to the correct format using ethers v5+ syntax
+      const parsedAmount = ethers.parseUnits(amount, decimals);
       
       // Send transaction
       const tx = await tokenContract.transfer(to, parsedAmount);

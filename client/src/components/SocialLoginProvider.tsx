@@ -6,6 +6,9 @@ import { ethers } from 'ethers';
 import { BASE_CHAIN_ID, CPXTB_TOKEN_ADDRESS } from '@shared/constants';
 import { useToast } from '@/hooks/use-toast';
 
+// Import our buffer polyfill to ensure Buffer is available
+import '@/lib/buffer-polyfill';
+
 // ABI for ERC20 token interface (minimal for transfer function)
 const ERC20_ABI = [
   'function balanceOf(address owner) view returns (uint256)',

@@ -1,4 +1,11 @@
+// Load polyfills first, before any other imports
 import './lib/polyfills';
+
+// Log that polyfills have been initialized in main
+console.log('Main script running - Buffer polyfill status:', {
+  windowBuffer: typeof window !== 'undefined' && !!window.Buffer,
+  globalBuffer: typeof global !== 'undefined' && !!(global as any).Buffer,
+});
 
 // Use modern React 18 features for better performance
 import { createRoot } from "react-dom/client";

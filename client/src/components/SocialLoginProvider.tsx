@@ -1,4 +1,6 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+// Import Buffer directly from our polyfill to ensure it's loaded before Web3Auth
+import { Buffer } from '../lib/polyfills';
 import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
 import { Web3Auth } from '@web3auth/modal';
 import { OpenloginAdapter } from '@web3auth/openlogin-adapter';
@@ -8,6 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 
 // Use IProvider instead of deprecated SafeEventEmitterProvider
 type SafeEventEmitterProvider = IProvider;
+
+// Sanity check to ensure Buffer is correctly polyfilled
+console.log('Buffer check in SocialLoginProvider:', {
+  directBuffer: typeof Buffer !== 'undefined',
+  windowBuffer: typeof window !== 'undefined' && !!window.Buffer,
+  globalBuffer: typeof global !== 'undefined' && !!(global as any).Buffer
+});
 
 // ABI for ERC20 token interface (minimal for transfer function)
 const ERC20_ABI = [

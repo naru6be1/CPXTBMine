@@ -1,15 +1,15 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 // Import Buffer directly from our polyfill to ensure it's loaded before Web3Auth
 import { Buffer } from '../lib/polyfills';
-import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
+import { CHAIN_NAMESPACES } from '@web3auth/base';
 import { Web3Auth } from '@web3auth/modal';
 import { OpenloginAdapter } from '@web3auth/openlogin-adapter';
 import { ethers } from 'ethers';
 import { BASE_CHAIN_ID, CPXTB_TOKEN_ADDRESS } from '@shared/constants';
 import { useToast } from '@/hooks/use-toast';
 
-// Use IProvider instead of deprecated SafeEventEmitterProvider
-type SafeEventEmitterProvider = IProvider;
+// Use a generic type for the Web3Auth provider
+type SafeEventEmitterProvider = any;
 
 // Sanity check to ensure Buffer is correctly polyfilled
 console.log('Buffer check in SocialLoginProvider:', {

@@ -85,6 +85,7 @@ const Web3AuthLoginV3: React.FC = () => {
             theme: {
               primary: "#3b82f6",
             },
+            loginMethodsOrder: ["google", "facebook", "twitter", "apple", "email_passwordless"]
           },
           privateKeyProvider,
         });

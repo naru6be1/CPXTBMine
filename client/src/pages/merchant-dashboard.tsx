@@ -59,6 +59,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useWallet } from "@/hooks/use-wallet";
 import { useAuth } from "@/hooks/use-auth";
 import { QRCodeSVG } from 'qrcode.react';
+import PaymentQRCode from '@/components/PaymentQRCode';
 import { User as UserType } from "@shared/schema";
 import { PaymentNotification, PaymentSuccessNotification } from "@/components/payment-notification";
 import { MerchantPamphlet } from "@/components/merchant-pamphlet";
@@ -1802,15 +1803,16 @@ export default function MerchantDashboard() {
 
         <TabsContent value="payments">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Payment Creation Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Create Payment Request</CardTitle>
-                <CardDescription>
-                  Generate a payment request for your customers
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            <div className="space-y-6">
+              {/* Payment Creation Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Payment Request</CardTitle>
+                  <CardDescription>
+                    Generate a payment request for your customers
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                 {/* Current Selected Business Display */}
                 {selectedMerchant && (
                   <div className="mb-4 p-3 border rounded-md bg-muted/20">
@@ -1958,6 +1960,79 @@ export default function MerchantDashboard() {
                 </CardContent>
               </Card>
             )}
+            </div>
+            
+            {/* Second column */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Social Login Payment QR Code</CardTitle>
+                <CardDescription>
+                  Make it easier for customers to pay with CPXTB by generating a social login-enabled QR code
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {selectedMerchant ? (
+                  <div className="space-y-6">
+                    <div className="bg-sky-50 dark:bg-sky-950 p-4 rounded-md border border-sky-200 dark:border-sky-800 space-y-2 mb-4">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-sky-500 mt-0.5" />
+                        <div>
+                          <h4 className="font-medium text-sm">What is Social Login Payment?</h4>
+                          <p className="text-sm text-muted-foreground">
+                            This QR code allows your customers to pay with CPXTB tokens without needing a crypto wallet. 
+                            They can login with their Google, Apple, or email accounts to make payments.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-center justify-center">
+                      <PaymentQRCode 
+                        merchantAddress={selectedMerchant.walletAddress}
+                        amount={paymentForm.amountUsd || "10.00"}
+                        amountUSD={paymentForm.amountUsd || "10.00"}
+                        reference={`social-${selectedMerchant.id}-${Date.now()}`}
+                        className="w-48 h-48 mb-4"
+                      />
+                    </div>
+                    
+                    <div className="space-y-4 text-center">
+                      <p className="text-sm">
+                        <span className="font-medium">Business:</span> {selectedMerchant.businessName}
+                      </p>
+                      <p className="text-sm">
+                        <span className="font-medium">Amount:</span> ${paymentForm.amountUsd || "10.00"} USD
+                      </p>
+                      
+                      <div className="flex justify-center gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            // Update the QR code with a new reference
+                            setPaymentForm({
+                              ...paymentForm,
+                              description: `Payment for ${selectedMerchant.businessName}`
+                            });
+                            
+                            toast({
+                              title: "QR code updated",
+                              description: "A new social login payment QR code has been generated",
+                            });
+                          }}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Refresh QR Code
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">Please select a business above to generate a social login payment QR code</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

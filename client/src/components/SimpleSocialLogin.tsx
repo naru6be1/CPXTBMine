@@ -35,23 +35,36 @@ const SimpleSocialLogin: React.FC = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        console.log('Initializing Web3Auth - Buffer status:', {
+        setIsInitializing(true);
+        setError(null);
+        
+        // Step 1: Check Buffer availability (required for Web3Auth)
+        const bufferStatus = {
           windowBuffer: typeof window !== 'undefined' && !!window.Buffer,
           globalBuffer: typeof global !== 'undefined' && !!(global as any).Buffer
-        });
+        };
+        
+        console.log('Initializing Web3Auth - Buffer status:', bufferStatus);
+        
+        if (!bufferStatus.windowBuffer && !bufferStatus.globalBuffer) {
+          console.error("Buffer is not available in either window or global scope");
+          throw new Error("Buffer polyfill not initialized correctly");
+        }
 
-        // Check if client ID is available and add detailed logging
-        console.log("Web3Auth Client ID check:", { 
+        // Step 2: Verify environment variables
+        const clientIdStatus = { 
           exists: !!import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
           value: import.meta.env.VITE_WEB3AUTH_CLIENT_ID ? 
                 import.meta.env.VITE_WEB3AUTH_CLIENT_ID.substring(0, 5) + "..." : "undefined" 
-        });
+        };
+        
+        console.log("Web3Auth Client ID check:", clientIdStatus);
         
         if (!import.meta.env.VITE_WEB3AUTH_CLIENT_ID) {
           throw new Error("Missing Web3Auth Client ID");
         }
 
-        console.log("Attempting to create Web3Auth instance...");
+        console.log("Step 3: Creating Web3Auth instance...");
         
         // Create Web3Auth instance with type assertion to bypass type errors
         // @ts-ignore - Ignoring type errors due to version compatibility issues
@@ -67,8 +80,14 @@ const SimpleSocialLogin: React.FC = () => {
             blockExplorerUrl: "https://basescan.org",
             ticker: "ETH",
             tickerName: "Ethereum",
+          },
+          // Required for Web3Auth to work properly
+          privateKeyProvider: {
+            name: 'custom-pkp',
+            options: {
+              encryptionKey: 'web3auth-default-pkp',
+            }
           }
-          // The privateKeyProvider is configured on server-side with the client secret
         });
         
         console.log("Web3Auth instance created successfully");
@@ -110,9 +129,22 @@ const SimpleSocialLogin: React.FC = () => {
       } catch (error) {
         console.error("Error initializing Web3Auth:", error);
         let message = "Failed to initialize Web3Auth";
+        
         if (error instanceof Error) {
           message = error.message;
+          
+          // Provide more user-friendly error messages for common initialization issues
+          if (message.includes("Buffer")) {
+            message = "Web3Auth dependency error: Buffer not available. This is a technical issue that needs to be fixed by the developers.";
+          } else if (message.includes("Client ID")) {
+            message = "Web3Auth setup error: Client ID is missing or invalid. Please contact support.";
+          } else if (message.includes("network")) {
+            message = "Web3Auth network error: Cannot connect to authentication service. Please check your internet connection.";
+          } else if (message.includes("adapter")) {
+            message = "Web3Auth configuration error: Login adapter not properly configured.";
+          }
         }
+        
         setError(message);
         toast({
           title: "Initialization Error",
@@ -129,6 +161,7 @@ const SimpleSocialLogin: React.FC = () => {
 
   const login = async () => {
     if (!web3auth) {
+      console.error("Web3Auth instance not found when attempting login");
       toast({
         title: "Error",
         description: "Web3Auth not initialized",
@@ -142,25 +175,48 @@ const SimpleSocialLogin: React.FC = () => {
       setError(null);
       console.log("Attempting Web3Auth login...");
 
+      // Step 1: Connect to the Web3Auth provider
+      console.log("Connecting to Web3Auth provider...");
       const web3authProvider = await web3auth.connect();
+      console.log("Web3Auth provider connected successfully");
       setProvider(web3authProvider);
 
+      // Step 2: Check connection and get user info
       if (web3auth.connected) {
+        console.log("Web3Auth connection confirmed, retrieving user info...");
         const user = await web3auth.getUserInfo();
         setUserInfo(user);
-        console.log("User logged in:", user);
+        console.log("User logged in successfully:", {
+          name: user.name || 'Unknown',
+          email: user.email ? `${user.email.substring(0, 3)}...` : 'Not available',
+          profileImage: user.profileImage ? 'Available' : 'Not available'
+        });
 
         toast({
           title: "Success",
           description: "You've successfully logged in!",
         });
+      } else {
+        console.warn("Web3Auth provider connected but web3auth.connected is false");
+        throw new Error("Web3Auth connection unsuccessful");
       }
     } catch (error) {
       console.error("Error during login:", error);
       let message = "Failed to login";
+      
       if (error instanceof Error) {
         message = error.message;
+        
+        // Handle common Web3Auth errors with more user-friendly messages
+        if (message.includes("popup")) {
+          message = "Popup was blocked. Please allow popups for this site.";
+        } else if (message.includes("timeout")) {
+          message = "Login timed out. Please try again with a faster connection.";
+        } else if (message.includes("cancelled")) {
+          message = "Login was cancelled by the user.";
+        }
       }
+      
       setError(message);
       toast({
         title: "Login Error",
@@ -198,30 +254,52 @@ const SimpleSocialLogin: React.FC = () => {
 
   const getAddress = async () => {
     if (!provider) {
+      console.error("Attempted to get address without an initialized provider");
       toast({
         title: "Error",
-        description: "Provider not initialized",
+        description: "Provider not initialized. Please login first.",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      console.log("Getting wallet address from provider...");
       const ethersProvider = new ethers.BrowserProvider(provider as any);
-      const signer = await ethersProvider.getSigner();
-      const address = await signer.getAddress();
+      console.log("Created ethers provider successfully");
       
+      const signer = await ethersProvider.getSigner();
+      console.log("Got signer from provider");
+      
+      const address = await signer.getAddress();
+      console.log("Retrieved wallet address:", address);
+      
+      // Add copy-to-clipboard functionality by showing a longer toast
       toast({
         title: "Your Wallet Address",
         description: address,
+        duration: 5000, // Show for 5 seconds to give time to copy
       });
       
       return address;
     } catch (error) {
-      console.error("Error getting address:", error);
+      console.error("Error getting wallet address:", error);
+      
+      let errorMessage = "Failed to get wallet address";
+      if (error instanceof Error) {
+        // Provide more specific error messages based on the error
+        if (error.message.includes("network")) {
+          errorMessage = "Network error. Please check your connection.";
+        } else if (error.message.includes("user rejected")) {
+          errorMessage = "Request was rejected. Please try again.";
+        } else if (error.message.includes("timeout")) {
+          errorMessage = "Request timed out. Please try again.";
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to get wallet address",
+        title: "Wallet Error",
+        description: errorMessage,
         variant: "destructive",
       });
     }

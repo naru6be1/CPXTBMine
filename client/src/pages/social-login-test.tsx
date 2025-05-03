@@ -1,10 +1,13 @@
 import React from 'react';
-import SimpleSocialLoginV2 from '../components/SimpleSocialLoginV2';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import BasicSocialLogin from '../components/BasicSocialLogin';
+import SimpleSocialLoginV2 from '../components/SimpleSocialLoginV2';
 
 /**
- * Test page for the simplified social login component
+ * Test page for the social login components
  */
 const SocialLoginTestPage: React.FC = () => {
   return (
@@ -14,26 +17,38 @@ const SocialLoginTestPage: React.FC = () => {
           <CardHeader>
             <CardTitle>Social Login Test Page</CardTitle>
             <CardDescription>
-              This is a test page for the Web3Auth social login component.
-              It provides a reliable way to test the login functionality in isolation.
+              This page lets you test different implementations of social login functionality.
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <Alert variant="warning" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Web3Auth Integration Issue</AlertTitle>
+              <AlertDescription>
+                We're encountering issues with the Web3Auth integration related to the privateKeyProvider configuration.
+                While we resolve this, we've provided a basic demo version that simulates the login flow.
+              </AlertDescription>
+            </Alert>
+            
             <p className="mb-4">
-              This component is a simplified implementation of Web3Auth with minimal configuration.
-              It works by directly importing the Buffer polyfill and configuring Web3Auth with streamlined settings.
-            </p>
-            <p className="mb-4">
-              We've updated the component to use a more reliable configuration that should work better across different environments.
-            </p>
-            <p>
-              Try logging in with your social account below to test if it works correctly.
+              The working demo version shows how the login flow will work with social accounts,
+              while the Web3Auth version shows our progress on the actual blockchain integration.
             </p>
           </CardContent>
         </Card>
         
-        {/* Using our new improved version */}
-        <SimpleSocialLoginV2 />
+        <Tabs defaultValue="basic" className="mb-8">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="basic">Working Demo</TabsTrigger>
+            <TabsTrigger value="web3auth">Web3Auth (In Progress)</TabsTrigger>
+          </TabsList>
+          <TabsContent value="basic" className="mt-4">
+            <BasicSocialLogin />
+          </TabsContent>
+          <TabsContent value="web3auth" className="mt-4">
+            <SimpleSocialLoginV2 />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

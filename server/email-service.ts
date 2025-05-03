@@ -27,9 +27,13 @@ export async function sendPaymentEmail(merchant: Merchant, payment: Payment): Pr
     try {
       // Use a raw SQL insert with ON CONFLICT DO NOTHING to handle the potential duplicate
       // This is the most reliable way to prevent race conditions
+      // Use explicit type casting for PostgreSQL
+      const paymentId = payment.id;
+      const contactEmail = merchant.contactEmail || 'unknown@example.com';
+      
       const rawResult = await db.execute(sql`
         INSERT INTO email_log (payment_id, email_type, email_key, recipient)
-        VALUES (${payment.id}, 'payment_confirmation', ${emailKey}, ${merchant.contactEmail})
+        VALUES (${paymentId}, 'payment_confirmation', ${emailKey}, ${contactEmail})
         ON CONFLICT (email_key) DO NOTHING
         RETURNING id
       `);
@@ -74,6 +78,22 @@ export async function sendPaymentEmail(merchant: Merchant, payment: Payment): Pr
         
         const existingLog = existingRows.length > 0 ? existingRows[0] : null;
         console.log(`🔍 Existing email record found:`, existingLog || 'None');
+        
+        // Also mark the payment as having had email sent if it hasn't been marked
+        // This ensures consistency even if the original email send didn't update this flag
+        if (!payment.emailSent) {
+          try {
+            await db.execute(sql`
+              UPDATE payments 
+              SET email_sent = true 
+              WHERE id = ${payment.id} AND email_sent = false
+            `);
+            console.log(`✅ Updated email_sent status for payment ${payment.id} during duplicate check`);
+          } catch (updateError) {
+            console.error(`❌ Failed to update email_sent status:`, updateError);
+            // We don't fail the operation if this update fails
+          }
+        }
         
         // Return success - we're considering this "already sent" as success
         return true;

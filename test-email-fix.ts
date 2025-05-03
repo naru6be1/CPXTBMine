@@ -34,8 +34,24 @@ async function testAutomaticEmailSend() {
       return false;
     }
     
-    const merchant = merchantRows[0] as unknown as Merchant;
-    const payment = paymentRows[0] as unknown as Payment;
+    console.log('Raw merchant data:', merchantRows[0]);
+    console.log('Raw payment data:', paymentRows[0]);
+    
+    // Create a properly structured merchant and payment object with required fields
+    const merchant = {
+      id: Number(merchantRows[0].id) || 1,
+      businessName: String(merchantRows[0].business_name || 'Test Business'),
+      contactEmail: String(merchantRows[0].contact_email || 'test@example.com'),
+      ...merchantRows[0]
+    } as Merchant;
+    
+    const payment = {
+      id: Number(paymentRows[0].id) || 1,
+      amountUsd: Number(paymentRows[0].amount_usd) || 0,
+      amountCpxtb: String(paymentRows[0].amount_cpxtb || '0'),
+      emailSent: Boolean(paymentRows[0].email_sent || false),
+      ...paymentRows[0]
+    } as Payment;
     
     console.log(`🧪 Found merchant: ${merchant.businessName} (ID: ${merchant.id})`);
     console.log(`🧪 Found payment: ID ${payment.id}, Amount: ${payment.amountUsd} USD (${payment.amountCpxtb} CPXTB)`);

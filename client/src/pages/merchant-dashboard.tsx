@@ -1992,7 +1992,7 @@ export default function MerchantDashboard() {
                         amount={paymentForm.amountUsd || "10.00"}
                         amountUSD={paymentForm.amountUsd || "10.00"}
                         reference={`social-${selectedMerchant.id}-${Date.now()}`}
-                        className="w-48 h-48 mb-4"
+                        className="mb-4 max-w-full"
                       />
                     </div>
                     

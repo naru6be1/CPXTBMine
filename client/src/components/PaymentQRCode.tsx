@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Coins } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Coins, ExternalLink } from 'lucide-react';
 
 interface PaymentQRCodeProps {
   merchantAddress: string;
@@ -53,18 +54,24 @@ const PaymentQRCode: React.FC<PaymentQRCodeProps> = ({
           </Badge>
         </div>
         <CardDescription>
-          Scan to pay with social login - No crypto wallet needed
+          Scan or click to pay with social login - No crypto wallet needed
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center">
-        <div className="bg-white p-4 rounded-lg">
+        <a 
+          href={paymentUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="cursor-pointer block bg-white p-4 rounded-lg hover:shadow-md transition-shadow"
+          title="Click to open payment page"
+        >
           <QRCodeSVG 
             value={paymentUrl}
             size={200}
             level="H"
             includeMargin={true}
           />
-        </div>
+        </a>
         <div className="mt-4 text-center">
           <p className="font-medium">{amount} CPXTB</p>
           {amountUSD && (
@@ -73,10 +80,21 @@ const PaymentQRCode: React.FC<PaymentQRCodeProps> = ({
           {reference && (
             <p className="text-xs mt-2 text-muted-foreground">Reference: {reference}</p>
           )}
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-3" 
+            onClick={() => window.open(paymentUrl, '_blank')}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open Payment Page
+          </Button>
         </div>
       </CardContent>
-      <CardFooter className="text-center text-xs text-muted-foreground">
-        Simply scan with your phone's camera and follow the prompts
+      <CardFooter className="text-center text-xs text-muted-foreground flex flex-col gap-1">
+        <p>Scan with your phone's camera or click to test on this device</p>
+        <p className="text-xs text-muted-foreground">Opens the social login payment page</p>
       </CardFooter>
     </Card>
   );

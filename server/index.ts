@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import enhancedChallengeMiddleware from "./middleware/enhanced-challenge-middleware";
+import { runDatabaseMigrations } from "./migrations";
 
 // Add more detailed startup logging
 log("Starting server initialization with enhanced logging...");
@@ -89,6 +90,11 @@ app.use((req, res, next) => {
       log("Available environment variables:", Object.keys(process.env).join(', '));
       throw new Error(errorMessage);
     }
+    
+    // Run database migrations
+    log("Running database migrations...");
+    await runDatabaseMigrations();
+    log("Database migrations completed");
 
     // Initialize routes
     log("Registering routes...");

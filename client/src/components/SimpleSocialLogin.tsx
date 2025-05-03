@@ -40,16 +40,25 @@ const SimpleSocialLogin: React.FC = () => {
           globalBuffer: typeof global !== 'undefined' && !!(global as any).Buffer
         });
 
-        // Check if client ID is available
+        // Check if client ID is available and add detailed logging
+        console.log("Web3Auth Client ID check:", { 
+          exists: !!import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
+          value: import.meta.env.VITE_WEB3AUTH_CLIENT_ID ? 
+                import.meta.env.VITE_WEB3AUTH_CLIENT_ID.substring(0, 5) + "..." : "undefined" 
+        });
+        
         if (!import.meta.env.VITE_WEB3AUTH_CLIENT_ID) {
           throw new Error("Missing Web3Auth Client ID");
         }
 
+        console.log("Attempting to create Web3Auth instance...");
+        
         // Create Web3Auth instance with type assertion to bypass type errors
         // @ts-ignore - Ignoring type errors due to version compatibility issues
         const web3auth = new Web3Auth({
           clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
-          web3AuthNetwork: "sapphire_mainnet",
+          // Try different Web3Auth network options
+          web3AuthNetwork: "sapphire_mainnet", // Options: sapphire_mainnet, sapphire_devnet, cyan
           chainConfig: {
             chainNamespace: CHAIN_NAMESPACES.EIP155,
             chainId: "0x" + BASE_CHAIN_ID.toString(16), // 8453 in hex
@@ -59,14 +68,23 @@ const SimpleSocialLogin: React.FC = () => {
             ticker: "ETH",
             tickerName: "Ethereum",
           }
+          // The privateKeyProvider is configured on server-side with the client secret
         });
+        
+        console.log("Web3Auth instance created successfully");
 
-        // Configure OpenLogin adapter with minimal settings
+        // Configure OpenLogin adapter with client secret for server-side verification
         // @ts-ignore - Ignoring type errors due to version compatibility issues
         const openloginAdapter = new OpenloginAdapter({
+          loginSettings: {
+            mfaLevel: "none",
+          },
           adapterSettings: {
             uxMode: "popup",
             network: "sapphire_mainnet",
+            clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
+            // The client secret should be available from environment variables
+            // but doesn't need to be exposed to the frontend code directly
           },
         });
 

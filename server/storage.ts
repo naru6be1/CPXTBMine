@@ -61,7 +61,6 @@ export interface IStorage {
   getPayment(id: number): Promise<Payment | undefined>;
   getPaymentByReference(paymentReference: string): Promise<Payment | undefined>;
   getPaymentsByMerchant(merchantId: number): Promise<Payment[]>;
-  markPaymentEmailSent(paymentId: number): Promise<Payment>;
   updatePaymentStatus(
     paymentId: number, 
     status: string, 
@@ -761,84 +760,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(payments.id, paymentId))
       .returning();
     
-    // CRITICAL FIX FOR DUPLICATE EMAILS: Implement extreme locking and verification
-    // Only attempt email if it's a newly completed payment and email hasn't been sent
-    if (isNewlyCompleted && updatedPayment && !updatedPayment.emailSent) {
+    // NEW APPROACH: Use a dedicated email service with database-level uniqueness protection
+    // Only attempt email if it's a newly completed payment
+    if (isNewlyCompleted && updatedPayment) {
       try {
-        // MOST IMPORTANT CHANGE: Acquire an exclusive TABLE-LEVEL LOCK on payments table
-        // This is the strongest type of lock and ensures no other transaction can read or write
-        // to the payments table until this transaction completes
-        console.log(`🔒 EXCLUSIVE: Acquiring table-level lock before email processing for payment ${paymentId}`);
-        await db.execute(sql`LOCK TABLE payments IN ACCESS EXCLUSIVE MODE`);
-
-        // After acquiring the lock, immediately double-verify the emailSent status in the database
-        // This is critical as another process might have sent the email between our check and lock
-        const [freshPayment] = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.id, paymentId));
-          
-        // If email is already sent according to the fresh check, skip the entire process
-        if (freshPayment && freshPayment.emailSent) {
-          console.log(`⚠️ AVOIDED DUPLICATE: Another process already sent email for payment ${paymentId} (verified after table lock)`);
-          return updatedPayment; // Return original payment but abort email sending
-        }
+        console.log(`🆕 NEXT GEN APPROACH: Using email service with DB-level uniqueness for payment ${paymentId}`);
         
-        console.log(`✅ VERIFIED UNSENT: Payment ${paymentId} email status verified as not sent after table lock`);
-        
-        // Mark the payment as emailSent=true BEFORE actually sending the email
-        // This ensures that even if email sending fails, we won't try again
-        console.log(`📝 PRE-MARKING: Setting emailSent=true for payment ${paymentId} BEFORE sending email`);
-        const [markedPayment] = await db
-          .update(payments)
-          .set({ emailSent: true })
-          .where(
-            and(
-              eq(payments.id, paymentId),
-              eq(payments.emailSent, false) // Only update if not already marked
-            )
-          )
-          .returning();
-          
-        // If marking failed (possibly another process marked it), abort to avoid duplicate
-        if (!markedPayment) {
-          console.log(`⚠️ CONCURRENT UPDATE: Another process is handling email for payment ${paymentId}`);
-          return updatedPayment; // Return original payment but abort email sending
-        }
-        
-        console.log(`✅ PRE-MARKED: Successfully pre-marked payment ${paymentId} as emailSent=true`);
-        console.log(`Payment ${paymentId} newly completed and marked - now sending confirmation email...`);
-        
-        // With the payment securely marked as emailSent=true, now get merchant info and send the email
-        const merchant = await this.getMerchant(markedPayment.merchantId);
+        // Get the merchant
+        const merchant = await this.getMerchant(updatedPayment.merchantId);
         
         if (merchant) {
-          // Import the email function dynamically to avoid circular dependencies
-          const { sendPaymentConfirmationEmail } = await import('./email');
+          // Import the new email service
+          const { sendPaymentEmail } = await import('./email-service');
           
-          // Send the payment confirmation email
-          const emailSent = await sendPaymentConfirmationEmail(merchant, markedPayment);
+          // Use the new email service that prevents duplicates via DB constraints
+          const result = await sendPaymentEmail(merchant, updatedPayment);
           
-          if (emailSent) {
-            console.log(`✉️ SENT: Payment confirmation email sent to ${merchant.contactEmail} for payment ${paymentId}`);
-            // No need to mark again since we already pre-marked
+          if (result) {
+            console.log(`✅ SUCCESS: Email service completed email flow for payment ${paymentId}`);
           } else {
-            console.error(`❌ ERROR: Failed to send payment confirmation email to ${merchant.contactEmail} for payment ${paymentId}`);
-            // We don't reset the emailSent flag even if sending fails, as this would cause retries and potential duplicates
+            console.error(`❌ ERROR: Email service failed to complete email flow for payment ${paymentId}`);
           }
         } else {
           console.error(`⚠️ ERROR: Cannot send email for payment ${paymentId} - merchant not found`);
         }
-        
-        // Return the pre-marked payment now
-        return markedPayment;
       } catch (emailError) {
-        console.error(`❌ ERROR: Error in email process for payment ${paymentId}:`, emailError);
-        return updatedPayment;
-      } finally {
-        // In a finally block to ensure we always reach here, even if there's an error
-        // The transaction will automatically end, releasing all locks
-        console.log(`🔓 RELEASE: Table-level lock for payment ${paymentId} released at transaction end`);
+        console.error(`❌ ERROR: Error in email service for payment ${paymentId}:`, emailError);
       }
     }
     

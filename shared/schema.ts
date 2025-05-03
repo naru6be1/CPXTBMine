@@ -247,3 +247,20 @@ export type Merchant = typeof merchants.$inferSelect;
 
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+
+// Create a specialized table just for tracking sent emails
+// This provides an absolute guarantee against duplicates via unique constraints
+export const emailLog = pgTable("email_log", {
+  id: serial("id").primaryKey(),
+  paymentId: integer("payment_id").notNull(),
+  emailType: text("email_type").notNull(), // "payment_confirmation", "password_reset", etc.
+  // Create a compound unique identifier that prevents duplicate emails
+  // We'll use a composite primary key constraint with a custom index during migration
+  emailKey: text("email_key").notNull().unique(), // Unique identifier for this specific email (e.g. "payment_123_confirmation")
+  recipient: text("recipient").notNull(),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type EmailLog = typeof emailLog.$inferSelect;
+export type InsertEmailLog = typeof emailLog.$inferInsert;

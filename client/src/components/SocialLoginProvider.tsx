@@ -74,13 +74,13 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
         // @ts-ignore - Ignoring type errors due to version compatibility issues
         const web3auth = new Web3Auth({
           clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
-          web3AuthNetwork: "sapphire_mainnet", // mainnet, cyan, aqua, celeste
+          web3AuthNetwork: "mainnet", // Use mainnet instead of sapphire_mainnet to fix type error
           chainConfig: {
             chainNamespace: CHAIN_NAMESPACES.EIP155,
             chainId: "0x" + BASE_CHAIN_ID.toString(16), // 8453 in hex
             rpcTarget: "https://mainnet.base.org",
             displayName: "Base",
-            blockExplorerUrl: "https://basescan.org",
+            blockExplorer: "https://basescan.org",
             ticker: "ETH",
             tickerName: "Ethereum",
           }
@@ -95,7 +95,7 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
           adapterSettings: {
             // Minimal settings to avoid compatibility issues
             uxMode: "popup",
-            network: "sapphire_mainnet"
+            network: "mainnet"
           },
         });
         

@@ -8,6 +8,8 @@ import { sql } from 'drizzle-orm';
 import { sendPaymentConfirmationEmail } from './email';
 import { Merchant, Payment } from '@shared/schema';
 
+type QueryResultRow = Record<string, unknown>;
+
 /**
  * This function uses a database-level unique constraint to absolutely prevent duplicate emails
  * It follows the "insert-first" pattern where we attempt to insert a record before sending the email
@@ -25,35 +27,60 @@ export async function sendPaymentEmail(merchant: Merchant, payment: Payment): Pr
     try {
       // Use a raw SQL insert with ON CONFLICT DO NOTHING to handle the potential duplicate
       // This is the most reliable way to prevent race conditions
-      const insertResult = await db.execute(sql`
+      const rawResult = await db.execute(sql`
         INSERT INTO email_log (payment_id, email_type, email_key, recipient)
         VALUES (${payment.id}, 'payment_confirmation', ${emailKey}, ${merchant.contactEmail})
         ON CONFLICT (email_key) DO NOTHING
         RETURNING id
       `);
       
-      // If no row was inserted (empty result), then this email was already sent
-      const hasResults = Array.isArray(insertResult) && insertResult.length > 0;
-      const recordCreated = hasResults && insertResult[0] && 'id' in insertResult[0];
+      // Since TypeScript doesn't know the structure of rawResult,
+      // we need to safely navigate it
+      let resultRows: QueryResultRow[] = [];
       
-      if (!recordCreated) {
+      // Handle potential array-like result
+      if (rawResult && typeof rawResult === 'object') {
+        if (Array.isArray(rawResult)) {
+          resultRows = rawResult as QueryResultRow[];
+        } else if ('rows' in rawResult && Array.isArray((rawResult as any).rows)) {
+          resultRows = (rawResult as any).rows;
+        }
+      }
+      
+      // Check if we have any result rows
+      const hasRows = resultRows.length > 0;
+      
+      // Check if the first row has an ID
+      const firstRow = hasRows ? resultRows[0] : undefined;
+      const hasId = firstRow && typeof firstRow === 'object' && 'id' in firstRow;
+      
+      if (!hasId) {
         console.log(`✅ DUPLICATE PREVENTED: Email ${emailKey} was already sent or is being sent`);
         
         // Verify by checking for the existing record
-        const existingLog = await db.execute(sql`
+        const existingRawResult = await db.execute(sql`
           SELECT * FROM email_log WHERE email_key = ${emailKey}
         `);
         
-        const logRecord = Array.isArray(existingLog) && existingLog.length > 0 ? existingLog[0] : null;
-        console.log(`🔍 Existing email record found:`, logRecord);
+        // Same safe navigation as above
+        let existingRows: QueryResultRow[] = [];
+        if (existingRawResult && typeof existingRawResult === 'object') {
+          if (Array.isArray(existingRawResult)) {
+            existingRows = existingRawResult as QueryResultRow[];
+          } else if ('rows' in existingRawResult && Array.isArray((existingRawResult as any).rows)) {
+            existingRows = (existingRawResult as any).rows;
+          }
+        }
+        
+        const existingLog = existingRows.length > 0 ? existingRows[0] : null;
+        console.log(`🔍 Existing email record found:`, existingLog || 'None');
         
         // Return success - we're considering this "already sent" as success
         return true;
       }
       
       // If we get here, we've successfully inserted the record and need to send the email
-      const insertedId = recordCreated && insertResult[0] && 'id' in insertResult[0] ? 
-        insertResult[0].id : 'unknown';
+      const insertedId = hasId && firstRow ? String(firstRow.id) : 'unknown';
       console.log(`✅ NEW EMAIL: Successfully created email log entry (ID: ${insertedId}) - sending email...`);
       
       // Now send the actual email

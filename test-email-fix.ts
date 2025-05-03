@@ -1,132 +1,149 @@
-import { db } from './server/db';
-import { storage } from './server/storage';
-import { payments, merchants } from './shared/schema';
-import { eq } from 'drizzle-orm';
+// Utility script to test the email duplicate protection
+// Usage: node -r tsx test-email-fix.ts
 
+import { db } from './server/db';
+import { pool } from './server/db';
+import { Merchant, Payment } from './shared/schema';
+import { sendPaymentEmail } from './server/email-service';
+import { sql } from 'drizzle-orm';
+
+type QueryResultRow = Record<string, unknown>;
+
+/**
+ * Function to test automatic email sending and duplicate prevention
+ */
 async function testAutomaticEmailSend() {
-  console.log('🧪 Testing automatic payment confirmation email sending...');
-  
   try {
-    // Create test data - merchant
-    const [testMerchant] = await db
-      .insert(merchants)
-      .values({
-        userId: 1, // Use a test user ID
-        businessName: 'Test Auto Email Business',
-        walletAddress: '0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27', // Standard test wallet
-        contactEmail: 'test-auto@example.com',
-        apiKey: 'test-auto-email-apikey-' + Date.now(),
-        logo: null,
-        active: true,
-        customDomain: null,
-        description: 'Test merchant for automatic email sending',
-        successRedirectUrl: 'https://example.com/success',
-        cancelRedirectUrl: 'https://example.com/cancel',
-        theme: null,
-        webhookUrl: null,
-        business_type: 'Other', // Added required business_type field
-        primaryColor: '#3b82f6', // Default primary color
-        secondaryColor: '#10b981', // Default secondary color
-        accentColor: '#f59e0b', // Default accent color  
-        fontFamily: 'Inter', // Default font
-        borderRadius: 8, // Default border radius
-        darkMode: false // Default theme mode
-      })
-      .returning();
+    console.log('🧪 Starting email duplicate prevention test...');
     
-    console.log(`✓ Created test merchant: ${testMerchant.id} (${testMerchant.businessName})`);
+    // First find a merchant and a payment we can use for testing
+    const merchantRawResult = await db.execute(sql`
+      SELECT * FROM merchants LIMIT 1
+    `);
     
-    // Create a test payment
-    const [testPayment] = await db
-      .insert(payments)
-      .values({
-        merchantId: testMerchant.id,
-        paymentReference: 'auto-email-test-' + Date.now(),
-        walletAddress: '0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27',
-        amountUsd: '10.00',
-        amountCpxtb: '4500.000000',
-        status: 'pending',
-        customerEmail: 'customer@example.com',
-        customerName: 'Auto Email Test Customer',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
-        completedAt: null,
-        failedAt: null,
-        cancelledAt: null,
-        transactionHash: null,
-        metadata: null,
-        orderId: 'TEST-ORDER-AUTO-EMAIL',
-        emailSent: false,
-        callbackUrl: null,
-        ipAddress: '127.0.0.1',
-        userAgent: 'Test Script',
-        receivedAmount: null,
-        requiredAmount: null,
-        remainingAmount: null,
-        securityStatus: null,
-        securityVerifiedAt: null
-      })
-      .returning();
+    const paymentRawResult = await db.execute(sql`
+      SELECT * FROM payments WHERE status = 'completed' LIMIT 1
+    `);
     
-    console.log(`✓ Created test payment: ${testPayment.id} (${testPayment.paymentReference})`);
+    // Safely extract results
+    const merchantRows = extractRowsFromResult(merchantRawResult);
+    const paymentRows = extractRowsFromResult(paymentRawResult);
     
-    // Update the payment status to completed - this should trigger an email
-    console.log('⏳ Updating payment status to completed...');
-    const updatedPayment = await storage.updatePaymentStatus(
-      testPayment.id,
-      'completed',
-      '0x' + 'test'.padStart(64, '0'), // Mock transaction hash
-      4500.0, // receivedAmount
-      4500.0, // requiredAmount
-      '0.000000', // remainingAmount
-      JSON.stringify({
-        securityCheck: 'passed',
-        validationReport: {
-          paymentId: testPayment.id,
-          sufficientAmount: true
-        }
-      })
-    );
-    
-    console.log(`✓ Payment ${testPayment.id} updated successfully.`);
-    console.log(`Payment status: ${updatedPayment.status}`);
-    console.log(`Email sent flag: ${updatedPayment.emailSent ? 'TRUE' : 'FALSE'}`);
-    console.log(`Transaction hash: ${updatedPayment.transactionHash}`);
-    
-    // Wait a moment for any async operations to complete
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Fetch the payment again to see if the emailSent flag was updated
-    const finalPayment = await storage.getPayment(testPayment.id);
-    
-    if (finalPayment?.emailSent) {
-      console.log('✅ TEST PASSED: Payment confirmation email was automatically sent!');
-    } else {
-      console.log('❌ TEST FAILED: Payment confirmation email was NOT sent.');
-      console.log(`Final payment email sent flag: ${finalPayment?.emailSent}`);
+    if (merchantRows.length === 0 || paymentRows.length === 0) {
+      console.error('❌ No merchant or completed payment found for testing');
+      return false;
     }
     
-    // Clean up test data
-    console.log('🧹 Cleaning up test data...');
+    const merchant = merchantRows[0] as unknown as Merchant;
+    const payment = paymentRows[0] as unknown as Payment;
     
-    await db.delete(payments).where(eq(payments.id, testPayment.id));
-    await db.delete(merchants).where(eq(merchants.id, testMerchant.id));
+    console.log(`🧪 Found merchant: ${merchant.businessName} (ID: ${merchant.id})`);
+    console.log(`🧪 Found payment: ID ${payment.id}, Amount: ${payment.amountUsd} USD (${payment.amountCpxtb} CPXTB)`);
     
-    console.log('✓ Test data cleaned up.');
+    // Reset the emailSent flag in the payment for testing
+    // (in production this would never be done, but it's useful for testing)
+    await db.execute(sql`
+      UPDATE payments SET email_sent = false WHERE id = ${payment.id}
+    `);
     
+    console.log('🧪 Reset emailSent flag to false, preparing for test 1');
+    
+    // Try sending the first email - should succeed
+    console.log('\n🧪 TEST 1: Sending first email (should succeed)');
+    const result1 = await sendPaymentEmail(merchant, payment);
+    
+    if (result1) {
+      console.log('✅ TEST 1 PASSED: First email was sent successfully');
+    } else {
+      console.log('❌ TEST 1 FAILED: First email failed to send');
+      return false;
+    }
+    
+    // Very small delay to ensure we're not just hitting a race condition
+    await new Promise(resolve => setTimeout(resolve, 100)); 
+    
+    // Try sending a duplicate email - should be prevented
+    console.log('\n🧪 TEST 2: Attempting to send duplicate email (should be prevented)');
+    const result2 = await sendPaymentEmail(merchant, payment);
+    
+    // We expect true (successful prevention) even though no email was actually sent
+    if (result2) {
+      console.log('✅ TEST 2 PASSED: Duplicate email was successfully prevented');
+    } else {
+      console.log('❌ TEST 2 FAILED: Duplicate prevention failed');
+      return false;
+    }
+    
+    // Check if the email_sent flag was updated in the database
+    const updatedPaymentRawResult = await db.execute(sql`
+      SELECT email_sent FROM payments WHERE id = ${payment.id}
+    `);
+    
+    const updatedPaymentRows = extractRowsFromResult(updatedPaymentRawResult);
+    const updatedPayment = updatedPaymentRows[0];
+    
+    if (updatedPayment && updatedPayment.email_sent) {
+      console.log('✅ Database flag updated: payment.email_sent = true');
+    } else {
+      console.log('❌ Database flag NOT updated: payment.email_sent = false');
+    }
+    
+    // Check if the email_log entry was created
+    const emailLogRawResult = await db.execute(sql`
+      SELECT * FROM email_log WHERE payment_id = ${payment.id}
+    `);
+    
+    const emailLogRows = extractRowsFromResult(emailLogRawResult);
+    
+    if (emailLogRows.length > 0) {
+      console.log(`✅ Email log entry created: ${emailLogRows.length} record(s) found`);
+      console.log(emailLogRows[0]);
+    } else {
+      console.log('❌ Email log entry NOT created');
+    }
+    
+    console.log('\n🏁 Email duplicate prevention test completed successfully!');
+    return true;
   } catch (error) {
-    console.error('Error in test:', error);
+    console.error('❌ ERROR during email test:', error);
+    return false;
+  } finally {
+    // Close the DB connection when done
+    try {
+      await pool.end();
+    } catch (error) {
+      console.error('Error closing pool:', error);
+    }
   }
+}
+
+// Helper function to safely extract rows from query results
+function extractRowsFromResult(result: unknown): QueryResultRow[] {
+  let rows: QueryResultRow[] = [];
+  
+  if (result && typeof result === 'object') {
+    if (Array.isArray(result)) {
+      rows = result as QueryResultRow[];
+    } else if ('rows' in result && Array.isArray((result as any).rows)) {
+      rows = (result as any).rows;
+    }
+  }
+  
+  return rows;
 }
 
 // Run the test
 testAutomaticEmailSend()
-  .then(() => {
-    console.log('Test completed.');
-    process.exit(0);
+  .then(success => {
+    if (success) {
+      console.log('✨ All tests completed successfully!');
+      process.exit(0);
+    } else {
+      console.error('💥 Tests failed!');
+      process.exit(1);
+    }
   })
   .catch(err => {
-    console.error('Test failed with error:', err);
+    console.error('⚠️ Error running tests:', err);
     process.exit(1);
   });

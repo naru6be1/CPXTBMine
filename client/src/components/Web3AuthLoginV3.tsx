@@ -57,7 +57,8 @@ const Web3AuthLoginV3: React.FC = () => {
           chainId: "0x" + BASE_CHAIN_ID.toString(16), // 8453 in hex
           rpcTarget: "https://mainnet.base.org",
           displayName: "Base",
-          blockExplorer: "https://basescan.org", // Fixed from blockExplorerUrl
+          // Just set the basic required parameters to avoid errors
+          blockExplorer: "https://basescan.org",
           ticker: "ETH",
           tickerName: "Ethereum",
         };
@@ -71,8 +72,9 @@ const Web3AuthLoginV3: React.FC = () => {
         // @ts-ignore - Ignoring TypeScript errors due to version disparities
         const web3authInstance = new Web3Auth({
           clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
+          // Using mainnet instead of sapphire_mainnet to fix initialization error
           // @ts-ignore - Known type mismatch with current version
-          web3AuthNetwork: "sapphire_mainnet",
+          web3AuthNetwork: "mainnet", 
           chainConfig,
           // @ts-ignore - Known type disparities with the UI config
           uiConfig: {
@@ -90,14 +92,14 @@ const Web3AuthLoginV3: React.FC = () => {
           privateKeyProvider,
         });
         
-        // Create and configure the OpenLogin adapter
+        // Create and configure the OpenLogin adapter with minimal settings
         // @ts-ignore - Network type mismatch
         const openloginAdapter = new OpenloginAdapter({
+          // Keep settings minimal to avoid type errors
           adapterSettings: {
             clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
             // @ts-ignore - Known network type mismatch
-            network: "sapphire_mainnet",
-            uxMode: "popup",
+            network: "mainnet",
           },
         });
         

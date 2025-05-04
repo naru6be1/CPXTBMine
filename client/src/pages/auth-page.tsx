@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { EnhancedSocialLogin } from "@/components/EnhancedSocialLogin";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -84,6 +85,40 @@ export default function AuthPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <h1 className="text-3xl font-bold mb-6 text-center">CPXTB Platform</h1>
+          
+          <div className="mb-8">
+            <EnhancedSocialLogin 
+              onSuccess={(userData) => {
+                toast({
+                  title: "Login Successful",
+                  description: `Connected as ${userData.name}`,
+                });
+                
+                // Force reload
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1000);
+              }}
+              onError={(error) => {
+                toast({
+                  title: "Login Failed",
+                  description: error.message || "Authentication failed",
+                  variant: "destructive",
+                });
+              }}
+            />
+          </div>
+          
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t"></span>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with username/password
+              </span>
+            </div>
+          </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-2 mb-8">

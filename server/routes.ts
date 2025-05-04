@@ -817,6 +817,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register test challenge routes for easier debugging/testing
   registerTestChallengeRoutes(app);
   
+  // Add an endpoint to check authentication credentials availability
+  app.get('/api/auth/check-credentials', (req, res) => {
+    const googleCredentialsAvailable = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+    
+    res.json({
+      googleCredentialsAvailable,
+      // Additional auth providers could be checked here in the future
+    });
+  });
+  
   // Add a simple verification endpoint for the challenge system
   app.get('/api/verify-challenge', (req, res) => {
     // The challenge-middleware will handle the verification

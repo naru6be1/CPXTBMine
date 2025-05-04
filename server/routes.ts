@@ -240,8 +240,14 @@ const authenticateMerchant = async (req: Request, res: Response, next: NextFunct
 };
 
 // Utility to generate a payment reference - no longer uses order ID as requested
-const generatePaymentReference = () => {
-  // Generate a completely random reference with no order ID
+const generatePaymentReference = (customRef?: string) => {
+  // If a custom reference is provided, use it instead
+  if (customRef && customRef.startsWith("SOCIAL-")) {
+    console.log(`Using custom social payment reference: ${customRef}`);
+    return customRef;
+  }
+  
+  // Otherwise generate a completely random reference
   return `${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 };
 

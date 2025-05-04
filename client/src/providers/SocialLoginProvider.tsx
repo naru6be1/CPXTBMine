@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface UserInfo {
@@ -20,170 +20,203 @@ interface SocialLoginContextType {
   refreshBalance: () => void;
 }
 
-const SocialLoginContext = createContext<SocialLoginContextType | null>(null);
+const defaultContext: SocialLoginContextType = {
+  isLoggedIn: false,
+  isLoading: false,
+  userInfo: null,
+  walletAddress: null,
+  balance: '0',
+  error: null,
+  login: async () => {},
+  logout: async () => {},
+  copyWalletAddress: () => {},
+  refreshBalance: () => {},
+};
+
+const SocialLoginContext = createContext<SocialLoginContextType>(defaultContext);
 
 export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [balance, setBalance] = useState<string>("0.00");
-  const [copied, setCopied] = useState<boolean>(false);
+  const [balance, setBalance] = useState('0');
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-
-  // Load saved login state on component mount
+  
+  // Load user data from local storage on component mount
   useEffect(() => {
-    const savedUserInfo = localStorage.getItem('demoUserInfo');
-    const savedWalletAddress = localStorage.getItem('demoWalletAddress');
-    
-    if (savedUserInfo && savedWalletAddress) {
-      setUserInfo(JSON.parse(savedUserInfo));
-      setWalletAddress(savedWalletAddress);
-      setIsLoggedIn(true);
-      
-      // Generate a realistic balance
-      const randomBalance = (Math.random() * 10000).toFixed(2);
-      setBalance(randomBalance);
+    const storedUser = localStorage.getItem('cpxtb_user');
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUserInfo(userData.userInfo);
+        setWalletAddress(userData.walletAddress);
+        setBalance(userData.balance || '0');
+        setIsLoggedIn(true);
+      } catch (err) {
+        console.error('Failed to parse stored user data:', err);
+        // Clear invalid data
+        localStorage.removeItem('cpxtb_user');
+      }
     }
   }, []);
-
-  const login = async (provider: string): Promise<void> => {
+  
+  // Function to refresh balance
+  const refreshBalance = useCallback(async () => {
+    if (!walletAddress) return;
+    
+    try {
+      const response = await fetch(`/api/balance?address=${walletAddress}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch balance');
+      }
+      
+      const data = await response.json();
+      setBalance(data.balance);
+      
+      // Update local storage
+      const storedUser = localStorage.getItem('cpxtb_user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        userData.balance = data.balance;
+        localStorage.setItem('cpxtb_user', JSON.stringify(userData));
+      }
+    } catch (err) {
+      console.error('Error refreshing balance:', err);
+    }
+  }, [walletAddress]);
+  
+  // Automatically refresh balance when wallet address changes
+  useEffect(() => {
+    if (walletAddress) {
+      refreshBalance();
+    }
+  }, [walletAddress, refreshBalance]);
+  
+  // Copy wallet address to clipboard
+  const copyWalletAddress = useCallback(() => {
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress)
+        .then(() => {
+          toast({
+            title: "Address Copied",
+            description: "Wallet address copied to clipboard",
+          });
+        })
+        .catch(err => {
+          console.error('Failed to copy:', err);
+          toast({
+            title: "Copy Failed",
+            description: "Could not copy to clipboard",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [walletAddress, toast]);
+  
+  // Login with social provider
+  const login = useCallback(async (provider: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Simulated social authentication
+      // In a real implementation, this would interact with OAuth providers
       
-      // Generate a deterministic wallet address based on the timestamp
-      const timestamp = Date.now();
-      const seed = timestamp.toString(16);
-      const address = '0x' + Array.from({ length: 40 }, (_, i) => {
-        const hash = (seed.charCodeAt(i % seed.length) * (i + 1)) % 16;
-        return '0123456789abcdef'[hash];
-      }).join('');
+      // Mock API call to get user data and create wallet
+      const response = await fetch(`/api/social-auth/${provider.toLowerCase()}`);
       
-      // Create user info based on selected provider
+      if (!response.ok) {
+        throw new Error(`Authentication with ${provider} failed`);
+      }
+      
+      const data = await response.json();
+      
+      // Store user data
       let userDetails: UserInfo = {
-        name: 'Demo User',
-        email: 'demo@example.com',
+        name: data.name,
+        email: data.email,
         provider: provider
       };
       
-      if (provider === 'google') {
-        userDetails.name = 'Google User';
-        userDetails.email = 'user@gmail.com';
-      } else if (provider === 'facebook') {
-        userDetails.name = 'Facebook User';
-        userDetails.email = 'user@facebook.com';
-      } else if (provider === 'twitter') {
-        userDetails.name = 'Twitter User';
-        userDetails.email = 'user@twitter.com';
-      } else if (provider === 'apple') {
-        userDetails.name = 'Apple User';
-        userDetails.email = 'user@icloud.com';
-      }
-      
-      // Save to state and localStorage
-      setIsLoggedIn(true);
       setUserInfo(userDetails);
-      setWalletAddress(address);
-      localStorage.setItem('demoUserInfo', JSON.stringify(userDetails));
-      localStorage.setItem('demoWalletAddress', address);
+      setWalletAddress(data.walletAddress);
+      setBalance(data.balance || '0');
+      setIsLoggedIn(true);
       
-      // Generate a realistic balance
-      const randomBalance = (Math.random() * 10000).toFixed(2);
-      setBalance(randomBalance);
+      // Save to local storage for persistence
+      localStorage.setItem('cpxtb_user', JSON.stringify({
+        userInfo: userDetails,
+        walletAddress: data.walletAddress,
+        balance: data.balance || '0'
+      }));
       
       toast({
-        title: "Authentication Successful",
-        description: `You've logged in with ${provider}!`,
+        title: "Login Successful",
+        description: `Connected with ${provider}`,
       });
-    } catch (error) {
-      console.error("Error during login:", error);
-      setError("Login failed. Please try again.");
-      
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Failed to login');
       toast({
-        title: "Login Error",
-        description: "Failed to login. Please try again.",
+        title: "Login Failed",
+        description: err.message || `Could not connect with ${provider}`,
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const logout = async (): Promise<void> => {
+  }, [toast]);
+  
+  // Logout function
+  const logout = useCallback(async () => {
     setIsLoading(true);
     
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Call logout API if needed
+      await fetch('/api/social-auth/logout', { method: 'POST' });
       
-      // Clear state and localStorage
+      // Clear user data
       setIsLoggedIn(false);
       setUserInfo(null);
       setWalletAddress(null);
-      localStorage.removeItem('demoUserInfo');
-      localStorage.removeItem('demoWalletAddress');
+      setBalance('0');
+      
+      // Clear from local storage
+      localStorage.removeItem('cpxtb_user');
       
       toast({
         title: "Logout Successful",
-        description: "You've been logged out",
+        description: "You have been logged out",
       });
-    } catch (error) {
-      console.error("Error during logout:", error);
+    } catch (err: any) {
+      console.error('Logout error:', err);
       toast({
-        title: "Logout Error",
-        description: "Failed to logout",
+        title: "Logout Failed",
+        description: err.message || "Could not log out properly",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const copyWalletAddress = (): void => {
-    if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress);
-      setCopied(true);
-      
-      toast({
-        title: "Address Copied",
-        description: "Wallet address copied to clipboard",
-      });
-      
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
+  }, [toast]);
   
-  const refreshBalance = (): void => {
-    // Generate a new random balance
-    const newBalance = (Math.random() * 10000).toFixed(2);
-    setBalance(newBalance);
-    
-    toast({
-      title: "Balance Updated",
-      description: `Your new balance is ${newBalance} CPXTB`,
-    });
-  };
-
-  const value = {
-    isLoggedIn,
-    isLoading,
-    userInfo,
-    walletAddress,
-    balance,
-    error,
-    login,
-    logout,
-    copyWalletAddress,
-    refreshBalance
-  };
-
   return (
-    <SocialLoginContext.Provider value={value}>
+    <SocialLoginContext.Provider
+      value={{
+        isLoggedIn,
+        isLoading,
+        userInfo,
+        walletAddress,
+        balance,
+        error,
+        login,
+        logout,
+        copyWalletAddress,
+        refreshBalance,
+      }}
+    >
       {children}
     </SocialLoginContext.Provider>
   );
@@ -191,8 +224,10 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
 
 export const useSocialLogin = () => {
   const context = useContext(SocialLoginContext);
+  
   if (!context) {
-    throw new Error("useSocialLogin must be used within a SocialLoginProvider");
+    throw new Error('useSocialLogin must be used within a SocialLoginProvider');
   }
+  
   return context;
 };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Redirect, useLocation, Link } from "wouter";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
@@ -133,6 +133,9 @@ export default function MerchantDashboard() {
 
   // Selected merchant for payment
   const [selectedMerchant, setSelectedMerchant] = useState<any>(null);
+  
+  // Import the merchant social login component
+  const MerchantSocialLogin = React.lazy(() => import('@/components/merchant/MerchantSocialLogin'));
   
   // Theme customization state
   const [themeForm, setThemeForm] = useState({
@@ -1514,6 +1517,15 @@ export default function MerchantDashboard() {
 
         <TabsContent value="business" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Social Login Component */}
+            <React.Suspense fallback={
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            }>
+              <MerchantSocialLogin />
+            </React.Suspense>
+            
             {/* Registration Form */}
             <Card>
               <CardHeader>

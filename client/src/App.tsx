@@ -31,6 +31,7 @@ const AboutUsPage = lazy(() => import("@/pages/about-us"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
 const AuthPage = lazy(() => import("@/pages/auth-page"));
+const EasyAuthPage = lazy(() => import("@/pages/easy-auth-page"));
 const MerchantDashboard = lazy(() => import("@/pages/merchant-dashboard"));
 const PaymentPage = lazy(() => import("@/pages/payment-page"));
 const LegalPage = lazy(() => import("@/pages/legal-page"));

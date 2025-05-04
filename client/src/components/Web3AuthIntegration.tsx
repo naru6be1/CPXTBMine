@@ -159,15 +159,8 @@ const Web3AuthIntegration: React.FC = () => {
         
         // Detect specific network errors related to the openlogin servers
         const errorMessage = modalError?.message || String(modalError);
-        console.log("Web3Auth error detected:", errorMessage);
         
-        // This is a common DNS issue specifically with app.openlogin.com
-        if (errorMessage.includes("DNS") && errorMessage.includes("app.openlogin.com")) {
-          setConnectionState(ConnectionState.NetworkError);
-          setError("DNS resolution failed for app.openlogin.com. This is a known issue with some network providers and mobile carriers.");
-        }
-        // Other network-related issues
-        else if (errorMessage.includes("DNS") || 
+        if (errorMessage.includes("DNS") || 
             errorMessage.includes("network") || 
             errorMessage.includes("timeout") ||
             errorMessage.includes("Failed to fetch") ||
@@ -228,62 +221,13 @@ const Web3AuthIntegration: React.FC = () => {
     };
   }, [initWeb3Auth, connectionState]);
 
-  // Detect common DNS issues with app.openlogin.com
-  // This is used to prevent the user from encountering the DNS error page
-  const checkForKnownDnsIssues = async (): Promise<boolean> => {
-    try {
-      // Test if we can reach app.openlogin.com
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      // We're just checking if the domain resolves, don't need to actually fetch anything
-      await fetch('https://app.openlogin.com/favicon.ico', {
-        method: 'HEAD',
-        mode: 'no-cors',
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      return false; // No DNS issues detected
-    } catch (error: any) {
-      console.error('app.openlogin.com connectivity test failed:', error);
-      
-      // Check if this is a DNS resolution error
-      const errorMessage = error?.message || String(error);
-      if (errorMessage.includes("DNS") || 
-          errorMessage.includes("domain") || 
-          errorMessage.includes("resolve") ||
-          errorMessage.includes("network") ||
-          errorMessage.includes("Failed to fetch")) {
-        return true; // DNS issue detected
-      }
-      
-      return false;
-    }
-  };
-
   const login = async () => {
     if (!web3auth) {
       setError("Web3Auth is not initialized");
       return;
     }
     
-    // First check for app.openlogin.com DNS issues before even attempting to connect
-    const hasDnsIssues = await checkForKnownDnsIssues();
-    if (hasDnsIssues) {
-      setConnectionState(ConnectionState.NetworkError);
-      setError("DNS resolution failed for app.openlogin.com. This is a known issue with some network providers and mobile carriers. Please try a different network connection or use the Basic Social Login option.");
-      
-      toast({
-        title: "Network Issue Detected",
-        description: "Your network cannot resolve app.openlogin.com - please use the Basic Social Login instead.",
-        variant: "destructive",
-      });
-      
-      return;
-    }
-    
-    // Double-check general online status
+    // Double-check online status before attempting login
     const online = await checkNetworkStatus();
     if (!online) {
       setConnectionState(ConnectionState.NetworkError);
@@ -314,11 +258,7 @@ const Web3AuthIntegration: React.FC = () => {
       console.error("Login error:", error);
       
       // Check for network errors during login
-      if (error?.message?.includes("DNS") && error?.message?.includes("app.openlogin.com")) {
-        setConnectionState(ConnectionState.NetworkError);
-        setError("DNS resolution failed for app.openlogin.com. This is a known issue with some network providers and mobile carriers.");
-      }
-      else if (error?.message?.includes("network") || 
+      if (error?.message?.includes("network") || 
           error?.message?.includes("Failed to fetch") ||
           error?.message?.includes("openlogin") ||
           error?.message?.includes("timeout")) {
@@ -331,7 +271,7 @@ const Web3AuthIntegration: React.FC = () => {
       
       toast({
         title: "Login Failed",
-        description: "Could not connect to authentication service. Try using the Basic Social Login instead.",
+        description: error?.message || "An error occurred during login",
         variant: "destructive",
       });
     } finally {
@@ -384,35 +324,23 @@ const Web3AuthIntegration: React.FC = () => {
   }
 
   if (connectionState === ConnectionState.NetworkError) {
-    const isDnsError = error?.includes("DNS") && error?.includes("app.openlogin.com");
-    
     return (
       <Card className="w-[350px] mx-auto my-4">
         <CardHeader>
-          <CardTitle>{isDnsError ? "DNS Resolution Error" : "Network Issue"}</CardTitle>
-          <CardDescription>
-            {isDnsError 
-              ? "Cannot resolve app.openlogin.com" 
-              : "Cannot access authentication services"}
-          </CardDescription>
+          <CardTitle>Network Issue</CardTitle>
+          <CardDescription>Cannot access authentication services</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive" className="mb-4">
             <WifiOff className="h-4 w-4" />
-            <AlertTitle>
-              {isDnsError ? "DNS Lookup Failed" : "Connection Error"}
-            </AlertTitle>
+            <AlertTitle>Connection Error</AlertTitle>
             <AlertDescription>
-              {isDnsError 
-                ? "Your device cannot resolve app.openlogin.com. This is a known issue with some mobile networks and carriers."
-                : "Unable to reach authentication servers. This may be due to network restrictions or a temporary outage."}
+              Unable to reach authentication servers. This may be due to network restrictions or a temporary outage.
             </AlertDescription>
           </Alert>
           
           <p className="text-sm mb-4">
-            {isDnsError
-              ? "This is likely due to DNS restrictions on your mobile network. Try using a different network (like WiFi instead of cellular) or use the Basic Social Login demo instead."
-              : "Authentication requires access to Web3Auth servers. Please check your internet connection and ensure you're not behind a restrictive firewall."}
+            Authentication requires access to Web3Auth servers. Please check your internet connection and ensure you're not behind a restrictive firewall.
           </p>
           
           <div className="flex justify-center">
@@ -423,9 +351,7 @@ const Web3AuthIntegration: React.FC = () => {
           </div>
         </CardContent>
         <CardFooter className="text-xs text-muted-foreground">
-          Attempt {attempts + 1} of 3. {isDnsError 
-            ? "The Basic Social Login demo doesn't require DNS resolution for app.openlogin.com." 
-            : "Use the basic demo option if this persists."}
+          Attempt {attempts + 1} of 3. Use the basic demo option if this persists.
         </CardFooter>
       </Card>
     );

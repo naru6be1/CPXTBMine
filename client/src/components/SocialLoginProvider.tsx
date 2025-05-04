@@ -1,15 +1,15 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 // Import Buffer directly from our polyfill to ensure it's loaded before Web3Auth
 import { Buffer } from '../lib/polyfills';
-import { CHAIN_NAMESPACES } from '@web3auth/base';
+import { CHAIN_NAMESPACES, IProvider } from '@web3auth/base';
 import { Web3Auth } from '@web3auth/modal';
 import { OpenloginAdapter } from '@web3auth/openlogin-adapter';
 import { ethers } from 'ethers';
 import { BASE_CHAIN_ID, CPXTB_TOKEN_ADDRESS } from '@shared/constants';
 import { useToast } from '@/hooks/use-toast';
 
-// Use a generic type for the Web3Auth provider
-type SafeEventEmitterProvider = any;
+// Use IProvider instead of deprecated SafeEventEmitterProvider
+type SafeEventEmitterProvider = IProvider;
 
 // Sanity check to ensure Buffer is correctly polyfilled
 console.log('Buffer check in SocialLoginProvider:', {
@@ -74,13 +74,13 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
         // @ts-ignore - Ignoring type errors due to version compatibility issues
         const web3auth = new Web3Auth({
           clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
-          web3AuthNetwork: "mainnet", // Use mainnet instead of sapphire_mainnet to fix type error
+          web3AuthNetwork: "sapphire_mainnet", // mainnet, cyan, aqua, celeste
           chainConfig: {
             chainNamespace: CHAIN_NAMESPACES.EIP155,
             chainId: "0x" + BASE_CHAIN_ID.toString(16), // 8453 in hex
             rpcTarget: "https://mainnet.base.org",
             displayName: "Base",
-            blockExplorer: "https://basescan.org",
+            blockExplorerUrl: "https://basescan.org",
             ticker: "ETH",
             tickerName: "Ethereum",
           }
@@ -95,7 +95,7 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
           adapterSettings: {
             // Minimal settings to avoid compatibility issues
             uxMode: "popup",
-            network: "mainnet"
+            network: "sapphire_mainnet"
           },
         });
         
@@ -130,47 +130,7 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
     initWeb3Auth();
   }, []);
 
-  // Check for DNS connectivity issues to app.openlogin.com
-  const checkOpenLoginConnectivity = async (): Promise<boolean> => {
-    try {
-      console.log("Testing connectivity to app.openlogin.com...");
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      // Try connecting to app.openlogin.com with a simple HEAD request
-      const response = await fetch('https://app.openlogin.com/favicon.ico', {
-        method: 'HEAD',
-        mode: 'no-cors',
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      console.log("Successfully connected to app.openlogin.com");
-      return true;
-    } catch (error) {
-      console.error("Error connecting to app.openlogin.com:", error);
-      
-      // Check the error message for DNS-related issues
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const isDnsIssue = errorMessage.includes("DNS") || 
-                         errorMessage.includes("domain") || 
-                         errorMessage.includes("resolve") || 
-                         errorMessage.includes("Failed to fetch");
-      
-      if (isDnsIssue) {
-        console.error("DNS resolution error detected for app.openlogin.com");
-        toast({
-          title: "Network Connectivity Issue",
-          description: "Cannot connect to the authentication service (app.openlogin.com). Please try a different network connection.",
-          variant: "destructive",
-        });
-      }
-      
-      return false;
-    }
-  };
-
-  // Login function with DNS check
+  // Login function
   const login = async (): Promise<void> => {
     if (!web3auth) {
       throw new Error("Web3Auth not initialized");
@@ -180,12 +140,6 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsLoading(true);
       console.log("Attempting Web3Auth login...");
       
-      // First check for connectivity to app.openlogin.com
-      const canConnectToOpenLogin = await checkOpenLoginConnectivity();
-      if (!canConnectToOpenLogin) {
-        throw new Error("Cannot connect to authentication service (app.openlogin.com). This might be due to network restrictions or DNS issues on your current connection.");
-      }
-      
       // Add more detailed logging
       console.log("Web3Auth state before connect:", {
         initialized: !!web3auth,
@@ -193,31 +147,7 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
         clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID?.substring(0, 5) + "..." // Log partial clientId for debugging
       });
       
-      // Add a timeout for the connect operation
-      const connectWithTimeout = async () => {
-        let connectTimeout: NodeJS.Timeout | null = null;
-        try {
-          const timeoutPromise = new Promise<null>((_, reject) => {
-            connectTimeout = setTimeout(() => {
-              reject(new Error("Web3Auth connect operation timed out after 15 seconds"));
-            }, 15000);
-          });
-          
-          // Race the connect operation against a timeout
-          const result = await Promise.race([
-            web3auth.connect(),
-            timeoutPromise
-          ]);
-          
-          return result;
-        } finally {
-          if (connectTimeout) {
-            clearTimeout(connectTimeout);
-          }
-        }
-      };
-      
-      const web3authProvider = await connectWithTimeout();
+      const web3authProvider = await web3auth.connect();
       console.log("Web3Auth connect successful, setting provider");
       setProvider(web3authProvider);
       
@@ -237,23 +167,11 @@ export const Web3AuthProvider: React.FC<{ children: ReactNode }> = ({ children }
         console.error("Error message:", error.message);
         console.error("Error stack:", error.stack);
       }
-      
-      // Check for DNS-specific errors
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const isDnsIssue = errorMessage.includes("DNS") || 
-                        errorMessage.includes("app.openlogin.com") || 
-                        errorMessage.includes("timed out") ||
-                        errorMessage.includes("network") ||
-                        errorMessage.includes("Failed to fetch");
-                        
       toast({
-        title: isDnsIssue ? "Network Connectivity Issue" : "Login Error",
-        description: isDnsIssue 
-          ? "Cannot connect to authentication service. Please try using a different network connection or use the Basic Login instead." 
-          : (error instanceof Error ? error.message : "Failed to connect with Web3Auth"),
+        title: "Login Error",
+        description: error instanceof Error ? error.message : "Failed to connect with Web3Auth",
         variant: "destructive",
       });
-      
       throw error;
     } finally {
       setIsLoading(false);

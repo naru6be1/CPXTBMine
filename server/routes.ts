@@ -861,10 +861,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Google OAuth credentials found, setting up real authentication");
     
     // Set up Google OAuth 2.0 strategy
+    // Get the current domain from environment or use a fallback
+    const domain = process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const callbackURL = `https://${domain}/api/auth/google/callback`;
+    console.log("Google OAuth callback URL:", callbackURL);
+    
     passport.use(new GoogleStrategy({
       clientID: googleClientId,
       clientSecret: googleClientSecret,
-      callbackURL: "https://1ceb706b-817d-4c3a-92ce-0335b2e3890c-00-26akl9dnpcsqg.picard.replit.dev/api/auth/google/callback",
+      callbackURL: callbackURL,
       scope: ['profile', 'email']
     }, async (accessToken, refreshToken, profile, done) => {
       try {

@@ -435,7 +435,7 @@ export default function PayPage() {
                 onClick={handlePayment}
                 disabled={
                   processingPayment || 
-                  parseFloat(balance) < parseFloat(paymentData.amountCpxtb) ||
+                  Number(balance) < Number(paymentData.amountCpxtb) ||
                   (countdown !== null && countdown <= 0)
                 }
               >
@@ -443,7 +443,7 @@ export default function PayPage() {
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                   </>
-                ) : parseFloat(balance) < parseFloat(paymentData.amountCpxtb) ? (
+                ) : Number(balance) < Number(paymentData.amountCpxtb) ? (
                   'Insufficient Balance'
                 ) : (countdown !== null && countdown <= 0) ? (
                   'Payment Expired'
@@ -452,7 +452,7 @@ export default function PayPage() {
                 )}
               </Button>
               
-              {parseFloat(balance) < parseFloat(paymentData.amountCpxtb) && !isBuyingTokens && (
+              {Number(balance) < Number(paymentData.amountCpxtb) && !isBuyingTokens && (
                 <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-sm">
                   <div className="flex items-start gap-2 mb-2">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-800" />
@@ -475,17 +475,17 @@ export default function PayPage() {
                 </div>
               )}
               
-              {parseFloat(balance) < parseFloat(paymentData.amountCpxtb) && isBuyingTokens && (
+              {Number(balance) < Number(paymentData.amountCpxtb) && isBuyingTokens && (
                 <div className="bg-blue-50 p-4 rounded-md border border-blue-200 text-sm">
                   <h3 className="font-medium mb-2 text-blue-900">Purchase CPXTB Tokens</h3>
                   
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-blue-700 mb-1">
-                        Current price: 1 CPXTB = ${(parseFloat(paymentData.amountUsd) / parseFloat(paymentData.amountCpxtb)).toFixed(6)} USD
+                        Current price: 1 CPXTB = ${(Number(paymentData.amountUsd) / Number(paymentData.amountCpxtb)).toFixed(6)} USD
                       </p>
                       <p className="text-sm text-blue-700 mb-2">
-                        You need at least {parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB for this payment.
+                        You need at least {Number(paymentData.amountCpxtb).toFixed(6)} CPXTB for this payment.
                       </p>
                       
                       <div className="flex flex-col gap-2">
@@ -495,11 +495,11 @@ export default function PayPage() {
                         <input
                           id="purchase-amount"
                           type="number"
-                          min={parseFloat(paymentData.amountCpxtb) - parseFloat(balance)}
+                          min={Number(paymentData.amountCpxtb) - Number(balance)}
                           step="0.000001"
                           value={purchaseAmount}
                           onChange={(e) => setPurchaseAmount(e.target.value)}
-                          placeholder={`Minimum ${(parseFloat(paymentData.amountCpxtb) - parseFloat(balance)).toFixed(6)}`}
+                          placeholder={`Minimum ${(Number(paymentData.amountCpxtb) - Number(balance)).toFixed(6)}`}
                           className="px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -528,7 +528,7 @@ export default function PayPage() {
                               return;
                             }
                             
-                            const minRequired = parseFloat(paymentData.amountCpxtb) - parseFloat(balance);
+                            const minRequired = Number(paymentData.amountCpxtb) - Number(balance);
                             if (amount < minRequired) {
                               toast({
                                 title: "Insufficient Amount",

@@ -41,16 +41,12 @@ export default function PayPage() {
         return;
       }
       
-      console.log(`Fetching payment data for reference: ${paymentReference}`);
+
       
       try {
         // FIXED URL PATH: Corrected endpoint to match server-side implementation
         const response = await fetch(`/api/payments/public/${paymentReference}`);
-        
-        // Debug response
-        console.log(`Payment fetch response status: ${response.status}`);
-        console.log(`Using correct endpoint: /api/payments/public/${paymentReference}`);
-        
+  
         if (!response.ok) {
           throw new Error('Payment not found or has expired');
         }
@@ -58,25 +54,9 @@ export default function PayPage() {
         // Get response data
         const data = await response.json();
         
-        // Add detailed logging for payment data to troubleshoot USD vs CPXTB amounts
-        console.log('DEBUG - Payment data received:', {
-          originalAmountUsd: data.payment.originalAmountUsd,
-          amountUsd: data.payment.amountUsd,
-          originalAmountCpxtb: data.payment.originalAmountCpxtb,
-          amountCpxtb: data.payment.amountCpxtb,
-          type: {
-            originalAmountUsd: typeof data.payment.originalAmountUsd,
-            amountUsd: typeof data.payment.amountUsd,
-            originalAmountCpxtb: typeof data.payment.originalAmountCpxtb,
-            amountCpxtb: typeof data.payment.amountCpxtb
-          }
-        });
-        
         // Enhanced data handling with defaults for missing values
         // CRITICAL FIX: Improved handling of payment amounts to ensure proper display
         // Now using originalAmount fields that are strings to preserve exact decimal values
-        // Log the raw data
-        console.log('Raw payment data structure:', JSON.stringify(data.payment, null, 2));
         
         const enhancedData = {
           ...data.payment,
@@ -95,7 +75,7 @@ export default function PayPage() {
           theme: data.theme
         };
         
-        console.log('Enhanced payment data:', enhancedData);
+
         
         setPaymentData(enhancedData);
         
@@ -411,12 +391,7 @@ export default function PayPage() {
                 {/* CRITICAL FIX: Use the string values directly when available to ensure proper decimal display */}
                 ${paymentData.amountUsdString || paymentData.originalAmountUsd || Number(paymentData.amountUsd || 0).toFixed(2)} USD
                 
-                {/* Debug information to help diagnose small decimal display issues */}
-                <div className="text-xs text-muted-foreground font-normal mt-1">
-                  Raw values - String: "{paymentData.amountUsdString || '-'}" | 
-                  Original: "{paymentData.originalAmountUsd || '-'}" | 
-                  Numeric: {paymentData.amountUsdNumber || 0}
-                </div>
+
               </div>
               
               <div className="text-gray-700 dark:text-gray-300">CPXTB Amount:</div>
@@ -424,12 +399,7 @@ export default function PayPage() {
                 {/* CRITICAL FIX: Use the string values directly when available to ensure proper decimal display */}
                 {paymentData.amountCpxtbString || paymentData.originalAmountCpxtb || Number(paymentData.amountCpxtb || 0).toFixed(6)} CPXTB
                 
-                {/* Debug information to help diagnose small decimal display issues */}
-                <div className="text-xs text-muted-foreground font-normal mt-1">
-                  Raw values - String: "{paymentData.amountCpxtbString || '-'}" | 
-                  Original: "{paymentData.originalAmountCpxtb || '-'}" | 
-                  Numeric: {paymentData.amountCpxtbNumber || 0}
-                </div>
+
               </div>
               
               {paymentData.description && (

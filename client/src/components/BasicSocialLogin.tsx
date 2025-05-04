@@ -41,7 +41,7 @@ const BasicSocialLogin: React.FC = () => {
     }
   }, []);
 
-  const handleLogin = (provider: string) => {
+  const simulateLogin = (provider: string) => {
     setIsLoading(true);
     setError(null);
     
@@ -107,7 +107,7 @@ const BasicSocialLogin: React.FC = () => {
     }, 1500); // Delay for 1.5 seconds
   };
 
-  const handleLogout = () => {
+  const simulateLogout = () => {
     setIsLoading(true);
     
     // Simulate network delay
@@ -257,7 +257,7 @@ const BasicSocialLogin: React.FC = () => {
                 <Button 
                   className="w-full justify-start" 
                   variant="outline"
-                  onClick={() => handleLogin('google')}
+                  onClick={() => simulateLogin('google')}
                   disabled={isLoading}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 48 48">
@@ -271,7 +271,7 @@ const BasicSocialLogin: React.FC = () => {
                 <Button 
                   className="w-full justify-start" 
                   variant="outline"
-                  onClick={() => handleLogin('facebook')}
+                  onClick={() => simulateLogin('facebook')}
                   disabled={isLoading}
                 >
                   <svg viewBox="0 0 36 36" fill="url(#a)" className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg">
@@ -289,7 +289,7 @@ const BasicSocialLogin: React.FC = () => {
                 <Button 
                   className="w-full justify-start" 
                   variant="outline"
-                  onClick={() => handleLogin('twitter')}
+                  onClick={() => simulateLogin('twitter')}
                   disabled={isLoading}
                 >
                   <svg fill="#1D9BF0" className="h-4 w-4 mr-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -300,7 +300,7 @@ const BasicSocialLogin: React.FC = () => {
                 <Button 
                   className="w-full justify-start" 
                   variant="outline"
-                  onClick={() => handleLogin('apple')}
+                  onClick={() => simulateLogin('apple')}
                   disabled={isLoading}
                 >
                   <svg viewBox="0 0 384 512" className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg">
@@ -318,7 +318,7 @@ const BasicSocialLogin: React.FC = () => {
           <Button 
             variant="outline" 
             className="w-full" 
-            onClick={handleLogout}
+            onClick={simulateLogout}
             disabled={isLoading}
           >
             {isLoading ? (

@@ -63,6 +63,7 @@ import PaymentQRCode from '@/components/PaymentQRCode';
 import { User as UserType } from "@shared/schema";
 import { PaymentNotification, PaymentSuccessNotification } from "@/components/payment-notification";
 import { MerchantPamphlet } from "@/components/merchant-pamphlet";
+import SimplePaymentQRGenerator from "@/components/merchant/SimplePaymentQRGenerator";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -1998,45 +1999,12 @@ export default function MerchantDashboard() {
                       </div>
                     </div>
                     
-                    <div className="flex flex-col items-center justify-center">
-                      <PaymentQRCode 
-                        merchantAddress={selectedMerchant.walletAddress}
-                        amount={paymentForm.amountUsd || "10.00"}
-                        amountUSD={paymentForm.amountUsd || "10.00"}
-                        reference={`social-${selectedMerchant.id}-${Date.now()}`}
-                        className="mb-4 max-w-full"
-                      />
-                    </div>
-                    
-                    <div className="space-y-4 text-center">
-                      <p className="text-sm">
-                        <span className="font-medium">Business:</span> {selectedMerchant.businessName}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Amount:</span> ${paymentForm.amountUsd || "10.00"} USD
-                      </p>
-                      
-                      <div className="flex justify-center gap-2 mt-2">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            // Update the QR code with a new reference
-                            setPaymentForm({
-                              ...paymentForm,
-                              description: `Payment for ${selectedMerchant.businessName}`
-                            });
-                            
-                            toast({
-                              title: "QR code updated",
-                              description: "A new social login payment QR code has been generated",
-                            });
-                          }}
-                        >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Refresh QR Code
-                        </Button>
-                      </div>
-                    </div>
+                    {/* Replace with our SimplePaymentQRGenerator component */}
+                    <SimplePaymentQRGenerator 
+                      merchantId={selectedMerchant.id}
+                      merchantName={selectedMerchant.businessName}
+                      apiKey={selectedMerchant.apiKey}
+                    />
                   </div>
                 ) : (
                   <div className="text-center py-8">

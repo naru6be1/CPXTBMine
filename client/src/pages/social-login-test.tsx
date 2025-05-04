@@ -1,149 +1,190 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, AlertTriangle, Code2, AlertCircle, WifiOff } from 'lucide-react';
-import BasicSocialLogin from '../components/BasicSocialLogin';
-import Web3AuthIntegration from '../components/Web3AuthIntegration';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { useSocialLogin } from '@/providers/SocialLoginProvider';
+import { useToast } from '@/hooks/use-toast';
+import BasicSocialLogin from '@/components/BasicSocialLogin';
+import { Loader2, CheckCircle, Copy, ExternalLink } from 'lucide-react';
 
 /**
- * Test page for the social login components
+ * Test page for verifying social login functionality
+ * This serves as a dedicated test environment for the social login components
+ * without the complexity of the full payment flow
  */
-const SocialLoginTestPage: React.FC = () => {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [web3AuthAvailable, setWeb3AuthAvailable] = useState<boolean>(false);
-  const [dnsError, setDnsError] = useState<boolean>(true);
-  
-  // Listen for errors from the Web3AuthIntegration component
-  useEffect(() => {
-    const handleWeb3AuthErrors = (event: Event) => {
-      const errorEvent = event as CustomEvent;
-      if (errorEvent.detail && errorEvent.detail.type === 'web3auth-error') {
-        setWeb3AuthAvailable(false);
-        
-        // Check if it's a DNS error
-        if (errorEvent.detail.errorMessage && 
-            (errorEvent.detail.errorMessage.includes('DNS') || 
-             errorEvent.detail.errorMessage.includes('app.openlogin.com'))) {
-          setDnsError(true);
-          console.error('DNS error detected with Web3Auth:', errorEvent.detail);
-        }
-      }
-    };
-    
-    window.addEventListener('web3auth-error', handleWeb3AuthErrors as EventListener);
-    return () => {
-      window.removeEventListener('web3auth-error', handleWeb3AuthErrors as EventListener);
-    };
-  }, []);
+export default function SocialLoginTest() {
+  const { isLoggedIn, userInfo, walletAddress, balance, login, logout, copyWalletAddress, refreshBalance } = useSocialLogin();
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleLogin = async (provider: string) => {
+    setLoading(true);
+    try {
+      await login(provider);
+      toast({
+        title: "Login Successful",
+        description: `Connected with ${provider}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Could not complete login process",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Social Login Solution</CardTitle>
-            <CardDescription>
-              Simplified blockchain access through social accounts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert className="mb-6" variant="default">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <AlertTitle>Production-Ready Solution</AlertTitle>
-              <AlertDescription>
-                <p className="mb-2">This component demonstrates our dual authentication approach with automatic fallback functionality:</p>
-                <ol className="list-decimal pl-5 text-sm space-y-1">
-                  <li>Primary: Our fully optimized BasicSocialLogin with simulated authentication flow</li>
-                  <li>Alternative: Web3Auth integration (can be enabled with <code>?enableWeb3Auth=true</code> URL parameter)</li>
-                </ol>
-              </AlertDescription>
-            </Alert>
-            
-            <Alert variant="warning" className="mb-6 border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Implementation Note</AlertTitle>
-              <AlertDescription>
-                <p className="mb-2">DNS resolution issues with Web3Auth servers (app.openlogin.com) persist despite domain whitelisting. Our solution:</p>
-                <ul className="list-disc pl-5 text-sm space-y-1">
-                  <li>Default to using our enhanced BasicSocialLogin component</li>
-                  <li>Keep Web3Auth integration available for testing with the URL parameter</li>
-                  <li>Use same UI/UX in both implementation paths for consistent user experience</li>
-                </ul>
-              </AlertDescription>
-            </Alert>
-            
-            <div className="flex items-center space-x-2 mb-6">
-              <Switch 
-                id="show-advanced" 
-                checked={showAdvanced}
-                onCheckedChange={setShowAdvanced}
-              />
-              <Label htmlFor="show-advanced" className="text-sm cursor-pointer">
-                Show Advanced Options {!web3AuthAvailable && "⚠️"}
-              </Label>
-            </div>
-            
-            {showAdvanced && (
-              <Alert className="mb-6 border-indigo-500 bg-indigo-50 text-indigo-900 dark:border-indigo-400 dark:bg-indigo-950 dark:text-indigo-100">
-                <Code2 className="h-4 w-4" />
-                <AlertTitle>Development Version</AlertTitle>
-                <AlertDescription>
-                  The advanced tab shows our current Web3Auth integration. This is still being 
-                  optimized and may have compatibility issues with some browsers or network conditions.
-                  It represents our work-in-progress production implementation.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <p className="mb-4">
-              The demo below shows the social login flow, including generation of a wallet address
-              that can be used for transactions. Your users will be able to log in with their
-              favorite social accounts without needing to understand blockchain technology.
-            </p>
-          </CardContent>
-        </Card>
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader>
+          <CardTitle>Social Login Test</CardTitle>
+          <CardDescription>
+            Test the social login functionality with different providers
+          </CardDescription>
+        </CardHeader>
         
-        {showAdvanced ? (
-          <Tabs defaultValue={web3AuthAvailable ? "advanced" : "demo"} className="mb-8">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="demo">Working Demo</TabsTrigger>
-              <TabsTrigger value="advanced" disabled={!web3AuthAvailable}>
-                Web3Auth Integration {!web3AuthAvailable && "⚠️"}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="demo" className="mt-4">
-              <BasicSocialLogin />
-            </TabsContent>
-            <TabsContent value="advanced" className="mt-4">
-              <Web3AuthIntegration onError={(error: Error) => {
-                // Dispatch a custom event for errors
-                const errorDetail = {
-                  type: 'web3auth-error',
-                  errorMessage: error.message || 'Unknown error',
-                  timestamp: new Date().toISOString()
-                };
-                const event = new CustomEvent('web3auth-error', { detail: errorDetail });
-                window.dispatchEvent(event);
-                console.error('Web3Auth error dispatched:', errorDetail);
-              }} />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div>
-            {dnsError && (
-              <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
-                ⚠️ Using working demo due to Web3Auth connection issues.
-              </p>
-            )}
-            <BasicSocialLogin />
+        <CardContent className="space-y-6">
+          {isLoggedIn ? (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-medium text-sm">Your Wallet</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 px-2 text-xs"
+                    onClick={refreshBalance}
+                  >
+                    Refresh
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Wallet Address:</p>
+                    <div className="flex items-center gap-1 bg-white p-2 rounded-md text-sm break-all">
+                      <span className="text-gray-700 font-mono">{walletAddress}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0" 
+                        onClick={copyWalletAddress}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Connected as:</p>
+                    <p className="font-medium">{userInfo?.name} ({userInfo?.email})</p>
+                    <p className="text-xs text-gray-500">via {userInfo?.provider}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Balance:</p>
+                    <p className="font-medium text-lg">{Number(balance).toFixed(6)} CPXTB</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-4 bg-green-50">
+                <p className="flex items-center gap-2 text-green-700">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  Authentication successful!
+                </p>
+                <p className="text-sm text-green-700 mt-1">
+                  Your login is working correctly, and you can now use it for payments.
+                </p>
+              </div>
+              
+              <Button 
+                variant="destructive" 
+                className="w-full" 
+                onClick={logout}
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-blue-50 p-4 rounded-md text-center space-y-2">
+                <h3 className="font-medium text-blue-900">Test Social Login</h3>
+                <p className="text-sm text-blue-700">
+                  Connect with your social account to test our authentication system.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium">Method 1: Direct API Calls</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => handleLogin('google')}
+                    disabled={loading}
+                  >
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Google
+                  </Button>
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => handleLogin('facebook')}
+                    disabled={loading}
+                  >
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Facebook
+                  </Button>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium">Method 2: Fallback Component</h3>
+                <BasicSocialLogin 
+                  showCard={false}
+                  onSuccess={(userData) => {
+                    console.log("Social login successful with BasicSocialLogin component:", userData);
+                    
+                    // Force reload to apply the changes from localStorage
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 500);
+                  }}
+                  onError={(error) => {
+                    console.error("Social login failed with BasicSocialLogin component:", error);
+                    toast({
+                      title: "Login Failed",
+                      description: error.message || "Could not complete the login process",
+                      variant: "destructive",
+                    });
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+        
+        <CardFooter className="flex flex-col gap-4">
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => window.history.back()}
+          >
+            Back
+          </Button>
+          <div className="text-xs text-center text-gray-500">
+            <p>CPXTB Platform • Social Login Testing</p>
           </div>
-        )}
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
-};
-
-export default SocialLoginTestPage;
+}

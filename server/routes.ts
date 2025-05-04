@@ -18,6 +18,16 @@ import { createWalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { startPaymentMonitoring } from "./transaction-listener";
 import { registerTestChallengeRoutes } from "./test-challenge-route";
+import passport from 'passport';
+import { Strategy as GoogleStrategy, Profile, VerifyCallback } from 'passport-google-oauth20';
+import session from 'express-session';
+
+// Add type declarations for session data
+declare module 'express-session' {
+  interface SessionData {
+    redirectUrl?: string;
+  }
+}
 
 const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY;
 const BASE_RPC_URL = `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`;
@@ -817,26 +827,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
   
   // Social authentication endpoints
-  app.get("/api/social-auth/google", (req, res) => {
-    // Mock Google authentication response for demonstration
-    // In a real implementation, this would interact with Google OAuth APIs
+  
+  // Initialize session middleware
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'cpxtb-dev-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+  
+  // Initialize Passport
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Configure Google Strategy for authentication
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  
+  if (googleClientId && googleClientSecret) {
+    console.log("Google OAuth credentials found, setting up real authentication");
     
-    // Generate a deterministic wallet address based on the provider and a unique identifier
-    const seed = `google-${Date.now()}`;
-    const hash = crypto.createHash('sha256').update(seed).digest('hex');
-    const walletAddress = `0x${hash.substring(0, 40)}`;
+    // Set up Google OAuth 2.0 strategy
+    passport.use(new GoogleStrategy({
+      clientID: googleClientId,
+      clientSecret: googleClientSecret,
+      callbackURL: "https://1ceb706b-817d-4c3a-92ce-0335b2e3890c-00-26akl9dnpcsqg.picard.replit.dev/api/auth/google/callback",
+      scope: ['profile', 'email']
+    }, async (accessToken, refreshToken, profile, done) => {
+      try {
+        // In a production app, you'd look up or create the user in your database
+        console.log("Google profile data:", profile);
+        
+        // Generate a deterministic wallet address based on Google ID
+        const seed = `google-${profile.id}`;
+        const hash = crypto.createHash('sha256').update(seed).digest('hex');
+        const walletAddress = `0x${hash.substring(0, 40)}`;
+        
+        // Create a user object with Google profile information
+        const user = {
+          id: profile.id,
+          name: profile.displayName,
+          email: profile.emails && profile.emails[0] ? profile.emails[0].value : 'no-email@example.com',
+          walletAddress: walletAddress,
+          balance: "10.0", // For testing, this would be fetched from actual wallet in production
+          profileId: profile.id,
+          provider: 'google'
+        };
+        
+        // In a real app, you'd create or update user in database here
+        
+        done(null, user);
+      } catch (error) {
+        done(error);
+      }
+    }));
     
-    // Explicitly set content type to ensure proper parsing
-    res.setHeader('Content-Type', 'application/json');
-    
-    // Send back user and wallet info
-    res.json({
-      name: "Google User",
-      email: "google.user@example.com",
-      walletAddress: walletAddress,
-      balance: "10.0" // Mock initial balance
+    // Serialize and deserialize user information for sessions
+    passport.serializeUser((user, done) => {
+      done(null, user);
     });
-  });
+    
+    passport.deserializeUser((user, done) => {
+      done(null, user);
+    });
+    
+    // Initial route to start Google authentication
+    app.get("/api/social-auth/google", (req, res) => {
+      const { enableRealLogin, redirectUrl } = req.query;
+      
+      // Store redirect URL in session for later use
+      req.session.redirectUrl = redirectUrl || '/';
+      
+      if (enableRealLogin === 'true' || !req.query.hasOwnProperty('enableRealLogin')) {
+        console.log("Redirecting to Google authentication");
+        // Redirect to Google authentication
+        passport.authenticate('google', { 
+          scope: ['profile', 'email'],
+          prompt: 'select_account'
+        })(req, res);
+      } else {
+        console.log("Using fallback mock authentication");
+        // Use mock data for fallback
+        const seed = `google-${Date.now()}`;
+        const hash = crypto.createHash('sha256').update(seed).digest('hex');
+        const walletAddress = `0x${hash.substring(0, 40)}`;
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.json({
+          name: "Google User (Mock)",
+          email: "mock.user@example.com",
+          walletAddress: walletAddress,
+          balance: "10.0"
+        });
+      }
+    });
+    
+    // Callback route that Google will redirect back to after authentication
+    app.get("/api/auth/google/callback", 
+      passport.authenticate('google', { failureRedirect: '/login-error' }),
+      (req, res) => {
+        const redirectUrl = req.session.redirectUrl || '/';
+        if (req.user) {
+          console.log("Authentication successful, redirecting to:", redirectUrl);
+          res.redirect(`${redirectUrl}?loggedIn=true&provider=google`);
+        } else {
+          console.log("Authentication failed");
+          res.redirect('/login-error');
+        }
+      }
+    );
+    
+    // User data endpoint to get currently logged in user
+    app.get("/api/auth/user", (req, res) => {
+      if (req.isAuthenticated() && req.user) {
+        res.json(req.user);
+      } else {
+        res.status(401).json({ error: "Not authenticated" });
+      }
+    });
+  } else {
+    console.warn("Google OAuth credentials not found, using mock authentication");
+    
+    // Use mock data if Google credentials are not configured
+    app.get("/api/social-auth/google", (req, res) => {
+      console.log("Using mock authentication (no Google credentials)");
+      const seed = `google-${Date.now()}`;
+      const hash = crypto.createHash('sha256').update(seed).digest('hex');
+      const walletAddress = `0x${hash.substring(0, 40)}`;
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.json({
+        name: "Google User (Mock)",
+        email: "mock.user@example.com",
+        walletAddress: walletAddress,
+        balance: "10.0"
+      });
+    });
+  }
   
   app.get("/api/social-auth/facebook", (req, res) => {
     // Mock Facebook authentication response

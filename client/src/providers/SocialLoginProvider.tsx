@@ -151,19 +151,31 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     try {
       console.log(`Attempting to log in with ${provider}...`);
       
-      // Check for Web3Auth flag in URL parameters
+      // Check for login method preference in URL parameters
       const urlParams = new URLSearchParams(window.location.search);
+      const enableRealLogin = urlParams.get('useBasicLogin') !== 'true'; // Default to real login unless explicitly disabled
       const enableWeb3Auth = urlParams.get('enableWeb3Auth') === 'true';
       
       if (enableWeb3Auth) {
         console.log("Web3Auth enabled via URL parameter - attempting to use it");
+      } else if (enableRealLogin) {
+        console.log("Using real Google/social authentication for development testing");
       } else {
-        console.log("Web3Auth disabled by default - using BasicSocialLogin fallback solution");
+        console.log("Using BasicSocialLogin fallback solution (simplified login)");
       }
       
       // Try server API endpoint first
       try {
-        // Make API call to get user data and create wallet
+        // For real Google/social authentication, we use GET request to redirect to provider
+        if (enableRealLogin) {
+          console.log(`Redirecting to real authentication at /api/social-auth/${provider.toLowerCase()}`);
+          // Redirect to the auth endpoint which will then redirect to Google
+          const redirectUrl = window.location.href;
+          window.location.href = `/api/social-auth/${provider.toLowerCase()}?enableRealLogin=true&redirectUrl=${encodeURIComponent(redirectUrl)}`;
+          return; // Stop further execution since we're redirecting
+        }
+        
+        // Legacy approach - Make direct API call to get mocked user data
         console.log(`Making fetch request to /api/social-auth/${provider.toLowerCase()}`);
         const response = await fetch(`/api/social-auth/${provider.toLowerCase()}`, {
           method: 'POST',
@@ -172,7 +184,8 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
           },
           body: JSON.stringify({ 
             redirectUrl: window.location.href,
-            enableWeb3Auth: enableWeb3Auth 
+            enableWeb3Auth: enableWeb3Auth,
+            enableRealLogin: false
           }),
         });
         

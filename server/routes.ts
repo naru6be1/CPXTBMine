@@ -1082,6 +1082,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
       message: "The free CPXTB claim feature has been discontinued."
     });
   });
+  
+  // Endpoint for purchasing CPXTB tokens for users with insufficient balance
+  app.post("/api/tokens/purchase", async (req, res) => {
+    try {
+      const { walletAddress, amount, paymentReference } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ 
+          message: "Wallet address is required" 
+        });
+      }
+      
+      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({ 
+          message: "Valid amount is required" 
+        });
+      }
+      
+      // Check if it's related to a payment
+      let paymentInfo = null;
+      if (paymentReference) {
+        paymentInfo = await storage.getPaymentByReference(paymentReference);
+        if (!paymentInfo) {
+          return res.status(404).json({ 
+            message: "Payment reference not found" 
+          });
+        }
+      }
+      
+      // Convert amount to token units (tokens have 18 decimals)
+      const amountInTokenUnits = BigInt(Math.floor(parseFloat(amount) * 10**18));
+      
+      // Check if amount is valid
+      if (amountInTokenUnits <= BigInt(0)) {
+        return res.status(400).json({ 
+          message: "Amount must be greater than 0" 
+        });
+      }
+      
+      console.log(`Attempting to transfer ${amount} CPXTB tokens to ${walletAddress}`);
+      
+      // Get the admin/treasury wallet private key
+      if (!ADMIN_PRIVATE_KEY) {
+        console.error("Missing ADMIN_PRIVATE_KEY environment variable");
+        return res.status(500).json({ 
+          message: "Server configuration error" 
+        });
+      }
+      
+      // Create account from private key
+      const account = privateKeyToAccount(`0x${ADMIN_PRIVATE_KEY}`);
+      
+      // Create Base network client
+      const baseClient = createPublicClient({
+        chain: base,
+        transport: http(BASE_RPC_URL, {
+          timeout: 30000,
+          retryCount: 3,
+          retryDelay: 1000,
+        })
+      });
+      
+      // Check treasury balance
+      const balance = await baseClient.readContract({
+        address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'balanceOf',
+        args: [TREASURY_ADDRESS as `0x${string}`]
+      });
+      
+      if (balance < amountInTokenUnits) {
+        console.error('Insufficient CPXTB balance in treasury for purchase');
+        return res.status(400).json({ 
+          message: "Insufficient treasury balance to fulfill purchase" 
+        });
+      }
+      
+      // Create wallet client for transaction
+      const walletClient = createWalletClient({
+        account,
+        chain: base,
+        transport: http(BASE_RPC_URL, {
+          timeout: 30000,
+          retryCount: 3,
+          retryDelay: 1000,
+        })
+      });
+      
+      // Execute the transaction
+      const hash = await walletClient.writeContract({
+        address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [walletAddress as `0x${string}`, amountInTokenUnits],
+        chain: base
+      });
+      
+      console.log(`Token purchase transaction hash: ${hash}`);
+      
+      // Wait for confirmation with timeout
+      const receipt = await baseClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30_000 // 30 seconds timeout
+      });
+      
+      if (receipt.status === 'success') {
+        console.log(`Successfully transferred ${amount} CPXTB tokens to ${walletAddress}`);
+        
+        // Return success response with transaction hash
+        res.status(200).json({
+          message: "Token purchase successful",
+          amount: amount,
+          transactionHash: hash,
+        });
+      } else {
+        throw new Error('Transaction failed');
+      }
+    } catch (error: any) {
+      console.error("Error processing token purchase:", error);
+      
+      // Provide more specific error messages
+      if (error.message.includes('403') || error.message.includes('forbidden')) {
+        console.error('Base network access denied. Please check RPC endpoint configuration.');
+        res.status(503).json({ 
+          message: "Network connection error. Try again later." 
+        });
+      } else if (error.message.includes('timeout')) {
+        res.status(504).json({ 
+          message: "Transaction timed out. Please try again." 
+        });
+      } else if (error.message.includes('rejected') || error.message.includes('reverted')) {
+        res.status(400).json({ 
+          message: "Transaction rejected by the network. Insufficient funds or contract error." 
+        });
+      } else {
+        res.status(500).json({ 
+          message: "Failed to process token purchase", 
+          error: error.message 
+        });
+      }
+    }
+  });
 
   app.post("/api/mining-plans/distribute-all", async (req, res) => {
     try {

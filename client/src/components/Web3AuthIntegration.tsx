@@ -98,11 +98,17 @@ const Web3AuthIntegration: React.FC = () => {
         tickerName: "Ethereum",
       };
       
-      // Create a minimal config object for Web3Auth initialization
+      // Get the current domain for redirect URI
+      const currentDomain = window.location.origin;
+      console.log("Current domain for Web3Auth:", currentDomain);
+      
+      // Create a minimal config object for Web3Auth initialization with explicit redirect domain
       const web3authConfig = {
         clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
         web3AuthNetwork: "mainnet", 
         chainConfig,
+        // Use whitelisted domain for all redirects
+        redirectUrl: "https://wallet-wizard-veesamnareshbab.replit.app",
         uiConfig: {
           appName: "CPXTB Platform",
           theme: "light",
@@ -113,6 +119,8 @@ const Web3AuthIntegration: React.FC = () => {
             totpFactor: { enable: false },
           },
           modalZIndex: "99999",
+          // Explicitly disable popups on mobile
+          loginMethodsOrder: ["google", "facebook", "twitter", "apple", "email_passwordless"],
         },
         // Add 5 second timeout for better mobile experience
         sessionTime: 86400,
@@ -167,6 +175,22 @@ const Web3AuthIntegration: React.FC = () => {
             errorMessage.includes("app.openlogin.com")) {
           setConnectionState(ConnectionState.NetworkError);
           setError("Cannot reach authentication servers. This could be due to network restrictions or a temporary outage.");
+          
+          // Log additional information to help with debugging
+          console.log("Web3Auth connection error details:", {
+            redirectUrl: "https://wallet-wizard-veesamnareshbab.replit.app",
+            currentDomain,
+            errorMessage
+          });
+        } else if (errorMessage.includes("popup") || errorMessage.includes("closed") || errorMessage.includes("window")) {
+          // Special handling for popup/redirect issues on mobile
+          setConnectionState(ConnectionState.Error);
+          setError("Authentication window was closed or blocked. On mobile devices, please ensure popups are allowed.");
+          
+          console.log("Popup or redirect error:", {
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            errorMessage
+          });
         } else {
           setConnectionState(ConnectionState.Error);
           setError(`Initialization error: ${errorMessage}`);
@@ -342,6 +366,20 @@ const Web3AuthIntegration: React.FC = () => {
           <p className="text-sm mb-4">
             Authentication requires access to Web3Auth servers. Please check your internet connection and ensure you're not behind a restrictive firewall.
           </p>
+          
+          {/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
+            <Alert className="mb-4 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100 border-amber-200 dark:border-amber-800">
+              <AlertTitle className="text-sm font-medium">Tips for Mobile Users</AlertTitle>
+              <AlertDescription className="text-xs">
+                <ul className="list-disc pl-4 space-y-1 mt-2">
+                  <li>Make sure popups are allowed in your browser</li>
+                  <li>Try switching to your device's default browser</li>
+                  <li>Disable any content blockers or privacy settings that might interfere with authentication</li>
+                  <li>If using a private/incognito window, try using a regular browsing session</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
           
           <div className="flex justify-center">
             <Button onClick={retryInitialization} className="mt-2 flex gap-2 items-center">

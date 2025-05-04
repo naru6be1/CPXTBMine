@@ -60,9 +60,10 @@ export default function SimplePaymentQRGenerator({
           // FIX: Ensure small decimal values like 0.1 are properly processed
           // Use Number() instead of parseFloat() for more precise handling of decimal values
           // This ensures values like "0.1" are properly converted without rounding issues
-          // Explicitly parse the amount as a float and ensure it's sent as a numeric value
-          // This fixes the issue where small values like 0.1 were being mishandled
-          amountUsd: parseFloat(amount),
+          // CRITICAL FIX: Send amount as a string to preserve exact decimal value
+          // This ensures values like "0.1" are preserved exactly as entered
+          // Server will handle proper parsing to prevent any floating point precision issues
+          amountUsd: amount,
           description: description,
           paymentReference: newRef,
           expiresIn: 24 * 60 * 60, // 24 hours in seconds

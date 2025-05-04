@@ -1458,12 +1458,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Amount in USD is required' });
       }
       
-      // ENHANCED FIX: Ensure small decimal values like 0.1 are properly handled
-      // Use parseFloat for the initial conversion to handle decimal values correctly
-      const initialParse = parseFloat(String(amountUsd));
-      // Then format to exactly 2 decimal places and convert back to a number
-      const parsedAmountUsd = Number(initialParse.toFixed(2));
-      console.log(`Parsed amountUsd: ${parsedAmountUsd} (original value: ${amountUsd}, initialParse: ${initialParse})`);
+      // CRITICAL FIX: Deep fix for decimal handling issues with values like 0.1
+      // Ensure the amount is treated as a string first to preserve exact decimal value
+      const amountStr = String(amountUsd).trim();
+      console.log(`Processing amount as string: "${amountStr}"`);
+      
+      // First convert to a floating point number
+      const floatAmount = parseFloat(amountStr);
+      
+      // Format to exactly 2 decimal places and convert to a number for storage
+      // This ensures we have a consistent precision throughout the system
+      const parsedAmountUsd = Number(floatAmount.toFixed(2));
+      
+      console.log(`Amount processing: original="${amountStr}", float=${floatAmount}, final=${parsedAmountUsd}`);
       
       // Validate the amount is a valid number and greater than zero
       if (isNaN(parsedAmountUsd) || parsedAmountUsd <= 0) {

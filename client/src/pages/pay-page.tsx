@@ -384,10 +384,10 @@ export default function PayPage() {
             
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div className="text-gray-700 dark:text-gray-300">Amount:</div>
-              <div className="font-bold text-right text-gray-900 dark:text-white">${parseFloat(paymentData.amountUsd).toFixed(2)} USD</div>
+              <div className="font-bold text-right text-gray-900 dark:text-white">${Number(paymentData.amountUsd).toFixed(2)} USD</div>
               
               <div className="text-gray-700 dark:text-gray-300">CPXTB Amount:</div>
-              <div className="font-medium text-right text-gray-900 dark:text-white">{parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB</div>
+              <div className="font-medium text-right text-gray-900 dark:text-white">{Number(paymentData.amountCpxtb).toFixed(6)} CPXTB</div>
               
               {paymentData.description && (
                 <>
@@ -425,7 +425,7 @@ export default function PayPage() {
                   <div className="font-mono text-xs truncate text-blue-900 dark:text-blue-100">{walletAddress}</div>
                   
                   <div className="text-blue-700 dark:text-blue-300">Balance:</div>
-                  <div className="font-medium text-blue-900 dark:text-blue-100">{parseFloat(balance).toFixed(6)} CPXTB</div>
+                  <div className="font-medium text-blue-900 dark:text-blue-100">{Number(balance).toFixed(6)} CPXTB</div>
                 </div>
               </div>
               
@@ -448,7 +448,7 @@ export default function PayPage() {
                 ) : (countdown !== null && countdown <= 0) ? (
                   'Payment Expired'
                 ) : (
-                  `Pay ${parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB`
+                  `Pay ${Number(paymentData.amountCpxtb).toFixed(6)} CPXTB`
                 )}
               </Button>
               
@@ -458,7 +458,7 @@ export default function PayPage() {
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-800" />
                     <div>
                       <p className="text-amber-800">
-                        Your wallet doesn't have enough CPXTB tokens. You need {parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB but only have {parseFloat(balance).toFixed(6)} CPXTB.
+                        Your wallet doesn't have enough CPXTB tokens. You need {Number(paymentData.amountCpxtb).toFixed(6)} CPXTB but only have {Number(balance).toFixed(6)} CPXTB.
                       </p>
                       <p className="mt-1 text-amber-700">
                         You can purchase CPXTB tokens directly using your social login wallet.

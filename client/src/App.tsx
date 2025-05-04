@@ -41,6 +41,7 @@ const ProfilePage = lazy(() => import("@/pages/profile-page"));
 const EasyPaymentPage = lazy(() => import("@/pages/easy-payment-page"));
 const SocialLoginTestPage = lazy(() => import("@/pages/social-login-test"));
 const PayPage = lazy(() => import("@/pages/pay-page"));
+const ClaimTokensPage = lazy(() => import("@/pages/claim-tokens"));
 
 // No games
 
@@ -107,6 +108,7 @@ function Router() {
         <Route path="/easy-payment" component={EasyPaymentPage} />
         <Route path="/social-login-test" component={SocialLoginTestPage} />
         <Route path="/pay/:paymentReference" component={PayPage} />
+        <Route path="/claim-tokens" component={ClaimTokensPage} />
         
         {/* No Games */}
         

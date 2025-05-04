@@ -83,6 +83,22 @@ function ProfileButton() {
   );
 }
 
+// Claim Tokens button component
+function ClaimTokensButton() {
+  return (
+    <Link href="/claim-tokens">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="flex items-center gap-1 hover:bg-green-50 border-green-200 text-green-600"
+      >
+        <CircleDollarSign className="h-4 w-4" />
+        Get Test Tokens
+      </Button>
+    </Link>
+  );
+}
+
 // Logout button component
 function LogoutButton() {
   const { logoutMutation } = useAuth();
@@ -1495,6 +1511,7 @@ export default function MerchantDashboard() {
         <div className="flex items-center gap-2">
           {userData && (
             <>
+              <ClaimTokensButton />
               <ProfileButton />
               <LogoutButton />
             </>

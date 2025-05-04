@@ -54,6 +54,21 @@ export default function PayPage() {
         if (!response.ok) {
           throw new Error('Payment not found or has expired');
         }
+        
+        // Add detailed logging for payment data to troubleshoot USD vs CPXTB amounts
+        const data = await response.json();
+        console.log('DEBUG - Payment data received:', {
+          originalAmountUsd: data.payment.originalAmountUsd,
+          amountUsd: data.payment.amountUsd,
+          originalAmountCpxtb: data.payment.originalAmountCpxtb,
+          amountCpxtb: data.payment.amountCpxtb,
+          type: {
+            originalAmountUsd: typeof data.payment.originalAmountUsd,
+            amountUsd: typeof data.payment.amountUsd,
+            originalAmountCpxtb: typeof data.payment.originalAmountCpxtb,
+            amountCpxtb: typeof data.payment.amountCpxtb
+          }
+        });
 
         const data = await response.json();
         console.log('Payment data received:', data);

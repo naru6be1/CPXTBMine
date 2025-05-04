@@ -17,6 +17,7 @@ export default function SimplePaymentQRGenerator({
   merchantName,
   apiKey
 }: SimplePaymentQRGeneratorProps) {
+  // Default to "10.00" to ensure proper decimal formatting when creating a payment
   const [amount, setAmount] = useState<string>("10.00");
   const [description, setDescription] = useState<string>(`Payment for ${merchantName}`);
   const [paymentReference, setPaymentReference] = useState<string>('');

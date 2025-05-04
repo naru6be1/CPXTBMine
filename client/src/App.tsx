@@ -96,7 +96,8 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route path="/legal-documents" component={LegalPage} />
-        <Route path="/auth" component={AuthPage} />
+        <Route path="/auth" component={EasyAuthPage} />
+        <Route path="/auth/legacy" component={AuthPage} />
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/profile" component={ProfilePage} />

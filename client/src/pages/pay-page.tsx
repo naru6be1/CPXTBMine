@@ -56,7 +56,20 @@ export default function PayPage() {
         const data = await response.json();
         console.log('Payment data received:', data);
         
-        setPaymentData(data);
+        // Enhanced data handling with defaults for missing values
+        const enhancedData = {
+          ...data,
+          // Ensure amountCpxtb is always valid as a number (default to 0 if not present)
+          amountCpxtb: data.amountCpxtb || "0",
+          // Ensure amountUsd is always valid as a number (default to 0 if not present)
+          amountUsd: data.amountUsd || "0",
+          // Ensure description has a fallback value
+          description: data.description || `Payment to ${data.merchantName || 'Merchant'}`
+        };
+        
+        console.log('Enhanced payment data:', enhancedData);
+        
+        setPaymentData(enhancedData);
         
         // Calculate countdown
         if (data.expiresAt) {

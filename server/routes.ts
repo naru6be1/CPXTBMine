@@ -1160,13 +1160,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Free CPXTB claim endpoint has been disabled
+  // Test token distribution endpoint for development environment
   app.post("/api/users/:address/claim-free-cpxtb", async (req, res) => {
-    console.log('Attempted to access disabled free CPXTB claim feature');
-    // Return a 410 Gone status code to indicate this feature has been removed
-    res.status(410).json({
-      message: "The free CPXTB claim feature has been discontinued."
-    });
+    try {
+      // Only allow this in development environment
+      if (process.env.NODE_ENV !== 'production') {
+        const { address } = req.params;
+        const { amount = "100" } = req.body; // Default to 100 CPXTB if no amount provided
+        
+        console.log(`Distributing ${amount} test CPXTB tokens to wallet ${address}`);
+        
+        if (!address || !address.startsWith('0x')) {
+          return res.status(400).json({ 
+            message: 'Invalid wallet address. Must start with 0x.' 
+          });
+        }
+        
+        // Create Base network client
+        const baseClient = createPublicClient({
+          chain: base,
+          transport: http(BASE_RPC_URL, {
+            timeout: 30000,
+            retryCount: 3,
+            retryDelay: 1000,
+          })
+        });
+        
+        if (!ADMIN_PRIVATE_KEY) {
+          console.error('Admin private key not configured');
+          return res.status(500).json({ 
+            message: 'Admin private key not configured. Cannot distribute tokens.' 
+          });
+        }
+        
+        // Ensure private key is properly formatted with 0x prefix
+        const formattedPrivateKey = ADMIN_PRIVATE_KEY.startsWith('0x')
+          ? ADMIN_PRIVATE_KEY
+          : `0x${ADMIN_PRIVATE_KEY}`;
+        
+        // Create account from private key
+        const account = privateKeyToAccount(formattedPrivateKey as `0x${string}`);
+        console.log('Admin account address:', account.address);
+        
+        // Check network status first
+        const blockNumber = await baseClient.getBlockNumber();
+        console.log('Successfully connected to Base network, current block:', blockNumber.toString());
+        
+        // Check CPXTB balance before attempting distribution
+        const adminBalance = await baseClient.readContract({
+          address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'balanceOf',
+          args: [account.address]
+        });
+        
+        // Convert reward amount to proper decimals (18 decimals for CPXTB)
+        const rewardAmount = parseFloat(amount);
+        const rewardInWei = BigInt(Math.floor(rewardAmount * 10 ** 18));
+        
+        console.log('Token distribution details:', {
+          amount: rewardAmount,
+          amountInWei: rewardInWei.toString(),
+          recipient: address,
+          adminBalance: adminBalance.toString(),
+          contract: CPXTB_CONTRACT_ADDRESS
+        });
+        
+        // Check if admin has enough balance
+        if (adminBalance < rewardInWei) {
+          console.error('Insufficient admin balance for token distribution');
+          return res.status(400).json({ 
+            message: 'Insufficient admin balance for token distribution' 
+          });
+        }
+        
+        // Create a wallet client for sending transactions
+        const client = createWalletClient({
+          account,
+          chain: base,
+          transport: http(BASE_RPC_URL)
+        });
+        
+        // Send the token transfer transaction
+        const txHash = await client.writeContract({
+          address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [address as `0x${string}`, rewardInWei]
+        });
+        
+        console.log(`Test tokens distributed: ${amount} CPXTB to ${address}. Transaction hash: ${txHash}`);
+        
+        return res.status(200).json({
+          message: `Successfully distributed ${amount} CPXTB tokens to your wallet`,
+          txHash,
+          amount
+        });
+      } else {
+        console.log('Attempted to access disabled free CPXTB claim feature in production');
+        // Return a 410 Gone status code to indicate this feature has been removed
+        res.status(410).json({
+          message: "The free CPXTB claim feature has been discontinued in production."
+        });
+      }
+    } catch (error: any) {
+      console.error('Error distributing test tokens:', error);
+      res.status(500).json({
+        message: `Error distributing test tokens: ${error.message}`
+      });
+    }
   });
   
   // Endpoint for purchasing CPXTB tokens for users with insufficient balance

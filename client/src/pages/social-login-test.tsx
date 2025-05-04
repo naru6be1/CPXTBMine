@@ -49,9 +49,9 @@ export default function SocialLoginTest() {
         <CardContent className="space-y-6">
           {isLoggedIn ? (
             <div className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-medium text-sm text-blue-800">Your Wallet</h3>
+              <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-medium text-sm text-gray-700">Your Wallet</h3>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -64,8 +64,8 @@ export default function SocialLoginTest() {
                 
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs text-blue-800 font-medium mb-1">Wallet Address:</p>
-                    <div className="flex items-center gap-1 bg-white p-2 rounded-md text-sm break-all shadow-sm">
+                    <p className="text-xs text-gray-600 font-medium mb-1">Wallet Address:</p>
+                    <div className="flex items-center gap-1 bg-gray-50 p-2 rounded-md text-sm break-all shadow-sm">
                       <span className="text-gray-700 font-mono">{walletAddress}</span>
                       <Button 
                         variant="ghost" 
@@ -78,15 +78,15 @@ export default function SocialLoginTest() {
                     </div>
                   </div>
                   
-                  <div className="p-2 bg-white rounded-md shadow-sm">
-                    <p className="text-xs text-blue-800 font-medium mb-1">Connected as:</p>
-                    <p className="font-medium text-blue-900">{userInfo?.name} ({userInfo?.email})</p>
-                    <p className="text-xs text-gray-600">via {userInfo?.provider}</p>
+                  <div className="p-2 bg-gray-50 rounded-md shadow-sm">
+                    <p className="text-xs text-gray-600 font-medium mb-1">Connected as:</p>
+                    <p className="font-medium text-gray-800">{userInfo?.name} ({userInfo?.email})</p>
+                    <p className="text-xs text-gray-500">via {userInfo?.provider}</p>
                   </div>
                   
-                  <div className="p-2 bg-white rounded-md shadow-sm">
-                    <p className="text-xs text-blue-800 font-medium mb-1">Balance:</p>
-                    <p className="font-medium text-lg text-blue-900">{Number(balance).toFixed(6)} CPXTB</p>
+                  <div className="p-2 bg-gray-50 rounded-md shadow-sm">
+                    <p className="text-xs text-gray-600 font-medium mb-1">Balance:</p>
+                    <p className="font-medium text-lg text-gray-800">{Number(balance).toFixed(6)} CPXTB</p>
                   </div>
                 </div>
               </div>

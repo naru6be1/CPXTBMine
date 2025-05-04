@@ -168,10 +168,22 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
       try {
         // For real Google/social authentication, we use GET request to redirect to provider
         if (enableRealLogin) {
+          // Show a visible notification to the user
+          toast({
+            title: "Using Real Google Authentication",
+            description: "Redirecting to Google for real account authentication...",
+            duration: 3000,
+          });
+          
           console.log(`Redirecting to real authentication at /api/social-auth/${provider.toLowerCase()}`);
-          // Redirect to the auth endpoint which will then redirect to Google
-          const redirectUrl = window.location.href;
-          window.location.href = `/api/social-auth/${provider.toLowerCase()}?enableRealLogin=true&redirectUrl=${encodeURIComponent(redirectUrl)}`;
+          
+          // Delay redirect slightly to let toast appear
+          setTimeout(() => {
+            // Redirect to the auth endpoint which will then redirect to Google
+            const redirectUrl = window.location.href;
+            window.location.href = `/api/social-auth/${provider.toLowerCase()}?enableRealLogin=true&redirectUrl=${encodeURIComponent(redirectUrl)}`;
+          }, 1500);
+          
           return; // Stop further execution since we're redirecting
         }
         

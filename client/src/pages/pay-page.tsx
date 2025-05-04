@@ -209,10 +209,22 @@ export default function PayPage() {
   const handleSocialLogin = async (provider: string) => {
     try {
       await login(provider);
-      toast({
-        title: "Login Successful",
-        description: "You can now continue with your payment",
-      });
+      
+      // Force UI refresh after login
+      // We need to wait a moment for the authentication to fully process
+      setTimeout(async () => {
+        // After successful login, refresh balance to ensure we have wallet info
+        await refreshBalance();
+        
+        // Only show toast if still on the page
+        toast({
+          title: "Login Successful",
+          description: "You can now continue with your payment",
+        });
+        
+        // Force a redirect to the same page to ensure full UI refresh
+        window.location.reload();
+      }, 500);
     } catch (error: any) {
       toast({
         title: "Login Failed",

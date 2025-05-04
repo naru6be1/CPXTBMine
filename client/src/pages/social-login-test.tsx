@@ -118,7 +118,7 @@ const SocialLoginTestPage: React.FC = () => {
               <BasicSocialLogin />
             </TabsContent>
             <TabsContent value="advanced" className="mt-4">
-              <Web3AuthIntegration onError={(error) => {
+              <Web3AuthIntegration onError={(error: Error) => {
                 // Dispatch a custom event for errors
                 const errorDetail = {
                   type: 'web3auth-error',

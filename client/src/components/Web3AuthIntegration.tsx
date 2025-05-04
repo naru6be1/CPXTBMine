@@ -187,6 +187,13 @@ const Web3AuthIntegration: React.FC<Web3AuthIntegrationProps> = ({ onError }) =>
             currentDomain,
             errorMessage
           });
+          
+          // Report DNS/network error to parent component
+          if (onError) {
+            const dnsError = new Error(errorMessage);
+            dnsError.name = "DNSResolutionError";
+            onError(dnsError);
+          }
         } else if (errorMessage.includes("popup") || errorMessage.includes("closed") || errorMessage.includes("window")) {
           // Special handling for popup/redirect issues on mobile
           setConnectionState(ConnectionState.Error);
@@ -217,7 +224,7 @@ const Web3AuthIntegration: React.FC<Web3AuthIntegrationProps> = ({ onError }) =>
         variant: "destructive",
       });
     }
-  }, [toast, checkNetworkStatus]);
+  }, [toast, checkNetworkStatus, onError]);
 
   const retryInitialization = async () => {
     setAttempts(prev => prev + 1);
@@ -290,9 +297,17 @@ const Web3AuthIntegration: React.FC<Web3AuthIntegrationProps> = ({ onError }) =>
       if (error?.message?.includes("network") || 
           error?.message?.includes("Failed to fetch") ||
           error?.message?.includes("openlogin") ||
+          error?.message?.includes("DNS") ||
           error?.message?.includes("timeout")) {
         setConnectionState(ConnectionState.NetworkError);
         setError("Cannot reach authentication servers. Please check your network connection.");
+        
+        // Report DNS/network error to parent component
+        if (onError) {
+          const dnsError = new Error(error?.message || "Network error during login");
+          dnsError.name = "DNSResolutionError";
+          onError(dnsError);
+        }
       } else {
         setConnectionState(ConnectionState.Error);
         setError(error?.message || "Failed to login");

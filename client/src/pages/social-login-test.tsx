@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, AlertTriangle, Code2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Code2, AlertCircle, WifiOff } from 'lucide-react';
 import BasicSocialLogin from '../components/BasicSocialLogin';
 import Web3AuthIntegration from '../components/Web3AuthIntegration';
 import { Switch } from '@/components/ui/switch';
@@ -13,6 +13,31 @@ import { Label } from '@/components/ui/label';
  */
 const SocialLoginTestPage: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [web3AuthAvailable, setWeb3AuthAvailable] = useState<boolean>(true);
+  const [dnsError, setDnsError] = useState<boolean>(false);
+  
+  // Listen for errors from the Web3AuthIntegration component
+  useEffect(() => {
+    const handleWeb3AuthErrors = (event: Event) => {
+      const errorEvent = event as CustomEvent;
+      if (errorEvent.detail && errorEvent.detail.type === 'web3auth-error') {
+        setWeb3AuthAvailable(false);
+        
+        // Check if it's a DNS error
+        if (errorEvent.detail.errorMessage && 
+            (errorEvent.detail.errorMessage.includes('DNS') || 
+             errorEvent.detail.errorMessage.includes('app.openlogin.com'))) {
+          setDnsError(true);
+          console.error('DNS error detected with Web3Auth:', errorEvent.detail);
+        }
+      }
+    };
+    
+    window.addEventListener('web3auth-error', handleWeb3AuthErrors as EventListener);
+    return () => {
+      window.removeEventListener('web3auth-error', handleWeb3AuthErrors as EventListener);
+    };
+  }, []);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -35,6 +60,21 @@ const SocialLoginTestPage: React.FC = () => {
               </AlertDescription>
             </Alert>
             
+            {dnsError && (
+              <Alert variant="destructive" className="mb-6">
+                <WifiOff className="h-4 w-4" />
+                <AlertTitle>Connection Issue Detected</AlertTitle>
+                <AlertDescription>
+                  <p className="mb-2">Unable to reach Web3Auth authentication servers (app.openlogin.com).</p>
+                  <p className="text-sm">This is likely due to DNS resolution issues or network constraints. For production deployment, make sure the following domains are accessible:</p>
+                  <ul className="list-disc pl-5 text-sm mt-1">
+                    <li>app.openlogin.com</li>
+                    <li>api.openlogin.io</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="flex items-center space-x-2 mb-6">
               <Switch 
                 id="show-advanced" 
@@ -42,7 +82,7 @@ const SocialLoginTestPage: React.FC = () => {
                 onCheckedChange={setShowAdvanced}
               />
               <Label htmlFor="show-advanced" className="text-sm cursor-pointer">
-                Show Advanced Options
+                Show Advanced Options {!web3AuthAvailable && "⚠️"}
               </Label>
             </div>
             
@@ -67,20 +107,39 @@ const SocialLoginTestPage: React.FC = () => {
         </Card>
         
         {showAdvanced ? (
-          <Tabs defaultValue="demo" className="mb-8">
+          <Tabs defaultValue={web3AuthAvailable ? "advanced" : "demo"} className="mb-8">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="demo">Working Demo</TabsTrigger>
-              <TabsTrigger value="advanced">Web3Auth Integration</TabsTrigger>
+              <TabsTrigger value="advanced" disabled={!web3AuthAvailable}>
+                Web3Auth Integration {!web3AuthAvailable && "⚠️"}
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="demo" className="mt-4">
               <BasicSocialLogin />
             </TabsContent>
             <TabsContent value="advanced" className="mt-4">
-              <Web3AuthIntegration />
+              <Web3AuthIntegration onError={(error) => {
+                // Dispatch a custom event for errors
+                const errorDetail = {
+                  type: 'web3auth-error',
+                  errorMessage: error.message || 'Unknown error',
+                  timestamp: new Date().toISOString()
+                };
+                const event = new CustomEvent('web3auth-error', { detail: errorDetail });
+                window.dispatchEvent(event);
+                console.error('Web3Auth error dispatched:', errorDetail);
+              }} />
             </TabsContent>
           </Tabs>
         ) : (
-          <BasicSocialLogin />
+          <div>
+            {dnsError && (
+              <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
+                ⚠️ Using working demo due to Web3Auth connection issues.
+              </p>
+            )}
+            <BasicSocialLogin />
+          </div>
         )}
       </div>
     </div>

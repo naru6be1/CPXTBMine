@@ -10,6 +10,11 @@ import { useToast } from '@/hooks/use-toast';
 import { BASE_CHAIN_ID } from '@shared/constants';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+// Props interface for error callback
+interface Web3AuthIntegrationProps {
+  onError?: (error: Error) => void;
+}
+
 interface UserInfo {
   name?: string;
   email?: string;
@@ -45,7 +50,7 @@ const checkConnectivity = async (): Promise<boolean> => {
   }
 };
 
-const Web3AuthIntegration: React.FC = () => {
+const Web3AuthIntegration: React.FC<Web3AuthIntegrationProps> = ({ onError }) => {
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
   const [loading, setLoading] = useState(false);
   const [connectionState, setConnectionState] = useState<ConnectionState>(ConnectionState.Initializing);

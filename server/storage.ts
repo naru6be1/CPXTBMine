@@ -630,12 +630,47 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getPaymentByReference(paymentReference: string): Promise<Payment | undefined> {
+    console.log(`Looking up payment by reference: ${paymentReference}`);
+    
+    // Try direct lookup first
     const [payment] = await db
       .select()
       .from(payments)
       .where(eq(payments.paymentReference, paymentReference));
       
-    return payment;
+    if (payment) {
+      return payment;
+    }
+    
+    // If no payment found and it's a social format reference (SOCIAL-ID-TIMESTAMP-RANDOM), 
+    // try to find it by extracting the merchant ID
+    if (paymentReference.startsWith('SOCIAL-')) {
+      try {
+        const parts = paymentReference.split('-');
+        if (parts.length >= 2) {
+          const merchantId = parseInt(parts[1]);
+          console.log(`Social payment format detected. Trying to find payment for merchant: ${merchantId}`);
+          
+          // Look for a recently created payment for this merchant
+          const recentPayments = await db
+            .select()
+            .from(payments)
+            .where(eq(payments.merchantId, merchantId))
+            .orderBy(desc(payments.createdAt))
+            .limit(5);
+            
+          if (recentPayments.length > 0) {
+            console.log(`Found ${recentPayments.length} recent payments for merchant ${merchantId}`);
+            // For now, take the most recent payment
+            return recentPayments[0];
+          }
+        }
+      } catch (error) {
+        console.error(`Error parsing social payment reference: ${error}`);
+      }
+    }
+    
+    return undefined;
   }
   
   async getPaymentsByMerchant(merchantId: number): Promise<Payment[]> {

@@ -1466,8 +1466,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const amountCpxtb = calculateCpxtbAmount(amountUsd, cpxtbPrice);
       console.log(`Calculated payment amount: $${amountUsd} USD = ${amountCpxtb} CPXTB`);
       
-      // Generate a unique payment reference
-      const paymentReference = generatePaymentReference();
+      // Generate a unique payment reference - use custom ref if provided
+      const customRef = req.body.paymentReference;
+      const paymentReference = generatePaymentReference(customRef);
       
       // Set expiration time (15 minutes from now)
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);

@@ -164,6 +164,7 @@ export const payments = pgTable("payments", {
   securityVerifiedAt: timestamp("security_verified_at"),
   metadata: text("metadata"), // JSON storage for validation results and security checks
   emailSent: boolean("email_sent").default(false), // Track if confirmation email has been sent
+  successUrl: text("success_url"), // URL to redirect to after successful payment
 });
 
 // Define relations

@@ -1813,6 +1813,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { reference } = req.params;
       const payment = await storage.getPaymentByReference(reference);
       
+      // Add detailed debugging for diagnosis
+      console.log(`Payment request for ${reference}:`, payment ? {
+        id: payment.id,
+        paymentReference: payment.paymentReference,
+        amountUsd: payment.amountUsd,
+        amountCpxtb: payment.amountCpxtb,
+        description: payment.description,
+        merchantId: payment.merchantId,
+        status: payment.status
+      } : 'Not found');
+      
       if (!payment) {
         return res.status(404).json({ message: 'Payment not found' });
       }
@@ -1824,6 +1835,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Merchant not found' });
       }
       
+      // IMPORTANT FIX: When description is null, create a fallback description
+      const description = payment.description || `Payment to ${merchant.businessName}`;
+      
+      // Enhanced logging to debug the actual values
+      console.log(`Preparing payment data for public API:`, {
+        amountUsd: payment.amountUsd,
+        amountCpxtb: payment.amountCpxtb,
+        description: description,
+        originalDescription: payment.description
+      });
+      
       // Return only necessary information for the payment page
       res.json({
         amountUsd: payment.amountUsd,
@@ -1834,8 +1856,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reference: payment.paymentReference,
         merchantName: merchant.businessName,
         merchantLogo: merchant.logoUrl,
-        returnUrl: payment.successUrl,
-        description: payment.description || 'Payment to ' + merchant.businessName
+        returnUrl: payment.successUrl || null, // Using null if successUrl doesn't exist
+        description: description
       });
     } catch (error: any) {
       console.error("Error fetching public payment details:", error);

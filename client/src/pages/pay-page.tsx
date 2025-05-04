@@ -370,9 +370,9 @@ export default function PayPage() {
         
         <CardContent className="space-y-4 pt-4">
           {/* Merchant and payment info */}
-          <div className="rounded-lg border p-4 bg-white dark:bg-gray-800">
+          <div className="rounded-lg border p-4 bg-gray-100 dark:bg-gray-800">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-medium">{paymentData.merchantName}</h3>
+              <h3 className="font-medium text-gray-900 dark:text-white">{paymentData.merchantName}</h3>
               {paymentData.merchantLogo && (
                 <img 
                   src={paymentData.merchantLogo} 
@@ -383,16 +383,16 @@ export default function PayPage() {
             </div>
             
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-              <div className="text-muted-foreground">Amount:</div>
-              <div className="font-bold text-right">${parseFloat(paymentData.amountUsd).toFixed(2)} USD</div>
+              <div className="text-gray-700 dark:text-gray-300">Amount:</div>
+              <div className="font-bold text-right text-gray-900 dark:text-white">${parseFloat(paymentData.amountUsd).toFixed(2)} USD</div>
               
-              <div className="text-muted-foreground">CPXTB Amount:</div>
-              <div className="font-medium text-right">{parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB</div>
+              <div className="text-gray-700 dark:text-gray-300">CPXTB Amount:</div>
+              <div className="font-medium text-right text-gray-900 dark:text-white">{parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB</div>
               
               {paymentData.description && (
                 <>
-                  <div className="text-muted-foreground">Description:</div>
-                  <div className="font-medium text-right">{paymentData.description}</div>
+                  <div className="text-gray-700 dark:text-gray-300">Description:</div>
+                  <div className="font-medium text-right text-gray-900 dark:text-white">{paymentData.description}</div>
                 </>
               )}
             </div>
@@ -421,11 +421,11 @@ export default function PayPage() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-1 text-sm">
-                  <div className="text-muted-foreground">Address:</div>
-                  <div className="font-mono text-xs truncate">{walletAddress}</div>
+                  <div className="text-blue-700 dark:text-blue-300">Address:</div>
+                  <div className="font-mono text-xs truncate text-blue-900 dark:text-blue-100">{walletAddress}</div>
                   
-                  <div className="text-muted-foreground">Balance:</div>
-                  <div className="font-medium">{parseFloat(balance).toFixed(6)} CPXTB</div>
+                  <div className="text-blue-700 dark:text-blue-300">Balance:</div>
+                  <div className="font-medium text-blue-900 dark:text-blue-100">{parseFloat(balance).toFixed(6)} CPXTB</div>
                 </div>
               </div>
               
@@ -599,8 +599,8 @@ export default function PayPage() {
           ) : (
             <div className="space-y-4">
               <div className="bg-blue-50 dark:bg-blue-900 p-4 rounded-md text-center space-y-2">
-                <h3 className="font-medium">Sign in to Pay</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-medium text-blue-900 dark:text-blue-100">Sign in to Pay</h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
                   Connect with your social account to create a wallet and complete this payment.
                 </p>
               </div>
@@ -664,17 +664,17 @@ export default function PayPage() {
         <Separator />
         
         <CardFooter className="flex flex-col pt-4">
-          <div className="rounded-md bg-muted p-3 text-sm w-full mb-3">
+          <div className="rounded-md bg-gray-100 dark:bg-gray-800 p-3 text-sm w-full mb-3">
             <div className="flex items-start gap-2">
-              <HelpCircle className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-              <div className="space-y-1 text-muted-foreground">
+              <HelpCircle className="h-4 w-4 mt-0.5 text-gray-700 dark:text-gray-300 flex-shrink-0" />
+              <div className="space-y-1 text-gray-700 dark:text-gray-300">
                 <p>CPXTB is the native token of the CPXTB Mining Platform.</p>
                 <p>By logging in with your social account, a secure wallet will be created for you.</p>
               </div>
             </div>
           </div>
           
-          <div className="text-xs text-center text-muted-foreground">
+          <div className="text-xs text-center text-gray-700 dark:text-gray-300">
             <p>Powered by CPXTB Platform • Secure Payment Processing</p>
           </div>
         </CardFooter>

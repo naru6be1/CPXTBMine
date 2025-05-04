@@ -815,6 +815,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   // Set up authentication endpoints
   setupAuth(app);
+  
+  // Social authentication endpoints
+  app.get("/api/social-auth/google", (req, res) => {
+    // Mock Google authentication response for demonstration
+    // In a real implementation, this would interact with Google OAuth APIs
+    
+    // Generate a deterministic wallet address based on the provider and a unique identifier
+    const seed = `google-${Date.now()}`;
+    const hash = crypto.createHash('sha256').update(seed).digest('hex');
+    const walletAddress = `0x${hash.substring(0, 40)}`;
+    
+    // Send back user and wallet info
+    res.json({
+      name: "Google User",
+      email: "google.user@example.com",
+      walletAddress: walletAddress,
+      balance: "10.0" // Mock initial balance
+    });
+  });
+  
+  app.get("/api/social-auth/facebook", (req, res) => {
+    // Mock Facebook authentication response
+    const seed = `facebook-${Date.now()}`;
+    const hash = crypto.createHash('sha256').update(seed).digest('hex');
+    const walletAddress = `0x${hash.substring(0, 40)}`;
+    
+    res.json({
+      name: "Facebook User",
+      email: "facebook.user@example.com",
+      walletAddress: walletAddress,
+      balance: "10.0"
+    });
+  });
+  
+  app.get("/api/social-auth/twitter", (req, res) => {
+    // Mock Twitter authentication response
+    const seed = `twitter-${Date.now()}`;
+    const hash = crypto.createHash('sha256').update(seed).digest('hex');
+    const walletAddress = `0x${hash.substring(0, 40)}`;
+    
+    res.json({
+      name: "Twitter User",
+      email: "twitter.user@example.com",
+      walletAddress: walletAddress,
+      balance: "10.0"
+    });
+  });
+  
+  app.get("/api/social-auth/apple", (req, res) => {
+    // Mock Apple authentication response
+    const seed = `apple-${Date.now()}`;
+    const hash = crypto.createHash('sha256').update(seed).digest('hex');
+    const walletAddress = `0x${hash.substring(0, 40)}`;
+    
+    res.json({
+      name: "Apple User",
+      email: "apple.user@example.com",
+      walletAddress: walletAddress,
+      balance: "10.0"
+    });
+  });
+  
+  app.post("/api/social-auth/logout", (req, res) => {
+    // Since social login is stateless in this implementation, just acknowledge the logout
+    res.status(200).json({ success: true });
+  });
+  
   // Update user endpoint with additional logging and error handling
   app.get("/api/users/:address", async (req, res) => {
     try {

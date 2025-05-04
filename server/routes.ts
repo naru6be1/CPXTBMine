@@ -1761,8 +1761,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Return payment data along with merchant theme settings
+      // FIX: Ensure numeric values like amounts are properly converted to numbers before sending to client
+      // This solves the issue where small amounts like 0.1 were showing as 0
+      
+      // First convert payment data to a plain object we can modify
+      const formattedPayment = {
+        ...payment,
+        // Ensure amountUsd is treated as a number in the response
+        // Use parseFloat to handle strings and Number for other formats, and ensure non-zero values display
+        amountUsd: parseFloat(String(payment.amountUsd || 0)),
+        // Ensure amountCpxtb is treated as a number in the response
+        amountCpxtb: parseFloat(String(payment.amountCpxtb || 0))
+      };
+      
+      console.log('Formatted payment data before sending to client:', {
+        id: formattedPayment.id,
+        amountUsd: formattedPayment.amountUsd,
+        amountCpxtb: formattedPayment.amountCpxtb,
+        originalAmountUsd: payment.amountUsd,
+        originalAmountCpxtb: payment.amountCpxtb
+      });
+      
       res.json({ 
-        payment,
+        payment: formattedPayment,
         theme: {
           primaryColor: merchant.primaryColor,
           secondaryColor: merchant.secondaryColor,

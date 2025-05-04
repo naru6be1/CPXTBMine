@@ -59,14 +59,22 @@ export default function PayPage() {
         console.log('Payment data received:', data);
         
         // Enhanced data handling with defaults for missing values
+        // FIX: Improved handling of payment amounts to ensure proper display
         const enhancedData = {
-          ...data,
+          ...data.payment,
           // Ensure amountCpxtb is always valid as a number (default to 0 if not present)
-          amountCpxtb: data.amountCpxtb || "0",
+          // The server now sends numeric values, but we'll add safeguards here too
+          amountCpxtb: typeof data.payment.amountCpxtb === 'number' 
+            ? data.payment.amountCpxtb 
+            : parseFloat(data.payment.amountCpxtb || "0"),
           // Ensure amountUsd is always valid as a number (default to 0 if not present)
-          amountUsd: data.amountUsd || "0",
+          amountUsd: typeof data.payment.amountUsd === 'number' 
+            ? data.payment.amountUsd 
+            : parseFloat(data.payment.amountUsd || "0"),
           // Ensure description has a fallback value
-          description: data.description || `Payment to ${data.merchantName || 'Merchant'}`
+          description: data.payment.description || `Payment to ${data.payment.merchantName || 'Merchant'}`,
+          // Include theme information
+          theme: data.theme
         };
         
         console.log('Enhanced payment data:', enhancedData);
@@ -74,8 +82,9 @@ export default function PayPage() {
         setPaymentData(enhancedData);
         
         // Calculate countdown
-        if (data.expiresAt) {
-          const expiryTime = new Date(data.expiresAt).getTime();
+        // FIX: Adjust path to access expiresAt from payment object
+        if (data.payment && data.payment.expiresAt) {
+          const expiryTime = new Date(data.payment.expiresAt).getTime();
           const now = Date.now();
           const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
           setCountdown(timeLeft);

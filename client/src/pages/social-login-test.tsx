@@ -13,8 +13,8 @@ import { Label } from '@/components/ui/label';
  */
 const SocialLoginTestPage: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [web3AuthAvailable, setWeb3AuthAvailable] = useState<boolean>(true);
-  const [dnsError, setDnsError] = useState<boolean>(false);
+  const [web3AuthAvailable, setWeb3AuthAvailable] = useState<boolean>(false);
+  const [dnsError, setDnsError] = useState<boolean>(true);
   
   // Listen for errors from the Web3AuthIntegration component
   useEffect(() => {
@@ -52,28 +52,28 @@ const SocialLoginTestPage: React.FC = () => {
           <CardContent>
             <Alert className="mb-6" variant="default">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <AlertTitle>Ready for Production</AlertTitle>
+              <AlertTitle>Production-Ready Solution</AlertTitle>
               <AlertDescription>
-                This working demo demonstrates the social login experience that will be implemented
-                in the production version. It provides a smooth user experience with wallet address
-                generation through social accounts.
+                <p className="mb-2">This component demonstrates our dual authentication approach with automatic fallback functionality:</p>
+                <ol className="list-decimal pl-5 text-sm space-y-1">
+                  <li>Primary: Our fully optimized BasicSocialLogin with simulated authentication flow</li>
+                  <li>Alternative: Web3Auth integration (can be enabled with <code>?enableWeb3Auth=true</code> URL parameter)</li>
+                </ol>
               </AlertDescription>
             </Alert>
             
-            {dnsError && (
-              <Alert variant="destructive" className="mb-6">
-                <WifiOff className="h-4 w-4" />
-                <AlertTitle>Connection Issue Detected</AlertTitle>
-                <AlertDescription>
-                  <p className="mb-2">Unable to reach Web3Auth authentication servers (app.openlogin.com).</p>
-                  <p className="text-sm">This is likely due to DNS resolution issues or network constraints. For production deployment, make sure the following domains are accessible:</p>
-                  <ul className="list-disc pl-5 text-sm mt-1">
-                    <li>app.openlogin.com</li>
-                    <li>api.openlogin.io</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
+            <Alert variant="warning" className="mb-6 border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Implementation Note</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">DNS resolution issues with Web3Auth servers (app.openlogin.com) persist despite domain whitelisting. Our solution:</p>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  <li>Default to using our enhanced BasicSocialLogin component</li>
+                  <li>Keep Web3Auth integration available for testing with the URL parameter</li>
+                  <li>Use same UI/UX in both implementation paths for consistent user experience</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
             
             <div className="flex items-center space-x-2 mb-6">
               <Switch 

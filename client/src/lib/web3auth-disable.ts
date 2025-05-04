@@ -44,13 +44,13 @@ export const MOCK_WEB3AUTH_NETWORK = {
   TESTNET: 'testnet'
 };
 
-// Conditionally prevent Web3Auth script execution
-// Use URL parameter to enable/disable: ?disableWeb3Auth=true
+// Use URL parameter to enable/disable: ?enableWeb3Auth=true (opt-in approach)
 if (typeof window !== 'undefined') {
   const urlParams = new URLSearchParams(window.location.search);
-  const disableWeb3Auth = urlParams.get('disableWeb3Auth') === 'true';
+  const enableWeb3Auth = urlParams.get('enableWeb3Auth') === 'true';
   
-  if (disableWeb3Auth) {
+  // Default to disabled unless explicitly enabled
+  if (!enableWeb3Auth) {
     // Make Web3Auth components inaccessible to prevent UI from showing
     // Add a global flag to indicate Web3Auth is disabled
     (window as any).__WEB3AUTH_DISABLED__ = true;
@@ -68,9 +68,9 @@ if (typeof window !== 'undefined') {
       return originalOpen.call(window, url, target, features);
     };
     
-    console.log('Web3Auth popup prevention enabled');
+    console.log('Web3Auth disabled by default - using BasicSocialLogin fallback solution');
   } else {
-    console.log('Web3Auth enabled - using configured domain: https://1ceb706b-817d-4c3a-92ce-0335b2e3890c-00-26akl9dnpcsqg.picard.replit.dev');
+    console.log('Web3Auth explicitly enabled with URL parameter - using whitelisted domain: https://1ceb706b-817d-4c3a-92ce-0335b2e3890c-00-26akl9dnpcsqg.picard.replit.dev');
     (window as any).__WEB3AUTH_DISABLED__ = false;
   }
 }

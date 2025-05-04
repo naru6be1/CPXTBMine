@@ -304,10 +304,14 @@ export default function PayPage() {
             <div className="rounded-lg border p-4">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-muted-foreground">Amount:</div>
-                <div className="font-medium text-right">${paymentData.amountUsdNumber.toFixed(2)} USD</div>
+                <div className="font-medium text-right">
+                  ${Number(paymentData.amountUsd || paymentData.originalAmountUsd || paymentData.amountUsdNumber || 0).toFixed(2)} USD
+                </div>
                 
                 <div className="text-muted-foreground">CPXTB Amount:</div>
-                <div className="font-medium text-right">{paymentData.amountCpxtbNumber.toFixed(6)} CPXTB</div>
+                <div className="font-medium text-right">
+                  {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB
+                </div>
                 
                 <div className="text-muted-foreground">Merchant:</div>
                 <div className="font-medium text-right">{paymentData.merchantName}</div>
@@ -389,10 +393,14 @@ export default function PayPage() {
             
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div className="text-gray-700 dark:text-gray-300">Amount:</div>
-              <div className="font-bold text-right text-gray-900 dark:text-white">${paymentData.amountUsdNumber.toFixed(2)} USD</div>
+              <div className="font-bold text-right text-gray-900 dark:text-white">
+                ${Number(paymentData.amountUsd || paymentData.originalAmountUsd || paymentData.amountUsdNumber || 0).toFixed(2)} USD
+              </div>
               
               <div className="text-gray-700 dark:text-gray-300">CPXTB Amount:</div>
-              <div className="font-medium text-right text-gray-900 dark:text-white">{paymentData.amountCpxtbNumber.toFixed(6)} CPXTB</div>
+              <div className="font-medium text-right text-gray-900 dark:text-white">
+                {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB
+              </div>
               
               {paymentData.description && (
                 <>
@@ -440,7 +448,7 @@ export default function PayPage() {
                 onClick={handlePayment}
                 disabled={
                   processingPayment || 
-                  Number(balance) < paymentData.amountCpxtbNumber ||
+                  Number(balance) < Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) ||
                   (countdown !== null && countdown <= 0)
                 }
               >
@@ -448,22 +456,22 @@ export default function PayPage() {
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                   </>
-                ) : Number(balance) < paymentData.amountCpxtbNumber ? (
+                ) : Number(balance) < Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) ? (
                   'Insufficient Balance'
                 ) : (countdown !== null && countdown <= 0) ? (
                   'Payment Expired'
                 ) : (
-                  `Pay ${paymentData.amountCpxtbNumber.toFixed(6)} CPXTB`
+                  `Pay ${Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB`
                 )}
               </Button>
               
-              {Number(balance) < paymentData.amountCpxtbNumber && !isBuyingTokens && (
+              {Number(balance) < Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) && !isBuyingTokens && (
                 <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-sm">
                   <div className="flex items-start gap-2 mb-2">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-800" />
                     <div>
                       <p className="text-amber-800">
-                        Your wallet doesn't have enough CPXTB tokens. You need {paymentData.amountCpxtbNumber.toFixed(6)} CPXTB but only have {Number(balance).toFixed(6)} CPXTB.
+                        Your wallet doesn't have enough CPXTB tokens. You need {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB but only have {Number(balance).toFixed(6)} CPXTB.
                       </p>
                       <p className="mt-1 text-amber-700">
                         You can purchase CPXTB tokens directly using your social login wallet.
@@ -487,10 +495,11 @@ export default function PayPage() {
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm text-blue-700 mb-1">
-                        Current price: 1 CPXTB = ${(paymentData.amountUsdNumber / paymentData.amountCpxtbNumber).toFixed(6)} USD
+                        Current price: 1 CPXTB = ${(Number(paymentData.amountUsd || paymentData.originalAmountUsd || paymentData.amountUsdNumber || 0) / 
+                                                   Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 1)).toFixed(6)} USD
                       </p>
                       <p className="text-sm text-blue-700 mb-2">
-                        You need at least {paymentData.amountCpxtbNumber.toFixed(6)} CPXTB for this payment.
+                        You need at least {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB for this payment.
                       </p>
                       
                       <div className="flex flex-col gap-2">
@@ -500,11 +509,11 @@ export default function PayPage() {
                         <input
                           id="purchase-amount"
                           type="number"
-                          min={paymentData.amountCpxtbNumber - Number(balance)}
+                          min={Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) - Number(balance)}
                           step="0.000001"
                           value={purchaseAmount}
                           onChange={(e) => setPurchaseAmount(e.target.value)}
-                          placeholder={`Minimum ${(paymentData.amountCpxtbNumber - Number(balance)).toFixed(6)}`}
+                          placeholder={`Minimum ${(Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) - Number(balance)).toFixed(6)}`}
                           className="px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>

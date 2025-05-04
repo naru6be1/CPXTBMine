@@ -72,7 +72,7 @@ const EasyAuthPage: React.FC = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Login Failed</AlertTitle>
               <AlertDescription>
-                {networkStatus.error}. Please use the Basic Social Login option.
+                {networkStatus.error}. This is usually caused by network restrictions with some mobile carriers or corporate firewalls. We're using our built-in social login instead, which works on all networks.
               </AlertDescription>
             </Alert>
           )}

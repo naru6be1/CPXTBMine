@@ -202,10 +202,11 @@ export default function SimplePaymentQRGenerator({
               <span className="font-semibold">Business:</span> {merchantName}
             </p>
             <p className="text-sm font-medium">
-              <span className="font-semibold">Amount:</span> ${Number(amount).toFixed(2)} USD
+              <span className="font-semibold">Amount:</span> ${amount} USD
               {/* Debug text to verify the decimal is preserved */}
               <span className="block text-xs text-muted-foreground">
-                Raw: "{amount}" ({typeof amount})
+                Raw: "{amount}" ({typeof amount}) | 
+                Formatted: ${Number(amount).toFixed(2)}
               </span>
             </p>
           </div>

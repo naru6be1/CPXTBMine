@@ -1458,10 +1458,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Amount in USD is required' });
       }
       
-      // FIX: Ensure small decimal values like 0.1 are properly handled
-      // Convert amountUsd to a number to ensure precision for small values
-      const parsedAmountUsd = Number(amountUsd);
-      console.log(`Parsed amountUsd: ${parsedAmountUsd} (original value: ${amountUsd})`);
+      // ENHANCED FIX: Ensure small decimal values like 0.1 are properly handled
+      // Use parseFloat for the initial conversion to handle decimal values correctly
+      const initialParse = parseFloat(String(amountUsd));
+      // Then format to exactly 2 decimal places and convert back to a number
+      const parsedAmountUsd = Number(initialParse.toFixed(2));
+      console.log(`Parsed amountUsd: ${parsedAmountUsd} (original value: ${amountUsd}, initialParse: ${initialParse})`);
       
       // Validate the amount is a valid number and greater than zero
       if (isNaN(parsedAmountUsd) || parsedAmountUsd <= 0) {

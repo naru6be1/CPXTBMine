@@ -27,6 +27,8 @@ export default function PayPage() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [isBuyingTokens, setIsBuyingTokens] = useState(false);
+  const [purchaseAmount, setPurchaseAmount] = useState("");
   const { isLoggedIn, userInfo, walletAddress, balance, login, refreshBalance } = useSocialLogin();
   const { toast } = useToast();
 
@@ -418,13 +420,146 @@ export default function PayPage() {
                 )}
               </Button>
               
-              {parseFloat(balance) < parseFloat(paymentData.amountCpxtb) && (
-                <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-sm text-amber-800">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <p>
-                      Your wallet doesn't have enough CPXTB tokens. You need {parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB but only have {parseFloat(balance).toFixed(6)} CPXTB.
-                    </p>
+              {parseFloat(balance) < parseFloat(paymentData.amountCpxtb) && !isBuyingTokens && (
+                <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-sm">
+                  <div className="flex items-start gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-800" />
+                    <div>
+                      <p className="text-amber-800">
+                        Your wallet doesn't have enough CPXTB tokens. You need {parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB but only have {parseFloat(balance).toFixed(6)} CPXTB.
+                      </p>
+                      <p className="mt-1 text-amber-700">
+                        You can purchase CPXTB tokens directly using your social login wallet.
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-2 bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300"
+                    onClick={() => setIsBuyingTokens(true)}
+                  >
+                    Buy CPXTB Tokens
+                  </Button>
+                </div>
+              )}
+              
+              {parseFloat(balance) < parseFloat(paymentData.amountCpxtb) && isBuyingTokens && (
+                <div className="bg-blue-50 p-4 rounded-md border border-blue-200 text-sm">
+                  <h3 className="font-medium mb-2 text-blue-900">Purchase CPXTB Tokens</h3>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-blue-700 mb-1">
+                        Current price: 1 CPXTB = ${(parseFloat(paymentData.amountUsd) / parseFloat(paymentData.amountCpxtb)).toFixed(6)} USD
+                      </p>
+                      <p className="text-sm text-blue-700 mb-2">
+                        You need at least {parseFloat(paymentData.amountCpxtb).toFixed(6)} CPXTB for this payment.
+                      </p>
+                      
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="purchase-amount" className="text-sm font-medium text-blue-900">
+                          Amount to purchase (CPXTB)
+                        </label>
+                        <input
+                          id="purchase-amount"
+                          type="number"
+                          min={parseFloat(paymentData.amountCpxtb) - parseFloat(balance)}
+                          step="0.000001"
+                          value={purchaseAmount}
+                          onChange={(e) => setPurchaseAmount(e.target.value)}
+                          placeholder={`Minimum ${(parseFloat(paymentData.amountCpxtb) - parseFloat(balance)).toFixed(6)}`}
+                          className="px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2 mt-3">
+                        <Button 
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setIsBuyingTokens(false)}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm"
+                          className="flex-1"
+                          onClick={async () => {
+                            const amount = parseFloat(purchaseAmount);
+                            
+                            if (isNaN(amount) || amount <= 0) {
+                              toast({
+                                title: "Invalid Amount",
+                                description: "Please enter a valid amount of CPXTB to purchase",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            const minRequired = parseFloat(paymentData.amountCpxtb) - parseFloat(balance);
+                            if (amount < minRequired) {
+                              toast({
+                                title: "Insufficient Amount",
+                                description: `You need to purchase at least ${minRequired.toFixed(6)} CPXTB`,
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            setProcessingPayment(true);
+                            
+                            try {
+                              // Call API to purchase tokens
+                              const response = await fetch(`/api/tokens/purchase`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  walletAddress,
+                                  amount,
+                                  paymentReference,
+                                }),
+                              });
+                              
+                              if (!response.ok) {
+                                const errorData = await response.json();
+                                throw new Error(errorData.message || 'Failed to purchase tokens');
+                              }
+                              
+                              // Refresh balance after purchase
+                              await refreshBalance();
+                              
+                              toast({
+                                title: "Purchase Successful",
+                                description: `Successfully purchased ${amount.toFixed(6)} CPXTB tokens`,
+                              });
+                              
+                              // Reset buying state
+                              setIsBuyingTokens(false);
+                              setPurchaseAmount("");
+                            } catch (error: any) {
+                              toast({
+                                title: "Purchase Failed",
+                                description: error.message || "There was an error purchasing tokens",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setProcessingPayment(false);
+                            }
+                          }}
+                          disabled={processingPayment}
+                        >
+                          {processingPayment ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                            </>
+                          ) : (
+                            'Purchase Tokens'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

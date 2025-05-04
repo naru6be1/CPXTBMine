@@ -42,7 +42,7 @@ export default function PayPage() {
       }
 
       try {
-        const response = await fetch(`/api/payments/${paymentReference}`);
+        const response = await fetch(`/api/payments/${paymentReference}/public`);
         if (!response.ok) {
           throw new Error('Payment not found or has expired');
         }
@@ -133,7 +133,7 @@ export default function PayPage() {
 
     try {
       // Process payment
-      const response = await fetch(`/api/payments/${paymentReference}/pay`, {
+      const response = await fetch(`/api/payments/${paymentReference}/public/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

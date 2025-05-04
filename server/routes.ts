@@ -1800,6 +1800,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public endpoint for customers to fetch payment details
+  app.get("/api/payments/:reference/public", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const payment = await storage.getPaymentByReference(reference);
+      
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+      
+      // Get merchant details to include in the response
+      const merchant = await storage.getMerchant(payment.merchantId);
+      
+      if (!merchant) {
+        return res.status(404).json({ message: 'Merchant not found' });
+      }
+      
+      // Return only necessary information for the payment page
+      res.json({
+        amountUsd: payment.amountUsd,
+        amountCpxtb: payment.amountCpxtb,
+        status: payment.status,
+        expiresAt: payment.expiresAt,
+        createdAt: payment.createdAt,
+        reference: payment.paymentReference,
+        merchantName: merchant.businessName,
+        merchantLogo: merchant.logoUrl,
+        returnUrl: payment.successUrl,
+        description: payment.description || 'Payment to ' + merchant.businessName
+      });
+    } catch (error: any) {
+      console.error("Error fetching public payment details:", error);
+      res.status(500).json({
+        message: "Error fetching payment details: " + error.message
+      });
+    }
+  });
+  
+  // Public endpoint for customers to process payment without merchant authentication
+  app.post("/api/payments/:reference/public/pay", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const { walletAddress, userEmail, userName } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ message: 'Wallet address is required' });
+      }
+      
+      // Get payment details
+      const payment = await storage.getPaymentByReference(reference);
+      
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+      
+      // Validate payment status
+      if (payment.status !== 'pending') {
+        return res.status(400).json({ 
+          message: `Payment cannot be processed. Current status: ${payment.status}` 
+        });
+      }
+      
+      // Check if payment is expired
+      const now = new Date();
+      if (payment.expiresAt && new Date(payment.expiresAt) < now) {
+        await storage.updatePaymentStatus(payment.id, 'expired');
+        return res.status(400).json({ message: 'Payment has expired' });
+      }
+      
+      // Get merchant details
+      const merchant = await storage.getMerchant(payment.merchantId);
+      
+      if (!merchant) {
+        return res.status(404).json({ message: 'Merchant not found' });
+      }
+      
+      console.log(`Processing payment ${reference} from wallet ${walletAddress} to merchant ${merchant.businessName}`);
+      
+      try {
+        // Create Base network client
+        const baseClient = createPublicClient({
+          chain: base,
+          transport: http(BASE_RPC_URL, {
+            timeout: 30000,
+            retryCount: 3,
+            retryDelay: 1000,
+          })
+        });
+        
+        // Get the admin/treasury wallet private key
+        if (!ADMIN_PRIVATE_KEY) {
+          throw new Error('Missing ADMIN_PRIVATE_KEY environment variable');
+        }
+        
+        // Create account from private key
+        const account = privateKeyToAccount(`0x${ADMIN_PRIVATE_KEY}`);
+        
+        // Create wallet client
+        const walletClient = createWalletClient({
+          account,
+          chain: base,
+          transport: http(BASE_RPC_URL, {
+            timeout: 30000,
+            retryCount: 3,
+            retryDelay: 1000,
+          })
+        });
+        
+        // Execute token transfer from customer to merchant
+        const amountInTokenUnits = BigInt(Math.floor(parseFloat(payment.amountCpxtb) * 10**18));
+        
+        // First check customer balance
+        const customerBalance = await baseClient.readContract({
+          address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'balanceOf',
+          args: [walletAddress as `0x${string}`]
+        });
+        
+        if (customerBalance < amountInTokenUnits) {
+          return res.status(400).json({ 
+            message: 'Insufficient CPXTB balance',
+            requiredAmount: payment.amountCpxtb,
+            currentBalance: formatUnits(customerBalance, 18)
+          });
+        }
+        
+        // Execute the transaction from customer wallet to merchant
+        const hash = await walletClient.writeContract({
+          address: CPXTB_CONTRACT_ADDRESS as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [merchant.walletAddress as `0x${string}`, amountInTokenUnits],
+          chain: base
+        });
+        
+        console.log(`Payment transaction hash: ${hash}`);
+        
+        // Wait for confirmation with timeout
+        const receipt = await baseClient.waitForTransactionReceipt({
+          hash,
+          timeout: 30_000 // 30 seconds timeout
+        });
+        
+        if (receipt.status === 'success') {
+          // Update payment status
+          const updatedPayment = await storage.updatePaymentStatus(
+            payment.id, 
+            'completed', 
+            hash,
+            parseFloat(payment.amountCpxtb),
+            parseFloat(payment.amountCpxtb),
+            '0',
+            JSON.stringify({
+              customerWallet: walletAddress,
+              userEmail,
+              userName,
+              timestamp: new Date().toISOString()
+            })
+          );
+          
+          console.log(`Payment ${reference} completed successfully. Transaction hash: ${hash}`);
+          
+          // Return success response
+          res.status(200).json({
+            message: 'Payment processed successfully',
+            transactionHash: hash,
+            payment: {
+              id: updatedPayment.id,
+              reference: updatedPayment.paymentReference,
+              status: updatedPayment.status,
+              amount: updatedPayment.amountCpxtb,
+              amountUsd: updatedPayment.amountUsd
+            }
+          });
+        } else {
+          throw new Error('Transaction failed');
+        }
+      } catch (error: any) {
+        console.error('Error processing payment:', error);
+        
+        if (error.message.includes('insufficient funds')) {
+          return res.status(400).json({ message: 'Insufficient funds to complete the transaction' });
+        }
+        
+        throw error; // Re-throw for outer catch
+      }
+    } catch (error: any) {
+      console.error("Payment processing error:", error);
+      res.status(500).json({
+        message: "Failed to process payment: " + error.message
+      });
+    }
+  });
+  
   // Get merchant payment history
   app.get("/api/merchants/payments", authenticateMerchant, async (req, res) => {
     try {

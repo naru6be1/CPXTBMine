@@ -488,7 +488,7 @@ export default function PayPage() {
                 </div>
               )}
               
-              {Number(balance) < paymentData.amountCpxtbNumber && isBuyingTokens && (
+              {Number(balance) < Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) && isBuyingTokens && (
                 <div className="bg-blue-50 p-4 rounded-md border border-blue-200 text-sm">
                   <h3 className="font-medium mb-2 text-blue-900">Purchase CPXTB Tokens</h3>
                   
@@ -542,7 +542,7 @@ export default function PayPage() {
                               return;
                             }
                             
-                            const minRequired = paymentData.amountCpxtbNumber - Number(balance);
+                            const minRequired = Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) - Number(balance);
                             if (amount < minRequired) {
                               toast({
                                 title: "Insufficient Amount",

@@ -44,10 +44,12 @@ export default function PayPage() {
       console.log(`Fetching payment data for reference: ${paymentReference}`);
       
       try {
-        const response = await fetch(`/api/payments/${paymentReference}/public`);
+        // FIXED URL PATH: Corrected endpoint to match server-side implementation
+        const response = await fetch(`/api/payments/public/${paymentReference}`);
         
         // Debug response
         console.log(`Payment fetch response status: ${response.status}`);
+        console.log(`Using correct endpoint: /api/payments/public/${paymentReference}`);
         
         if (!response.ok) {
           throw new Error('Payment not found or has expired');
@@ -153,8 +155,8 @@ export default function PayPage() {
     setProcessingPayment(true);
 
     try {
-      // Process payment
-      const response = await fetch(`/api/payments/${paymentReference}/public/pay`, {
+      // Process payment - FIXED URL PATH to match server-side implementation
+      const response = await fetch(`/api/payments/public/${paymentReference}/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

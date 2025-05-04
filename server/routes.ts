@@ -1868,10 +1868,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Public endpoint for customers to process payment without merchant authentication
-  app.post("/api/payments/:reference/public/pay", async (req, res) => {
+  // UPDATED ENDPOINT PATH: Changed to match client-side implementation
+  app.post("/api/payments/public/:reference/pay", async (req, res) => {
     try {
       const { reference } = req.params;
       const { walletAddress, userEmail, userName } = req.body;
+      
+      console.log(`Processing payment for reference ${reference} from wallet ${walletAddress}`);
       
       if (!walletAddress) {
         return res.status(400).json({ message: 'Wallet address is required' });

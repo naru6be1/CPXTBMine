@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 import { ChallengeSolver } from "@/components/challenge-solver";
 import { useToast } from "@/hooks/use-toast";
+import { SocialLoginProvider } from "./providers/SocialLoginProvider";
 
 // Lazy-loaded components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -251,14 +252,16 @@ function App() {
     <ErrorBoundary>
       <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <HamburgerMenu />
-            <div className="fixed top-4 right-4 z-50 flex items-center space-x-2">
-              <LiveUserCount />
-            </div>
-            <Router />
-            <Toaster />
-          </AuthProvider>
+          <SocialLoginProvider>
+            <AuthProvider>
+              <HamburgerMenu />
+              <div className="fixed top-4 right-4 z-50 flex items-center space-x-2">
+                <LiveUserCount />
+              </div>
+              <Router />
+              <Toaster />
+            </AuthProvider>
+          </SocialLoginProvider>
         </QueryClientProvider>
       </WagmiConfig>
     </ErrorBoundary>

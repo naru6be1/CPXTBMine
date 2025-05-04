@@ -1461,7 +1461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // CRITICAL FIX: Deep fix for decimal handling issues with values like 0.1
       // Ensure the amount is treated as a string first to preserve exact decimal value
       const amountStr = String(amountUsd).trim();
-      console.log(`Processing amount as string: "${amountStr}"`);
+      console.log(`Processing amount as string: "${amountStr}", type: ${typeof amountUsd}`);
       
       // First convert to a floating point number
       const floatAmount = parseFloat(amountStr);
@@ -1470,7 +1470,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This ensures we have a consistent precision throughout the system
       const parsedAmountUsd = Number(floatAmount.toFixed(2));
       
-      console.log(`Amount processing: original="${amountStr}", float=${floatAmount}, final=${parsedAmountUsd}`);
+      console.log(`Amount processing steps:
+        - Original value: "${amountStr}" (type: ${typeof amountUsd})
+        - Parsed float: ${floatAmount} (type: ${typeof floatAmount})
+        - Final formatted value: ${parsedAmountUsd} (type: ${typeof parsedAmountUsd})
+      `);
       
       // Validate the amount is a valid number and greater than zero
       if (isNaN(parsedAmountUsd) || parsedAmountUsd <= 0) {

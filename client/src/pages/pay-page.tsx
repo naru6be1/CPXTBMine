@@ -55,8 +55,10 @@ export default function PayPage() {
           throw new Error('Payment not found or has expired');
         }
         
-        // Add detailed logging for payment data to troubleshoot USD vs CPXTB amounts
+        // Get response data
         const data = await response.json();
+        
+        // Add detailed logging for payment data to troubleshoot USD vs CPXTB amounts
         console.log('DEBUG - Payment data received:', {
           originalAmountUsd: data.payment.originalAmountUsd,
           amountUsd: data.payment.amountUsd,
@@ -69,9 +71,6 @@ export default function PayPage() {
             amountCpxtb: typeof data.payment.amountCpxtb
           }
         });
-
-        const data = await response.json();
-        console.log('Payment data received:', data);
         
         // Enhanced data handling with defaults for missing values
         // CRITICAL FIX: Improved handling of payment amounts to ensure proper display
@@ -410,11 +409,23 @@ export default function PayPage() {
               <div className="text-gray-700 dark:text-gray-300">Amount:</div>
               <div className="font-bold text-right text-gray-900 dark:text-white">
                 ${Number(paymentData.amountUsd || paymentData.originalAmountUsd || paymentData.amountUsdNumber || 0).toFixed(2)} USD
+                
+                {/* Debug information to help diagnose small decimal display issues */}
+                <div className="text-xs text-muted-foreground font-normal mt-1">
+                  Raw values - Original: "{paymentData.originalAmountUsd || '-'}" | 
+                  Numeric: {paymentData.amountUsdNumber || 0}
+                </div>
               </div>
               
               <div className="text-gray-700 dark:text-gray-300">CPXTB Amount:</div>
               <div className="font-medium text-right text-gray-900 dark:text-white">
                 {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB
+                
+                {/* Debug information to help diagnose small decimal display issues */}
+                <div className="text-xs text-muted-foreground font-normal mt-1">
+                  Raw values - Original: "{paymentData.originalAmountCpxtb || '-'}" | 
+                  Numeric: {paymentData.amountCpxtbNumber || 0}
+                </div>
               </div>
               
               {paymentData.description && (

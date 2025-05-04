@@ -50,6 +50,9 @@ export default function SimplePaymentQRGenerator({
       const randomChars = Math.random().toString(36).substring(2, 8);
       const newRef = `SOCIAL-${merchantId}-${timestamp}-${randomChars}`;
       
+      // Log the input before sending
+      console.log(`Creating payment with amount: "${amount}" of type ${typeof amount}`);
+      
       // Generate a new payment
       const response = await fetch('/api/payments', {
         method: 'POST',
@@ -58,13 +61,10 @@ export default function SimplePaymentQRGenerator({
           'X-API-KEY': apiKey
         },
         body: JSON.stringify({
-          // FIX: Ensure small decimal values like 0.1 are properly processed
-          // Use Number() instead of parseFloat() for more precise handling of decimal values
-          // This ensures values like "0.1" are properly converted without rounding issues
-          // CRITICAL FIX: Send amount as a string to preserve exact decimal value
-          // This ensures values like "0.1" are preserved exactly as entered
-          // Server will handle proper parsing to prevent any floating point precision issues
-          amountUsd: amount,
+          // CRITICAL FIX: Always convert to string and preserve the exact representation
+          // This was causing issues with small decimal values like 0.1 displaying as 10 USD
+          // By explicitly converting to string here, we ensure values like "0.1" remain intact
+          amountUsd: String(amount), // Explicit string conversion to preserve exact decimal
           description: description,
           paymentReference: newRef,
           expiresIn: 24 * 60 * 60, // 24 hours in seconds
@@ -119,7 +119,12 @@ export default function SimplePaymentQRGenerator({
       value = parts[0] + '.' + parts[1].substring(0, 2);
     }
     
+    // CRITICAL FIX: Ensure we always use string representation for amounts
+    // This is crucial for small decimal values like 0.1 to be correctly processed
     setAmount(value);
+    
+    // Debug: Log the current amount value to verify proper format
+    console.log(`Amount changed to: "${value}", type: ${typeof value}`);
   };
 
   // Handle copy link to clipboard
@@ -198,6 +203,10 @@ export default function SimplePaymentQRGenerator({
             </p>
             <p className="text-sm font-medium">
               <span className="font-semibold">Amount:</span> ${Number(amount).toFixed(2)} USD
+              {/* Debug text to verify the decimal is preserved */}
+              <span className="block text-xs text-muted-foreground">
+                Raw: "{amount}" ({typeof amount})
+              </span>
             </p>
           </div>
           

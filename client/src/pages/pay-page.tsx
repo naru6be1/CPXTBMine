@@ -42,129 +42,108 @@ export default function PayPage() {
         return;
       }
       
-
-      
       try {
         // FIXED URL PATH: Corrected endpoint to match server-side implementation
         const response = await fetch(`/api/payments/public/${paymentReference}`);
-  
+        
         if (!response.ok) {
-          throw new Error('Payment not found or has expired');
+          if (response.status === 404) {
+            setError('Payment not found');
+          } else {
+            const errorData = await response.json();
+            setError(errorData.message || 'Failed to load payment data');
+          }
+          setLoading(false);
+          return;
         }
         
-        // Get response data
         const data = await response.json();
+        console.log("Received payment data:", data);
         
-        // Enhanced data handling with defaults for missing values
-        // CRITICAL FIX: Improved handling of payment amounts to ensure proper display
-        // Now using originalAmount fields that are strings to preserve exact decimal values
-        
-        const enhancedData = {
-          ...data.payment,
-          // Prioritize original string values to preserve exact decimal representation
-          amountCpxtb: data.payment.originalAmountCpxtb || String(data.payment.amountCpxtb),
-          // Fall back to numeric conversion only if needed
-          amountCpxtbNumber: Number(data.payment.originalAmountCpxtb || data.payment.amountCpxtb),
-          
-          // Same for USD amount
-          amountUsd: data.payment.originalAmountUsd || String(data.payment.amountUsd),
-          amountUsdNumber: Number(data.payment.originalAmountUsd || data.payment.amountUsd),
-          
-          // Ensure description has a fallback value
-          description: data.payment.description || `Payment to ${data.payment.merchantName || 'Merchant'}`,
-          // Include theme information
-          theme: data.theme
-        };
-        
-
-        
-        setPaymentData(enhancedData);
-        
-        // Calculate countdown
-        // FIX: Adjust path to access expiresAt from payment object
+        // Calculate timestamp
         if (data.payment && data.payment.expiresAt) {
-          const expiryTime = new Date(data.payment.expiresAt).getTime();
+          const expiresAt = new Date(data.payment.expiresAt).getTime();
           const now = Date.now();
-          const timeLeft = Math.max(0, Math.floor((expiryTime - now) / 1000));
+          const timeLeft = Math.max(0, Math.floor((expiresAt - now) / 1000));
           setCountdown(timeLeft);
         }
-      } catch (error: any) {
-        console.error('Error fetching payment data:', error);
-        setError(error.message || 'Failed to load payment details');
-      } finally {
+        
+        setPaymentData(data);
+        setLoading(false);
+        
+        // If payment already completed, show success screen
+        if (data.payment && data.payment.status === 'success') {
+          setPaymentComplete(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch payment data:", error);
+        setError('Failed to load payment details');
         setLoading(false);
       }
     };
-
+    
     fetchPaymentData();
   }, [paymentReference]);
+  
+  // Payment data poll
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (paymentData && !loading && !error && !paymentComplete) {
+      interval = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/payments/public/${paymentReference}`);
+          if (!response.ok) throw new Error('Failed to check payment status');
+          
+          const data = await response.json();
+          
+          // Update payment data
+          setPaymentData(data);
+          
+          // Check if payment is complete
+          if (data.payment && data.payment.status === 'success') {
+            setPaymentComplete(true);
+            clearInterval(interval);
+          }
+        } catch (error) {
+          console.error("Failed to poll payment status:", error);
+        }
+      }, 5000); // Poll every 5 seconds
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [paymentData, loading, error, paymentComplete, paymentReference]);
 
   // Countdown timer
   useEffect(() => {
-    if (countdown === null || countdown <= 0 || paymentComplete) return;
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
+    let timer: NodeJS.Timeout;
+    
+    if (countdown !== null && countdown > 0 && !paymentComplete) {
+      timer = setInterval(() => {
+        setCountdown(prevCountdown => {
+          if (prevCountdown === null || prevCountdown <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prevCountdown - 1;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [countdown, paymentComplete]);
-
-  // Format the countdown time
-  const formatTime = (seconds: number | null) => {
-    if (seconds === null) return '--:--';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
 
   // Handle payment submission
   const handlePayment = async () => {
-    if (!isLoggedIn || !walletAddress) {
-      toast({
-        title: "Login Required",
-        description: "Please log in to complete the payment",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!paymentData) {
-      toast({
-        title: "Payment Error",
-        description: "No payment data available",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Refresh balance to ensure we have the latest data
-    await refreshBalance();
-
-    // Use new amountCpxtbNumber property for numeric comparisons
-    const requiredAmount = paymentData.amountCpxtbNumber;
-    const currentBalance = Number(balance);
-
-    // Check if user has enough balance
-    if (currentBalance < requiredAmount) {
-      toast({
-        title: "Insufficient Balance",
-        description: `You need ${requiredAmount.toFixed(6)} CPXTB but only have ${currentBalance.toFixed(6)} CPXTB`,
-        variant: "destructive",
-      });
-      return;
-    }
-
+    if (!isLoggedIn || !walletAddress || processingPayment) return;
+    
     setProcessingPayment(true);
-
+    
     try {
-      // Process payment - FIXED URL PATH to match server-side implementation
       const response = await fetch(`/api/payments/public/${paymentReference}/pay`, {
         method: 'POST',
         headers: {
@@ -172,132 +151,72 @@ export default function PayPage() {
         },
         body: JSON.stringify({
           walletAddress,
-          userEmail: userInfo?.email,
-          userName: userInfo?.name,
         }),
       });
-
+      
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Payment failed');
+        throw new Error(errorData.message || 'Payment processing failed');
       }
-
-      const result = await response.json();
       
-      // Update UI for successful payment
-      setPaymentComplete(true);
+      const data = await response.json();
+      console.log("Payment processed:", data);
       
-      // Refresh balance after payment
-      await refreshBalance();
-      
+      // Show success message
       toast({
         title: "Payment Successful",
-        description: "Your transaction has been completed successfully",
+        description: "Your payment has been processed successfully.",
       });
+      
+      // Update payment status
+      setPaymentComplete(true);
+      
     } catch (error: any) {
-      console.error('Error processing payment:', error);
+      console.error("Payment failed:", error);
       toast({
         title: "Payment Failed",
-        description: error.message || "There was an error processing your payment",
+        description: error.message || "There was a problem processing your payment",
         variant: "destructive",
       });
     } finally {
       setProcessingPayment(false);
     }
   };
-
-  // Social login handlers
-  // Enhanced login handler with fallback to client-side simulation if API fails
-  const handleSocialLogin = async (provider: string) => {
-    try {
-      console.log(`Attempting social login with provider: ${provider}`);
-      
-      try {
-        // Try the API-based login first
-        await login(provider);
-        
-        // Force UI refresh after login
-        // We need to wait a moment for the authentication to fully process
-        setTimeout(async () => {
-          // After successful login, refresh balance to ensure we have wallet info
-          await refreshBalance();
-          
-          // Only show toast if still on the page
-          toast({
-            title: "Login Successful",
-            description: "You can now continue with your payment",
-          });
-          
-          // Force a redirect to the same page to ensure full UI refresh
-          window.location.reload();
-        }, 500);
-      } catch (apiError: any) {
-        console.error('API login failed, using fallback method:', apiError);
-        
-        // Fall back to client-side simulation if API login fails
-        // This ensures users can still complete payments even if the API endpoint has issues
-        
-        // Generate a deterministic wallet address based on the timestamp
-        const timestamp = Date.now();
-        const seed = timestamp.toString(16);
-        const address = '0x' + Array.from({ length: 40 }, (_, i) => {
-          const hash = (seed.charCodeAt(i % seed.length) * (i + 1)) % 16;
-          return '0123456789abcdef'[hash];
-        }).join('');
-        
-        // Create user info based on selected provider
-        let userDetails = {
-          name: 'Demo User',
-          email: 'demo@example.com',
-          provider: provider
-        };
-        
-        if (provider === 'google') {
-          userDetails.name = 'Google User';
-          userDetails.email = 'user@gmail.com';
-        } else if (provider === 'facebook') {
-          userDetails.name = 'Facebook User';
-          userDetails.email = 'user@facebook.com';
-        } else if (provider === 'twitter') {
-          userDetails.name = 'Twitter User';
-          userDetails.email = 'user@twitter.com';
-        } else if (provider === 'apple') {
-          userDetails.name = 'Apple User';
-          userDetails.email = 'user@icloud.com';
-        }
-        
-        // Store login data in localStorage for persistence
-        localStorage.setItem('cpxtb_user', JSON.stringify({
-          userInfo: userDetails,
-          walletAddress: address,
-          balance: '500.0' // Give enough balance to complete the payment
-        }));
-        
-        toast({
-          title: "Login Successful (Fallback Mode)",
-          description: "You can now continue with your payment",
-        });
-        
-        // Force reload to apply the changes from localStorage
-        window.location.reload();
-      }
-    } catch (error: any) {
-      console.error('Social login failed completely:', error);
+  
+  // Format countdown for display
+  const formatCountdown = (seconds: number): string => {
+    if (seconds <= 0) return "Expired";
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+  
+  // Copy wallet address to clipboard
+  const copyWalletAddress = () => {
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress);
       toast({
-        title: "Login Failed",
-        description: error.message || "Could not authenticate with the provider",
-        variant: "destructive",
+        title: "Address Copied",
+        description: "Wallet address copied to clipboard",
       });
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center pt-6 pb-6">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Loading payment details...</p>
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
+        <Card className="w-full max-w-md shadow-xl">
+          <CardHeader>
+            <CardTitle>Loading Payment</CardTitle>
+            <CardDescription>
+              Please wait while we fetch your payment details
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </CardContent>
         </Card>
       </div>
@@ -306,44 +225,34 @@ export default function PayPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
+        <Card className="w-full max-w-md shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              Payment Error
-            </CardTitle>
+            <CardTitle>Payment Error</CardTitle>
+            <CardDescription>
+              There was a problem loading this payment
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">{error}</p>
+          
+          <CardContent className="py-4">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Error Loading Payment</p>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
+              </div>
+            </div>
           </CardContent>
+          
           <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => window.history.back()}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Go Back
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!paymentData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              Payment Not Found
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">The payment information could not be found or has expired.</p>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => window.history.back()}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button 
+              className="w-full" 
+              variant="outline"
+              onClick={() => window.history.back()}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
           </CardFooter>
@@ -354,98 +263,110 @@ export default function PayPage() {
 
   if (paymentComplete) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <CardTitle>Payment Successful!</CardTitle>
-            <CardDescription>Your transaction has been completed.</CardDescription>
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
+        <Card className="w-full max-w-md shadow-xl">
+          <CardHeader>
+            <CardTitle>Payment Successful</CardTitle>
+            <CardDescription>
+              Your transaction has been completed
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border p-4">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-muted-foreground">Amount:</div>
-                <div className="font-medium text-right">
-                  ${Number(paymentData.amountUsd || paymentData.originalAmountUsd || paymentData.amountUsdNumber || 0).toFixed(2)} USD
-                </div>
-                
-                <div className="text-muted-foreground">CPXTB Amount:</div>
-                <div className="font-medium text-right">
-                  {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB
-                </div>
-                
-                <div className="text-muted-foreground">Merchant:</div>
-                <div className="font-medium text-right">{paymentData.merchantName}</div>
-                
-                <div className="text-muted-foreground">Reference:</div>
-                <div className="font-medium text-right text-xs truncate">{paymentReference}</div>
-              </div>
+          
+          <CardContent className="pt-4">
+            <div className="rounded-lg bg-green-50 p-6 text-center mb-6">
+              <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
+              <h3 className="text-lg font-medium text-green-800 mb-2">Thank You!</h3>
+              <p className="text-green-700 mb-4">
+                Your payment of {paymentData?.payment?.amountCpxtb} CPXTB has been successfully processed.
+              </p>
+              
+              {paymentData?.payment?.successUrl && (
+                <Button 
+                  className="w-full" 
+                  onClick={() => window.location.href = paymentData.payment.successUrl}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Return to Merchant
+                </Button>
+              )}
             </div>
             
-            <div className="rounded-lg bg-green-50 p-4 text-green-800 text-sm">
-              <p className="flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" />
-                Payment confirmed and sent to merchant
-              </p>
+            <div className="rounded-md bg-slate-100 p-4 text-sm border border-gray-200 shadow-sm">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-slate-700 font-medium mb-1">Payment Reference:</p>
+                  <p className="font-mono text-sm text-slate-800">{paymentReference}</p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-slate-700 font-medium mb-1">Transaction Hash:</p>
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono text-xs truncate text-slate-800">
+                      {paymentData?.payment?.transactionHash || 'No transaction hash available'}
+                    </span>
+                    {paymentData?.payment?.transactionHash && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0" 
+                        onClick={() => {
+                          const hash = paymentData.payment.transactionHash;
+                          if (hash) {
+                            navigator.clipboard.writeText(hash);
+                            toast({
+                              title: "Hash Copied",
+                              description: "Transaction hash copied to clipboard",
+                            });
+                          }
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <Button 
-              className="w-full" 
-              onClick={() => {
-                // Redirect to the merchant's website if available
-                if (paymentData.returnUrl) {
-                  window.location.href = paymentData.returnUrl;
-                } else {
-                  window.close();
-                }
-              }}
-            >
-              Complete
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={() => window.close()}
-            >
-              Close Window
-            </Button>
+          
+          <CardFooter className="flex flex-col pt-4">
+            <div className="text-xs text-center text-slate-700">
+              <p>Powered by CPXTB Platform • Secure Payment Processing</p>
+            </div>
           </CardFooter>
         </Card>
       </div>
     );
   }
-
+  
+  // Main payment page
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
       <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5" />
-              Complete Payment
-            </CardTitle>
-            
-            {countdown !== null && countdown > 0 && (
-              <div className="flex items-center gap-1 text-sm font-medium px-2 py-1 bg-amber-100 text-amber-800 rounded-full">
-                <Clock className="h-3 w-3" />
-                {formatTime(countdown)}
-              </div>
-            )}
-          </div>
+        <CardHeader>
+          <CardTitle>CPXTB Payment</CardTitle>
           <CardDescription>
-            Pay with CPXTB using your social login
+            Pay with CPXTB tokens
+            {countdown !== null && countdown > 0 && (
+              <span className="ml-2 inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 border border-yellow-200">
+                <Clock className="w-3 h-3 mr-1 animate-pulse" />
+                Expires in {formatCountdown(countdown)}
+              </span>
+            )}
+            {countdown !== null && countdown <= 0 && (
+              <span className="ml-2 inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-800 border border-red-200">
+                Payment Expired
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         
         <CardContent className="space-y-4 pt-4">
           {/* Merchant and payment info */}
-          <div className="rounded-lg border p-4 bg-gray-100 dark:bg-gray-800">
+          <div className="rounded-lg border p-4 bg-slate-100 shadow-sm">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-medium text-gray-900 dark:text-white">{paymentData.merchantName}</h3>
-              {paymentData.merchantLogo && (
+              <h3 className="font-medium text-slate-900">{paymentData?.merchantName}</h3>
+              {paymentData?.merchantLogo && (
                 <img 
                   src={paymentData.merchantLogo} 
                   alt={paymentData.merchantName} 
@@ -455,36 +376,16 @@ export default function PayPage() {
             </div>
             
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-              <div className="text-gray-700 dark:text-gray-300">Amount:</div>
-              <div className="font-bold text-right text-gray-900 dark:text-white">
-                {/* CRITICAL FIX: Use the string values directly when available to ensure proper decimal display */}
-                ${paymentData.amountUsdString || paymentData.originalAmountUsd || Number(paymentData.amountUsd || 0).toFixed(2)} USD
-                
-
+              <div className="text-slate-700">Amount:</div>
+              <div className="font-bold text-right text-slate-900">
+                ${paymentData?.amountUsdString || paymentData?.originalAmountUsd || Number(paymentData?.amountUsd || 0).toFixed(2)} USD
               </div>
               
-              <div className="text-gray-700 dark:text-gray-300">CPXTB Amount:</div>
-              <div className="font-medium text-right text-gray-900 dark:text-white">
-                {/* CRITICAL FIX: Use the string values directly when available to ensure proper decimal display */}
-                {paymentData.amountCpxtbString || paymentData.originalAmountCpxtb || Number(paymentData.amountCpxtb || 0).toFixed(6)} CPXTB
-                
-
+              <div className="text-slate-700">CPXTB Amount:</div>
+              <div className="font-medium text-right text-slate-900">
+                {paymentData?.amountCpxtbString || paymentData?.originalAmountCpxtb || Number(paymentData?.amountCpxtb || 0).toFixed(6)} CPXTB
               </div>
-              
-              {paymentData.description && (
-                <>
-                  <div className="text-gray-700 dark:text-gray-300">Description:</div>
-                  <div className="font-medium text-right text-gray-900 dark:text-white">{paymentData.description}</div>
-                </>
-              )}
             </div>
-            
-            {countdown !== null && countdown <= 0 && (
-              <div className="bg-red-100 text-red-800 p-3 rounded-md text-sm flex items-center gap-2 mt-2">
-                <AlertTriangle className="h-4 w-4" />
-                This payment has expired. Please request a new payment link.
-              </div>
-            )}
           </div>
           
           {isLoggedIn ? (
@@ -537,7 +438,7 @@ export default function PayPage() {
                 onClick={handlePayment}
                 disabled={
                   processingPayment || 
-                  Number(balance) < Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) ||
+                  Number(balance) < Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) ||
                   (countdown !== null && countdown <= 0)
                 }
               >
@@ -545,16 +446,16 @@ export default function PayPage() {
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                   </>
-                ) : Number(balance) < Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) ? (
+                ) : Number(balance) < Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) ? (
                   'Insufficient Balance'
                 ) : (countdown !== null && countdown <= 0) ? (
                   'Payment Expired'
                 ) : (
-                  `Pay ${Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB`
+                  `Pay ${Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0).toFixed(6)} CPXTB`
                 )}
               </Button>
               
-              {Number(balance) < Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) && !isBuyingTokens && (
+              {Number(balance) < Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) && !isBuyingTokens && (
                 <div className="bg-amber-50 p-4 rounded-md border border-amber-200 text-sm shadow-sm">
                   <div className="flex items-start gap-3 mb-3">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-800" />
@@ -563,7 +464,7 @@ export default function PayPage() {
                         Insufficient balance
                       </p>
                       <p className="mt-1 text-amber-700">
-                        Your wallet doesn't have enough CPXTB tokens. You need {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB but only have {Number(balance).toFixed(6)} CPXTB.
+                        Your wallet doesn't have enough CPXTB tokens. You need {Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0).toFixed(6)} CPXTB but only have {Number(balance).toFixed(6)} CPXTB.
                       </p>
                       <p className="mt-1 text-amber-700">
                         You can purchase CPXTB tokens directly using your social login wallet.
@@ -580,18 +481,18 @@ export default function PayPage() {
                 </div>
               )}
               
-              {Number(balance) < Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) && isBuyingTokens && (
+              {Number(balance) < Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) && isBuyingTokens && (
                 <div className="bg-slate-100 p-4 rounded-md border border-gray-200 shadow-sm text-sm">
                   <h3 className="font-medium mb-3 text-slate-800">Purchase CPXTB Tokens</h3>
                   
                   <div className="space-y-4">
                     <div className="bg-white p-3 rounded-md shadow-sm">
                       <p className="text-sm text-slate-700 mb-1 font-medium">
-                        Current price: 1 CPXTB = ${(Number(paymentData.amountUsd || paymentData.originalAmountUsd || paymentData.amountUsdNumber || 0) / 
-                                                   Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 1)).toFixed(6)} USD
+                        Current price: 1 CPXTB = ${(Number(paymentData?.amountUsd || paymentData?.originalAmountUsd || paymentData?.amountUsdNumber || 0) / 
+                                               Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 1)).toFixed(6)} USD
                       </p>
                       <p className="text-sm text-slate-600 mb-0">
-                        You need at least {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB for this payment.
+                        You need at least {Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0).toFixed(6)} CPXTB for this payment.
                       </p>
                     </div>
                     
@@ -602,102 +503,101 @@ export default function PayPage() {
                       <input
                         id="purchase-amount"
                         type="number"
-                        min={Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) - Number(balance)}
+                        min={Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) - Number(balance)}
                         step="0.000001"
                         value={purchaseAmount}
                         onChange={(e) => setPurchaseAmount(e.target.value)}
-                        placeholder={`Minimum ${(Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) - Number(balance)).toFixed(6)}`}
+                        placeholder={`Minimum ${(Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) - Number(balance)).toFixed(6)}`}
                         className="px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 shadow-sm"
                       />
                     </div>
-                      
+                    
                     <div className="flex gap-2 mt-3">
-                        <Button 
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setIsBuyingTokens(false)}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          size="sm"
-                          className="flex-1"
-                          onClick={async () => {
-                            const amount = parseFloat(purchaseAmount);
+                      <Button 
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setIsBuyingTokens(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        size="sm"
+                        className="flex-1"
+                        onClick={async () => {
+                          const amount = parseFloat(purchaseAmount);
+                          
+                          if (isNaN(amount) || amount <= 0) {
+                            toast({
+                              title: "Invalid Amount",
+                              description: "Please enter a valid amount of CPXTB to purchase",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          
+                          const minRequired = Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) - Number(balance);
+                          if (amount < minRequired) {
+                            toast({
+                              title: "Insufficient Amount",
+                              description: `You need to purchase at least ${minRequired.toFixed(6)} CPXTB`,
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          
+                          setProcessingPayment(true);
+                          
+                          try {
+                            // Call API to purchase tokens
+                            const response = await fetch(`/api/tokens/purchase`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                walletAddress,
+                                amount,
+                                paymentReference,
+                              }),
+                            });
                             
-                            if (isNaN(amount) || amount <= 0) {
-                              toast({
-                                title: "Invalid Amount",
-                                description: "Please enter a valid amount of CPXTB to purchase",
-                                variant: "destructive",
-                              });
-                              return;
+                            if (!response.ok) {
+                              const errorData = await response.json();
+                              throw new Error(errorData.message || 'Failed to purchase tokens');
                             }
                             
-                            const minRequired = Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0) - Number(balance);
-                            if (amount < minRequired) {
-                              toast({
-                                title: "Insufficient Amount",
-                                description: `You need to purchase at least ${minRequired.toFixed(6)} CPXTB`,
-                                variant: "destructive",
-                              });
-                              return;
-                            }
+                            // Refresh balance after purchase
+                            await refreshBalance();
                             
-                            setProcessingPayment(true);
+                            toast({
+                              title: "Purchase Successful",
+                              description: `Successfully purchased ${amount.toFixed(6)} CPXTB tokens`,
+                            });
                             
-                            try {
-                              // Call API to purchase tokens
-                              const response = await fetch(`/api/tokens/purchase`, {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                  walletAddress,
-                                  amount,
-                                  paymentReference,
-                                }),
-                              });
-                              
-                              if (!response.ok) {
-                                const errorData = await response.json();
-                                throw new Error(errorData.message || 'Failed to purchase tokens');
-                              }
-                              
-                              // Refresh balance after purchase
-                              await refreshBalance();
-                              
-                              toast({
-                                title: "Purchase Successful",
-                                description: `Successfully purchased ${amount.toFixed(6)} CPXTB tokens`,
-                              });
-                              
-                              // Reset buying state
-                              setIsBuyingTokens(false);
-                              setPurchaseAmount("");
-                            } catch (error: any) {
-                              toast({
-                                title: "Purchase Failed",
-                                description: error.message || "There was an error purchasing tokens",
-                                variant: "destructive",
-                              });
-                            } finally {
-                              setProcessingPayment(false);
-                            }
-                          }}
-                          disabled={processingPayment}
-                        >
-                          {processingPayment ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
-                            </>
-                          ) : (
-                            'Purchase Tokens'
-                          )}
-                        </Button>
-                      </div>
+                            // Reset buying state
+                            setIsBuyingTokens(false);
+                            setPurchaseAmount("");
+                          } catch (error: any) {
+                            toast({
+                              title: "Purchase Failed",
+                              description: error.message || "There was an error purchasing tokens",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setProcessingPayment(false);
+                          }
+                        }}
+                        disabled={processingPayment}
+                      >
+                        {processingPayment ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
+                          </>
+                        ) : (
+                          'Purchase Tokens'
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -739,17 +639,17 @@ export default function PayPage() {
         <Separator />
         
         <CardFooter className="flex flex-col pt-4">
-          <div className="rounded-md bg-gray-100 dark:bg-gray-800 p-3 text-sm w-full mb-3">
-            <div className="flex items-start gap-2">
-              <HelpCircle className="h-4 w-4 mt-0.5 text-gray-700 dark:text-gray-300 flex-shrink-0" />
-              <div className="space-y-1 text-gray-700 dark:text-gray-300">
-                <p>CPXTB is the native token of the CPXTB Mining Platform.</p>
+          <div className="rounded-md bg-slate-100 p-4 text-sm w-full mb-3 border border-gray-200 shadow-sm">
+            <div className="flex items-start gap-3">
+              <HelpCircle className="h-4 w-4 mt-0.5 text-slate-700 flex-shrink-0" />
+              <div className="space-y-2 text-slate-700">
+                <p className="font-medium text-slate-800">CPXTB is the native token of the CPXTB Mining Platform.</p>
                 <p>By logging in with your social account, a secure wallet will be created for you.</p>
               </div>
             </div>
           </div>
           
-          <div className="text-xs text-center text-gray-700 dark:text-gray-300">
+          <div className="text-xs text-center text-slate-700">
             <p>Powered by CPXTB Platform • Secure Payment Processing</p>
           </div>
         </CardFooter>

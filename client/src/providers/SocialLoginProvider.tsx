@@ -121,41 +121,67 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     setError(null);
     
     try {
-      // Simulated social authentication
-      // In a real implementation, this would interact with OAuth providers
+      console.log(`Attempting to log in with ${provider}...`);
       
-      // Mock API call to get user data and create wallet
-      const response = await fetch(`/api/social-auth/${provider.toLowerCase()}`);
-      
-      if (!response.ok) {
-        throw new Error(`Authentication with ${provider} failed`);
+      // Use a more robust approach to handle potential HTML responses
+      try {
+        // Mock API call to get user data and create wallet
+        const response = await fetch(`/api/social-auth/${provider.toLowerCase()}`);
+        
+        // First check if the response is OK
+        if (!response.ok) {
+          console.error('Response not OK:', response.status, response.statusText);
+          throw new Error(`Authentication with ${provider} failed: ${response.statusText}`);
+        }
+        
+        // Check the content type to make sure we're getting JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Unexpected content type:', contentType);
+          
+          // Try to get the response text to see what's being returned
+          const text = await response.text();
+          console.error('Response text (first 100 chars):', text.substring(0, 100));
+          
+          throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}`);
+        }
+        
+        // Parse the JSON response
+        const data = await response.json();
+        console.log('Login successful:', data);
+        
+        // Store user data
+        let userDetails: UserInfo = {
+          name: data.name,
+          email: data.email,
+          provider: provider
+        };
+        
+        setUserInfo(userDetails);
+        setWalletAddress(data.walletAddress);
+        setBalance(data.balance || '0');
+        setIsLoggedIn(true);
+        
+        // Save to local storage for persistence
+        localStorage.setItem('cpxtb_user', JSON.stringify({
+          userInfo: userDetails,
+          walletAddress: data.walletAddress,
+          balance: data.balance || '0'
+        }));
+        
+        toast({
+          title: "Login Successful",
+          description: `Connected with ${provider}`,
+        });
+        
+        // Force page reload to ensure UI updates correctly
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+      } catch (parseError: any) {
+        console.error('Error during authentication process:', parseError);
+        throw new Error(`Login failed: ${parseError.message}`);
       }
-      
-      const data = await response.json();
-      
-      // Store user data
-      let userDetails: UserInfo = {
-        name: data.name,
-        email: data.email,
-        provider: provider
-      };
-      
-      setUserInfo(userDetails);
-      setWalletAddress(data.walletAddress);
-      setBalance(data.balance || '0');
-      setIsLoggedIn(true);
-      
-      // Save to local storage for persistence
-      localStorage.setItem('cpxtb_user', JSON.stringify({
-        userInfo: userDetails,
-        walletAddress: data.walletAddress,
-        balance: data.balance || '0'
-      }));
-      
-      toast({
-        title: "Login Successful",
-        description: `Connected with ${provider}`,
-      });
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Failed to login');

@@ -826,6 +826,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
     const walletAddress = `0x${hash.substring(0, 40)}`;
     
+    // Explicitly set content type to ensure proper parsing
+    res.setHeader('Content-Type', 'application/json');
+    
     // Send back user and wallet info
     res.json({
       name: "Google User",
@@ -841,6 +844,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
     const walletAddress = `0x${hash.substring(0, 40)}`;
     
+    // Explicitly set content type to ensure proper parsing
+    res.setHeader('Content-Type', 'application/json');
+    
     res.json({
       name: "Facebook User",
       email: "facebook.user@example.com",
@@ -854,6 +860,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const seed = `twitter-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
     const walletAddress = `0x${hash.substring(0, 40)}`;
+    
+    // Explicitly set content type to ensure proper parsing
+    res.setHeader('Content-Type', 'application/json');
     
     res.json({
       name: "Twitter User",
@@ -869,6 +878,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
     const walletAddress = `0x${hash.substring(0, 40)}`;
     
+    // Explicitly set content type to ensure proper parsing
+    res.setHeader('Content-Type', 'application/json');
+    
     res.json({
       name: "Apple User",
       email: "apple.user@example.com",
@@ -879,6 +891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/social-auth/logout", (req, res) => {
     // Since social login is stateless in this implementation, just acknowledge the logout
+    res.setHeader('Content-Type', 'application/json');
     res.status(200).json({ success: true });
   });
   

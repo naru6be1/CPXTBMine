@@ -67,8 +67,8 @@ async function processTransferEvent(
         
         // Check if this transaction is going to the merchant's wallet or the treasury
         // This allows both direct merchant payments and treasury-facilitated payments
-        const treasuryAddress = process.env.TREASURY_ADDRESS ? process.env.TREASURY_ADDRESS.toLowerCase() : '';
-        if (merchantAddress === recipientAddress || (treasuryAddress && treasuryAddress === recipientAddress)) {
+        const treasuryAddress = TREASURY_ADDRESS.toLowerCase();
+        if (merchantAddress === recipientAddress || (treasuryAddress === recipientAddress)) {
           console.log(`✅ Wallet address match for payment ${payment.id}! ${merchantAddress === recipientAddress ? '(Direct to merchant)' : '(Via treasury)'}`);
           
           // Convert the received token amount to a comparable format (with same decimal precision)
@@ -258,7 +258,10 @@ async function processTransferEvent(
             console.error(`Error updating payment status: ${updateError}`);
           }
         } else {
-          console.log(`❌ Merchant wallet (${merchantAddress}) doesn't match transaction recipient (${recipientAddress})`);
+          // Enhanced debug info to show both merchant and treasury addresses for clarity
+          console.log(`❌ Transaction recipient (${recipientAddress}) doesn't match either:`);
+          console.log(`   - Merchant wallet: ${merchantAddress}`);
+          console.log(`   - Treasury wallet: ${treasuryAddress}`);
         }
       } catch (paymentError) {
         console.error(`Error processing payment ${payment.id}:`, paymentError);
@@ -291,10 +294,13 @@ export async function monitorMerchantPayments(merchantId: number) {
     // Set flag for this merchant
     monitoredMerchants.set(walletAddress, true);
     
-    // Listen for Transfer events where the merchant is the recipient
+    // Listen for Transfer events where the merchant is the recipient or it goes to treasury
     tokenContract.on("Transfer", async (from, to, value, event) => {
-      // Only process if the recipient is our merchant
-      if (to.toLowerCase() === walletAddress) {
+      const treasuryAddress = TREASURY_ADDRESS.toLowerCase();
+      const toAddress = to.toLowerCase();
+      
+      // Process if the recipient is our merchant or the treasury
+      if (toAddress === walletAddress || toAddress === treasuryAddress) {
         const txHash = event.log.transactionHash;
         await processTransferEvent(from, to, value, txHash);
       }
@@ -323,11 +329,13 @@ export async function startPaymentMonitoring() {
     
     // Also listen for all Transfer events to catch any we might have missed
     tokenContract.on("Transfer", async (from, to, value, event) => {
-      // Check if this transfer is to any of our monitored merchants
+      // Check if this transfer is to any of our monitored merchants or the treasury
       const txHash = event.log.transactionHash;
       const toAddress = to.toLowerCase();
+      const treasuryAddress = TREASURY_ADDRESS.toLowerCase();
       
-      if (monitoredMerchants.has(toAddress)) {
+      // Process if going to any merchant or the treasury
+      if (monitoredMerchants.has(toAddress) || toAddress === treasuryAddress) {
         await processTransferEvent(from, to, value, txHash);
       }
     });

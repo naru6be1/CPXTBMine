@@ -464,7 +464,7 @@ export default function PayPage() {
                         Insufficient balance
                       </p>
                       <p className="mt-1 text-amber-700">
-                        Your wallet doesn't have enough CPXTB tokens. You need {Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0).toFixed(6)} CPXTB but only have {Number(balance).toFixed(6)} CPXTB.
+                        Your wallet doesn't have enough CPXTB tokens. You need {Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0).toFixed(6)} CPXTB but only have {Number(balance).toFixed(6)} CPXTB.
                       </p>
                       <p className="mt-1 text-amber-700">
                         You can purchase CPXTB tokens directly using your social login wallet.
@@ -481,18 +481,18 @@ export default function PayPage() {
                 </div>
               )}
               
-              {Number(balance) < Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) && isBuyingTokens && (
+              {Number(balance) < Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) && isBuyingTokens && (
                 <div className="bg-slate-100 p-4 rounded-md border border-gray-200 shadow-sm text-sm">
                   <h3 className="font-medium mb-3 text-slate-800">Purchase CPXTB Tokens</h3>
                   
                   <div className="space-y-4">
                     <div className="bg-white p-3 rounded-md shadow-sm">
                       <p className="text-sm text-slate-700 mb-1 font-medium">
-                        Current price: 1 CPXTB = ${(Number(paymentData?.amountUsd || paymentData?.originalAmountUsd || paymentData?.amountUsdNumber || 0) / 
-                                               Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 1)).toFixed(6)} USD
+                        Current price: 1 CPXTB = ${(Number(paymentData?.payment?.amountUsd || paymentData?.payment?.originalAmountUsd || paymentData?.payment?.amountUsdNumber || 0) / 
+                                               Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 1)).toFixed(6)} USD
                       </p>
                       <p className="text-sm text-slate-600 mb-0">
-                        You need at least {Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0).toFixed(6)} CPXTB for this payment.
+                        You need at least {Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0).toFixed(6)} CPXTB for this payment.
                       </p>
                     </div>
                     
@@ -503,11 +503,11 @@ export default function PayPage() {
                       <input
                         id="purchase-amount"
                         type="number"
-                        min={Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) - Number(balance)}
+                        min={Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) - Number(balance)}
                         step="0.000001"
                         value={purchaseAmount}
                         onChange={(e) => setPurchaseAmount(e.target.value)}
-                        placeholder={`Minimum ${(Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) - Number(balance)).toFixed(6)}`}
+                        placeholder={`Minimum ${(Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) - Number(balance)).toFixed(6)}`}
                         className="px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 shadow-sm"
                       />
                     </div>
@@ -536,7 +536,7 @@ export default function PayPage() {
                             return;
                           }
                           
-                          const minRequired = Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) - Number(balance);
+                          const minRequired = Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) - Number(balance);
                           if (amount < minRequired) {
                             toast({
                               title: "Insufficient Amount",

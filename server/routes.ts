@@ -1807,62 +1807,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Public endpoint for customers to fetch payment details
+  // REMOVED DUPLICATE ENDPOINT: This endpoint was causing URL path confusion
+  // REDIRECTING to the new standardized URL pattern to maintain backward compatibility
   app.get("/api/payments/:reference/public", async (req, res) => {
     try {
       const { reference } = req.params;
-      const payment = await storage.getPaymentByReference(reference);
+      console.log(`Redirecting old payment URL format to new standardized format: ${reference}`);
       
-      // Add detailed debugging for diagnosis
-      console.log(`Payment request for ${reference}:`, payment ? {
-        id: payment.id,
-        paymentReference: payment.paymentReference,
-        amountUsd: payment.amountUsd,
-        amountCpxtb: payment.amountCpxtb,
-        description: payment.description,
-        merchantId: payment.merchantId,
-        status: payment.status
-      } : 'Not found');
-      
-      if (!payment) {
-        return res.status(404).json({ message: 'Payment not found' });
-      }
-      
-      // Get merchant details to include in the response
-      const merchant = await storage.getMerchant(payment.merchantId);
-      
-      if (!merchant) {
-        return res.status(404).json({ message: 'Merchant not found' });
-      }
-      
-      // IMPORTANT FIX: When description is null, create a fallback description
-      const description = payment.description || `Payment to ${merchant.businessName}`;
-      
-      // Enhanced logging to debug the actual values
-      console.log(`Preparing payment data for public API:`, {
-        amountUsd: payment.amountUsd,
-        amountCpxtb: payment.amountCpxtb,
-        description: description,
-        originalDescription: payment.description
-      });
-      
-      // Return only necessary information for the payment page
-      res.json({
-        amountUsd: payment.amountUsd,
-        amountCpxtb: payment.amountCpxtb,
-        status: payment.status,
-        expiresAt: payment.expiresAt,
-        createdAt: payment.createdAt,
-        reference: payment.paymentReference,
-        merchantName: merchant.businessName,
-        merchantLogo: merchant.logoUrl,
-        returnUrl: payment.successUrl || null, // Using null if successUrl doesn't exist
-        description: description
-      });
+      // Return a 307 Temporary Redirect to the new URL pattern
+      // This ensures any existing links will still work while we transition to the new format
+      return res.redirect(307, `/api/payments/public/${reference}`);
     } catch (error: any) {
-      console.error("Error fetching public payment details:", error);
+      console.error("Error redirecting payment request:", error);
       res.status(500).json({
-        message: "Error fetching payment details: " + error.message
+        message: "Error processing payment request: " + error.message
       });
     }
   });

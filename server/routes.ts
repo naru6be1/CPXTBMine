@@ -1468,7 +1468,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Format to exactly 2 decimal places and convert to a number for storage
       // This ensures we have a consistent precision throughout the system
-      const parsedAmountUsd = Number(floatAmount.toFixed(2));
+      // CRITICAL FIX: This is the exact point where small decimal values like 0.1 are processed
+      // For very small values, we need to ensure they don't get mangled in conversion
+      // First, convert to fixed string representation with 2 decimal places
+      const fixedStr = floatAmount.toFixed(2);
+      console.log(`Fixed string representation: "${fixedStr}"`);
+      
+      // Then convert back to number very carefully
+      const parsedAmountUsd = Number(fixedStr);
+      
+      // Extra verification check
+      if (parsedAmountUsd !== floatAmount && Math.abs(parsedAmountUsd - floatAmount) > 0.00001) {
+        console.log(`WARNING: Significant difference detected between original float (${floatAmount}) and parsed amount (${parsedAmountUsd})`);
+      }
       
       console.log(`Amount processing steps:
         - Original value: "${amountStr}" (type: ${typeof amountUsd})
@@ -1790,23 +1802,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // First convert payment data to a plain object we can modify
       // CRITICAL FIX: KEEP ORIGINAL VALUES AS STRINGS to preserve the exact values
+      // This is essential for small decimal values like 0.1 to be correctly processed
       console.log('Raw payment data before formatting:', {
         amountUsd: payment.amountUsd,
         amountCpxtb: payment.amountCpxtb,
-        type: typeof payment.amountCpxtb
+        typeAmountUsd: typeof payment.amountUsd,
+        typeAmountCpxtb: typeof payment.amountCpxtb
       });
       
+      // ULTRA PRECISE: Convert all numeric types to strings with explicit decimal formatting
+      // Handle type-checking in a way that TypeScript understands
+      let amountUsdExactString: string;
+      if (typeof payment.amountUsd === 'number') {
+        amountUsdExactString = payment.amountUsd.toFixed(2);
+      } else {
+        amountUsdExactString = payment.amountUsd?.toString() || "0";
+      }
+        
+      let amountCpxtbExactString: string;
+      if (typeof payment.amountCpxtb === 'number') {
+        amountCpxtbExactString = payment.amountCpxtb.toFixed(6);
+      } else {
+        amountCpxtbExactString = payment.amountCpxtb?.toString() || "0";
+      }
+        
+      console.log('CRITICAL VALUES (must be correct for small decimals like 0.1):');
+      console.log(`  - USD exact string: "${amountUsdExactString}"`);
+      console.log(`  - CPXTB exact string: "${amountCpxtbExactString}"`);
+      
+      // Create properly formatted payment object
       const formattedPayment = {
         ...payment,
-        // Preserve original values for perfect decimal handling
-        originalAmountUsd: payment.amountUsd?.toString() || "0",
-        originalAmountCpxtb: payment.amountCpxtb?.toString() || "0",
-        // Add number versions for backward compatibility
-        amountUsd: Number(payment.amountUsd || 0),
-        amountCpxtb: Number(payment.amountCpxtb || 0),
+        // STRICT DECIMAL HANDLING: Store exact string representation as multiple properties
+        // This gives client multiple fallbacks for correct display
+        originalAmountUsd: amountUsdExactString,
+        originalAmountCpxtb: amountCpxtbExactString,
+        // Preserve string versions
+        amountUsdString: amountUsdExactString,
+        amountCpxtbString: amountCpxtbExactString,
+        // Add number versions - using Number() on the exact string representation
+        amountUsd: Number(amountUsdExactString),
+        amountCpxtb: Number(amountCpxtbExactString),
         // Add numeric wrapper properties for calculations
-        amountUsdNumber: Number(payment.amountUsd || 0),
-        amountCpxtbNumber: Number(payment.amountCpxtb || 0)
+        amountUsdNumber: Number(amountUsdExactString),
+        amountCpxtbNumber: Number(amountCpxtbExactString)
       };
       
       console.log('Formatted payment data before sending to client:', {

@@ -408,22 +408,26 @@ export default function PayPage() {
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div className="text-gray-700 dark:text-gray-300">Amount:</div>
               <div className="font-bold text-right text-gray-900 dark:text-white">
-                ${Number(paymentData.amountUsd || paymentData.originalAmountUsd || paymentData.amountUsdNumber || 0).toFixed(2)} USD
+                {/* CRITICAL FIX: Use the string values directly when available to ensure proper decimal display */}
+                ${paymentData.amountUsdString || paymentData.originalAmountUsd || Number(paymentData.amountUsd || 0).toFixed(2)} USD
                 
                 {/* Debug information to help diagnose small decimal display issues */}
                 <div className="text-xs text-muted-foreground font-normal mt-1">
-                  Raw values - Original: "{paymentData.originalAmountUsd || '-'}" | 
+                  Raw values - String: "{paymentData.amountUsdString || '-'}" | 
+                  Original: "{paymentData.originalAmountUsd || '-'}" | 
                   Numeric: {paymentData.amountUsdNumber || 0}
                 </div>
               </div>
               
               <div className="text-gray-700 dark:text-gray-300">CPXTB Amount:</div>
               <div className="font-medium text-right text-gray-900 dark:text-white">
-                {Number(paymentData.amountCpxtb || paymentData.originalAmountCpxtb || paymentData.amountCpxtbNumber || 0).toFixed(6)} CPXTB
+                {/* CRITICAL FIX: Use the string values directly when available to ensure proper decimal display */}
+                {paymentData.amountCpxtbString || paymentData.originalAmountCpxtb || Number(paymentData.amountCpxtb || 0).toFixed(6)} CPXTB
                 
                 {/* Debug information to help diagnose small decimal display issues */}
                 <div className="text-xs text-muted-foreground font-normal mt-1">
-                  Raw values - Original: "{paymentData.originalAmountCpxtb || '-'}" | 
+                  Raw values - String: "{paymentData.amountCpxtbString || '-'}" | 
+                  Original: "{paymentData.originalAmountCpxtb || '-'}" | 
                   Numeric: {paymentData.amountCpxtbNumber || 0}
                 </div>
               </div>

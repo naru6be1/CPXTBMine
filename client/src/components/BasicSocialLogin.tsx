@@ -1,342 +1,223 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Loader2,
-  ExternalLink,
-  Copy,
-  Check,
-  RefreshCcw
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { BASE_CHAIN_ID, CPXTB_TOKEN_ADDRESS } from '../../../shared/constants';
+import { toast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 /**
- * Enhanced social login functionality with persisted state and better wallet simulation
- * This implementation provides a more complete login experience while Web3Auth is being integrated
+ * A basic social login fallback component that simulates social login
+ * when the main authentication flow fails.
+ * 
+ * This component doesn't rely on any external APIs and creates a simulated
+ * wallet address that can be used for testing and demonstration purposes.
  */
-const BasicSocialLogin: React.FC = () => {
+interface BasicSocialLoginProps {
+  onSuccess?: (data: {
+    name: string;
+    email: string;
+    provider: string;
+    walletAddress: string;
+    balance: string;
+  }) => void;
+  onError?: (error: Error) => void;
+  showCard?: boolean;
+  className?: string;
+}
+
+export function BasicSocialLogin({ 
+  onSuccess, 
+  onError, 
+  showCard = true,
+  className = ''
+}: BasicSocialLoginProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [userInfo, setUserInfo] = useState<{ name: string, email: string, provider: string } | null>(null);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [balance, setBalance] = useState<string>("0.00");
-  const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
-
-  // Load saved login state on component mount
-  useEffect(() => {
-    const savedUserInfo = localStorage.getItem('demoUserInfo');
-    const savedWalletAddress = localStorage.getItem('demoWalletAddress');
+  
+  const handleLogin = async (provider: string) => {
+    setIsLoading(true);
     
-    if (savedUserInfo && savedWalletAddress) {
-      setUserInfo(JSON.parse(savedUserInfo));
-      setWalletAddress(savedWalletAddress);
-      setIsLoggedIn(true);
+    try {
+      // Generate a deterministic wallet address based on timestamp
+      const timestamp = Date.now();
+      const seed = timestamp.toString(16);
+      const address = '0x' + Array.from({ length: 40 }, (_, i) => {
+        const hash = (seed.charCodeAt(i % seed.length) * (i + 1)) % 16;
+        return '0123456789abcdef'[hash];
+      }).join('');
       
-      // Generate a realistic balance
-      const randomBalance = (Math.random() * 10000).toFixed(2);
-      setBalance(randomBalance);
-    }
-  }, []);
-
-  const simulateLogin = (provider: string) => {
-    setIsLoading(true);
-    setError(null);
-    
-    // Simulate network delay
-    setTimeout(() => {
-      try {
-        // Generate a deterministic wallet address based on the timestamp
-        const timestamp = Date.now();
-        const seed = timestamp.toString(16);
-        const address = '0x' + Array.from({ length: 40 }, (_, i) => {
-          const hash = (seed.charCodeAt(i % seed.length) * (i + 1)) % 16;
-          return '0123456789abcdef'[hash];
-        }).join('');
-        
-        // Create user info based on selected provider
-        let userDetails = {
-          name: 'Demo User',
-          email: 'demo@example.com',
-          provider: provider
-        };
-        
-        if (provider === 'google') {
-          userDetails.name = 'Google User';
-          userDetails.email = 'user@gmail.com';
-        } else if (provider === 'facebook') {
-          userDetails.name = 'Facebook User';
-          userDetails.email = 'user@facebook.com';
-        } else if (provider === 'twitter') {
-          userDetails.name = 'Twitter User';
-          userDetails.email = 'user@twitter.com';
-        } else if (provider === 'apple') {
-          userDetails.name = 'Apple User';
-          userDetails.email = 'user@icloud.com';
-        }
-        
-        // Save to state and localStorage
-        setIsLoggedIn(true);
-        setUserInfo(userDetails);
-        setWalletAddress(address);
-        localStorage.setItem('demoUserInfo', JSON.stringify(userDetails));
-        localStorage.setItem('demoWalletAddress', address);
-        
-        // Generate a realistic balance
-        const randomBalance = (Math.random() * 10000).toFixed(2);
-        setBalance(randomBalance);
-        
-        toast({
-          title: "Authentication Successful",
-          description: `You've logged in with ${provider}!`,
-        });
-      } catch (error) {
-        console.error("Error during login:", error);
-        setError("Login failed. Please try again.");
-        
-        toast({
-          title: "Login Error",
-          description: "Failed to login. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+      // Create user info based on selected provider
+      let userData = {
+        name: 'Demo User',
+        email: 'demo@example.com',
+        provider: provider,
+        walletAddress: address,
+        balance: '500.0' // Give enough balance to complete most payments
+      };
+      
+      if (provider === 'google') {
+        userData.name = 'Google User';
+        userData.email = 'user@gmail.com';
+      } else if (provider === 'facebook') {
+        userData.name = 'Facebook User';
+        userData.email = 'user@facebook.com';
+      } else if (provider === 'twitter') {
+        userData.name = 'Twitter User';
+        userData.email = 'user@twitter.com';
+      } else if (provider === 'apple') {
+        userData.name = 'Apple User';
+        userData.email = 'user@icloud.com';
       }
-    }, 1500); // Delay for 1.5 seconds
-  };
-
-  const simulateLogout = () => {
-    setIsLoading(true);
-    
-    // Simulate network delay
-    setTimeout(() => {
-      try {
-        // Clear state and localStorage
-        setIsLoggedIn(false);
-        setUserInfo(null);
-        setWalletAddress(null);
-        localStorage.removeItem('demoUserInfo');
-        localStorage.removeItem('demoWalletAddress');
-        
-        toast({
-          title: "Logout Successful",
-          description: "You've been logged out",
-        });
-      } catch (error) {
-        console.error("Error during logout:", error);
-        toast({
-          title: "Logout Error",
-          description: "Failed to logout",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }, 800); // Delay for 0.8 seconds
-  };
-
-  const copyToClipboard = () => {
-    if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress);
-      setCopied(true);
+      
+      // Save to local storage for persistence
+      localStorage.setItem('cpxtb_user', JSON.stringify({
+        userInfo: {
+          name: userData.name,
+          email: userData.email,
+          provider: userData.provider
+        },
+        walletAddress: userData.walletAddress,
+        balance: userData.balance
+      }));
       
       toast({
-        title: "Address Copied",
-        description: "Wallet address copied to clipboard",
+        title: "Login Successful",
+        description: `Connected with ${provider} (Fallback Mode)`,
       });
       
-      setTimeout(() => setCopied(false), 2000);
+      // Notify parent component
+      if (onSuccess) {
+        onSuccess(userData);
+      }
+      
+      // Force reload to apply changes from localStorage
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error: any) {
+      console.error('Fallback login error:', error);
+      toast({
+        title: "Login Failed",
+        description: error.message || "Could not complete login process",
+        variant: "destructive",
+      });
+      
+      if (onError) {
+        onError(error);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  const refreshBalance = () => {
-    // Generate a new random balance
-    const newBalance = (Math.random() * 10000).toFixed(2);
-    setBalance(newBalance);
-    
-    toast({
-      title: "Balance Updated",
-      description: `Your new balance is ${newBalance} CPXTB`,
-    });
-  };
+  const loginContent = (
+    <div className={`space-y-4 ${className}`}>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          disabled={isLoading}
+          onClick={() => handleLogin('google')}
+          className="flex items-center justify-center gap-2"
+        >
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            aria-hidden="true"
+            style={{ fill: 'currentcolor' }}
+          >
+            <path
+              fillRule="evenodd"
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.84 14.28c-.25.37-.56.7-.93.96-.36.26-.77.47-1.23.62-.46.15-.96.22-1.52.22-.63 0-1.22-.11-1.76-.33-.54-.22-1.01-.54-1.4-.94-.39-.4-.7-.9-.91-1.47a5.3 5.3 0 01-.34-1.92c0-.68.11-1.31.34-1.89.23-.58.54-1.07.95-1.49.41-.42.9-.75 1.46-.98.56-.23 1.17-.35 1.83-.35.58 0 1.12.09 1.62.28.5.19.94.47 1.31.84.37.37.66.83.86 1.37.2.54.3 1.16.3 1.85 0 .2-.01.4-.04.58H11.5v-.05c0-.29.05-.56.14-.81.09-.25.22-.47.38-.66.16-.19.35-.34.57-.45.22-.11.46-.16.73-.16.31 0 .59.07.83.22.24.15.43.35.56.61h2.12c-.09-.34-.23-.64-.42-.9-.19-.26-.42-.48-.67-.66-.25-.18-.54-.32-.84-.42-.31-.1-.62-.15-.95-.15-.41 0-.79.07-1.16.21-.37.14-.69.35-.97.62-.28.27-.5.6-.67.99a4.5 4.5 0 00-.24 1.52c0 .54.08 1.03.24 1.48.16.45.39.83.68 1.15.29.32.64.57 1.03.74.4.17.84.26 1.31.26.29 0 .58-.04.86-.13.28-.09.54-.22.78-.38.24-.16.44-.36.59-.59s.26-.5.33-.79h-2.17c-.12.28-.32.49-.58.63-.26.14-.55.21-.87.21-.36 0-.67-.08-.93-.24-.26-.16-.47-.38-.63-.66s-.27-.61-.33-.99a7.99 7.99 0 01-.09-1.25h5.13c.05-.36.07-.7.07-1.02 0-.64-.09-1.23-.28-1.76-.19-.53-.45-.99-.8-1.37-.35-.38-.77-.67-1.27-.87-.5-.2-1.05-.3-1.65-.3-.66 0-1.27.12-1.84.36-.57.24-1.06.58-1.49 1.01-.43.43-.76.95-1 1.56-.24.61-.36 1.28-.36 2.01 0 .7.12 1.34.36 1.93.24.59.59 1.1 1.03 1.53.44.43.97.76 1.59.99.62.23 1.31.35 2.07.35.71 0 1.36-.13 1.95-.38.59-.25 1.1-.66 1.52-1.21h-1.95z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Google
+        </Button>
+        <Button
+          variant="outline"
+          disabled={isLoading}
+          onClick={() => handleLogin('facebook')}
+          className="flex items-center justify-center gap-2"
+        >
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            className="h-5 w-5 text-blue-600"
+            aria-hidden="true"
+            style={{ fill: 'currentcolor' }}
+          >
+            <path
+              fillRule="evenodd"
+              d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Facebook
+        </Button>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          disabled={isLoading}
+          onClick={() => handleLogin('twitter')}
+          className="flex items-center justify-center gap-2"
+        >
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            className="h-5 w-5 text-blue-400"
+            aria-hidden="true"
+            style={{ fill: 'currentcolor' }}
+          >
+            <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z" />
+          </svg>
+          Twitter
+        </Button>
+        <Button
+          variant="outline"
+          disabled={isLoading}
+          onClick={() => handleLogin('apple')}
+          className="flex items-center justify-center gap-2"
+        >
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            aria-hidden="true"
+            style={{ fill: 'currentcolor' }}
+          >
+            <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z" />
+          </svg>
+          Apple
+        </Button>
+      </div>
+    </div>
+  );
   
-  const openBlockExplorer = () => {
-    if (walletAddress) {
-      window.open(`https://basescan.org/address/${walletAddress}`, '_blank');
-    }
-  };
-
+  if (!showCard) {
+    return loginContent;
+  }
+  
   return (
-    <Card className="w-[350px] mx-auto my-4">
+    <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle>Social Login</CardTitle>
-        <CardDescription>Connect with your favorite provider</CardDescription>
+        <CardDescription>
+          Login with your social account to continue
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
-          <div className="p-3 mb-4 bg-destructive/10 text-destructive rounded-md text-sm">
-            {error}
-          </div>
-        )}
-
-        {isLoggedIn && userInfo && walletAddress ? (
-          <div className="space-y-4">
-            <div className="p-4 bg-secondary rounded-md">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="font-medium">Logged in via {userInfo.provider}</p>
-                  <p className="text-sm text-muted-foreground">{userInfo.email}</p>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <p className="text-xs text-muted-foreground mb-1">Wallet Address:</p>
-                <div className="flex items-center justify-between bg-background/80 p-2 rounded-md">
-                  <p className="text-xs font-mono truncate">{walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}</p>
-                  <div className="flex items-center">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8" 
-                      onClick={copyToClipboard}
-                      title="Copy address to clipboard"
-                    >
-                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8" 
-                      onClick={openBlockExplorer}
-                      title="View on BaseScan"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground mb-1">CPXTB Balance:</p>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-6 w-6" 
-                    onClick={refreshBalance}
-                    title="Refresh balance"
-                  >
-                    <RefreshCcw className="h-3 w-3" />
-                  </Button>
-                </div>
-                <p className="text-xl font-medium">{balance} <span className="text-sm">CPXTB</span></p>
-              </div>
-            </div>
-            
-            <div className="bg-primary/5 p-3 rounded-md border border-primary/10">
-              <p className="text-xs text-muted-foreground">Connected to <span className="font-medium">Base Network</span></p>
-              <p className="text-xs text-muted-foreground">Chain ID: {BASE_CHAIN_ID}</p>
-              <p className="text-xs text-muted-foreground mt-1">Token: <span className="font-mono text-[10px]">{CPXTB_TOKEN_ADDRESS.slice(0, 12)}...{CPXTB_TOKEN_ADDRESS.slice(-8)}</span></p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <p className="text-sm text-muted-foreground mb-4">
-              Choose your preferred social provider to connect and create your secure wallet.
-            </p>
-            
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                <p className="text-sm">Connecting...</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  className="w-full justify-start" 
-                  variant="outline"
-                  onClick={() => simulateLogin('google')}
-                  disabled={isLoading}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 48 48">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                  </svg>
-                  Google
-                </Button>
-                <Button 
-                  className="w-full justify-start" 
-                  variant="outline"
-                  onClick={() => simulateLogin('facebook')}
-                  disabled={isLoading}
-                >
-                  <svg viewBox="0 0 36 36" fill="url(#a)" className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <linearGradient x1="50%" x2="50%" y1="97.078%" y2="0%" id="a">
-                        <stop offset="0%" stopColor="#0062E0"/>
-                        <stop offset="100%" stopColor="#19AFFF"/>
-                      </linearGradient>
-                    </defs>
-                    <path d="M15 35.8C6.5 34.3 0 26.9 0 18 0 8.1 8.1 0 18 0s18 8.1 18 18c0 8.9-6.5 16.3-15 17.8l-1-.8h-4l-1 .8z"/>
-                    <path fill="#FFF" d="m25 23 .8-5H21v-3.5c0-1.4.5-2.5 2.7-2.5H26V7.4c-1.3-.2-2.7-.4-4-.4-4.1 0-7 2.5-7 7v4h-4.5v5H15v12.7c1 .2 2 .3 3 .3s2-.1 3-.3V23h4z"/>
-                  </svg>
-                  Facebook
-                </Button>
-                <Button 
-                  className="w-full justify-start" 
-                  variant="outline"
-                  onClick={() => simulateLogin('twitter')}
-                  disabled={isLoading}
-                >
-                  <svg fill="#1D9BF0" className="h-4 w-4 mr-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                  </svg>
-                  Twitter
-                </Button>
-                <Button 
-                  className="w-full justify-start" 
-                  variant="outline"
-                  onClick={() => simulateLogin('apple')}
-                  disabled={isLoading}
-                >
-                  <svg viewBox="0 0 384 512" className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
-                  </svg>
-                  Apple
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+        {loginContent}
       </CardContent>
-      <CardFooter className="flex flex-col items-center">
-        {isLoggedIn && (
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={simulateLogout}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Disconnecting...
-              </>
-            ) : (
-              "Disconnect"
-            )}
-          </Button>
-        )}
-        <p className="text-xs text-muted-foreground mt-2">
-          Enhanced Social Login Demo for CPXTB Platform
-        </p>
+      <CardFooter className="flex justify-center text-sm text-gray-500">
+        <p>This is a demo login for testing purposes</p>
       </CardFooter>
     </Card>
   );
-};
+}
 
 export default BasicSocialLogin;

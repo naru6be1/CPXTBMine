@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { storage } from './storage';
-import { CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID } from './constants';
+import { CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID, TREASURY_ADDRESS } from './constants';
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 import { payments } from '@shared/schema';
@@ -65,9 +65,11 @@ async function processTransferEvent(
         // Log for debugging
         console.log(`Payment ${payment.id}: Merchant=${payment.merchantId}, Merchant Address=${merchantAddress}, Transaction To=${recipientAddress}`);
         
-        // Check if this transaction is going to the merchant's wallet
-        if (merchantAddress === recipientAddress) {
-          console.log(`✅ Wallet address match for payment ${payment.id}!`);
+        // Check if this transaction is going to the merchant's wallet or the treasury
+        // This allows both direct merchant payments and treasury-facilitated payments
+        const treasuryAddress = process.env.TREASURY_ADDRESS ? process.env.TREASURY_ADDRESS.toLowerCase() : '';
+        if (merchantAddress === recipientAddress || (treasuryAddress && treasuryAddress === recipientAddress)) {
+          console.log(`✅ Wallet address match for payment ${payment.id}! ${merchantAddress === recipientAddress ? '(Direct to merchant)' : '(Via treasury)'}`);
           
           // Convert the received token amount to a comparable format (with same decimal precision)
           // CPXTB has 18 decimals like most ERC20 tokens

@@ -40,14 +40,22 @@ export default function PayPage() {
         setLoading(false);
         return;
       }
-
+      
+      console.log(`Fetching payment data for reference: ${paymentReference}`);
+      
       try {
         const response = await fetch(`/api/payments/${paymentReference}/public`);
+        
+        // Debug response
+        console.log(`Payment fetch response status: ${response.status}`);
+        
         if (!response.ok) {
           throw new Error('Payment not found or has expired');
         }
 
         const data = await response.json();
+        console.log('Payment data received:', data);
+        
         setPaymentData(data);
         
         // Calculate countdown

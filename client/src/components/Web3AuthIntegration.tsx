@@ -112,8 +112,8 @@ const Web3AuthIntegration: React.FC<Web3AuthIntegrationProps> = ({ onError }) =>
         clientId: import.meta.env.VITE_WEB3AUTH_CLIENT_ID,
         web3AuthNetwork: "mainnet", 
         chainConfig,
-        // Use whitelisted domain for all redirects
-        redirectUrl: "https://wallet-wizard-veesamnareshbab.replit.app",
+        // Use the newly whitelisted domain for all redirects
+        redirectUrl: "https://1ceb706b-817d-4c3a-92ce-0335b2e3890c-00-26akl9dnpcsqg.picard.replit.dev",
         uiConfig: {
           appName: "CPXTB Platform",
           theme: "light",
@@ -183,7 +183,7 @@ const Web3AuthIntegration: React.FC<Web3AuthIntegrationProps> = ({ onError }) =>
           
           // Log additional information to help with debugging
           console.log("Web3Auth connection error details:", {
-            redirectUrl: "https://wallet-wizard-veesamnareshbab.replit.app",
+            redirectUrl: "https://1ceb706b-817d-4c3a-92ce-0335b2e3890c-00-26akl9dnpcsqg.picard.replit.dev",
             currentDomain,
             errorMessage
           });

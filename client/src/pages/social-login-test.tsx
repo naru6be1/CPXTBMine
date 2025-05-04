@@ -13,8 +13,8 @@ import { Label } from '@/components/ui/label';
  */
 const SocialLoginTestPage: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [web3AuthAvailable, setWeb3AuthAvailable] = useState<boolean>(false);
-  const [dnsError, setDnsError] = useState<boolean>(true);
+  const [web3AuthAvailable, setWeb3AuthAvailable] = useState<boolean>(true);
+  const [dnsError, setDnsError] = useState<boolean>(false);
   
   // Listen for errors from the Web3AuthIntegration component
   useEffect(() => {

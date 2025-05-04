@@ -44,26 +44,35 @@ export const MOCK_WEB3AUTH_NETWORK = {
   TESTNET: 'testnet'
 };
 
-// Prevent Web3Auth script execution
+// Conditionally prevent Web3Auth script execution
+// Use URL parameter to enable/disable: ?disableWeb3Auth=true
 if (typeof window !== 'undefined') {
-  // Make Web3Auth components inaccessible to prevent UI from showing
-  // Add a global flag to indicate Web3Auth is disabled
-  (window as any).__WEB3AUTH_DISABLED__ = true;
+  const urlParams = new URLSearchParams(window.location.search);
+  const disableWeb3Auth = urlParams.get('disableWeb3Auth') === 'true';
   
-  // Modify window.open to prevent unwanted popups
-  const originalOpen = window.open;
-  window.open = function(url?: string | URL, target?: string, features?: string): Window | null {
-    // Check if this is a Web3Auth popup
-    if (url && url.toString().includes('web3auth')) {
-      console.log('Prevented Web3Auth popup:', url);
-      return null;
-    }
+  if (disableWeb3Auth) {
+    // Make Web3Auth components inaccessible to prevent UI from showing
+    // Add a global flag to indicate Web3Auth is disabled
+    (window as any).__WEB3AUTH_DISABLED__ = true;
     
-    // Otherwise use the original window.open
-    return originalOpen.call(window, url, target, features);
-  };
-  
-  console.log('Web3Auth popup prevention enabled');
+    // Modify window.open to prevent unwanted popups
+    const originalOpen = window.open;
+    window.open = function(url?: string | URL, target?: string, features?: string): Window | null {
+      // Check if this is a Web3Auth popup
+      if (url && url.toString().includes('web3auth')) {
+        console.log('Prevented Web3Auth popup:', url);
+        return null;
+      }
+      
+      // Otherwise use the original window.open
+      return originalOpen.call(window, url, target, features);
+    };
+    
+    console.log('Web3Auth popup prevention enabled');
+  } else {
+    console.log('Web3Auth enabled - using configured domain: https://1ceb706b-817d-4c3a-92ce-0335b2e3890c-00-26akl9dnpcsqg.picard.replit.dev');
+    (window as any).__WEB3AUTH_DISABLED__ = false;
+  }
 }
 
 // Export a simple mock Web3Auth object

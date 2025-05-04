@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Download, RefreshCw, Check, ShoppingBag } from 'lucide-react';
+import { Loader2, RefreshCw, Copy, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SimplePaymentQRGeneratorProps {
@@ -13,255 +12,220 @@ interface SimplePaymentQRGeneratorProps {
   apiKey: string;
 }
 
-const SimplePaymentQRGenerator: React.FC<SimplePaymentQRGeneratorProps> = ({ 
-  merchantId, 
+export default function SimplePaymentQRGenerator({
+  merchantId,
   merchantName,
-  apiKey 
-}) => {
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [paymentUrl, setPaymentUrl] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
+  apiKey
+}: SimplePaymentQRGeneratorProps) {
+  const [amount, setAmount] = useState<string>("10.00");
+  const [description, setDescription] = useState<string>(`Payment for ${merchantName}`);
+  const [paymentReference, setPaymentReference] = useState<string>('');
+  const [qrCodeData, setQrCodeData] = useState<string>('');
+  const [paymentLink, setPaymentLink] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const { toast } = useToast();
 
-  const generatePaymentQR = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid payment amount",
-        variant: "destructive",
-      });
-      return;
+  // Generate a unique payment reference when component mounts or merchant changes
+  useEffect(() => {
+    generatePaymentReference();
+  }, [merchantId]);
+
+  // Generate payment URL when amount, paymentReference, or merchantId changes
+  useEffect(() => {
+    if (paymentReference) {
+      const baseUrl = window.location.origin;
+      const newPaymentLink = `${baseUrl}/pay/${paymentReference}`;
+      setPaymentLink(newPaymentLink);
+      setQrCodeData(newPaymentLink);
     }
+  }, [paymentReference, amount, merchantId]);
 
-    setGenerating(true);
-
+  // Generate a unique payment reference
+  const generatePaymentReference = async () => {
+    setLoading(true);
     try {
-      // Create a payment request
-      const response = await fetch('/api/merchants/payment-request', {
+      // Create a unique reference format
+      const timestamp = Date.now();
+      const randomChars = Math.random().toString(36).substring(2, 8);
+      const newRef = `SOCIAL-${merchantId}-${timestamp}-${randomChars}`;
+      
+      // Generate a new payment
+      const response = await fetch('/api/payments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': apiKey
+          'X-API-KEY': apiKey
         },
         body: JSON.stringify({
           amountUsd: parseFloat(amount),
-          description: description || `Payment to ${merchantName}`
+          description: description,
+          paymentReference: newRef,
+          expiresIn: 24 * 60 * 60, // 24 hours in seconds
+          socialEnabled: true
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate payment');
+        throw new Error('Failed to create payment');
       }
 
       const data = await response.json();
-      
-      // Create the direct payment URL
-      const baseUrl = window.location.origin;
-      const paymentUrl = `${baseUrl}/pay/${data.paymentReference}`;
-      
-      setPaymentUrl(paymentUrl);
+      setPaymentReference(data.paymentReference || newRef);
       
       toast({
         title: "QR Code Generated",
-        description: "Your payment QR code is ready to share with customers",
+        description: "New social payment QR code is ready to share",
       });
     } catch (error) {
-      console.error('Error generating payment:', error);
+      console.error('Error generating payment reference:', error);
       toast({
-        title: "Generation Failed",
-        description: "Could not create the payment QR code. Please try again.",
+        title: "Error",
+        description: "Failed to generate QR code. Please try again.",
         variant: "destructive",
       });
+      
+      // Still set a reference so we have something to display
+      const timestamp = Date.now();
+      const randomChars = Math.random().toString(36).substring(2, 8);
+      const fallbackRef = `SOCIAL-${merchantId}-${timestamp}-${randomChars}`;
+      setPaymentReference(fallbackRef);
     } finally {
-      setGenerating(false);
+      setLoading(false);
     }
   };
 
-  const copyPaymentUrl = () => {
-    if (paymentUrl) {
-      navigator.clipboard.writeText(paymentUrl)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-          toast({
-            title: "URL Copied",
-            description: "Payment link copied to clipboard",
-          });
-        })
-        .catch(err => {
-          console.error('Failed to copy:', err);
-          toast({
-            title: "Copy Failed",
-            description: "Could not copy to clipboard",
-            variant: "destructive",
-          });
-        });
+  // Handle amount change
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    // Remove any non-numeric characters except decimal point
+    value = value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
     }
+    
+    // Limit to 2 decimal places
+    if (parts.length > 1 && parts[1].length > 2) {
+      value = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    setAmount(value);
   };
 
-  const downloadQR = () => {
-    if (!paymentUrl) return;
-
-    const canvas = document.getElementById('payment-qr-canvas') as HTMLCanvasElement;
-    if (!canvas) return;
-
-    const pngUrl = canvas
-      .toDataURL('image/png')
-      .replace('image/png', 'image/octet-stream');
-
-    const downloadLink = document.createElement('a');
-    downloadLink.href = pngUrl;
-    downloadLink.download = `CPXTB-Payment-${new Date().getTime()}.png`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    
+  // Handle copy link to clipboard
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(paymentLink);
     toast({
-      title: "QR Downloaded",
-      description: "The QR code image has been saved to your device",
-    });
-  };
-
-  const resetForm = () => {
-    setAmount('');
-    setDescription('');
-    setPaymentUrl('');
-    
-    toast({
-      title: "Form Reset",
-      description: "Create a new payment QR code",
+      title: "Copied",
+      description: "Payment link copied to clipboard",
     });
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5" /> Quick Payment QR
-        </CardTitle>
-        <CardDescription>
-          Generate a QR code for customers to pay without needing a crypto wallet
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {paymentUrl ? (
-          <div className="space-y-6">
-            <div className="flex flex-col items-center">
-              <div className="border p-3 rounded bg-white">
-                <QRCodeSVG
-                  id="payment-qr-canvas"
-                  value={paymentUrl}
-                  size={200}
-                  level="H"
-                  includeMargin={true}
-                  imageSettings={{
-                    src: "/cpxtb-logo.png",
-                    height: 40,
-                    width: 40,
-                    excavate: true,
-                  }}
-                />
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="amount">Amount (USD)</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+            <Input
+              id="amount"
+              value={amount}
+              onChange={handleAmountChange}
+              className="pl-7"
+              placeholder="10.00"
+            />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="description">Description (Optional)</Label>
+          <Input
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Payment description"
+          />
+        </div>
+      </div>
+      
+      <div className="flex justify-center">
+        <Button 
+          onClick={generatePaymentReference} 
+          disabled={loading}
+          variant="outline"
+          size="sm"
+          className="mb-4"
+        >
+          {loading ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</>
+          ) : (
+            <><RefreshCw className="mr-2 h-4 w-4" /> Generate New QR</>
+          )}
+        </Button>
+      </div>
+      
+      {paymentReference && (
+        <div className="flex flex-col items-center space-y-4">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            {loading ? (
+              <div className="h-48 w-48 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-              
-              <div className="mt-4 text-center space-y-2">
-                <p className="text-sm font-medium">Payment Amount</p>
-                <p className="text-2xl font-bold">${parseFloat(amount).toFixed(2)}</p>
-                {description && (
-                  <p className="text-sm text-muted-foreground">{description}</p>
-                )}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Payment URL</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={paymentUrl}
-                  readOnly
-                  className="font-mono text-xs"
-                />
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={copyPaymentUrl}
-                >
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="flex flex-col xs:flex-row gap-2 pt-2">
+            ) : (
+              <QRCodeSVG 
+                value={qrCodeData}
+                size={200}
+                level="H"
+                className="w-full h-auto"
+              />
+            )}
+          </div>
+          
+          <div className="text-center space-y-1 w-full">
+            <p className="text-sm font-medium">
+              <span className="font-semibold">Business:</span> {merchantName}
+            </p>
+            <p className="text-sm font-medium">
+              <span className="font-semibold">Amount:</span> ${parseFloat(amount).toFixed(2)} USD
+            </p>
+          </div>
+          
+          <div className="w-full space-y-2">
+            <Label htmlFor="payment-link">Payment Link</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="payment-link"
+                value={paymentLink}
+                readOnly
+                className="text-xs font-mono"
+              />
               <Button
                 variant="outline"
-                className="flex-1"
-                onClick={downloadQR}
+                size="icon"
+                onClick={handleCopyLink}
+                title="Copy to clipboard"
               >
-                <Download className="mr-2 h-4 w-4" /> Download QR
-              </Button>
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={resetForm}
-              >
-                <RefreshCw className="mr-2 h-4 w-4" /> New Payment
+                <Copy className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount ($USD)</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter the amount in USD. It will be automatically converted to CPXTB tokens.
-              </p>
+            <div className="flex justify-center mt-2">
+              <a
+                href={paymentLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs flex items-center gap-1 text-primary hover:underline"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Open in new tab
+              </a>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Input
-                id="description"
-                placeholder="e.g. Coffee, Groceries, Services"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-            
-            <Button
-              onClick={generatePaymentQR}
-              disabled={generating || !amount}
-              className="w-full"
-            >
-              {generating ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Generating...
-                </>
-              ) : (
-                'Generate Payment QR'
-              )}
-            </Button>
           </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col text-xs text-muted-foreground">
-        <p>
-          Customers can scan this QR code and pay without needing their own crypto wallet.
-          The CPXTB platform will handle the conversion and payment processing automatically.
-        </p>
-      </CardFooter>
-    </Card>
+        </div>
+      )}
+    </div>
   );
-};
-
-export default SimplePaymentQRGenerator;
+}

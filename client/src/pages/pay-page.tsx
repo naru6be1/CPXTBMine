@@ -41,10 +41,21 @@ export default function PayPage() {
     const isDirectAccess = window.location.pathname.startsWith('/pay/') && 
                           !new URLSearchParams(window.location.search).has('loggedIn');
     
+    // Add diagnostic logging to help troubleshoot social login issues
+    console.log("PayPage - QR code access detection:");
+    console.log("- Current URL path:", window.location.pathname);
+    console.log("- URL parameters:", window.location.search);
+    console.log("- Is logged in:", isLoggedIn);
+    console.log("- Wallet address:", walletAddress);
+    console.log("- Is direct QR access:", isDirectAccess);
+    
     if (isDirectAccess) {
       console.log("Direct QR code access detected - forcing social login to appear");
+      setIsDirectQrAccess(true);
+    } else {
+      setIsDirectQrAccess(false);
     }
-  }, []);
+  }, [isLoggedIn, walletAddress]);
 
   useEffect(() => {
     const fetchPaymentData = async () => {
@@ -400,8 +411,8 @@ export default function PayPage() {
             </div>
           </div>
           
-          {/* Add forceLogin=true URL parameter to debug social login issues */}
-          {(isLoggedIn && !new URLSearchParams(window.location.search).has('forceLogin')) ? (
+          {/* Show login component on direct QR access or if forceLogin parameter is present */}
+          {(isLoggedIn && !isDirectQrAccess && !new URLSearchParams(window.location.search).has('forceLogin')) ? (
             <div className="space-y-4">
               <div className="bg-slate-100 p-4 rounded-md border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-center mb-3">
@@ -629,19 +640,18 @@ export default function PayPage() {
               <BasicSocialLogin 
                 showCard={false}
                 onSuccess={(userData) => {
-                  console.log("Social login successful with BasicSocialLogin component:", userData);
+                  console.log("PayPage - Social login successful:", userData);
+                  console.log("PayPage - Direct QR access state:", isDirectQrAccess);
+                  console.log("PayPage - URL state:", {
+                    path: window.location.pathname,
+                    params: window.location.search,
+                    fullUrl: window.location.href
+                  });
                   
-                  // Force reload to apply the changes from localStorage
-                  // Add URL parameter to prevent login loop when page reloads
-                  setTimeout(() => {
-                    // Keep existing parameters and add loggedIn=true
-                    const params = new URLSearchParams(window.location.search);
-                    params.set('loggedIn', 'true');
-                    window.location.href = window.location.pathname + '?' + params.toString();
-                  }, 500);
+                  // The component now handles redirect with loggedIn=true parameter
                 }}
                 onError={(error) => {
-                  console.error("Social login failed with BasicSocialLogin component:", error);
+                  console.error("PayPage - Social login failed:", error);
                   toast({
                     title: "Login Failed",
                     description: error.message || "Could not complete the login process",

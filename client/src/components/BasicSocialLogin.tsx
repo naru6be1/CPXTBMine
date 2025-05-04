@@ -89,8 +89,12 @@ export function BasicSocialLogin({
       }
       
       // Force reload to apply changes from localStorage
+      // Add loggedIn=true parameter to prevent login loops on direct QR code access
       setTimeout(() => {
-        window.location.reload();
+        // Preserve existing URL parameters and add loggedIn=true
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('loggedIn', 'true');
+        window.location.href = currentUrl.toString();
       }, 500);
     } catch (error: any) {
       console.error('Fallback login error:', error);

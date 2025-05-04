@@ -47,12 +47,26 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
   // Load user data from local storage on component mount
   useEffect(() => {
     console.log('SocialLoginProvider initializing...');
+    console.log('Current URL path:', window.location.pathname);
+    console.log('URL parameters:', window.location.search);
+    console.log('Is QR code payment page:', window.location.pathname.startsWith('/pay/'));
+    
     const storedUser = localStorage.getItem('cpxtb_user');
     
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser);
         console.log('Found stored user data:', userData);
+        
+        // Additional logging for social login with QR code scenarios
+        const isQrCodePage = window.location.pathname.startsWith('/pay/');
+        const hasLoggedInParam = new URLSearchParams(window.location.search).has('loggedIn');
+        console.log('Social login state for QR code:', { 
+          isQrCodePage, 
+          hasLoggedInParam,
+          userDataPresent: true 
+        });
+        
         setUserInfo(userData.userInfo);
         setWalletAddress(userData.walletAddress);
         setBalance(userData.balance || '0');
@@ -64,6 +78,15 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     } else {
       console.log('No stored user data found in localStorage');
+      
+      // Log if this is a QR code access without stored user data
+      const isQrCodePage = window.location.pathname.startsWith('/pay/');
+      const hasLoggedInParam = new URLSearchParams(window.location.search).has('loggedIn');
+      console.log('Social login state for QR code:', { 
+        isQrCodePage, 
+        hasLoggedInParam,
+        userDataPresent: false 
+      });
     }
   }, []);
   

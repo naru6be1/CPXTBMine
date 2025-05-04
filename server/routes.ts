@@ -1786,14 +1786,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // First convert payment data to a plain object we can modify
       // CRITICAL FIX: KEEP ORIGINAL VALUES AS STRINGS to preserve the exact values
+      console.log('Raw payment data before formatting:', {
+        amountUsd: payment.amountUsd,
+        amountCpxtb: payment.amountCpxtb,
+        type: typeof payment.amountCpxtb
+      });
+      
       const formattedPayment = {
         ...payment,
         // Preserve original values for perfect decimal handling
-        originalAmountUsd: String(payment.amountUsd || "0"),
-        originalAmountCpxtb: String(payment.amountCpxtb || "0"),
+        originalAmountUsd: payment.amountUsd?.toString() || "0",
+        originalAmountCpxtb: payment.amountCpxtb?.toString() || "0",
         // Add number versions for backward compatibility
         amountUsd: Number(payment.amountUsd || 0),
-        amountCpxtb: Number(payment.amountCpxtb || 0)
+        amountCpxtb: Number(payment.amountCpxtb || 0),
+        // Add numeric wrapper properties for calculations
+        amountUsdNumber: Number(payment.amountUsd || 0),
+        amountCpxtbNumber: Number(payment.amountCpxtb || 0)
       };
       
       console.log('Formatted payment data before sending to client:', {

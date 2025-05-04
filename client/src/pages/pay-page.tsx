@@ -61,15 +61,18 @@ export default function PayPage() {
         // Enhanced data handling with defaults for missing values
         // CRITICAL FIX: Improved handling of payment amounts to ensure proper display
         // Now using originalAmount fields that are strings to preserve exact decimal values
+        // Log the raw data
+        console.log('Raw payment data structure:', JSON.stringify(data.payment, null, 2));
+        
         const enhancedData = {
           ...data.payment,
           // Prioritize original string values to preserve exact decimal representation
-          amountCpxtb: data.payment.originalAmountCpxtb || data.payment.amountCpxtb.toString(),
+          amountCpxtb: data.payment.originalAmountCpxtb || String(data.payment.amountCpxtb),
           // Fall back to numeric conversion only if needed
           amountCpxtbNumber: Number(data.payment.originalAmountCpxtb || data.payment.amountCpxtb),
           
           // Same for USD amount
-          amountUsd: data.payment.originalAmountUsd || data.payment.amountUsd.toString(),
+          amountUsd: data.payment.originalAmountUsd || String(data.payment.amountUsd),
           amountUsdNumber: Number(data.payment.originalAmountUsd || data.payment.amountUsd),
           
           // Ensure description has a fallback value

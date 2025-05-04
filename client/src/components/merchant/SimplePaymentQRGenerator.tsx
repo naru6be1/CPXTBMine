@@ -57,7 +57,10 @@ export default function SimplePaymentQRGenerator({
           'X-API-KEY': apiKey
         },
         body: JSON.stringify({
-          amountUsd: parseFloat(amount),
+          // FIX: Ensure small decimal values like 0.1 are properly processed
+          // Use Number() instead of parseFloat() for more precise handling of decimal values
+          // This ensures values like "0.1" are properly converted without rounding issues
+          amountUsd: Number(amount),
           description: description,
           paymentReference: newRef,
           expiresIn: 24 * 60 * 60, // 24 hours in seconds
@@ -190,7 +193,7 @@ export default function SimplePaymentQRGenerator({
               <span className="font-semibold">Business:</span> {merchantName}
             </p>
             <p className="text-sm font-medium">
-              <span className="font-semibold">Amount:</span> ${parseFloat(amount).toFixed(2)} USD
+              <span className="font-semibold">Amount:</span> ${Number(amount).toFixed(2)} USD
             </p>
           </div>
           

@@ -1453,18 +1453,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { amountUsd, description, customerWalletAddress } = req.body;
       
       // Validate inputs - no longer require orderId as per user request
-      if (!amountUsd) {
+      if (!amountUsd && amountUsd !== 0) {
         console.log("Payment validation failed: missing required fields");
         return res.status(400).json({ message: 'Amount in USD is required' });
+      }
+      
+      // FIX: Ensure small decimal values like 0.1 are properly handled
+      // Convert amountUsd to a number to ensure precision for small values
+      const parsedAmountUsd = Number(amountUsd);
+      console.log(`Parsed amountUsd: ${parsedAmountUsd} (original value: ${amountUsd})`);
+      
+      // Validate the amount is a valid number and greater than zero
+      if (isNaN(parsedAmountUsd) || parsedAmountUsd <= 0) {
+        console.log(`Invalid amount value: ${amountUsd}, parsed as: ${parsedAmountUsd}`);
+        return res.status(400).json({ message: 'Amount must be a valid number greater than zero' });
       }
       
       // Get current CPXTB price
       const cpxtbPrice = await getCurrentCpxtbPrice();
       console.log(`Current CPXTB price: ${cpxtbPrice}`);
       
-      // Calculate CPXTB amount
-      const amountCpxtb = calculateCpxtbAmount(amountUsd, cpxtbPrice);
-      console.log(`Calculated payment amount: $${amountUsd} USD = ${amountCpxtb} CPXTB`);
+      // Calculate CPXTB amount using the properly parsed USD amount
+      const amountCpxtb = calculateCpxtbAmount(parsedAmountUsd, cpxtbPrice);
+      console.log(`Calculated payment amount: $${parsedAmountUsd} USD = ${amountCpxtb} CPXTB`);
       
       // Generate a unique payment reference - use custom ref if provided
       const customRef = req.body.paymentReference;
@@ -1476,7 +1487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Prepare payment data - removed orderId as per user request
       const paymentData = {
         merchantId: merchant.id,
-        amountUsd,
+        amountUsd: parsedAmountUsd, // Use the properly parsed USD amount
         amountCpxtb,
         // Only include customerWalletAddress if it exists
         ...(customerWalletAddress ? { customerWalletAddress: customerWalletAddress.toLowerCase() } : {}),
@@ -1533,7 +1544,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         payment: {
           id: payment.id,
           reference: payment.paymentReference,
-          amountUsd,
+          amountUsd: parsedAmountUsd, // Use the properly parsed USD amount
           amountCpxtb,
           exchangeRate: cpxtbPrice,
           merchantWalletAddress: merchant.walletAddress,

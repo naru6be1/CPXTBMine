@@ -378,12 +378,12 @@ export default function PayPage() {
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div className="text-slate-700">Amount:</div>
               <div className="font-bold text-right text-slate-900">
-                ${paymentData?.amountUsdString || paymentData?.originalAmountUsd || Number(paymentData?.amountUsd || 0).toFixed(2)} USD
+                ${paymentData?.payment?.amountUsdString || paymentData?.payment?.originalAmountUsd || Number(paymentData?.payment?.amountUsd || 0).toFixed(2)} USD
               </div>
               
               <div className="text-slate-700">CPXTB Amount:</div>
               <div className="font-medium text-right text-slate-900">
-                {paymentData?.amountCpxtbString || paymentData?.originalAmountCpxtb || Number(paymentData?.amountCpxtb || 0).toFixed(6)} CPXTB
+                {paymentData?.payment?.amountCpxtbString || paymentData?.payment?.originalAmountCpxtb || Number(paymentData?.payment?.amountCpxtb || 0).toFixed(6)} CPXTB
               </div>
             </div>
           </div>
@@ -438,7 +438,7 @@ export default function PayPage() {
                 onClick={handlePayment}
                 disabled={
                   processingPayment || 
-                  Number(balance) < Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) ||
+                  Number(balance) < Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) ||
                   (countdown !== null && countdown <= 0)
                 }
               >
@@ -446,16 +446,16 @@ export default function PayPage() {
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                   </>
-                ) : Number(balance) < Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) ? (
+                ) : Number(balance) < Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) ? (
                   'Insufficient Balance'
                 ) : (countdown !== null && countdown <= 0) ? (
                   'Payment Expired'
                 ) : (
-                  `Pay ${Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0).toFixed(6)} CPXTB`
+                  `Pay ${Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0).toFixed(6)} CPXTB`
                 )}
               </Button>
               
-              {Number(balance) < Number(paymentData?.amountCpxtb || paymentData?.originalAmountCpxtb || paymentData?.amountCpxtbNumber || 0) && !isBuyingTokens && (
+              {Number(balance) < Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) && !isBuyingTokens && (
                 <div className="bg-amber-50 p-4 rounded-md border border-amber-200 text-sm shadow-sm">
                   <div className="flex items-start gap-3 mb-3">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-800" />

@@ -46,10 +46,13 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
   
   // Load user data from local storage on component mount
   useEffect(() => {
+    console.log('SocialLoginProvider initializing...');
     const storedUser = localStorage.getItem('cpxtb_user');
+    
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser);
+        console.log('Found stored user data:', userData);
         setUserInfo(userData.userInfo);
         setWalletAddress(userData.walletAddress);
         setBalance(userData.balance || '0');
@@ -59,6 +62,8 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         // Clear invalid data
         localStorage.removeItem('cpxtb_user');
       }
+    } else {
+      console.log('No stored user data found in localStorage');
     }
   }, []);
   

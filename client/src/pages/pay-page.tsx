@@ -59,18 +59,19 @@ export default function PayPage() {
         console.log('Payment data received:', data);
         
         // Enhanced data handling with defaults for missing values
-        // FIX: Improved handling of payment amounts to ensure proper display
+        // CRITICAL FIX: Improved handling of payment amounts to ensure proper display
+        // Now using originalAmount fields that are strings to preserve exact decimal values
         const enhancedData = {
           ...data.payment,
-          // Ensure amountCpxtb is always valid as a number (default to 0 if not present)
-          // The server now sends numeric values, but we'll add safeguards here too
-          amountCpxtb: typeof data.payment.amountCpxtb === 'number' 
-            ? data.payment.amountCpxtb 
-            : parseFloat(data.payment.amountCpxtb || "0"),
-          // Ensure amountUsd is always valid as a number (default to 0 if not present)
-          amountUsd: typeof data.payment.amountUsd === 'number' 
-            ? data.payment.amountUsd 
-            : parseFloat(data.payment.amountUsd || "0"),
+          // Prioritize original string values to preserve exact decimal representation
+          amountCpxtb: data.payment.originalAmountCpxtb || data.payment.amountCpxtb.toString(),
+          // Fall back to numeric conversion only if needed
+          amountCpxtbNumber: Number(data.payment.originalAmountCpxtb || data.payment.amountCpxtb),
+          
+          // Same for USD amount
+          amountUsd: data.payment.originalAmountUsd || data.payment.amountUsd.toString(),
+          amountUsdNumber: Number(data.payment.originalAmountUsd || data.payment.amountUsd),
+          
           // Ensure description has a fallback value
           description: data.payment.description || `Payment to ${data.payment.merchantName || 'Merchant'}`,
           // Include theme information
@@ -148,14 +149,15 @@ export default function PayPage() {
     // Refresh balance to ensure we have the latest data
     await refreshBalance();
 
-    const requiredAmount = parseFloat(paymentData.amountCpxtb);
-    const currentBalance = parseFloat(balance);
+    // Use new amountCpxtbNumber property for numeric comparisons
+    const requiredAmount = paymentData.amountCpxtbNumber;
+    const currentBalance = Number(balance);
 
     // Check if user has enough balance
     if (currentBalance < requiredAmount) {
       toast({
         title: "Insufficient Balance",
-        description: `You need ${requiredAmount} CPXTB but only have ${currentBalance} CPXTB`,
+        description: `You need ${requiredAmount.toFixed(6)} CPXTB but only have ${currentBalance.toFixed(6)} CPXTB`,
         variant: "destructive",
       });
       return;
@@ -384,10 +386,10 @@ export default function PayPage() {
             
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div className="text-gray-700 dark:text-gray-300">Amount:</div>
-              <div className="font-bold text-right text-gray-900 dark:text-white">${Number(paymentData.amountUsd).toFixed(2)} USD</div>
+              <div className="font-bold text-right text-gray-900 dark:text-white">${paymentData.amountUsdNumber.toFixed(2)} USD</div>
               
               <div className="text-gray-700 dark:text-gray-300">CPXTB Amount:</div>
-              <div className="font-medium text-right text-gray-900 dark:text-white">{Number(paymentData.amountCpxtb).toFixed(6)} CPXTB</div>
+              <div className="font-medium text-right text-gray-900 dark:text-white">{paymentData.amountCpxtbNumber.toFixed(6)} CPXTB</div>
               
               {paymentData.description && (
                 <>

@@ -1785,21 +1785,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This solves the issue where small amounts like 0.1 were showing as 0
       
       // First convert payment data to a plain object we can modify
+      // CRITICAL FIX: KEEP ORIGINAL VALUES AS STRINGS to preserve the exact values
       const formattedPayment = {
         ...payment,
-        // Ensure amountUsd is treated as a number in the response
-        // Use parseFloat to handle strings and Number for other formats, and ensure non-zero values display
-        amountUsd: parseFloat(String(payment.amountUsd || 0)),
-        // Ensure amountCpxtb is treated as a number in the response
-        amountCpxtb: parseFloat(String(payment.amountCpxtb || 0))
+        // Preserve original values for perfect decimal handling
+        originalAmountUsd: String(payment.amountUsd || "0"),
+        originalAmountCpxtb: String(payment.amountCpxtb || "0"),
+        // Add number versions for backward compatibility
+        amountUsd: Number(payment.amountUsd || 0),
+        amountCpxtb: Number(payment.amountCpxtb || 0)
       };
       
       console.log('Formatted payment data before sending to client:', {
         id: formattedPayment.id,
         amountUsd: formattedPayment.amountUsd,
         amountCpxtb: formattedPayment.amountCpxtb,
-        originalAmountUsd: payment.amountUsd,
-        originalAmountCpxtb: payment.amountCpxtb
+        originalAmountUsd: formattedPayment.originalAmountUsd,
+        originalAmountCpxtb: formattedPayment.originalAmountCpxtb
       });
       
       res.json({ 

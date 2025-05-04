@@ -30,10 +30,22 @@ export default function PayPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isBuyingTokens, setIsBuyingTokens] = useState(false);
   const [purchaseAmount, setPurchaseAmount] = useState("");
+  const [isDirectQrAccess, setIsDirectQrAccess] = useState(false);
   const { isLoggedIn, userInfo, walletAddress, balance, login, refreshBalance } = useSocialLogin();
   const { toast } = useToast();
 
   // Fetch payment data
+  // Check if this is a direct QR code access - if so, we need to make sure social login appears
+  useEffect(() => {
+    // If URL starts with /pay/ and doesn't have loggedIn=true parameter, consider it a QR code access
+    const isDirectAccess = window.location.pathname.startsWith('/pay/') && 
+                          !new URLSearchParams(window.location.search).has('loggedIn');
+    
+    if (isDirectAccess) {
+      console.log("Direct QR code access detected - forcing social login to appear");
+    }
+  }, []);
+
   useEffect(() => {
     const fetchPaymentData = async () => {
       if (!paymentReference) {
@@ -388,7 +400,8 @@ export default function PayPage() {
             </div>
           </div>
           
-          {isLoggedIn ? (
+          {/* Add forceLogin=true URL parameter to debug social login issues */}
+          {(isLoggedIn && !new URLSearchParams(window.location.search).has('forceLogin')) ? (
             <div className="space-y-4">
               <div className="bg-slate-100 p-4 rounded-md border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-center mb-3">
@@ -619,8 +632,12 @@ export default function PayPage() {
                   console.log("Social login successful with BasicSocialLogin component:", userData);
                   
                   // Force reload to apply the changes from localStorage
+                  // Add URL parameter to prevent login loop when page reloads
                   setTimeout(() => {
-                    window.location.reload();
+                    // Keep existing parameters and add loggedIn=true
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('loggedIn', 'true');
+                    window.location.href = window.location.pathname + '?' + params.toString();
                   }, 500);
                 }}
                 onError={(error) => {

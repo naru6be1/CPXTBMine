@@ -734,6 +734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Regular merchants endpoint for the authenticated user
   app.get("/api/merchants", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -755,6 +756,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ merchants });
     } catch (error: any) {
       console.error("Error fetching merchants:", error);
+      res.status(500).json({
+        message: "Error fetching merchants: " + error.message
+      });
+    }
+  });
+  
+  // Additional endpoint to get merchants for a specific user
+  // This matches the client-side API call pattern
+  app.get("/api/users/:userId/merchants", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      console.log(`Fetching merchants for user ID: ${userId} through /api/users/:userId/merchants endpoint`);
+      
+      const merchants = await storage.getMerchantsByUserId(parseInt(userId));
+      console.log("Retrieved merchants:", merchants);
+      
+      res.json({ merchants });
+    } catch (error: any) {
+      console.error("Error fetching merchants by user ID:", error);
       res.status(500).json({
         message: "Error fetching merchants: " + error.message
       });

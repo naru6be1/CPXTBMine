@@ -38,17 +38,25 @@ export function LiveUserCount() {
     socket.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
         
-        // Update user count when receiving liveUserCount message
-        if (data.type === 'liveUserCount') {
+        // Update user count when receiving userCount message
+        if (data.type === 'userCount') {
+          console.log('Received new user count:', data.count);
           setUserCount(data.count);
           // Reset base count when we get a new server update
           baseCountRef.current = data.count;
         }
-        // Initial connection message also contains liveUserCount
-        else if (data.type === 'connection' && typeof data.liveUserCount === 'number') {
-          setUserCount(data.liveUserCount);
-          baseCountRef.current = data.liveUserCount;
+        // For backward compatibility
+        else if (data.type === 'liveUserCount') {
+          setUserCount(data.count);
+          baseCountRef.current = data.count;
+        }
+        // Initial connection message contains userCount
+        else if (data.type === 'connected' && typeof data.userCount === 'number') {
+          console.log('Connected with user count:', data.userCount);
+          setUserCount(data.userCount);
+          baseCountRef.current = data.userCount;
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);

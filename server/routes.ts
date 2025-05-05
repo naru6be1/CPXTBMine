@@ -825,6 +825,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API endpoint to get payments for a merchant (MUST come before the :id route!)
+  app.get("/api/merchants/payments", async (req, res) => {
+    try {
+      // Get API key from headers
+      const apiKey = req.headers['x-api-key'] as string;
+      
+      if (!apiKey) {
+        return res.status(401).json({ message: "API key required" });
+      }
+      
+      console.log("Fetching payments with API key:", apiKey.substring(0, 5) + "...");
+      
+      // Get the merchant by API key
+      const merchant = await storage.getMerchantByApiKey(apiKey);
+      
+      if (!merchant) {
+        return res.status(401).json({ message: "Invalid API key" });
+      }
+      
+      console.log("Found merchant:", merchant.id, merchant.businessName);
+      
+      // Get payments for this merchant
+      const payments = await storage.getPaymentsByMerchant(merchant.id);
+      console.log("Retrieved", payments.length, "payments for merchant", merchant.id);
+      
+      res.json({ payments });
+    } catch (error: any) {
+      console.error("Error fetching merchant payments:", error);
+      res.status(500).json({
+        message: "Error fetching merchant payments: " + error.message
+      });
+    }
+  });
+  
+  // Get specific merchant by ID (MUST come after the /payments route!)
   app.get("/api/merchants/:id", async (req, res) => {
     try {
       const { id } = req.params;

@@ -263,6 +263,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ success: true });
     }
   });
+  
+  // Regular username/password authentication
+  app.post("/api/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ 
+          message: "Username and password are required" 
+        });
+      }
+      
+      // Find user by username
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(401).json({ 
+          message: "Invalid username or password" 
+        });
+      }
+      
+      // In a real app, compare password hashes
+      // For simplicity, we're just checking equality
+      if (user.password !== password) {
+        return res.status(401).json({ 
+          message: "Invalid username or password" 
+        });
+      }
+      
+      // Set user in session
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return res.status(500).json({ 
+            message: "Authentication failed" 
+          });
+        }
+        
+        // Return user data without password
+        const { password: _, ...userWithoutPassword } = user;
+        res.status(200).json(userWithoutPassword);
+      });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(500).json({ 
+        message: "Authentication failed: " + error.message 
+      });
+    }
+  });
+  
+  // User registration endpoint
+  app.post("/api/register", async (req, res) => {
+    try {
+      const { username, password, email, referralCode } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ 
+          message: "Username and password are required" 
+        });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "Username already exists" 
+        });
+      }
+      
+      // Create new user
+      const newUser = await storage.createUser({
+        username,
+        password,
+        email,
+        referralCode: referralCode || `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        referredBy: null,
+        provider: 'local'
+      });
+      
+      // Log in the new user
+      req.login(newUser, (err) => {
+        if (err) {
+          console.error("Registration login error:", err);
+          return res.status(500).json({ 
+            message: "User created but login failed" 
+          });
+        }
+        
+        // Return user data without password
+        const { password: _, ...userWithoutPassword } = newUser;
+        res.status(201).json(userWithoutPassword);
+      });
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      res.status(500).json({ 
+        message: "Registration failed: " + error.message 
+      });
+    }
+  });
+  
+  // Get current user
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = req.user as any;
+    res.json(userWithoutPassword);
+  });
 
   // Create HTTP server and setup WebSocket server
   const httpServer = createServer(app);

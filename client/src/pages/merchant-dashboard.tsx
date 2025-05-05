@@ -854,10 +854,14 @@ export default function MerchantDashboard() {
         throw new Error("Please select a merchant account first");
       }
 
-      const apiKey = selectedMerchant.apiKey;
-      if (!apiKey || apiKey.includes('...')) {
+      // Ensure we have a valid API key
+      if (!selectedMerchant.apiKey) {
         throw new Error("Invalid API key - please refresh the page");
       }
+      
+      // We now send the complete API key to the server, which will handle cleaning it
+      const apiKey = selectedMerchant.apiKey;
+      console.log(`Updating theme with API key (first 5 chars): ${apiKey.substring(0, 5)}...`);
       
       console.log("Updating theme for merchant:", selectedMerchant.businessName);
       
@@ -915,10 +919,14 @@ export default function MerchantDashboard() {
         throw new Error("Please select a merchant account first");
       }
 
-      const apiKey = selectedMerchant.apiKey;
-      if (!apiKey || apiKey.includes('...')) {
+      // Ensure we have a valid API key
+      if (!selectedMerchant.apiKey) {
         throw new Error("Invalid API key - please refresh the page");
       }
+      
+      // We now send the complete API key to the server, which will handle cleaning it
+      const apiKey = selectedMerchant.apiKey;
+      console.log(`Applying template with API key (first 5 chars): ${apiKey.substring(0, 5)}...`);
       
       console.log("Applying theme template for merchant:", {
         id: selectedMerchant.id,
@@ -1031,10 +1039,14 @@ export default function MerchantDashboard() {
         throw new Error("Please select a merchant account first");
       }
       
-      const apiKey = selectedMerchant.apiKey;
-      if (!apiKey || apiKey.includes('...')) {
-        throw new Error("Invalid API key - please refresh the page to get full API keys");
+      // Ensure we have a valid API key
+      if (!selectedMerchant.apiKey) {
+        throw new Error("Invalid API key - please refresh the page");
       }
+      
+      // We now send the complete API key to the server, which will handle cleaning it
+      const apiKey = selectedMerchant.apiKey;
+      console.log(`Verifying payment with API key (first 5 chars): ${apiKey.substring(0, 5)}...`);
       
       // Call the verification API endpoint
       const response = await fetch(`/api/payments/${data.reference}/verify`, {

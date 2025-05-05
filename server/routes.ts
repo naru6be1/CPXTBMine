@@ -273,7 +273,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: await hashPassword(crypto.randomBytes(20).toString('hex')), // Random password
           referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           externalId: `demo-${Date.now()}`,
-          provider: 'google'
+          provider: 'google',
+          accumulatedCPXTB: 0 // Add the required field
         });
         
         console.log('Created new user from demo social login:', user.id);
@@ -919,7 +920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format the response with necessary data for the payment page
       res.json({ 
         payment,
-        merchantName: merchant.name,
+        merchantName: merchant.businessName, // Using businessName from the schema
         merchantLogo: merchant.logoUrl || null,
         merchantId: merchant.id
       });
@@ -973,19 +974,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedPayment = await storage.updatePaymentStatus(
         payment.id,
         'processing',
-        null,
-        null,
-        null
+        undefined, // Use undefined instead of null
+        undefined,
+        undefined
       );
       
       // In a real implementation, this would trigger a blockchain transaction
       // For now, we'll just simulate payment success
+      // Get amount as number from payment
+      const amountCpxtb = Number(payment.amountCpxtb);
+      
       const finalPayment = await storage.updatePaymentStatus(
         payment.id,
         'success',
         `0x${crypto.randomBytes(32).toString('hex')}`, // Fake transaction hash
-        payment.amountCpxtb,
-        payment.amountCpxtb
+        amountCpxtb, // Use number value for received amount
+        amountCpxtb // Use number value for required amount
       );
       
       res.json({ 

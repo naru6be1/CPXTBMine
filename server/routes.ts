@@ -740,8 +740,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
+      console.log("User authenticated, user data:", req.user);
       const userId = (req.user as any).id;
+      console.log("Fetching merchants for user ID:", userId);
+      
+      if (!userId) {
+        console.error("User ID is undefined or invalid:", userId);
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
       const merchants = await storage.getMerchantsByUserId(userId);
+      console.log("Retrieved merchants:", merchants);
       
       res.json({ merchants });
     } catch (error: any) {

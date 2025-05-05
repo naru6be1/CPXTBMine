@@ -100,28 +100,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return done(null, user);
         }
         
-        // User doesn't exist, create a new one with a randomly generated internal ID
-        // but store the actual Google ID in the external_id field
-        const randomId = Math.floor(Math.random() * 1000000) + 1;
-        
+        // User doesn't exist, create a new one and save it to the database
         console.log("Creating new user with Google ID:", profile.id);
         
-        const newUser = {
-          id: randomId,
-          username: `google_${randomId}`,
-          password: 'oauth-user', // We should never need this for OAuth users
-          referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-          email: profile.emails && profile.emails[0] ? profile.emails[0].value : 'no-email@example.com',
-          externalId: profile.id,
-          provider: 'google',
-          name: profile.displayName,
-          walletAddress: walletAddress,
-          balance: "10.0"
-        };
-        
-        // In a real implementation, we would save this user to the database
-        // For now, we just return the user object directly
-        return done(null, newUser);
+        try {
+          // Create new user with proper structure for database insertion
+          const newUserData = {
+            username: `google_${Date.now().toString(36)}`,
+            password: await hashPassword('oauth-user'), // Use password hashing to maintain security
+            referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+            email: profile.emails && profile.emails[0] ? profile.emails[0].value : undefined,
+            externalId: profile.id,
+            provider: 'google',
+            accumulatedCPXTB: 0 // Required field
+          };
+          
+          // Save user to database
+          const savedUser = await storage.createUser(newUserData);
+          console.log("Successfully saved Google OAuth user to database:", savedUser.id);
+          
+          // Return complete user object with additional OAuth-specific properties
+          const enrichedUser = {
+            ...savedUser,
+            name: profile.displayName,
+            walletAddress: walletAddress,
+            balance: "10.0"
+          };
+          
+          return done(null, enrichedUser);
+        } catch (dbError) {
+          console.error("Failed to save Google OAuth user to database:", dbError);
+          return done(dbError as Error);
+        }
       } catch (error) {
         console.error("Error in Google authentication callback:", error);
         return done(error as Error);
@@ -130,15 +140,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Serialize and deserialize user information for sessions
     passport.serializeUser((user: any, done) => {
-      // Store the complete user object in the session
-      console.log("Serializing user:", user);
-      done(null, user);
+      // Store just the user ID in the session
+      console.log("Serializing user with ID:", user.id);
+      done(null, user.id);
     });
     
-    passport.deserializeUser((user: any, done) => {
-      // Since we're storing the complete user object, just return it
-      console.log("Deserializing user:", user);
-      done(null, user);
+    passport.deserializeUser(async (id: number, done) => {
+      try {
+        // Get user from database by ID
+        const user = await storage.getUser(id);
+        if (!user) {
+          console.error("User not found in deserialize:", id);
+          return done(new Error("User not found"), null);
+        }
+        
+        console.log("Successfully deserialized user:", id);
+        done(null, user);
+      } catch (error) {
+        console.error("Error deserializing user:", error);
+        done(error, null);
+      }
     });
     
     // Initial route to start Google authentication

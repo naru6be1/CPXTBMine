@@ -16,6 +16,9 @@ export const users = pgTable("users", {
   email: text("email"),
   resetPasswordToken: text("reset_password_token"),
   resetPasswordExpires: timestamp("reset_password_expires"),
+  // Add a field for external provider IDs that might be very large (like Google's)
+  externalId: text("external_id"),
+  provider: text("provider"),
 });
 
 export const miningPlans = pgTable("mining_plans", {
@@ -60,6 +63,9 @@ export const insertUserSchema = createInsertSchema(users)
     email: z.string().email().optional(),
     resetPasswordToken: z.string().optional(),
     resetPasswordExpires: z.date().optional(),
+    // Add fields for external authentication
+    externalId: z.string().optional(),
+    provider: z.string().optional(),
   });
 
 export const insertMiningPlanSchema = createInsertSchema(miningPlans)

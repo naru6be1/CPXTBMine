@@ -835,10 +835,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "API key required" });
       }
       
-      console.log("Fetching payments with API key:", apiKey.substring(0, 5) + "...");
+      // Validate the API key - remove any "..." if present as it might be a truncated display version
+      const cleanApiKey = apiKey.includes('...') 
+        ? apiKey.substring(0, apiKey.indexOf('...'))
+        : apiKey;
+      
+      console.log("Fetching payments with API key:", cleanApiKey.substring(0, 5) + "...");
+      
+      // Find all merchants (fallback if API key lookup fails)
+      if (cleanApiKey.length < 10) {
+        console.error("API key too short or malformed:", cleanApiKey);
+        return res.status(401).json({ message: "Invalid API key format" });
+      }
       
       // Get the merchant by API key
-      const merchant = await storage.getMerchantByApiKey(apiKey);
+      const merchant = await storage.getMerchantByApiKey(cleanApiKey);
       
       if (!merchant) {
         return res.status(401).json({ message: "Invalid API key" });
@@ -893,7 +904,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "API key required" });
       }
       
-      const merchant = await storage.getMerchantByApiKey(apiKey);
+      // Validate the API key - remove any "..." if present as it might be a truncated display version
+      const cleanApiKey = apiKey.includes('...') 
+        ? apiKey.substring(0, apiKey.indexOf('...'))
+        : apiKey;
+      
+      if (cleanApiKey.length < 10) {
+        console.error("API key too short or malformed:", cleanApiKey);
+        return res.status(401).json({ message: "Invalid API key format" });
+      }
+      
+      const merchant = await storage.getMerchantByApiKey(cleanApiKey);
       
       if (!merchant) {
         return res.status(401).json({ message: "Invalid API key" });

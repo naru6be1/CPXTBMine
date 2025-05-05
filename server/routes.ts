@@ -897,6 +897,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public payment endpoint for the payment page
+  // Note: This route must come before the generic /api/payments/:reference route
+  // because Express routes are matched in order
+  app.get("/api/payments/public/:reference", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const payment = await storage.getPaymentByReference(reference);
+      
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Get merchant details to include in response
+      const merchant = await storage.getMerchant(payment.merchantId);
+      
+      if (!merchant) {
+        return res.status(404).json({ message: "Merchant not found" });
+      }
+      
+      // Format the response with necessary data for the payment page
+      res.json({ 
+        payment,
+        merchantName: merchant.name,
+        merchantLogo: merchant.logoUrl || null,
+        merchantId: merchant.id
+      });
+    } catch (error: any) {
+      console.error("Error fetching public payment:", error);
+      res.status(500).json({
+        message: "Error fetching payment details: " + error.message
+      });
+    }
+  });
+  
+  // Regular payment endpoint (must come after the /public/ route)
   app.get("/api/payments/:reference", async (req, res) => {
     try {
       const { reference } = req.params;
@@ -914,6 +949,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching payment:", error);
       res.status(500).json({
         message: "Error fetching payment: " + error.message
+      });
+    }
+  });
+  
+  // Also add an endpoint for the payment processing
+  app.post("/api/payments/public/:reference/pay", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const { walletAddress } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ message: "Wallet address is required" });
+      }
+      
+      const payment = await storage.getPaymentByReference(reference);
+      
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Update payment status to processing
+      const updatedPayment = await storage.updatePaymentStatus(
+        payment.id,
+        'processing',
+        null,
+        null,
+        null
+      );
+      
+      // In a real implementation, this would trigger a blockchain transaction
+      // For now, we'll just simulate payment success
+      const finalPayment = await storage.updatePaymentStatus(
+        payment.id,
+        'success',
+        `0x${crypto.randomBytes(32).toString('hex')}`, // Fake transaction hash
+        payment.amountCpxtb,
+        payment.amountCpxtb
+      );
+      
+      res.json({ 
+        success: true, 
+        message: "Payment processed successfully",
+        payment: finalPayment
+      });
+    } catch (error: any) {
+      console.error("Error processing payment:", error);
+      res.status(500).json({
+        message: "Error processing payment: " + error.message
       });
     }
   });

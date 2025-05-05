@@ -130,12 +130,15 @@ function LogoutButton() {
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
 
 // Interface for payment creation data to help with type safety
+// This must match the schema requirements from server-side validation
 interface PaymentCreateData {
   description?: string;
   amountUsd: number;
   amountCpxtb: number;
   exchangeRate: number;
   merchantId: number;
+  paymentReference?: string; // The server generates this if not provided
+  expiresAt?: Date; // The server calculates this if not provided
 }
 
 export default function MerchantDashboard() {
@@ -601,7 +604,13 @@ export default function MerchantDashboard() {
 
   // Create payment mutation
   const createPaymentMutation = useMutation({
-    mutationFn: async (formData: { amountUsd: string | number, description: string, merchantId: number }) => {
+    mutationFn: async (formData: { 
+      amountUsd: string | number, 
+      description: string, 
+      merchantId: number,
+      amountCpxtb?: number,
+      exchangeRate?: number 
+    }) => {
       // Validate merchant selection
       if (!selectedMerchant) {
         throw new Error("Please select a merchant account first");
@@ -616,25 +625,32 @@ export default function MerchantDashboard() {
       console.log("Creating payment for merchant:", selectedMerchant.businessName);
       console.log("Using merchant ID:", selectedMerchant.id);
       
-      // Define data to send - explicitly extract from form data and selectedMerchant
-      // Removed orderId field as per user request
-      
       // Get the current exchange rate - currently using a fixed value of 0.002177 USD per CPXTB token
       // This matches what's displayed in the price display component from the logs
       const exchangeRate = 0.002177; 
       
       // Calculate the amount of CPXTB tokens needed based on USD amount and exchange rate
-      // Formula: amountCpxtb = amountUsd / exchangeRate
+      // Convert any string input to number for validation
       const amountUsd = typeof formData.amountUsd === 'string' ? parseFloat(formData.amountUsd) : formData.amountUsd;
       const amountCpxtb = amountUsd / exchangeRate;
       
+      // Set expiration time (15 minutes from now)
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+      
+      // Generate a unique reference for debugging
+      const paymentReference = `TEST-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      
       // Create payment data with the correct types for API validation
+      // Send all required fields explicitly to match server-side schema
       const paymentData: PaymentCreateData = {
         amountUsd: amountUsd,
         amountCpxtb: amountCpxtb,
         exchangeRate: exchangeRate,
-        description: formData.description,
-        merchantId: selectedMerchant.id
+        description: formData.description || "Payment",
+        merchantId: selectedMerchant.id,
+        paymentReference: paymentReference,
+        expiresAt: expiresAt
       };
       
       console.log("Payment data being sent:", {
@@ -770,13 +786,13 @@ export default function MerchantDashboard() {
       apiKeyPresent: !!selectedMerchant.apiKey
     });
     
-    // Get the current exchange rate - use same fixed value as in the mutation function
-    const exchangeRate = 0.002177;
+    // Pass only the basic payment form fields to the mutation
+    // Let the mutation function handle all the conversions and adding required fields
+    console.log("Creating payment with form values:", paymentForm);
     
-    // We only pass the string value from the form - the mutation function will handle conversion
-    // The mutation now accepts either string or number type for amountUsd
     createPaymentMutation.mutate({
-      description: paymentForm.description,
+      description: paymentForm.description || "",
+      // Just pass the string value - the mutation will handle conversion
       amountUsd: paymentForm.amountUsd,
       merchantId: selectedMerchant.id
     });

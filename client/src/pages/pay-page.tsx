@@ -86,6 +86,15 @@ export default function PayPage() {
         const data = await response.json();
         console.log("Received payment data:", data);
         
+        // Add debug logging for payment expiration issues
+        console.log("Payment data from server:", {
+          reference: data.payment?.paymentReference,
+          status: data.payment?.status,
+          expiresAt: data.payment?.expiresAt,
+          serverIsExpired: data.isExpired,
+          currentTime: new Date().toISOString()
+        });
+        
         // Calculate timestamp
         if (data.payment && data.payment.expiresAt) {
           const expiresAt = new Date(data.payment.expiresAt).getTime();

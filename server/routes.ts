@@ -922,21 +922,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (parts.length >= 3) {
           const merchantId = parseInt(parts[1]);
           if (!isNaN(merchantId)) {
-            // Find the most recent pending or expired payment for this merchant
-            const recentPayments = await storage.getPaymentsByMerchant(merchantId);
-            console.log(`Found ${recentPayments.length} recent payments for merchant ${merchantId}`);
+            // First, check if this exact reference exists
+            payment = await storage.getPaymentByReference(reference);
             
-            // Sort by creation date, newest first
-            recentPayments.sort((a, b) => 
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            );
-            
-            // Try to find a payment with matching reference
-            payment = recentPayments.find(p => p.paymentReference === reference);
-            
-            // If not found, use the most recent payment
-            if (!payment && recentPayments.length > 0) {
-              payment = recentPayments[0];
+            // If not found, we need to create a new SOCIAL payment
+            if (!payment) {
+              console.log(`Creating new social payment for merchant ${merchantId} with reference ${reference}`);
+              
+              // Get merchant details first to create the payment
+              const merchant = await storage.getMerchant(merchantId);
+              
+              if (merchant) {
+                // Set expiration time (15 minutes from now)
+                const expiresAt = new Date();
+                expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+                
+                // Use default values for social payments
+                // The real values will be collected from the user during payment flow
+                const amountCpxtb = 10; // Default amount for display
+                const exchangeRate = 0.002; // Default exchange rate
+                const amountUsd = amountCpxtb * exchangeRate;
+                
+                // Create a new payment with the social reference
+                payment = await storage.createPayment({
+                  merchantId,
+                  amountUsd,
+                  amountCpxtb,
+                  paymentReference: reference,
+                  exchangeRate,
+                  expiresAt,
+                  description: "Social login payment"
+                });
+                
+                console.log(`Created new social payment with ID ${payment.id}, reference ${reference}, expires at ${expiresAt.toISOString()}`);
+              } else {
+                console.error(`Merchant with ID ${merchantId} not found for social payment`);
+              }
             }
           }
         }

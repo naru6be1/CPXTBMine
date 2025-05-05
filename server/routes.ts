@@ -864,23 +864,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid API key" });
       }
       
+      console.log("Creating payment with input data:", req.body);
+      
       // Generate a unique payment reference
-      const paymentReference = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const paymentReference = req.body.paymentReference || `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
       // Set default expiration time if not provided (15 minutes from now)
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 15);
       
-      const paymentData = insertPaymentSchema.parse({
-        ...req.body,
-        merchantId: merchant.id,
-        status: 'pending',
-        paymentReference,
-        createdAt: new Date(),
-        expiresAt: req.body.expiresAt || expiresAt
-      });
+      // Ensure numeric conversions for all relevant fields
+      const amountUsd = typeof req.body.amountUsd === 'string' ? parseFloat(req.body.amountUsd) : 
+                        (req.body.amountUsd || 0);
+                        
+      // Use current exchange rate from blockchain if not provided
+      // Hardcoding for now for consistency, should come from on-chain in production
+      const exchangeRate = req.body.exchangeRate || 0.002177;
       
-      const payment = await storage.createPayment(paymentData);
+      // Calculate CPXTB amount if not provided
+      const amountCpxtb = req.body.amountCpxtb || (amountUsd / exchangeRate);
+      
+      // Create the payment data object with all required fields
+      const paymentData = {
+        merchantId: merchant.id,
+        amountUsd: amountUsd,
+        amountCpxtb: amountCpxtb,
+        exchangeRate: exchangeRate,
+        status: 'pending',
+        paymentReference: paymentReference,
+        description: req.body.description || "Payment",
+        expiresAt: req.body.expiresAt || expiresAt
+      };
+      
+      console.log("Payment data after processing:", paymentData);
+      
+      // Validate and parse the data
+      const validatedData = insertPaymentSchema.parse(paymentData);
+      const payment = await storage.createPayment(validatedData);
       
       res.status(201).json({ 
         payment,

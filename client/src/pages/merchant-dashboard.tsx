@@ -728,13 +728,7 @@ export default function MerchantDashboard() {
     e.preventDefault();
     
     // Debug information about form submission
-    console.log("Payment form submission. Current state:", {
-      hasSelectedMerchant: !!selectedMerchant,
-      merchantId: selectedMerchant?.id,
-      merchantName: selectedMerchant?.businessName,
-      hasApiKey: !!selectedMerchant?.apiKey,
-      formData: paymentForm
-    });
+    console.log("Payment form submission with form data:", paymentForm);
     
     // Enhanced validation for selected merchant
     if (!selectedMerchant) {
@@ -778,24 +772,22 @@ export default function MerchantDashboard() {
       return;
     }
     
-    // Order ID validation removed as per user request
+    // Using the current exchange rate displayed in the UI
+    const currentExchangeRate = 0.002177;
     
-    console.log("Submitting payment with validated merchant:", {
-      id: selectedMerchant.id,
-      businessName: selectedMerchant.businessName,
-      apiKeyPresent: !!selectedMerchant.apiKey
-    });
+    // Send simplified request - let server handle validation and defaults
+    const paymentRequest = {
+      description: paymentForm.description || "Payment",
+      amountUsd: parseFloat(paymentForm.amountUsd), // Convert to number explicitly
+      merchantId: selectedMerchant.id,
+      exchangeRate: currentExchangeRate,
+      amountCpxtb: parseFloat(paymentForm.amountUsd) / currentExchangeRate
+    };
     
-    // Pass only the basic payment form fields to the mutation
-    // Let the mutation function handle all the conversions and adding required fields
-    console.log("Creating payment with form values:", paymentForm);
+    console.log("Submitting payment request:", paymentRequest);
     
-    createPaymentMutation.mutate({
-      description: paymentForm.description || "",
-      // Just pass the string value - the mutation will handle conversion
-      amountUsd: paymentForm.amountUsd,
-      merchantId: selectedMerchant.id
-    });
+    // Use the mutation with the properly formatted data
+    createPaymentMutation.mutate(paymentRequest);
   };
 
   // Handle form changes

@@ -180,10 +180,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get("/api/auth/google/callback", 
       passport.authenticate('google', { failureRedirect: '/login-error' }),
       (req, res) => {
-        const redirectUrl = req.session.redirectUrl || '/';
         if (req.user) {
-          console.log("Authentication successful, redirecting to:", redirectUrl);
-          res.redirect(`${redirectUrl}?loggedIn=true&provider=google`);
+          console.log("Authentication successful, redirecting to merchant dashboard");
+          // Always redirect to merchant dashboard after successful Google OAuth
+          res.redirect('/merchant?loggedIn=true&provider=google');
         } else {
           console.log("Authentication failed");
           res.redirect('/login-error');
@@ -303,7 +303,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).send('Authentication error');
         }
         
-        return res.status(200).send('Authentication successful');
+        // Return success message with redirect instruction
+        return res.status(200).json({
+          success: true,
+          message: 'Authentication successful',
+          redirectUrl: '/merchant'
+        });
       });
     } catch (error) {
       console.error('Demo social auth callback error:', error);

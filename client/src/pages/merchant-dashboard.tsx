@@ -610,7 +610,7 @@ export default function MerchantDashboard() {
       // Define data to send - explicitly extract from form data and selectedMerchant
       // Removed orderId field as per user request
       const paymentData = {
-        amountUsd: formData.amountUsd,
+        amountUsd: parseFloat(formData.amountUsd), // Convert string to number
         description: formData.description,
         merchantId: selectedMerchant.id
       };
@@ -744,8 +744,8 @@ export default function MerchantDashboard() {
     
     createPaymentMutation.mutate({
       ...paymentForm,
-      // Ensure amountUsd is sent as a string to match the schema
-      amountUsd: String(paymentForm.amountUsd),
+      // Convert amountUsd to number to match the schema
+      amountUsd: parseFloat(paymentForm.amountUsd),
       merchantId: selectedMerchant.id
     });
   };

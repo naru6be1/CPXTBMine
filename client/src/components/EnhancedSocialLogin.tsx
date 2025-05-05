@@ -118,10 +118,43 @@ export function EnhancedSocialLogin({
           onSuccess(userData);
         }
         
+        // Show success toast 
+        toast({
+          title: "Demo Login Successful",
+          description: "Redirecting to merchant dashboard...",
+          duration: 2000,
+        });
+        
+        // Call API to create a session with the server
+        // This ensures that both social login and traditional login have consistent behavior
+        try {
+          const response = await fetch("/api/social-auth/google/callback", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              name: userData.name,
+              email: userData.email,
+              walletAddress: userData.walletAddress
+            })
+          });
+          
+          if (!response.ok) {
+            console.warn("Failed to establish server session for social login, using fallback client-only login");
+          } else {
+            console.log("Server session created for social login", await response.text());
+          }
+        } catch (err) {
+          console.warn("Could not connect to server for session creation:", err);
+        }
+        
         // Directly redirect to merchant page after successful demo login
+        // Use a longer delay to ensure the localStorage is properly set
         setTimeout(() => {
+          console.log("Redirecting to merchant dashboard after demo login");
           window.location.href = '/merchant';
-        }, 1000);
+        }, 1500);
       }
     } catch (error: any) {
       console.error('Login error:', error);

@@ -609,11 +609,29 @@ export default function MerchantDashboard() {
       
       // Define data to send - explicitly extract from form data and selectedMerchant
       // Removed orderId field as per user request
+      
+      // Get the current exchange rate - currently using a fixed value of 0.002177 USD per CPXTB token
+      // This matches what's displayed in the price display component from the logs
+      const exchangeRate = 0.002177; 
+      
+      // Calculate the amount of CPXTB tokens needed based on USD amount and exchange rate
+      // Formula: amountCpxtb = amountUsd / exchangeRate
+      const amountUsd = parseFloat(formData.amountUsd);
+      const amountCpxtb = amountUsd / exchangeRate;
+      
       const paymentData = {
-        amountUsd: parseFloat(formData.amountUsd), // Convert string to number
+        amountUsd: amountUsd, // Number type
+        amountCpxtb: amountCpxtb, // Number type
+        exchangeRate: exchangeRate, // Number type
         description: formData.description,
         merchantId: selectedMerchant.id
       };
+      
+      console.log("Payment data being sent:", {
+        amountUsd,
+        amountCpxtb,
+        exchangeRate
+      });
       
       // Add API key header
       const headers = {
@@ -742,10 +760,17 @@ export default function MerchantDashboard() {
       apiKeyPresent: !!selectedMerchant.apiKey
     });
     
+    // Get the current exchange rate - use same fixed value as in the mutation function
+    const exchangeRate = 0.002177;
+    const amountUsd = parseFloat(paymentForm.amountUsd);
+    const amountCpxtb = amountUsd / exchangeRate;
+    
+    // Add all required fields for the payment
     createPaymentMutation.mutate({
       ...paymentForm,
-      // Convert amountUsd to number to match the schema
-      amountUsd: parseFloat(paymentForm.amountUsd),
+      amountUsd: amountUsd,
+      amountCpxtb: amountCpxtb,
+      exchangeRate: exchangeRate,
       merchantId: selectedMerchant.id
     });
   };

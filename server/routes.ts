@@ -253,6 +253,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Endpoint to check if OAuth credentials are available
+  app.get("/api/auth/check-credentials", (req, res) => {
+    const googleCredentialsAvailable = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+    
+    console.log("Checking credentials availability. Google auth available:", googleCredentialsAvailable);
+    
+    res.json({
+      googleCredentialsAvailable,
+      message: googleCredentialsAvailable 
+        ? "Google authentication is properly configured" 
+        : "Google authentication is not configured"
+    });
+  });
+
   // Handle callback for social auth demo login to create server-side session
   app.post("/api/social-auth/google/callback", async (req, res) => {
     try {

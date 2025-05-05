@@ -11,6 +11,28 @@ import { db } from "./db";
 import { z } from "zod";
 import crypto from "crypto";
 import { TREASURY_ADDRESS, CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID } from "./constants";
+import { promisify } from "util";
+
+// Password hashing and comparison functions
+const scryptAsync = promisify(crypto.scrypt);
+
+async function hashPassword(password: string) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+async function comparePasswords(supplied: string, stored: string) {
+  try {
+    const [hashed, salt] = stored.split(".");
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    return crypto.timingSafeEqual(hashedBuf, suppliedBuf);
+  } catch (error) {
+    console.error("Error comparing passwords:", error);
+    return false;
+  }
+}
 import { WebSocketServer, WebSocket } from "ws";
 import { createPublicClient, http, parseAbi, parseAbiItem, formatUnits } from "viem";
 import { base } from "wagmi/chains";
@@ -284,12 +306,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // In a real app, compare password hashes
-      // For simplicity, we're just checking equality
-      if (user.password !== password) {
-        return res.status(401).json({ 
-          message: "Invalid username or password" 
-        });
+      // Check if the password is hashed (contains a dot separator)
+      if (user.password.includes('.')) {
+        // This is a hashed password with salt, need to use comparePasswords
+        const isMatch = await comparePasswords(password, user.password);
+        if (!isMatch) {
+          return res.status(401).json({ 
+            message: "Invalid username or password" 
+          });
+        }
+      } else {
+        // Direct comparison for older accounts or accounts with plaintext passwords
+        if (user.password !== password) {
+          return res.status(401).json({ 
+            message: "Invalid username or password" 
+          });
+        }
       }
       
       // Set user in session
@@ -333,14 +365,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Hash the password for security
+      const hashedPassword = await hashPassword(password);
+      
       // Create new user
       const newUser = await storage.createUser({
         username,
-        password,
+        password: hashedPassword,
         email,
         referralCode: referralCode || `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
         referredBy: undefined,
-        provider: 'local'
+        provider: 'local',
+        accumulatedCPXTB: 0  // Add required field with initial value
       });
       
       // Log in the new user

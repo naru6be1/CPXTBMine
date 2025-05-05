@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "https://cpxtb-platform.picard.replit.app/api/auth/google/callback",
+      callbackURL: `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:3000"}/api/auth/google/callback`,
       scope: ['profile', 'email']
     }, async (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => {
       try {

@@ -74,13 +74,9 @@ export default function AuthPage() {
     setRegisterForm(prev => ({ ...prev, [name]: value }));
   };
   
-  // Redirect if already logged in
-  if (user && !isLoading) {
-    return <Redirect to="/merchant" />;
-  }
-  
-  // Check for demo login redirect
+  // Check for demo login redirect and handle redirects safely
   useEffect(() => {
+    // First check for URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const isLoggedIn = urlParams.get('loggedIn') === 'true';
     const isDemoMode = urlParams.get('demoMode') === 'true';
@@ -91,8 +87,15 @@ export default function AuthPage() {
       setTimeout(() => {
         window.location.href = '/merchant';
       }, 500);
+      return;
     }
-  }, []);
+    
+    // Then check if user is already authenticated
+    if (user && !isLoading) {
+      // Use safer window.location.href instead of Redirect to avoid React hooks errors
+      window.location.href = '/merchant';
+    }
+  }, [user, isLoading]);
   
   return (
     <div className="flex min-h-screen">

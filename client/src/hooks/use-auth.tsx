@@ -70,11 +70,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: User) => {
+      // Update query cache with user data
       queryClient.setQueryData(["/api/user"], userData);
+      
+      // Show toast message
       toast({
         title: "Login successful",
         description: "You are now logged in",
       });
+      
+      // Redirect to merchant dashboard after a short delay
+      // Using direct navigation to avoid React hook errors
+      setTimeout(() => {
+        window.location.href = '/merchant';
+      }, 500);
     },
     onError: (error: Error) => {
       toast({
@@ -91,11 +100,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: User) => {
+      // Update query cache with user data
       queryClient.setQueryData(["/api/user"], userData);
+      
+      // Show success message
       toast({
         title: "Registration successful",
         description: "Your account has been created and you are now logged in",
       });
+      
+      // Redirect to merchant dashboard after a short delay
+      // Using direct navigation to avoid React hook errors
+      setTimeout(() => {
+        window.location.href = '/merchant';
+      }, 500);
     },
     onError: (error: Error) => {
       toast({

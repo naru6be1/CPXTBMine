@@ -867,12 +867,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a unique payment reference
       const paymentReference = `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
+      // Set default expiration time if not provided (15 minutes from now)
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+      
       const paymentData = insertPaymentSchema.parse({
         ...req.body,
         merchantId: merchant.id,
         status: 'pending',
         paymentReference,
-        createdAt: new Date()
+        createdAt: new Date(),
+        expiresAt: req.body.expiresAt || expiresAt
       });
       
       const payment = await storage.createPayment(paymentData);
@@ -947,6 +952,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if payment is expired and regenerate if needed
       const now = new Date();
       const expiresAt = new Date(payment.expiresAt);
+      
+      // Debug log to check dates
+      console.log("Payment expiration check:", {
+        reference,
+        nowTime: now.toISOString(),
+        expiresAtTime: expiresAt.toISOString(),
+        nowTimestamp: now.getTime(),
+        expiresAtTimestamp: expiresAt.getTime(),
+        difference: expiresAt.getTime() - now.getTime(),
+        nowUTC: now.toUTCString(),
+        expiresUTC: expiresAt.toUTCString()
+      });
+      
       const isExpired = now > expiresAt;
       
       // Get merchant details to include in response
@@ -1014,6 +1032,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set expiration time (15 minutes from now)
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+      
+      // Debug logging for regenerated payment expiration
+      console.log("Regenerating payment with new expiration:", {
+        reference,
+        newReference,
+        originalExpires: payment.expiresAt,
+        newExpires: expiresAt.toISOString(),
+        nowPlus15Min: expiresAt.getTime(),
+        currentTime: new Date().getTime(),
+        difference: expiresAt.getTime() - new Date().getTime()
+      });
       
       // Create a new payment with the same details but new reference and expiration
       const newPayment = await storage.createPayment({

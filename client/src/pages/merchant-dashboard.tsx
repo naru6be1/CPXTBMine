@@ -129,6 +129,15 @@ function LogoutButton() {
 // CPXTB token address for displaying in UI
 const CPXTB_TOKEN_ADDRESS = "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b";
 
+// Interface for payment creation data to help with type safety
+interface PaymentCreateData {
+  description?: string;
+  amountUsd: number;
+  amountCpxtb: number;
+  exchangeRate: number;
+  merchantId: number;
+}
+
 export default function MerchantDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -592,7 +601,7 @@ export default function MerchantDashboard() {
 
   // Create payment mutation
   const createPaymentMutation = useMutation({
-    mutationFn: async (formData: typeof paymentForm & { merchantId: number }) => {
+    mutationFn: async (formData: { amountUsd: string | number, description: string, merchantId: number }) => {
       // Validate merchant selection
       if (!selectedMerchant) {
         throw new Error("Please select a merchant account first");
@@ -616,13 +625,14 @@ export default function MerchantDashboard() {
       
       // Calculate the amount of CPXTB tokens needed based on USD amount and exchange rate
       // Formula: amountCpxtb = amountUsd / exchangeRate
-      const amountUsd = parseFloat(formData.amountUsd);
+      const amountUsd = typeof formData.amountUsd === 'string' ? parseFloat(formData.amountUsd) : formData.amountUsd;
       const amountCpxtb = amountUsd / exchangeRate;
       
-      const paymentData = {
-        amountUsd: amountUsd, // Number type
-        amountCpxtb: amountCpxtb, // Number type
-        exchangeRate: exchangeRate, // Number type
+      // Create payment data with the correct types for API validation
+      const paymentData: PaymentCreateData = {
+        amountUsd: amountUsd,
+        amountCpxtb: amountCpxtb,
+        exchangeRate: exchangeRate,
         description: formData.description,
         merchantId: selectedMerchant.id
       };
@@ -762,15 +772,12 @@ export default function MerchantDashboard() {
     
     // Get the current exchange rate - use same fixed value as in the mutation function
     const exchangeRate = 0.002177;
-    const amountUsd = parseFloat(paymentForm.amountUsd);
-    const amountCpxtb = amountUsd / exchangeRate;
     
-    // Add all required fields for the payment
+    // We only pass the string value from the form - the mutation function will handle conversion
+    // The mutation now accepts either string or number type for amountUsd
     createPaymentMutation.mutate({
-      ...paymentForm,
-      amountUsd: amountUsd,
-      amountCpxtb: amountCpxtb,
-      exchangeRate: exchangeRate,
+      description: paymentForm.description,
+      amountUsd: paymentForm.amountUsd,
       merchantId: selectedMerchant.id
     });
   };

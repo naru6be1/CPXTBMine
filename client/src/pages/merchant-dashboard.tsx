@@ -283,8 +283,8 @@ export default function MerchantDashboard() {
       return;
     }
     
-    const apiKey = selectedMerchant.apiKey;
-    if (!apiKey || apiKey.includes('...')) {
+    // Ensure we have a valid API key
+    if (!selectedMerchant.apiKey) {
       toast({
         title: "Error loading payment history",
         description: "Invalid API key - please refresh the page",
@@ -292,6 +292,10 @@ export default function MerchantDashboard() {
       });
       return;
     }
+    
+    // We now send the complete API key to the server, which will handle cleaning it
+    const apiKey = selectedMerchant.apiKey;
+    console.log(`Fetching payment history with API key (first 5 chars): ${apiKey.substring(0, 5)}...`);
     
     try {
       setIsLoadingHistory(true);
@@ -343,8 +347,8 @@ export default function MerchantDashboard() {
       return;
     }
     
-    const apiKey = selectedMerchant.apiKey;
-    if (!apiKey || apiKey.includes('...')) {
+    // Ensure we have a valid API key
+    if (!selectedMerchant.apiKey) {
       toast({
         title: "Error loading report data",
         description: "Invalid API key - please refresh the page",
@@ -352,6 +356,10 @@ export default function MerchantDashboard() {
       });
       return;
     }
+    
+    // We now send the complete API key to the server, which will handle cleaning it
+    const apiKey = selectedMerchant.apiKey;
+    console.log(`Fetching report with API key (first 5 chars): ${apiKey.substring(0, 5)}...`);
     
     try {
       setIsLoadingReport(true);
@@ -616,11 +624,14 @@ export default function MerchantDashboard() {
         throw new Error("Please select a merchant account first");
       }
 
-      // Extract full API key (not masked) from the selected merchant
-      const apiKey = selectedMerchant.apiKey;
-      if (!apiKey || apiKey.includes('...')) {
+      // Extract API key from the selected merchant
+      if (!selectedMerchant.apiKey) {
         throw new Error("Invalid API key - please refresh the page to get full API keys");
       }
+      
+      // We now send the complete API key to the server, which will handle cleaning it
+      const apiKey = selectedMerchant.apiKey;
+      console.log(`Creating payment with API key (first 5 chars): ${apiKey.substring(0, 5)}...`);
       
       console.log("Creating payment for merchant:", selectedMerchant.businessName);
       console.log("Using merchant ID:", selectedMerchant.id);

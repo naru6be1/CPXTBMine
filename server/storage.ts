@@ -430,20 +430,43 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getMerchantByApiKey(apiKey: string): Promise<Merchant | undefined> {
-    const [merchant] = await db
-      .select()
-      .from(merchants)
-      .where(eq(merchants.apiKey, apiKey));
+    if (!apiKey || apiKey === "undefined" || apiKey === "null") {
+      console.error("Invalid API key provided:", apiKey);
+      return undefined;
+    }
+    
+    // Clean up any truncated API keys (e.g., "abc...")
+    const cleanApiKey = apiKey.includes('...') 
+      ? apiKey.substring(0, apiKey.indexOf('...'))
+      : apiKey;
       
-    return merchant;
+    console.log(`Looking up merchant with cleaned API key (first 5 chars): ${cleanApiKey.substring(0, 5)}...`);
+    
+    try {
+      const [merchant] = await db
+        .select()
+        .from(merchants)
+        .where(eq(merchants.apiKey, cleanApiKey));
+        
+      return merchant;
+    } catch (error) {
+      console.error("Error looking up merchant by API key:", error);
+      throw error;
+    }
   }
   
   async getMerchantsByUserId(userId: number): Promise<Merchant[]> {
-    return await db
+    // Get the merchants for this user
+    const merchantList = await db
       .select()
       .from(merchants)
       .where(eq(merchants.userId, userId))
       .orderBy(desc(merchants.createdAt));
+    
+    // Return the full API key - needed for client-side operations
+    // The client-side code might have validations to check for truncated keys
+    // but we want to make sure we're sending the complete key
+    return merchantList;
   }
   
   async updateMerchant(id: number, updates: Partial<InsertMerchant>): Promise<Merchant> {

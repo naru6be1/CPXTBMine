@@ -270,8 +270,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
+  // Track active connections
+  const activeConnections = new Set();
+  
+  // Function to broadcast user count to all clients
+  const broadcastUserCount = () => {
+    const userCount = activeConnections.size;
+    console.log(`Broadcasting user count: ${userCount}`);
+    
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({ 
+          type: 'userCount', 
+          count: userCount 
+        }));
+      }
+    });
+  };
+  
   wss.on('connection', (ws) => {
     console.log('Client connected to WebSocket');
+    
+    // Add to active connections
+    activeConnections.add(ws);
+    
+    // Broadcast updated user count
+    broadcastUserCount();
     
     ws.on('message', (message) => {
       try {
@@ -282,6 +306,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (data.type === 'subscribe') {
           // Handle subscription requests
           ws.send(JSON.stringify({ type: 'subscribed', channel: data.channel }));
+        } else if (data.type === 'getUserCount') {
+          // Send user count directly to the requesting client
+          ws.send(JSON.stringify({ 
+            type: 'userCount', 
+            count: activeConnections.size 
+          }));
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -290,10 +320,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     ws.on('close', () => {
       console.log('Client disconnected from WebSocket');
+      
+      // Remove from active connections
+      activeConnections.delete(ws);
+      
+      // Broadcast updated user count
+      broadcastUserCount();
     });
     
     // Send initial connection confirmation
-    ws.send(JSON.stringify({ type: 'connected' }));
+    ws.send(JSON.stringify({ 
+      type: 'connected',
+      userCount: activeConnections.size
+    }));
   });
   
   // Register test challenge routes for rate limiting

@@ -10,21 +10,44 @@ interface SimplePaymentQRGeneratorProps {
   merchantId: number;
   merchantName: string;
   apiKey: string;
+  // State props for persistence between tab changes
+  amount: string;
+  setAmount: (value: string) => void;
+  description: string;
+  setDescription: (value: string) => void;
+  paymentReference: string;
+  setPaymentReference: (value: string) => void;
+  qrCodeData: string;
+  setQrCodeData: (value: string) => void;
+  paymentLink: string;
+  setPaymentLink: (value: string) => void;
 }
 
 export default function SimplePaymentQRGenerator({
   merchantId,
   merchantName,
-  apiKey
+  apiKey,
+  // Using the persistent state from parent component
+  amount,
+  setAmount,
+  description,
+  setDescription,
+  paymentReference,
+  setPaymentReference,
+  qrCodeData,
+  setQrCodeData,
+  paymentLink,
+  setPaymentLink
 }: SimplePaymentQRGeneratorProps) {
-  // Default to "10.00" to ensure proper decimal formatting when creating a payment
-  const [amount, setAmount] = useState<string>("10.00");
-  const [description, setDescription] = useState<string>(`Payment for ${merchantName}`);
-  const [paymentReference, setPaymentReference] = useState<string>('');
-  const [qrCodeData, setQrCodeData] = useState<string>('');
-  const [paymentLink, setPaymentLink] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const { toast } = useToast();
+  
+  // Initialize description if empty and merchant name changes
+  useEffect(() => {
+    if (!description && merchantName) {
+      setDescription(`Payment for ${merchantName}`);
+    }
+  }, [merchantName, description, setDescription]);
 
   // FIXED: Don't auto-generate payment on component mount
   // Instead, we'll only generate when the user explicitly clicks the button

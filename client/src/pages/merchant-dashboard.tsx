@@ -266,6 +266,13 @@ export default function MerchantDashboard() {
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const [completedPaymentRef, setCompletedPaymentRef] = useState('');
   
+  // Social payment QR code state - persists between tab switches
+  const [socialPaymentAmount, setSocialPaymentAmount] = useState<string>("10.00");
+  const [socialPaymentDescription, setSocialPaymentDescription] = useState<string>("");
+  const [socialPaymentReference, setSocialPaymentReference] = useState<string>('');
+  const [socialPaymentQrData, setSocialPaymentQrData] = useState<string>('');
+  const [socialPaymentLink, setSocialPaymentLink] = useState<string>('');
+  
   // Payment history state
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -2079,11 +2086,21 @@ export default function MerchantDashboard() {
                       </div>
                     </div>
                     
-                    {/* Replace with our SimplePaymentQRGenerator component */}
+                    {/* SimplePaymentQRGenerator with persistent state */}
                     <SimplePaymentQRGenerator 
                       merchantId={selectedMerchant.id}
                       merchantName={selectedMerchant.businessName}
                       apiKey={selectedMerchant.apiKey}
+                      amount={socialPaymentAmount}
+                      setAmount={setSocialPaymentAmount}
+                      description={socialPaymentDescription}
+                      setDescription={setSocialPaymentDescription}
+                      paymentReference={socialPaymentReference}
+                      setPaymentReference={setSocialPaymentReference}
+                      qrCodeData={socialPaymentQrData}
+                      setQrCodeData={setSocialPaymentQrData}
+                      paymentLink={socialPaymentLink}
+                      setPaymentLink={setSocialPaymentLink}
                     />
                   </div>
                 ) : (

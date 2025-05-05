@@ -7,6 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useSocialLogin } from '@/providers/SocialLoginProvider';
 import { useToast } from '@/hooks/use-toast';
 import BasicSocialLogin from '@/components/BasicSocialLogin';
+import EnhancedSocialLogin from '@/components/EnhancedSocialLogin';
 import { 
   Loader2, 
   ShoppingBag, 
@@ -731,9 +732,10 @@ export default function PayPage() {
                 </p>
               </div>
               
-              {/* Use BasicSocialLogin component for more reliable authentication */}
-              <BasicSocialLogin 
+              {/* Enhanced login component with real Google Auth support */}
+              <EnhancedSocialLogin 
                 showCard={false}
+                useRealLogin={new URLSearchParams(window.location.search).get('enableRealLogin') === 'true'}
                 onSuccess={(userData) => {
                   console.log("PayPage - Social login successful:", userData);
                   console.log("PayPage - Direct QR access state:", isDirectQrAccess);

@@ -339,7 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password,
         email,
         referralCode: referralCode || `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        referredBy: null,
+        referredBy: undefined,
         provider: 'local'
       });
       
@@ -373,6 +373,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Return user without password
     const { password: _, ...userWithoutPassword } = req.user as any;
     res.json(userWithoutPassword);
+  });
+  
+  // Logout endpoint for regular authentication
+  app.post("/api/logout", (req, res) => {
+    if (req.isAuthenticated()) {
+      req.logout((err) => {
+        if (err) {
+          console.error("Error during logout:", err);
+          return res.status(500).json({ success: false, error: "Logout failed" });
+        }
+        res.status(200).json({ success: true });
+      });
+    } else {
+      // If not authenticated, just acknowledge the logout
+      res.status(200).json({ success: true });
+    }
   });
 
   // Create HTTP server and setup WebSocket server

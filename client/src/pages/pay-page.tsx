@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -17,15 +17,18 @@ import {
   HelpCircle,
   AlertTriangle,
   ArrowLeft,
-  Clock 
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 
 export default function PayPage() {
   const { paymentReference } = useParams<{ paymentReference: string }>();
+  const [, setLocation] = useLocation();
   const [paymentData, setPaymentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [regeneratingPayment, setRegeneratingPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isBuyingTokens, setIsBuyingTokens] = useState(false);
@@ -214,6 +217,51 @@ export default function PayPage() {
     const remainingSeconds = seconds % 60;
     
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+  
+  // Regenerate expired payment
+  const handleRegeneratePayment = async () => {
+    if (regeneratingPayment) return;
+    
+    setRegeneratingPayment(true);
+    
+    try {
+      const response = await fetch(`/api/payments/public/${paymentReference}/regenerate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to regenerate payment');
+      }
+      
+      const data = await response.json();
+      console.log("Payment regenerated:", data);
+      
+      // Show success message
+      toast({
+        title: "Payment Regenerated",
+        description: "A new payment has been created with updated expiration time.",
+      });
+      
+      // Navigate to the new payment reference
+      if (data.payment && data.payment.paymentReference) {
+        setLocation(`/pay/${data.payment.paymentReference}`);
+      }
+      
+    } catch (error: any) {
+      console.error("Failed to regenerate payment:", error);
+      toast({
+        title: "Regeneration Failed",
+        description: error.message || "There was a problem regenerating the payment",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingPayment(false);
+    }
   };
   
   // Copy wallet address to clipboard
@@ -479,7 +527,45 @@ export default function PayPage() {
                 )}
               </Button>
               
-              {Number(balance) < Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) && !isBuyingTokens && (
+              {/* Expired payment notice */}
+              {countdown !== null && countdown <= 0 && !regeneratingPayment && (
+                <div className="bg-red-50 p-4 rounded-md border border-red-200 text-sm shadow-sm">
+                  <div className="flex items-start gap-3 mb-3">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-800" />
+                    <div>
+                      <p className="text-red-800 font-medium">
+                        Payment Expired
+                      </p>
+                      <p className="mt-1 text-red-700">
+                        This payment has expired. Please regenerate a new payment with a fresh expiration time.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    className="w-full bg-red-100 hover:bg-red-200 text-red-900 border-red-300 shadow-sm" 
+                    variant="outline" 
+                    onClick={handleRegeneratePayment}
+                    disabled={regeneratingPayment}
+                  >
+                    {regeneratingPayment ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Regenerating...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Regenerate Payment
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+              
+              {/* Insufficient balance warning */}
+              {Number(balance) < Number(paymentData?.payment?.amountCpxtb || paymentData?.payment?.originalAmountCpxtb || paymentData?.payment?.amountCpxtbNumber || 0) && 
+                !isBuyingTokens && 
+                (countdown === null || countdown > 0) && (
                 <div className="bg-amber-50 p-4 rounded-md border border-amber-200 text-sm shadow-sm">
                   <div className="flex items-start gap-3 mb-3">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-800" />

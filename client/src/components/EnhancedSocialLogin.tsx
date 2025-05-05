@@ -118,13 +118,9 @@ export function EnhancedSocialLogin({
           onSuccess(userData);
         }
         
-        // Force reload to apply changes from localStorage
+        // Directly redirect to merchant page after successful demo login
         setTimeout(() => {
-          // Preserve existing URL parameters and add loggedIn=true
-          const currentUrl = new URL(window.location.href);
-          currentUrl.searchParams.set('loggedIn', 'true');
-          currentUrl.searchParams.set('demoMode', 'true');
-          window.location.href = currentUrl.toString();
+          window.location.href = '/merchant';
         }, 1000);
       }
     } catch (error: any) {

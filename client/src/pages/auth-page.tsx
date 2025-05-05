@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,21 @@ export default function AuthPage() {
   if (user && !isLoading) {
     return <Redirect to="/merchant" />;
   }
+  
+  // Check for demo login redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isLoggedIn = urlParams.get('loggedIn') === 'true';
+    const isDemoMode = urlParams.get('demoMode') === 'true';
+    
+    if (isLoggedIn && isDemoMode) {
+      // User has successfully logged in with demo mode
+      // Redirect to merchant page after a short delay
+      setTimeout(() => {
+        window.location.href = '/merchant';
+      }, 500);
+    }
+  }, []);
   
   return (
     <div className="flex min-h-screen">

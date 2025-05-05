@@ -26,10 +26,8 @@ export default function SimplePaymentQRGenerator({
   const [loading, setLoading] = useState<boolean>(false);
   const { toast } = useToast();
 
-  // Generate a unique payment reference when component mounts or merchant changes
-  useEffect(() => {
-    generatePaymentReference();
-  }, [merchantId]);
+  // FIXED: Don't auto-generate payment on component mount
+  // Instead, we'll only generate when the user explicitly clicks the button
 
   // Generate payment URL when amount, paymentReference, or merchantId changes
   useEffect(() => {
@@ -180,37 +178,39 @@ export default function SimplePaymentQRGenerator({
         </Button>
       </div>
       
-      {paymentReference && (
-        <div className="flex flex-col items-center space-y-4">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            {loading ? (
-              <div className="h-48 w-48 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <QRCodeSVG 
-                value={qrCodeData}
-                size={200}
-                level="H"
-                className="w-full h-auto"
-              />
-            )}
-          </div>
-          
-          <div className="text-center space-y-1 w-full">
-            <p className="text-sm font-medium">
-              <span className="font-semibold">Business:</span> {merchantName}
-            </p>
-            <p className="text-sm font-medium">
-              <span className="font-semibold">Amount:</span> ${amount} USD
-              {/* Debug text to verify the decimal is preserved */}
-              <span className="block text-xs text-muted-foreground">
-                Raw: "{amount}" ({typeof amount}) | 
-                Formatted: ${Number(amount).toFixed(2)}
-              </span>
-            </p>
-          </div>
-          
+      <div className="flex flex-col items-center space-y-4">
+        {/* QR Code Area - Shows placeholder or actual QR */}
+        <div className={`${paymentReference ? 'bg-white' : 'bg-muted'} p-6 rounded-lg shadow-md h-[200px] w-[200px] flex items-center justify-center`}>
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : paymentReference ? (
+            <QRCodeSVG 
+              value={qrCodeData}
+              size={180}
+              level="H"
+              className="w-full h-auto"
+            />
+          ) : (
+            <div className="text-muted-foreground text-center">
+              <p className="text-sm">Click "Generate New QR" to create a payment</p>
+            </div>
+          )}
+        </div>
+        
+        {/* Business and Amount Info - Always show */}
+        <div className="text-center space-y-1 w-full">
+          <p className="text-sm font-medium">
+            <span className="font-semibold">Business:</span> {merchantName}
+          </p>
+          <p className="text-sm font-medium">
+            <span className="font-semibold">Amount:</span> ${amount} USD
+          </p>
+        </div>
+        
+        {/* Payment Link - Only show when we have a reference */}
+        {paymentReference && (
           <div className="w-full space-y-2">
             <Label htmlFor="payment-link">Payment Link</Label>
             <div className="flex items-center gap-2">
@@ -241,8 +241,8 @@ export default function SimplePaymentQRGenerator({
               </a>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -903,12 +903,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // because Express routes are matched in order
   app.get("/api/payments/public/:reference", async (req, res) => {
     try {
+      console.log("Looking up payment by reference:", req.params.reference);
+      
+      // Check for special format for social/QR payments
       const { reference } = req.params;
-      const payment = await storage.getPaymentByReference(reference);
+      let payment;
+      
+      // Extract merchant ID from reference if it's in the format SOCIAL-{merchantId}-{timestamp}-{random}
+      if (reference.startsWith("SOCIAL-")) {
+        console.log("Social payment format detected. Trying to find payment for merchant:", reference.split("-")[1]);
+        
+        const parts = reference.split("-");
+        if (parts.length >= 3) {
+          const merchantId = parseInt(parts[1]);
+          if (!isNaN(merchantId)) {
+            // Find the most recent pending or expired payment for this merchant
+            const recentPayments = await storage.getPaymentsByMerchant(merchantId);
+            console.log(`Found ${recentPayments.length} recent payments for merchant ${merchantId}`);
+            
+            // Sort by creation date, newest first
+            recentPayments.sort((a, b) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            
+            // Try to find a payment with matching reference
+            payment = recentPayments.find(p => p.paymentReference === reference);
+            
+            // If not found, use the most recent payment
+            if (!payment && recentPayments.length > 0) {
+              payment = recentPayments[0];
+            }
+          }
+        }
+      } else {
+        // Normal lookup
+        payment = await storage.getPaymentByReference(reference);
+      }
       
       if (!payment) {
         return res.status(404).json({ message: "Payment not found" });
       }
+      
+      // Check if payment is expired and regenerate if needed
+      const now = new Date();
+      const expiresAt = new Date(payment.expiresAt);
+      const isExpired = now > expiresAt;
       
       // Get merchant details to include in response
       const merchant = await storage.getMerchant(payment.merchantId);
@@ -920,9 +959,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format the response with necessary data for the payment page
       res.json({ 
         payment,
-        merchantName: merchant.businessName, // Using businessName from the schema
+        merchantName: merchant.businessName,
         merchantLogo: merchant.logoUrl || null,
-        merchantId: merchant.id
+        merchantId: merchant.id,
+        isExpired
       });
     } catch (error: any) {
       console.error("Error fetching public payment:", error);
@@ -954,6 +994,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add endpoint to regenerate expired payments
+  app.post("/api/payments/public/:reference/regenerate", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      
+      // Find the expired payment
+      const payment = await storage.getPaymentByReference(reference);
+      
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Generate a new payment reference with timestamp
+      const newReference = reference.startsWith("SOCIAL-") 
+        ? `SOCIAL-${payment.merchantId}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+        : `${reference}-${Date.now()}`;
+      
+      // Set expiration time (15 minutes from now)
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+      
+      // Create a new payment with the same details but new reference and expiration
+      const newPayment = await storage.createPayment({
+        merchantId: payment.merchantId,
+        orderId: payment.orderId || undefined,
+        amountUsd: Number(payment.amountUsd),
+        amountCpxtb: Number(payment.amountCpxtb),
+        customerWalletAddress: payment.customerWalletAddress || undefined,
+        paymentReference: newReference,
+        description: payment.description || undefined,
+        exchangeRate: Number(payment.exchangeRate),
+        expiresAt
+      });
+      
+      // Get merchant details to include in response
+      const merchant = await storage.getMerchant(payment.merchantId);
+      
+      if (!merchant) {
+        return res.status(404).json({ message: "Merchant not found" });
+      }
+      
+      // Return the new payment
+      res.json({
+        success: true,
+        message: "Payment regenerated successfully",
+        payment: newPayment,
+        merchantName: merchant.businessName,
+        merchantLogo: merchant.logoUrl || null,
+        merchantId: merchant.id,
+        isExpired: false
+      });
+      
+    } catch (error: any) {
+      console.error("Error regenerating payment:", error);
+      res.status(500).json({
+        message: "Error regenerating payment: " + error.message
+      });
+    }
+  });
+  
   // Also add an endpoint for the payment processing
   app.post("/api/payments/public/:reference/pay", async (req, res) => {
     try {
@@ -968,6 +1068,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!payment) {
         return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Check if payment is expired
+      const now = new Date();
+      const expiresAt = new Date(payment.expiresAt);
+      if (now > expiresAt) {
+        return res.status(400).json({ 
+          message: "Payment is expired. Please regenerate the payment.",
+          expired: true
+        });
       }
       
       // Update payment status to processing

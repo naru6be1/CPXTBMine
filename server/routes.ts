@@ -820,9 +820,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add an endpoint to check authentication credentials availability
   app.get('/api/auth/check-credentials', (req, res) => {
     const googleCredentialsAvailable = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-    
+    console.log("Credentials check:", {
+      googleCredentialsAvailable,
+      clientIdExists: !!process.env.GOOGLE_CLIENT_ID,
+      clientSecretExists: !!process.env.GOOGLE_CLIENT_SECRET
+    });
     res.json({
       googleCredentialsAvailable,
+      message: googleCredentialsAvailable 
+        ? "Google OAuth credentials are available"
+        : "Google OAuth credentials are not configured"
       // Additional auth providers could be checked here in the future
     });
   });
@@ -882,13 +889,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const walletAddress = `0x${hash.substring(0, 40)}`;
         
         // Create a user object with Google profile information
+        // Make sure to use a numeric ID that fits in PostgreSQL's integer type
+        // Google profile IDs can be very large numbers or strings, so we need to handle them properly
+        const numericId = typeof profile.id === 'string' && /^\d+$/.test(profile.id)
+          ? parseInt(profile.id.substring(0, 9), 10) // Take just the first 9 digits to ensure it fits in integer range
+          : Math.floor(Math.random() * 1000000) + 1; // Use a random number as fallback
+          
+        console.log("Original profile ID:", profile.id);
+        console.log("Converted numeric ID:", numericId);
+        
         const user = {
-          id: profile.id,
+          id: numericId,
           name: profile.displayName,
           email: profile.emails && profile.emails[0] ? profile.emails[0].value : 'no-email@example.com',
           walletAddress: walletAddress,
           balance: "10.0", // For testing, this would be fetched from actual wallet in production
-          profileId: profile.id,
+          profileId: profile.id, // Keep the original ID as string in a separate field
           provider: 'google'
         };
         
@@ -902,10 +918,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Serialize and deserialize user information for sessions
     passport.serializeUser((user, done) => {
+      // Store the complete user object in the session
+      console.log("Serializing user:", user);
       done(null, user);
     });
     
     passport.deserializeUser((user, done) => {
+      // Since we're storing the complete user object, just return it
+      console.log("Deserializing user:", user);
       done(null, user);
     });
     

@@ -44,13 +44,31 @@ export default function BuyCPXTBPage() {
   };
 
   const handleReturnToPayment = () => {
-    // This would navigate back to the payment page
-    setLocation("/pay");
+    // Check if we have a saved payment reference
+    const savedPaymentRef = localStorage.getItem('lastPaymentReference');
+    if (savedPaymentRef) {
+      // Clear the storage
+      localStorage.removeItem('lastPaymentReference');
+      // Navigate back to the payment page with the saved reference
+      setLocation(`/pay/${savedPaymentRef}?loggedIn=true`);
+    } else {
+      // Fallback to homepage if no payment reference was saved
+      setLocation("/");
+    }
   };
 
   const handleComplete = () => {
-    // Redirect to dashboard or payment page as appropriate
-    setLocation("/");
+    // Check if we have a saved payment reference
+    const savedPaymentRef = localStorage.getItem('lastPaymentReference');
+    if (savedPaymentRef) {
+      // Clear the storage
+      localStorage.removeItem('lastPaymentReference');
+      // Navigate back to the payment page with the saved reference
+      setLocation(`/pay/${savedPaymentRef}?loggedIn=true`);
+    } else {
+      // Fallback to homepage if no payment reference was saved
+      setLocation("/");
+    }
   };
 
   if (!userInfo || !walletAddress) {

@@ -591,13 +591,28 @@ export default function PayPage() {
                       </p>
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-2 bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 shadow-sm"
-                    onClick={() => setIsBuyingTokens(true)}
-                  >
-                    Buy CPXTB Tokens
-                  </Button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    <Button 
+                      variant="outline" 
+                      className="bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 shadow-sm"
+                      onClick={() => setIsBuyingTokens(true)}
+                    >
+                      Buy CPXTB Here
+                    </Button>
+                    <Button 
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-700 shadow-sm"
+                      onClick={() => {
+                        // Save the current payment reference to localStorage so we can return to it
+                        if (paymentReference) {
+                          localStorage.setItem('lastPaymentReference', paymentReference);
+                        }
+                        // Redirect to the buy-cpxtb page
+                        setLocation(`/buy-cpxtb`);
+                      }}
+                    >
+                      Use PayPal
+                    </Button>
+                  </div>
                 </div>
               )}
               

@@ -12,6 +12,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { TREASURY_ADDRESS, CPXTB_TOKEN_ADDRESS, BASE_CHAIN_ID } from "./constants";
 import { promisify } from "util";
+import { createTokenPurchaseOrder, captureTokenPayment, processTokenPurchase } from "./paypal-service";
 
 // Password hashing and comparison functions
 const scryptAsync = promisify(crypto.scrypt);
@@ -1283,6 +1284,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Start payment monitoring
   await startPaymentMonitoring();
+  
+  // PayPal API routes for CPXTB token purchase
+  app.post("/api/paypal/create-token-order", createTokenPurchaseOrder);
+  app.post("/api/paypal/capture-payment/:orderId", captureTokenPayment);
+  app.post("/api/paypal/process-token-purchase", processTokenPurchase);
+  
+  // Check PayPal configuration status
+  app.get("/api/paypal/status", (req, res) => {
+    const paypalConfigured = !!(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET);
+    res.json({
+      configured: paypalConfigured,
+      message: paypalConfigured 
+        ? "PayPal is configured and ready to use" 
+        : "PayPal is not configured. Missing client ID or secret."
+    });
+  });
   
   return httpServer;
 }

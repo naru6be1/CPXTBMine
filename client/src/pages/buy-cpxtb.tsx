@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Check } from "lucide-react";
-import { useSocialLoginContext } from "../providers/SocialLoginProvider";
+import { useSocialLogin } from "../providers/SocialLoginProvider";
 
 export default function BuyCPXTBPage() {
   const [amount, setAmount] = useState("10.00");
@@ -16,7 +16,7 @@ export default function BuyCPXTBPage() {
   const [isPurchaseComplete, setIsPurchaseComplete] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { userInfo, walletAddress } = useSocialLoginContext();
+  const { userInfo, walletAddress } = useSocialLogin();
 
   // Effect to calculate CPXTB amount based on USD amount
   useEffect(() => {

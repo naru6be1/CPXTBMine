@@ -119,7 +119,7 @@ export function PayPalButton({
           toast({
             title: "Purchase Successful",
             description: `Successfully purchased ${cpxtbAmount} CPXTB tokens`,
-            variant: "success",
+            variant: "default",
           });
           
           if (onSuccess) {

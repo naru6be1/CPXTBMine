@@ -352,9 +352,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log(`Generated wallet address ${walletAddress} for user ${userData.username || userData.id}`);
           
-          // Add wallet address and balance to user data
+          // Add wallet address and realistic zero balance to user data
           userData.walletAddress = walletAddress;
-          userData.balance = "10.0"; // Starting balance
+          userData.balance = "0.0"; // Realistic starting balance with zero tokens
           
           // If this is from a real Google authentication, update the database too
           try {
@@ -390,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: "Google User (Mock)",
         email: "mock.user@example.com",
         walletAddress: walletAddress,
-        balance: "10.0"
+        balance: "0.0" // Realistic zero balance
       });
     });
   }

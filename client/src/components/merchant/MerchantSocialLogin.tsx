@@ -1,14 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSocialLogin } from '@/providers/SocialLoginProvider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, LogOut, ShoppingBag, Copy, Check, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 const MerchantSocialLogin: React.FC = () => {
-  const { isLoggedIn, isLoading, userInfo, walletAddress, balance, login, logout, copyWalletAddress } = useSocialLogin();
+  const { isLoggedIn, isLoading: socialLoading, userInfo, walletAddress, balance, login, logout, copyWalletAddress } = useSocialLogin();
+  const { user, isLoading: authLoading, logoutMutation } = useAuth();
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  
+  // Determine the actual authentication state by checking both regular auth and social login
+  const actuallyLoggedIn = isLoggedIn || !!user;
+  const isLoading = socialLoading || authLoading || logoutMutation.isPending;
+  
+  // For debugging
+  useEffect(() => {
+    console.log("MerchantSocialLogin Authentication state:", { 
+      isLoggedIn, 
+      hasUserObject: !!user,
+      actuallyLoggedIn,
+      user: user ? `${user.username} (${user.email || 'no email'})` : 'none',
+      socialUser: userInfo ? `${userInfo.name} (${userInfo.email || 'no email'})` : 'none',
+    });
+  }, [isLoggedIn, user, userInfo, actuallyLoggedIn]);
 
   const handleLogin = async () => {
     try {
@@ -24,8 +41,23 @@ const MerchantSocialLogin: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      // Determine which logout method to use
+      if (user) {
+        // If user is authenticated with the traditional system, use the auth logout
+        await logoutMutation.mutateAsync();
+        toast({
+          title: "Logged Out",
+          description: "You have been logged out successfully.",
+        });
+      } else if (isLoggedIn) {
+        // If user is authenticated with social login, use the social logout
+        await logout();
+      } else {
+        // Not logged in (shouldn't happen)
+        console.error("Attempting to log out when not logged in");
+      }
     } catch (error) {
+      console.error("Logout error:", error);
       toast({
         title: "Logout Failed",
         description: "Could not disconnect. Please try again.",
@@ -46,6 +78,10 @@ const MerchantSocialLogin: React.FC = () => {
     }
   };
 
+  // Get the displayed name and email based on available authentication methods
+  const displayName = userInfo?.name || user?.username || "User";
+  const displayEmail = userInfo?.email || user?.email || "";
+
   return (
     <Card className="w-full max-w-md shadow-md">
       <CardHeader className="pb-4">
@@ -54,20 +90,20 @@ const MerchantSocialLogin: React.FC = () => {
           Merchant Account
         </CardTitle>
         <CardDescription>
-          {isLoggedIn 
+          {actuallyLoggedIn 
             ? "Manage your merchant account with your connected wallet" 
             : "Connect your account to access merchant features"}
         </CardDescription>
       </CardHeader>
 
       <CardContent>
-        {isLoggedIn && userInfo && walletAddress ? (
+        {actuallyLoggedIn ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-md">
               <div>
                 <p className="text-sm font-medium">Logged in as</p>
-                <p className="text-sm text-muted-foreground">{userInfo.name}</p>
-                <p className="text-xs text-muted-foreground">{userInfo.email}</p>
+                <p className="text-sm text-muted-foreground">{displayName}</p>
+                {displayEmail && <p className="text-xs text-muted-foreground">{displayEmail}</p>}
               </div>
               <div>
                 <Button 
@@ -83,35 +119,55 @@ const MerchantSocialLogin: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <p className="text-sm font-medium mb-2">Your Wallet</p>
-              <div className="flex items-center justify-between bg-background p-2 rounded border">
-                <p className="text-xs font-mono truncate">{walletAddress}</p>
-                <div className="flex gap-1">
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-6 w-6" 
-                    onClick={handleCopyAddress}
-                  >
-                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  </Button>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-6 w-6" 
-                    onClick={openBlockExplorer}
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                  </Button>
+            {walletAddress && (
+              <>
+                <div>
+                  <p className="text-sm font-medium mb-2">Your Wallet</p>
+                  <div className="flex items-center justify-between bg-background p-2 rounded border">
+                    <p className="text-xs font-mono truncate">{walletAddress}</p>
+                    <div className="flex gap-1">
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-6 w-6" 
+                        onClick={handleCopyAddress}
+                      >
+                        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-6 w-6" 
+                        onClick={openBlockExplorer}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div>
-              <p className="text-sm font-medium mb-2">CPXTB Balance</p>
-              <p className="text-xl font-bold">{balance} <span className="text-sm font-normal">CPXTB</span></p>
-            </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">CPXTB Balance</p>
+                  <p className="text-xl font-bold">{balance} <span className="text-sm font-normal">CPXTB</span></p>
+                </div>
+              </>
+            )}
+            
+            {!walletAddress && (
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-md">
+                <p className="text-sm text-amber-800">
+                  Your account doesn't have a wallet connected yet. You may need to reconnect with Google to create a wallet.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2" 
+                  onClick={handleLogin}
+                >
+                  Connect Google Account
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <>

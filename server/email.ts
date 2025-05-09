@@ -76,15 +76,41 @@ async function createTransporter() {
   }
 }
 
+// Function to check SMTP connectivity
+export async function check_smtp_connection(): Promise<boolean> {
+  try {
+    // If we don't have a transporter yet, create one
+    if (!transporter) {
+      transporter = await createTransporter();
+    }
+    
+    // Return a promise that resolves with the connection status
+    return new Promise((resolve) => {
+      transporter.verify((error, success) => {
+        if (error) {
+          console.error("SMTP connection error:", error);
+          resolve(false);
+        } else {
+          console.log("SMTP server is ready to send messages:", success);
+          resolve(true);
+        }
+      });
+    });
+  } catch (err) {
+    console.error("Failed to check SMTP connection:", err);
+    return false;
+  }
+}
+
 // Initialize the transporter
 createTransporter().then(t => {
   transporter = t;
   // Verify transporter connection
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error("SMTP connection error:", error);
+  check_smtp_connection().then(isConnected => {
+    if (isConnected) {
+      console.log("✅ Email system ready to send notifications");
     } else {
-      console.log("SMTP server is ready to send messages:", success);
+      console.error("⚠️ Email system not properly configured - notifications may fail");
     }
   });
 }).catch(err => {

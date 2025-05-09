@@ -1063,12 +1063,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Get balance from smart contract
         const balance = await client.readContract({
-          address: CPXTB_TOKEN_ADDRESS,
+          address: CPXTB_TOKEN_ADDRESS as `0x${string}`,
           abi: parseAbi([
             "function balanceOf(address owner) view returns (uint256)",
           ]),
           functionName: "balanceOf",
-          args: [walletAddress],
+          args: [walletAddress as `0x${string}`],
         });
 
         // Convert balance from wei to ether (with 18 decimals)

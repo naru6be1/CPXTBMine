@@ -1039,30 +1039,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // API endpoint to get crypto wallet balance
   app.get("/api/balance", async (req, res) => {
+    const startTime = Date.now();
     try {
       const { address } = req.query;
       
       if (!address || typeof address !== 'string') {
-        return res.status(400).json({ message: "Wallet address is required" });
+        return res.status(400).json({ 
+          message: "Wallet address is required",
+          success: false
+        });
       }
 
-      // Create a client to interact with the blockchain
-      const client = createPublicClient({
-        chain: base,
-        transport: http(
-          process.env.BASE_RPC_API_KEY 
-            ? `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`
-            : "https://mainnet.base.org"
-        ),
-      });
+      // Validate address format to avoid unnecessary RPC calls with invalid addresses
+      if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        return res.status(400).json({ 
+          message: "Invalid wallet address format",
+          success: false
+        });
+      }
 
-      // Query the token contract for balance
+      // Normalize the wallet address
       const walletAddress = address.toLowerCase();
-      console.log("Getting balance for wallet address:", walletAddress);
+      console.log(`Getting balance for wallet: ${walletAddress}`);
 
+      // Create a client to interact with the blockchain with timeout
       try {
-        // Get balance from smart contract
-        const balance = await client.readContract({
+        // Use a timeout promise to avoid hanging if the RPC is slow
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("RPC request timed out after 4 seconds")), 4000);
+        });
+        
+        const client = createPublicClient({
+          chain: base,
+          transport: http(
+            process.env.BASE_RPC_API_KEY 
+              ? `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`
+              : "https://mainnet.base.org"
+          ),
+        });
+
+        // Query the token contract for balance
+        const balancePromise = client.readContract({
           address: CPXTB_TOKEN_ADDRESS as `0x${string}`,
           abi: parseAbi([
             "function balanceOf(address owner) view returns (uint256)",
@@ -1071,22 +1088,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
           args: [walletAddress as `0x${string}`],
         });
 
+        // Race between the timeout and the actual request
+        const balance = await Promise.race([balancePromise, timeoutPromise]) as bigint;
+
         // Convert balance from wei to ether (with 18 decimals)
-        const formattedBalance = formatUnits(balance as bigint, 18);
+        const formattedBalance = formatUnits(balance, 18);
         console.log(`Wallet ${walletAddress} balance: ${formattedBalance} CPXTB`);
+        
+        // Get request duration
+        const duration = Date.now() - startTime;
+        console.log(`Balance request completed in ${duration}ms`);
 
         res.json({ 
           balance: formattedBalance,
           walletAddress,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          success: true
         });
-      } catch (error) {
-        console.error("Error querying token balance:", error);
-        res.status(500).json({ message: "Failed to retrieve token balance" });
+      } catch (rpcError: any) {
+        // Handle specific RPC errors
+        console.error("Error querying token balance:", rpcError);
+        
+        // Get request duration for logging
+        const duration = Date.now() - startTime;
+        console.log(`Balance request failed after ${duration}ms`);
+        
+        // Check if it's a timeout
+        if (rpcError.message && rpcError.message.includes('timed out')) {
+          return res.status(504).json({ 
+            message: "RPC request timed out. Please try again later.",
+            error: rpcError.message,
+            success: false
+          });
+        }
+        
+        // General RPC error
+        res.status(500).json({ 
+          message: "Failed to retrieve token balance from blockchain", 
+          error: rpcError.message,
+          success: false
+        });
       }
     } catch (error: any) {
-      console.error("Error in balance endpoint:", error);
-      res.status(500).json({ message: error.message });
+      // Catch any other errors in the endpoint
+      console.error("Unexpected error in balance endpoint:", error);
+      res.status(500).json({ 
+        message: "An unexpected error occurred while processing your request",
+        error: error.message,
+        success: false
+      });
     }
   });
 

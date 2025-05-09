@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         failureRedirect: '/login-error',
         failWithError: true // Enable detailed error reporting
       }),
-      (req, res) => {
+      (req: Request, res: Response) => {
         if (req.user) {
           console.log("Authentication successful, redirecting to merchant dashboard");
           // Always redirect to merchant dashboard after successful Google OAuth
@@ -255,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     );
     
     // User data endpoint to get currently logged in user
-    app.get("/api/auth/user", (req, res) => {
+    app.get("/api/auth/user", (req: Request, res: Response) => {
       if (req.isAuthenticated() && req.user) {
         res.json(req.user);
       } else {
@@ -266,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn("Google OAuth credentials not found, using mock authentication");
     
     // Use mock data if Google credentials are not configured
-    app.get("/api/social-auth/google", (req, res) => {
+    app.get("/api/social-auth/google", (req: Request, res: Response) => {
       console.log("Using mock authentication (no Google credentials)");
       const seed = `google-${Date.now()}`;
       const hash = crypto.createHash('sha256').update(seed).digest('hex');
@@ -282,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
   
-  app.get("/api/social-auth/facebook", (req, res) => {
+  app.get("/api/social-auth/facebook", (req: Request, res: Response) => {
     // Mock Facebook authentication response
     const seed = `facebook-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
@@ -299,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  app.get("/api/social-auth/twitter", (req, res) => {
+  app.get("/api/social-auth/twitter", (req: Request, res: Response) => {
     // Mock Twitter authentication response
     const seed = `twitter-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
@@ -317,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Endpoint to check if OAuth credentials are available
-  app.get("/api/auth/check-credentials", (req, res) => {
+  app.get("/api/auth/check-credentials", (req: Request, res: Response) => {
     const googleCredentialsAvailable = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
     
     console.log("Checking credentials availability. Google auth available:", googleCredentialsAvailable);
@@ -379,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/social-auth/apple", (req, res) => {
+  app.get("/api/social-auth/apple", (req: Request, res: Response) => {
     // Mock Apple authentication response
     const seed = `apple-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
@@ -396,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  app.post("/api/social-auth/logout", (req, res) => {
+  app.post("/api/social-auth/logout", (req: Request, res: Response) => {
     // Handle proper logout for sessions
     if (req.isAuthenticated()) {
       req.logout((err) => {
@@ -527,7 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get current user
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -538,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Logout endpoint for regular authentication
-  app.post("/api/logout", (req, res) => {
+  app.post("/api/logout", (req: Request, res: Response) => {
     if (req.isAuthenticated()) {
       req.logout((err) => {
         if (err) {

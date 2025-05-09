@@ -329,11 +329,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     );
     
     // User data endpoint to get currently logged in user
+    // User data endpoint with wallet address
     app.get("/api/auth/user", (req, res) => {
       if (req.isAuthenticated() && req.user) {
-        res.json(req.user);
+        // For Google authenticated users, ensure we generate a deterministic wallet address
+        // if it's not already provided
+        let userData = { ...req.user };
+        
+        if (userData.provider === 'google' && userData.externalId && !userData.walletAddress) {
+          console.log("Adding deterministic wallet address to user data for Google user:", userData.username);
+          
+          // Generate a deterministic wallet address from Google ID
+          const seed = `google-${userData.externalId}`;
+          const hash = crypto.createHash('sha256').update(seed).digest('hex');
+          const walletAddress = `0x${hash.substring(0, 40)}`;
+          
+          // Add wallet address and balance to user data
+          userData.walletAddress = walletAddress;
+          userData.balance = "10.0"; // Starting balance
+        }
+        
+        res.json(userData);
       } else {
-        res.status(401).json({ error: "Not authenticated" });
+        res.status(401).json({ message: "Not authenticated" });
       }
     });
   } else {

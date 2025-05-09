@@ -179,14 +179,31 @@ const MerchantSocialLogin: React.FC = () => {
   };
 
   const handleCopyAddress = () => {
-    copyWalletAddress();
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const addressToCopy = serverWalletData.walletAddress || walletAddress || '';
+    
+    if (addressToCopy) {
+      navigator.clipboard.writeText(addressToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({
+        title: "Address Copied",
+        description: "Wallet address copied to clipboard",
+        duration: 3000
+      });
+    } else {
+      // Fall back to the provider's copy function if available
+      if (typeof copyWalletAddress === 'function') {
+        copyWalletAddress();
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    }
   };
 
-  const openBlockExplorer = () => {
-    if (walletAddress) {
-      window.open(`https://basescan.org/address/${walletAddress}`, '_blank');
+  const openBlockExplorer = (address?: string) => {
+    const addressToExplore = address || walletAddress || '';
+    if (addressToExplore) {
+      window.open(`https://basescan.org/address/${addressToExplore}`, '_blank');
     }
   };
 
@@ -231,12 +248,13 @@ const MerchantSocialLogin: React.FC = () => {
               </div>
             </div>
 
-            {walletAddress && (
+            {/* Prioritize server wallet data if available, otherwise fall back to demo wallet */}
+              {(serverWalletData.walletAddress || walletAddress) && (
               <>
                 <div>
                   <p className="text-sm font-medium mb-2">Your Wallet</p>
                   <div className="flex items-center justify-between bg-background p-2 rounded border">
-                    <p className="text-xs font-mono truncate">{walletAddress}</p>
+                    <p className="text-xs font-mono truncate">{serverWalletData.walletAddress || walletAddress || ''}</p>
                     <div className="flex gap-1">
                       <Button 
                         size="icon" 
@@ -250,7 +268,10 @@ const MerchantSocialLogin: React.FC = () => {
                         size="icon" 
                         variant="ghost" 
                         className="h-6 w-6" 
-                        onClick={openBlockExplorer}
+                        onClick={() => {
+                          const addressToUse = serverWalletData.walletAddress || walletAddress || '';
+                          if (addressToUse) openBlockExplorer(addressToUse);
+                        }}
                       >
                         <ExternalLink className="h-3 w-3" />
                       </Button>
@@ -260,7 +281,7 @@ const MerchantSocialLogin: React.FC = () => {
 
                 <div>
                   <p className="text-sm font-medium mb-2">CPXTB Balance</p>
-                  <p className="text-xl font-bold">{balance} <span className="text-sm font-normal">CPXTB</span></p>
+                  <p className="text-xl font-bold">{serverWalletData.balance || balance || '0.0'} <span className="text-sm font-normal">CPXTB</span></p>
                 </div>
               </>
             )}

@@ -357,13 +357,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Only set a zero balance if there isn't already a balance
           if (!userData.balance) {
-            // Check if this is a special wallet that should have balance
-            if (walletAddress === '0x6122b8784718d954659369dde67c79d9f0e4ac67') {
-              userData.balance = "100.0"; // Special wallet with 100 CPXTB
-              console.log("Detected special wallet with 100 CPXTB balance:", walletAddress);
-            } else {
-              userData.balance = "0.0"; // Default starting balance with zero tokens
-            }
+            // Set a default starting balance of zero tokens for all users
+            // Let the actual blockchain balance be fetched dynamically through the API
+            userData.balance = "0.0";
           }
           
           // If this is from a real Google authentication, update the database too

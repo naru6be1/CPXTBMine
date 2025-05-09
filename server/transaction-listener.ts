@@ -46,12 +46,11 @@ async function processTransferEvent(
     
     // Format the receiving address in a consistent way
     const recipientAddress = to.toLowerCase();
+    console.log(`Transaction recipient (normalized): ${recipientAddress}`);
     
-    // Skip processing completely if this transaction is to the treasury wallet
-    if (to.toLowerCase() === TREASURY_ADDRESS.toLowerCase()) {
-      // Do not process treasury wallet transactions at all
-      return;
-    }
+    // REMOVED the check that skips treasury wallet transactions
+    // Since the merchant wallet can be the same as the treasury wallet, we'll
+    // process ALL transactions and let the merchant-specific check determine if it matches
     
     // Loop through each pending payment to see if it matches this transaction
     for (const payment of pendingPayments) {

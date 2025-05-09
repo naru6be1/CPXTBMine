@@ -104,7 +104,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (existingUser && existingUser.length > 0) {
           console.log("Found existing user with Google ID:", profile.id);
           
-          // Return the existing user
+          // Check if the username needs to be updated to match Google display name
+          if (existingUser[0].username.startsWith('google_') && profile.displayName) {
+            console.log("Updating username from:", existingUser[0].username, "to:", profile.displayName);
+            
+            try {
+              await db.update(users)
+                .set({ username: profile.displayName })
+                .where(eq(users.id, existingUser[0].id));
+                
+              console.log("Successfully updated username to Google display name:", profile.displayName);
+              
+              // Update the user object with the new username
+              existingUser[0].username = profile.displayName;
+            } catch (updateError) {
+              console.error("Failed to update username:", updateError);
+            }
+          }
+          
+          // Return the existing user with updated profile information
           const user = {
             ...existingUser[0],
             name: profile.displayName,

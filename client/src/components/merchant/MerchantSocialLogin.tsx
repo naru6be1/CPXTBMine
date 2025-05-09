@@ -23,10 +23,22 @@ const MerchantSocialLogin: React.FC = () => {
           const userData = await response.json();
           // We found server-side authentication data!
           console.log("Found authenticated user on server:", userData);
+          
+          // Extract display name from user data, with preference order
+          const displayName = 
+            // 1. Use name field if available (might be from Google profile)
+            userData.name || 
+            // 2. Use username if available (from database)
+            userData.username ||
+            // 3. Default to "User" if nothing else is available
+            "User";
+            
+          console.log("Using display name:", displayName, "from user data:", userData);
+          
           setUserInfoState({
-            name: userData.username,
+            name: displayName,
             email: userData.email,
-            provider: 'google'
+            provider: userData.provider || 'google'
           });
         } else {
           console.log("No server authentication found, using client-side data");

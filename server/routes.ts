@@ -81,12 +81,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect('/health');
   });
   
-  // Add root route handler for deployment verification
+  // Add root route handler for deployment verification with early return for health checks
   app.get('/', (req, res, next) => {
+    // Special handling for health check requests (no Accept header or user-agent is a bot)
+    const isHealthCheck = 
+      !req.headers.accept || 
+      req.headers['user-agent']?.includes('bot') ||
+      req.headers['user-agent']?.includes('health');
+      
+    // Always return 200 for health checks
+    if (isHealthCheck) {
+      return res.status(200).send('CPXTB Platform is running');
+    }
+    
     // For API requests, return a simple JSON response
     if (req.headers.accept?.includes('application/json')) {
       return res.status(200).json({ status: 'ok', message: 'CPXTB Platform API' });
     }
+    
     // For browser requests, let the frontend handle it
     next();
   });

@@ -67,6 +67,23 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
           userDataPresent: true 
         });
         
+        // During deployment transitions, fetching real wallet balance might fail
+        // If userData.balance is set to 0.0 but we know users usually have non-zero balances,
+        // we'll immediately try to fetch the real balance from the blockchain
+        const shouldRefreshImmediately = userData.walletAddress && 
+                                         userData.balance === "0.0" && 
+                                         localStorage.getItem('cpxtb_last_known_balance');
+        
+        if (shouldRefreshImmediately) {
+          console.log('Detected potential balance reset during deployment, will try to fetch actual balance');
+          // We'll use the last known non-zero balance temporarily if available
+          const lastKnownBalance = localStorage.getItem('cpxtb_last_known_balance');
+          if (lastKnownBalance && lastKnownBalance !== "0.0") {
+            console.log(`Using last known balance: ${lastKnownBalance} while refreshing`);
+            userData.balance = lastKnownBalance;
+          }
+        }
+        
         setUserInfo(userData.userInfo);
         setWalletAddress(userData.walletAddress);
         setBalance(userData.balance || '0');
@@ -117,12 +134,20 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
           console.error(`Failed to fetch balance (${response.status}): ${errorText}`);
           // Don't throw here, just log the error and continue
           console.log('Balance refresh failed, will try again next cycle');
+          // Don't reset the balance on failure - keep the last known good value
           return; // Return early but don't break the refresh cycle
         }
         
         const data = await response.json();
         console.log(`Retrieved balance: ${data.balance} CPXTB for wallet ${data.walletAddress}`);
         setBalance(data.balance);
+        
+        // Save the non-zero balance as the "last known good balance" for future use
+        // This helps during deployment transitions when the balance API may temporarily fail
+        if (data.balance && parseFloat(data.balance) > 0) {
+          localStorage.setItem('cpxtb_last_known_balance', data.balance);
+          console.log(`Saved last known good balance: ${data.balance} CPXTB`);
+        }
         
         // Update local storage with new balance
         try {

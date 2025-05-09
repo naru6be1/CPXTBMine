@@ -863,16 +863,40 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getPendingPayments(): Promise<Payment[]> {
-    return await db
-      .select()
-      .from(payments)
-      .where(
-        and(
-          // Include both 'pending' and 'partial' statuses
-          sql`(${payments.status} = 'pending' OR ${payments.status} = 'partial')`,
-          gte(payments.expiresAt, new Date())
-        )
-      );
+    // Debug the query we're about to run
+    console.log(`Getting pending payments at ${new Date().toISOString()}`);
+    
+    // Print current timestamp used for comparison
+    const currentTimestamp = new Date();
+    console.log(`Current timestamp: ${currentTimestamp.toISOString()}`);
+    
+    try {
+      // Get pending and partial payments that haven't expired
+      const pendingPayments = await db
+        .select()
+        .from(payments)
+        .where(
+          and(
+            // Include both 'pending' and 'partial' statuses
+            sql`(${payments.status} = 'pending' OR ${payments.status} = 'partial')`,
+            gte(payments.expiresAt, currentTimestamp)
+          )
+        );
+      
+      // Log results for debugging
+      console.log(`Found ${pendingPayments.length} pending/partial payments`);
+      
+      // Log the expiration dates to diagnose possible timezone issues
+      pendingPayments.forEach(payment => {
+        console.log(`Payment ID ${payment.id}, Status: ${payment.status}, Expires: ${payment.expiresAt.toISOString()}, Reference: ${payment.paymentReference}`);
+      });
+      
+      return pendingPayments;
+    } catch (error) {
+      console.error('Error getting pending payments:', error);
+      // Return empty array on error to prevent crashes
+      return [];
+    }
   }
   
   async getMerchantReport(merchantId: number, startDate: Date, endDate: Date): Promise<{

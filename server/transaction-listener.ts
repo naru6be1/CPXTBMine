@@ -309,11 +309,9 @@ export async function monitorMerchantPayments(merchantId: number) {
     
     // Listen for Transfer events where the merchant is the recipient or it goes to treasury
     tokenContract.on("Transfer", async (from, to, value, event) => {
-      const treasuryAddress = TREASURY_ADDRESS.toLowerCase();
       const toAddress = to.toLowerCase();
       
       // Process if the recipient is our merchant
-      // NOTE: We're no longer treating treasury payments as valid for all merchants
       // This is a critical security fix to prevent payment misdirection
       if (toAddress === walletAddress) {
         const txHash = event.log.transactionHash;
@@ -348,10 +346,8 @@ export async function startPaymentMonitoring() {
       const txHash = event.log.transactionHash;
       const toAddress = to.toLowerCase();
       
-      // Skip treasury transactions completely
-      if (toAddress === TREASURY_ADDRESS.toLowerCase()) {
-        return;
-      }
+      // No longer skipping treasury transactions since merchant wallets can be the same
+      // as the treasury wallet address. Merchants now handle their own validation.
       
       // Process if going to any merchant 
       if (monitoredMerchants.has(toAddress)) {

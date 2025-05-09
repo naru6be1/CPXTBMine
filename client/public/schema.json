@@ -4,7 +4,7 @@
     {
       "@type": "Organization",
       "@id": "https://cpxtbmining.com/#organization",
-      "name": "CPXTB Mining Platform",
+      "name": "CPXTB Payment Platform",
       "url": "https://cpxtbmining.com/",
       "sameAs": [
         "https://twitter.com/cpxtbofficial",
@@ -17,7 +17,7 @@
         "url": "https://cpxtbmining.com/logo.png",
         "width": 512,
         "height": 512,
-        "caption": "CPXTB Mining Platform"
+        "caption": "CPXTB Payment Platform"
       },
       "image": {
         "@id": "https://cpxtbmining.com/#logo"
@@ -27,8 +27,8 @@
       "@type": "WebSite",
       "@id": "https://cpxtbmining.com/#website",
       "url": "https://cpxtbmining.com/",
-      "name": "CPXTB Mining",
-      "description": "Earn CPXTB tokens through crypto mining without hardware, games, and referrals on the Base network",
+      "name": "CPXTB Payment Platform",
+      "description": "Streamlined cryptocurrency payment solutions for merchants on the Base network with QR code payments and social login",
       "publisher": {
         "@id": "https://cpxtbmining.com/#organization"
       },
@@ -43,14 +43,14 @@
       "@type": "WebPage",
       "@id": "https://cpxtbmining.com/#webpage",
       "url": "https://cpxtbmining.com/",
-      "name": "CPXTB Mining: Earn Crypto Without Hardware | Play Games to Earn",
+      "name": "CPXTB Payment Platform: Cryptocurrency Payment Processing for Businesses",
       "isPartOf": {
         "@id": "https://cpxtbmining.com/#website"
       },
       "about": {
         "@id": "https://cpxtbmining.com/#organization"
       },
-      "description": "Earn CPXTB tokens through innovative crypto mining without hardware, play games to earn tokens, and boost earnings with referrals on the Base network.",
+      "description": "Accept cryptocurrency payments easily with CPXTB's merchant platform. QR code payments, real-time tracking, and seamless customer experience on the Base network.",
       "inLanguage": "en-US",
       "potentialAction": [{
         "@type": "ReadAction",
@@ -61,11 +61,11 @@
       "@type": "BlogPosting",
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": "https://cpxtbmining.com/blog/blockchain-technology-beginners-guide"
+        "@id": "https://cpxtbmining.com/blog/simplifying-crypto-payments-for-business"
       },
-      "headline": "Blockchain Technology: A Beginner's Guide",
-      "description": "Learn the fundamentals of blockchain technology, how it works, and why it's important for the future of finance and digital ownership.",
-      "image": "https://cpxtbmining.com/images/blog/blockchain-beginners-guide.jpg",
+      "headline": "Simplifying Crypto Payments for Businesses: The CPXTB Platform Guide",
+      "description": "Learn how the CPXTB Payment Platform makes accepting cryptocurrency payments accessible and streamlined for businesses of all sizes.",
+      "image": "https://cpxtbmining.com/images/blog/payment-solutions.svg",
       "author": {
         "@type": "Organization",
         "name": "CPXTB Team",
@@ -75,18 +75,18 @@
         "@type": "Organization",
         "@id": "https://cpxtbmining.com/#organization"
       },
-      "datePublished": "2025-03-25",
-      "dateModified": "2025-03-28"
+      "datePublished": "2025-05-01",
+      "dateModified": "2025-05-08"
     },
     {
       "@type": "BlogPosting",
       "mainEntityOfPage": {
         "@type": "WebPage",
-        "@id": "https://cpxtbmining.com/blog/responsible-crypto-participation"
+        "@id": "https://cpxtbmining.com/blog/cryptocurrency-payment-benefits-business"
       },
-      "headline": "Responsible Crypto Participation: Best Practices",
-      "description": "Discover the best practices for responsible participation in cryptocurrency projects and investments to ensure a sustainable ecosystem.",
-      "image": "https://cpxtbmining.com/images/blog/responsible-crypto.jpg",
+      "headline": "Cryptocurrency Payment Benefits: Boosting Your Business with Digital Currency Acceptance",
+      "description": "Discover the tangible advantages of implementing cryptocurrency payment options for your business, from cost savings to enhanced security and global reach.",
+      "image": "https://cpxtbmining.com/images/blog/business-growth.svg",
       "author": {
         "@type": "Organization",
         "name": "CPXTB Team",
@@ -96,34 +96,55 @@
         "@type": "Organization",
         "@id": "https://cpxtbmining.com/#organization"
       },
-      "datePublished": "2025-03-24",
-      "dateModified": "2025-03-28"
+      "datePublished": "2025-05-02",
+      "dateModified": "2025-05-08"
+    },
+    {
+      "@type": "BlogPosting",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://cpxtbmining.com/blog/crypto-payment-security-best-practices"
+      },
+      "headline": "Crypto Payment Security Best Practices for Merchants",
+      "description": "Learn essential security protocols and best practices for safely accepting and managing cryptocurrency payments in your business.",
+      "image": "https://cpxtbmining.com/images/blog/payment-security.svg",
+      "author": {
+        "@type": "Organization",
+        "name": "CPXTB Team",
+        "@id": "https://cpxtbmining.com/#organization"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://cpxtbmining.com/#organization"
+      },
+      "datePublished": "2025-05-03",
+      "dateModified": "2025-05-08"
     },
     {
       "@type": "FAQPage",
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "What is CPXTB mining?",
+          "name": "How does the CPXTB Payment Platform work?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "CPXTB mining is a process of earning CPXTB tokens without requiring specialized hardware. Users can activate mining plans (Bronze, Silver, or Gold) to earn CPXTB tokens over time, play games to earn additional tokens, and participate in the referral program to boost earnings."
+            "text": "The CPXTB Payment Platform allows merchants to accept cryptocurrency payments easily. Merchants create payment requests through our dashboard, customers scan a QR code to access a payment page, and complete their transaction using CPXTB tokens. The platform handles all verification and provides real-time payment confirmations to both customers and merchants."
           }
         },
         {
           "@type": "Question",
-          "name": "How do I start mining CPXTB?",
+          "name": "How do customers pay if they don't have cryptocurrency?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "To start mining CPXTB, connect your crypto wallet to our platform, choose a mining plan (Bronze, Silver, or Gold), and complete the activation transaction. Once activated, you'll start earning CPXTB tokens according to your plan's reward rate."
+            "text": "Our platform features an innovative social login system that creates a cryptocurrency wallet instantly for first-time users. Customers who don't have CPXTB tokens can purchase them directly within the payment flow using PayPal, making cryptocurrency payments accessible to everyone regardless of their crypto experience."
           }
         },
         {
           "@type": "Question",
-          "name": "Can I earn CPXTB without investing?",
+          "name": "What are the fees for accepting cryptocurrency payments?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, you can earn CPXTB tokens without investment by playing our games like Space Mining and Memory Match. Each game converts points to CPXTB tokens at a rate of 1000 points per CPXTB. You can also earn through our referral program when friends join the platform."
+            "text": "The CPXTB Payment Platform charges significantly lower fees than traditional payment processors. Our transaction fees are typically between 0.5-1%, compared to 2.5-4% for conventional payment methods. There are no monthly fees, setup costs, or hidden charges - you only pay when you receive payments."
           }
         },
         {

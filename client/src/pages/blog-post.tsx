@@ -4,6 +4,7 @@ import { ChevronLeft, Calendar, Tag, Share2, Info, BookOpen, ShieldCheck } from 
 import { Link, useRoute } from "wouter";
 import { blogPosts, getRelatedPosts } from "@/lib/blog-data";
 import { useEffect } from "react";
+import DefaultBlogImage from "@/components/DefaultBlogImage";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -123,75 +124,157 @@ export default function BlogPost() {
       
       {/* Banner space */}
       
-      <Card className="border-t-4 border-t-primary mt-8">
-        <CardHeader className="pb-0">
-          {/* Display keywords as tags for SEO */}
-          {post.keywords && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              <Tag className="h-4 w-4 text-muted-foreground" />
-              {post.keywords.map((keyword, index) => (
-                <Link key={index} href={`/blog?keyword=${encodeURIComponent(keyword)}`}>
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full cursor-pointer hover:bg-primary/20">
-                    {keyword}
-                  </span>
-                </Link>
-              ))}
+      <Card className="border-none shadow-lg mt-8 overflow-hidden">
+        <div className="bg-gradient-to-r from-primary/20 to-primary/5 py-8 px-6">
+          <div className="max-w-4xl mx-auto">
+            {/* Display keywords as tags for SEO */}
+            {post.keywords && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Tag className="h-4 w-4 text-primary" />
+                {post.keywords.map((keyword, index) => (
+                  <Link key={index} href={`/blog?keyword=${encodeURIComponent(keyword)}`}>
+                    <span className="text-xs bg-white text-primary font-medium px-3 py-1 rounded-full cursor-pointer hover:bg-primary/10 transition-colors shadow-sm">
+                      {keyword}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+            
+            <div className="flex items-center text-sm text-slate-700 mb-3 font-medium">
+              <Calendar className="mr-2 h-4 w-4 text-primary" />
+              <span>Published: {postDate} • Educational Resource</span>
             </div>
-          )}
-          
-          <div className="flex items-center text-sm text-muted-foreground mb-2">
-            <Calendar className="mr-2 h-4 w-4" />
-            <span>Published: {postDate} • Educational Resource</span>
+            
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 leading-tight">{post.title}</h1>
           </div>
-          
-          <CardTitle className="text-3xl mb-4">{post.title}</CardTitle>
-        </CardHeader>
+        </div>
         
-        {post.image && (
-          <div className="px-6 py-4">
-            <div className="bg-muted/20 p-6 rounded-lg flex justify-center">
-              <img 
-                src={post.image} 
-                alt={post.title} 
-                className="h-auto max-h-[300px] w-auto object-contain"
-                loading="lazy"
-              />
+        <div className="px-6 py-8 bg-white">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-8 flex justify-center">
+              <div className="bg-white p-2 rounded-lg shadow-md border border-slate-100 flex justify-center w-full max-w-2xl">
+                {post.slug.includes('payment') || post.slug.includes('simplifying') ? (
+                  <DefaultBlogImage 
+                    title={post.title} 
+                    type="payment"
+                    className="h-auto max-h-[300px] w-full" 
+                  />
+                ) : post.slug.includes('security') || post.slug.includes('secure') ? (
+                  <DefaultBlogImage 
+                    title={post.title} 
+                    type="security"
+                    className="h-auto max-h-[300px] w-full" 
+                  />
+                ) : post.slug.includes('business') || post.slug.includes('benefits') ? (
+                  <DefaultBlogImage 
+                    title={post.title} 
+                    type="business"
+                    className="h-auto max-h-[300px] w-full" 
+                  />
+                ) : post.slug.includes('experience') || post.slug.includes('customer') ? (
+                  <DefaultBlogImage 
+                    title={post.title} 
+                    type="experience"
+                    className="h-auto max-h-[300px] w-full" 
+                  />
+                ) : (
+                  <DefaultBlogImage 
+                    title={post.title} 
+                    type="technology"
+                    className="h-auto max-h-[300px] w-full" 
+                  />
+                )}
+              </div>
             </div>
           </div>
-        )}
+        </div>
         
         <CardContent>
           {/* Article content with proper heading structure for SEO */}
-          <article className="prose prose-zinc dark:prose-invert max-w-none">
-            {post.content.split('\n').map((paragraph, index) => {
-              const trimmedParagraph = paragraph.trim();
-              if (!trimmedParagraph) return null;
+          <article className="max-w-none">
+            {(() => {
+              const paragraphs = post.content.split('\n').map(p => p.trim()).filter(p => p);
+              const elements = [];
               
-              // Add proper heading structure for better SEO
-              if (index === 1) {
-                return (
-                  <div key={index}>
-                    <h2 className="text-2xl font-semibold mt-6 mb-4">
-                      {post.keywords?.[0] || "About CPXTB Mining"}
+              let inList = false;
+              let listItems = [];
+              
+              for (let i = 0; i < paragraphs.length; i++) {
+                const paragraph = paragraphs[i];
+                
+                // Handle markdown headings
+                if (paragraph.startsWith('## ')) {
+                  // If we were in a list, close it before adding the heading
+                  if (inList) {
+                    elements.push(<ul key={`list-${i}`} className="ml-6 mb-6 list-disc">{listItems}</ul>);
+                    inList = false;
+                    listItems = [];
+                  }
+                  
+                  const headingText = paragraph.replace('## ', '');
+                  elements.push(
+                    <h2 key={`heading-${i}`} className="text-2xl font-bold mt-8 mb-4 text-slate-900">
+                      {headingText}
                     </h2>
-                    <p className="mb-4">{trimmedParagraph}</p>
-                  </div>
-                );
+                  );
+                }
+                // Handle markdown lists
+                else if (paragraph.startsWith('- ')) {
+                  const listItemText = paragraph.replace('- ', '');
+                  
+                  if (!inList) {
+                    inList = true;
+                  }
+                  
+                  listItems.push(
+                    <li key={`li-${i}`} className="mb-3 text-slate-900 leading-relaxed">
+                      {listItemText}
+                    </li>
+                  );
+                  
+                  // If next item is not a list or this is the last item, close the list
+                  if (i === paragraphs.length - 1 || !paragraphs[i+1].startsWith('- ')) {
+                    elements.push(<ul key={`list-${i}`} className="ml-6 mb-6 list-disc">{listItems}</ul>);
+                    inList = false;
+                    listItems = [];
+                  }
+                }
+                // Handle bold text
+                else if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                  // If we were in a list, close it before adding the bold text
+                  if (inList) {
+                    elements.push(<ul key={`list-${i}`} className="ml-6 mb-6 list-disc">{listItems}</ul>);
+                    inList = false;
+                    listItems = [];
+                  }
+                  
+                  const boldText = paragraph.replace(/^\*\*|\*\*$/g, '');
+                  elements.push(
+                    <p key={`bold-${i}`} className="font-bold mb-6 text-slate-900 text-lg">
+                      {boldText}
+                    </p>
+                  );
+                }
+                // Default paragraph handling
+                else {
+                  // If we were in a list, close it before adding the paragraph
+                  if (inList) {
+                    elements.push(<ul key={`list-${i}`} className="ml-6 mb-6 list-disc">{listItems}</ul>);
+                    inList = false;
+                    listItems = [];
+                  }
+                  
+                  elements.push(
+                    <p key={`p-${i}`} className="mb-6 text-slate-900 leading-relaxed">
+                      {paragraph}
+                    </p>
+                  );
+                }
               }
               
-              if (index === 3) {
-                return (
-                  <div key={index}>
-                    <h2 className="text-2xl font-semibold mt-6 mb-4">
-                      {post.keywords?.[1] || "Benefits and Features"}
-                    </h2>
-                    <p className="mb-4">{trimmedParagraph}</p>
-                  </div>
-                );
-              }
-              
-              return <p key={index} className="mb-4">{trimmedParagraph}</p>;
-            })}
+              return elements;
+            })()}
           </article>
           
           {/* Educational footnote */}
@@ -258,8 +341,6 @@ export default function BlogPost() {
               </div>
             </div>
           </div>
-          
-
           
           <div className="mt-8 pt-4 border-t border-border flex justify-between items-center">
             <Link href="/blog">

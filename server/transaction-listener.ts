@@ -47,6 +47,12 @@ async function processTransferEvent(
     // Format the receiving address in a consistent way
     const recipientAddress = to.toLowerCase();
     
+    // Skip processing completely if this transaction is to the treasury wallet
+    if (to.toLowerCase() === TREASURY_ADDRESS.toLowerCase()) {
+      // Do not process treasury wallet transactions at all
+      return;
+    }
+    
     // Loop through each pending payment to see if it matches this transaction
     for (const payment of pendingPayments) {
       try {
@@ -65,11 +71,9 @@ async function processTransferEvent(
         // Log for debugging
         console.log(`Payment ${payment.id}: Merchant=${payment.merchantId}, Merchant Address=${merchantAddress}, Transaction To=${recipientAddress}`);
         
-        // Check if this transaction is going to the merchant's wallet or the treasury
-        // This allows both direct merchant payments and treasury-facilitated payments
-        const treasuryAddress = TREASURY_ADDRESS.toLowerCase();
-        if (merchantAddress === recipientAddress || (treasuryAddress === recipientAddress)) {
-          console.log(`✅ Wallet address match for payment ${payment.id}! ${merchantAddress === recipientAddress ? '(Direct to merchant)' : '(Via treasury)'}`);
+        if (merchantAddress === recipientAddress) {
+          const paymentType = merchantAddress === recipientAddress ? '(Direct to merchant)' : '(Via treasury with warning)';
+          console.log(`✅ Wallet address match for payment ${payment.id}! ${paymentType}`);
           
           // Convert the received token amount to a comparable format (with same decimal precision)
           // CPXTB has 18 decimals like most ERC20 tokens
@@ -258,10 +262,9 @@ async function processTransferEvent(
             console.error(`Error updating payment status: ${updateError}`);
           }
         } else {
-          // Enhanced debug info to show both merchant and treasury addresses for clarity
-          console.log(`❌ Transaction recipient (${recipientAddress}) doesn't match either:`);
+          // Enhanced debug info to show merchant address for clarity
+          console.log(`❌ Transaction recipient (${recipientAddress}) doesn't match merchant wallet:`);
           console.log(`   - Merchant wallet: ${merchantAddress}`);
-          console.log(`   - Treasury wallet: ${treasuryAddress}`);
         }
       } catch (paymentError) {
         console.error(`Error processing payment ${payment.id}:`, paymentError);
@@ -299,8 +302,10 @@ export async function monitorMerchantPayments(merchantId: number) {
       const treasuryAddress = TREASURY_ADDRESS.toLowerCase();
       const toAddress = to.toLowerCase();
       
-      // Process if the recipient is our merchant or the treasury
-      if (toAddress === walletAddress || toAddress === treasuryAddress) {
+      // Process if the recipient is our merchant
+      // NOTE: We're no longer treating treasury payments as valid for all merchants
+      // This is a critical security fix to prevent payment misdirection
+      if (toAddress === walletAddress) {
         const txHash = event.log.transactionHash;
         await processTransferEvent(from, to, value, txHash);
       }
@@ -329,13 +334,17 @@ export async function startPaymentMonitoring() {
     
     // Also listen for all Transfer events to catch any we might have missed
     tokenContract.on("Transfer", async (from, to, value, event) => {
-      // Check if this transfer is to any of our monitored merchants or the treasury
+      // Check if this transfer is to any of our monitored merchant addresses
       const txHash = event.log.transactionHash;
       const toAddress = to.toLowerCase();
-      const treasuryAddress = TREASURY_ADDRESS.toLowerCase();
       
-      // Process if going to any merchant or the treasury
-      if (monitoredMerchants.has(toAddress) || toAddress === treasuryAddress) {
+      // Skip treasury transactions completely
+      if (toAddress === TREASURY_ADDRESS.toLowerCase()) {
+        return;
+      }
+      
+      // Process if going to any merchant 
+      if (monitoredMerchants.has(toAddress)) {
         await processTransferEvent(from, to, value, txHash);
       }
     });

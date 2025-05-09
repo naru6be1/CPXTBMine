@@ -16,14 +16,12 @@ import { User } from "lucide-react";
 import { ChallengeSolver } from "@/components/challenge-solver";
 import { useToast } from "@/hooks/use-toast";
 import { SocialLoginProvider } from "./providers/SocialLoginProvider";
+import { ThemeProvider } from "./providers/ThemeProvider";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Lazy-loaded components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Home = lazy(() => import("@/pages/home"));
-const MiningPage = lazy(() => import("@/pages/mining"));
-const ReferralsPage = lazy(() => import("@/pages/referrals"));
-const RewardsPage = lazy(() => import("@/pages/rewards"));
-const FeaturesPage = lazy(() => import("@/pages/features"));
 const BlogPage = lazy(() => import("@/pages/blog"));
 const BlogPost = lazy(() => import("@/pages/blog-post"));
 const AboutPage = lazy(() => import("@/pages/about"));
@@ -70,8 +68,14 @@ function Router() {
     const preloadNextPossiblePages = async () => {
       if (location === '/') {
         // Preload most common navigations from home page
-        import("@/pages/mining");
-        preloadImages(["/assets/mining-plan-bg.svg"]);
+        import("@/pages/merchant-dashboard");
+        import("@/pages/buy-cpxtb");
+        // The image might not exist yet, so wrapped in try/catch
+        try {
+          preloadImages(["/assets/merchant-dashboard-bg.svg"]);
+        } catch (e) {
+          console.error("Failed to preload images:", e);
+        }
       }
     };
     
@@ -87,10 +91,6 @@ function Router() {
     <Suspense fallback={<PageLoader />}>
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/mining" component={MiningPage} />
-        <Route path="/referrals" component={ReferralsPage} />
-        <Route path="/rewards" component={RewardsPage} />
-        <Route path="/features" component={FeaturesPage} />
         <Route path="/blog" component={BlogPage} />
         <Route path="/blog/:slug" component={BlogPost} />
         <Route path="/about" component={AboutPage} />
@@ -109,10 +109,10 @@ function Router() {
         <Route path="/easy-payment" component={EasyPaymentPage} />
         <Route path="/social-login-test" component={SocialLoginTestPage} />
         <Route path="/pay/:paymentReference" component={PayPage} />
-        <Route path="/claim-tokens" component={ClaimTokensPage} />
         <Route path="/buy-cpxtb" component={BuyCPXTBPage} />
-        
-        {/* No Games */}
+        <Route path="/reports" component={Home} /> {/* Placeholder until Reports page is created */}
+        <Route path="/payments" component={Home} /> {/* Placeholder until Payments page is created */}
+        <Route path="/settings" component={ProfilePage} /> {/* Placeholder until Settings page is created */}
         
         <Route component={NotFound} />
       </Switch>
@@ -258,16 +258,19 @@ function App() {
     <ErrorBoundary>
       <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
-          <SocialLoginProvider>
-            <AuthProvider>
-              <HamburgerMenu />
-              <div className="fixed top-4 right-4 z-50 flex items-center space-x-2">
-                <LiveUserCount />
-              </div>
-              <Router />
-              <Toaster />
-            </AuthProvider>
-          </SocialLoginProvider>
+          <ThemeProvider defaultTheme="dark" storageKey="cpxtb-theme">
+            <SocialLoginProvider>
+              <AuthProvider>
+                <HamburgerMenu />
+                <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
+                  <ThemeToggle />
+                  <LiveUserCount />
+                </div>
+                <Router />
+                <Toaster />
+              </AuthProvider>
+            </SocialLoginProvider>
+          </ThemeProvider>
         </QueryClientProvider>
       </WagmiConfig>
     </ErrorBoundary>

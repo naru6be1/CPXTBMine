@@ -45,6 +45,12 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -2387,6 +2393,114 @@ export default function MerchantDashboard() {
                     </div>
                   </div>
                   
+                  {/* Payment Security Status */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Payment Security Status</h3>
+                      {(() => {
+                        // Parse security data
+                        let securityStatus = 'unknown';
+                        let securityReason = '';
+                        let detailedInfo = '';
+                        
+                        try {
+                          if (currentPayment.payment.securityMetadata) {
+                            const securityData = JSON.parse(currentPayment.payment.securityMetadata);
+                            securityStatus = securityData.securityCheck || securityData.securityStatus || 'unknown';
+                            securityReason = securityData.securityReason || '';
+                            detailedInfo = securityData.detailedInfo || '';
+                          }
+                        } catch (e) {
+                          securityStatus = 'error';
+                        }
+
+                        return (
+                          <div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              securityStatus === 'passed' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                : securityStatus === 'failed'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+                            }`}>
+                              {securityStatus === 'passed' && <CheckCircle className="h-3 w-3 mr-1 inline" />}
+                              {securityStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1 inline" />}
+                              {securityStatus === 'passed' ? 'Secure' 
+                               : securityStatus === 'failed' ? 'Warning' 
+                               : 'Pending'}
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    
+                    {(() => {
+                      // Parse security data again
+                      let securityStatus = 'unknown';
+                      let securityReason = '';
+                      let detailedInfo = '';
+                      let recipient = '';
+                      
+                      try {
+                        if (currentPayment.payment.securityMetadata) {
+                          const securityData = JSON.parse(currentPayment.payment.securityMetadata);
+                          securityStatus = securityData.securityCheck || securityData.securityStatus || 'unknown';
+                          securityReason = securityData.securityReason || '';
+                          detailedInfo = securityData.detailedInfo || '';
+                          recipient = securityData.recipient || '';
+                        }
+                      } catch (e) {
+                        securityStatus = 'error';
+                      }
+
+                      if (securityStatus === 'failed') {
+                        return (
+                          <div className="bg-red-50 dark:bg-red-950 border-2 border-red-400 dark:border-red-800 p-3 rounded-lg">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-red-800 dark:text-red-200">{securityReason}</p>
+                                {detailedInfo && (
+                                  <p className="text-xs mt-1 text-red-700 dark:text-red-300">{detailedInfo}</p>
+                                )}
+                                {recipient && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-semibold text-red-800 dark:text-red-200">Payment went to:</p>
+                                    <code className="text-xs bg-red-100 dark:bg-red-900 p-1 rounded block mt-1 text-red-800 dark:text-red-100 break-all">
+                                      {recipient}
+                                    </code>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      } else if (securityStatus === 'passed') {
+                        return (
+                          <div className="bg-green-50 dark:bg-green-950 border border-green-300 dark:border-green-800 p-3 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                              <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                                This payment has passed all security checks.
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <Info className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                Security information will appear here after payment is processed.
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                  
                   <div className="space-y-2">
                     <h3 className="font-medium">CPXTB Token Details</h3>
                     <p className="text-sm text-muted-foreground">
@@ -2523,6 +2637,7 @@ export default function MerchantDashboard() {
                           <TableHead className="text-foreground font-semibold">Amount (USD)</TableHead>
                           <TableHead className="text-foreground font-semibold">Amount (CPXTB)</TableHead>
                           <TableHead className="text-foreground font-semibold">Status</TableHead>
+                          <TableHead className="text-foreground font-semibold">Security</TableHead>
                           <TableHead className="text-foreground font-semibold">Remaining</TableHead>
                           <TableHead className="text-foreground font-semibold">Transaction</TableHead>
                         </TableRow>
@@ -2550,17 +2665,101 @@ export default function MerchantDashboard() {
                               </span>
                             </TableCell>
                             <TableCell>
+                              {/* Parse security metadata if available */}
+                              {(() => {
+                                let securityStatus = 'unknown';
+                                let securityReason = '';
+                                
+                                try {
+                                  if (payment.securityMetadata) {
+                                    const securityData = JSON.parse(payment.securityMetadata);
+                                    securityStatus = securityData.securityCheck || securityData.securityStatus || 'unknown';
+                                    securityReason = securityData.securityReason || '';
+                                  }
+                                } catch (e) {
+                                  securityStatus = 'error';
+                                }
+                                
+                                // Display security status with appropriate styling
+                                return (
+                                  <div className="flex items-center">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      securityStatus === 'passed' 
+                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                        : securityStatus === 'failed'
+                                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 flex items-center'
+                                        : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+                                    }`}>
+                                      {securityStatus === 'passed' && <CheckCircle className="h-3 w-3 mr-1 inline" />}
+                                      {securityStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1 inline" />}
+                                      {securityStatus === 'passed' ? 'Secure' 
+                                       : securityStatus === 'failed' ? 'Warning' 
+                                       : 'Unknown'}
+                                    </span>
+                                    {securityStatus === 'failed' && securityReason && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Info className="h-4 w-4 ml-1 text-red-500 cursor-help" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>{securityReason}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </TableCell>
+                            <TableCell>
                               {payment.status === 'partial' ? (
                                 <div className="flex flex-col">
-                                  <span className="text-amber-700 font-medium">
-                                    {payment.remainingAmount
-                                      ? Number(payment.remainingAmount).toFixed(6)
-                                      : (Number(payment.requiredAmount) - Number(payment.receivedAmount || 0)).toFixed(6)
-                                    } CPXTB
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    needed to complete
-                                  </span>
+                                  {(() => {
+                                    // Check for security issues with the payment
+                                    let securityStatus = 'unknown';
+                                    let hasSecurityIssue = false;
+                                    
+                                    try {
+                                      if (payment.securityMetadata) {
+                                        const securityData = JSON.parse(payment.securityMetadata);
+                                        securityStatus = securityData.securityCheck || securityData.securityStatus || 'unknown';
+                                        hasSecurityIssue = securityStatus === 'failed';
+                                      }
+                                    } catch (e) {
+                                      hasSecurityIssue = false;
+                                    }
+
+                                    // If there's a security issue and the remaining amount is zero or very small
+                                    const remainingAmount = payment.remainingAmount 
+                                      ? Number(payment.remainingAmount)
+                                      : (Number(payment.requiredAmount) - Number(payment.receivedAmount || 0));
+                                    
+                                    if (hasSecurityIssue && remainingAmount < 0.000001) {
+                                      return (
+                                        <>
+                                          <span className="text-red-700 dark:text-red-400 font-medium flex items-center">
+                                            <AlertTriangle className="h-3 w-3 mr-1" />
+                                            {Number(payment.requiredAmount).toFixed(6)} CPXTB
+                                          </span>
+                                          <span className="text-xs text-red-600 dark:text-red-400">
+                                            Payment sent to wrong address
+                                          </span>
+                                        </>
+                                      );
+                                    } else {
+                                      return (
+                                        <>
+                                          <span className="text-amber-700 dark:text-amber-500 font-medium">
+                                            {remainingAmount.toFixed(6)} CPXTB
+                                          </span>
+                                          <span className="text-xs text-muted-foreground">
+                                            needed to complete
+                                          </span>
+                                        </>
+                                      );
+                                    }
+                                  })()}
                                 </div>
                               ) : (
                                 <span className="text-muted-foreground text-sm">-</span>
@@ -2777,6 +2976,7 @@ export default function MerchantDashboard() {
                               <TableHead className="text-foreground font-semibold">Amount (USD)</TableHead>
                               <TableHead className="text-foreground font-semibold">Amount (CPXTB)</TableHead>
                               <TableHead className="text-foreground font-semibold">Status</TableHead>
+                              <TableHead className="text-foreground font-semibold">Security</TableHead>
                               <TableHead className="text-foreground font-semibold">Transaction</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -2795,6 +2995,54 @@ export default function MerchantDashboard() {
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBadgeColor(payment.status)}`}>
                                     {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                                   </span>
+                                </TableCell>
+                                <TableCell>
+                                  {/* Parse security metadata if available */}
+                                  {(() => {
+                                    let securityStatus = 'unknown';
+                                    let securityReason = '';
+                                    
+                                    try {
+                                      if (payment.securityMetadata) {
+                                        const securityData = JSON.parse(payment.securityMetadata);
+                                        securityStatus = securityData.securityCheck || securityData.securityStatus || 'unknown';
+                                        securityReason = securityData.securityReason || '';
+                                      }
+                                    } catch (e) {
+                                      securityStatus = 'error';
+                                    }
+                                    
+                                    // Display security status with appropriate styling
+                                    return (
+                                      <div className="flex items-center">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                          securityStatus === 'passed' 
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                            : securityStatus === 'failed'
+                                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 flex items-center'
+                                            : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
+                                        }`}>
+                                          {securityStatus === 'passed' && <CheckCircle className="h-3 w-3 mr-1 inline" />}
+                                          {securityStatus === 'failed' && <AlertTriangle className="h-3 w-3 mr-1 inline" />}
+                                          {securityStatus === 'passed' ? 'Secure' 
+                                           : securityStatus === 'failed' ? 'Warning' 
+                                           : 'Unknown'}
+                                        </span>
+                                        {securityStatus === 'failed' && securityReason && (
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <Info className="h-4 w-4 ml-1 text-red-500 cursor-help" />
+                                              </TooltipTrigger>
+                                              <TooltipContent>
+                                                <p>{securityReason}</p>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </TableCell>
                                 <TableCell>
                                   {payment.transactionHash ? (

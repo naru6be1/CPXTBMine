@@ -157,11 +157,12 @@ export function EnhancedSocialLogin({
           variant="default"
           disabled={isLoading}
           onClick={() => {
-            // Set URL param to enable real Google auth
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('useBasicLogin', 'false');
-            currentUrl.searchParams.set('enableRealLogin', 'true');
-            window.location.href = currentUrl.toString();
+            // Directly redirect to Google OAuth endpoint
+            console.log("Attempting direct Google authentication...");
+            const currentUrl = window.location.href;
+            const redirectUrl = encodeURIComponent(currentUrl);
+            // Navigate directly to the authentication endpoint
+            window.location.href = `/api/social-auth/google?enableRealLogin=true&redirectUrl=${redirectUrl}`;
           }}
           className="flex items-center justify-center gap-2"
         >

@@ -176,12 +176,16 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
           });
           
           console.log(`Redirecting to real authentication at /api/social-auth/${provider.toLowerCase()}`);
+          console.log(`Current Replit domain: ${window.location.origin}`);
+          console.log(`Redirect URL will be: ${window.location.href}`);
           
           // Delay redirect slightly to let toast appear
           setTimeout(() => {
             // Redirect to the auth endpoint which will then redirect to Google
             const redirectUrl = window.location.href;
-            window.location.href = `/api/social-auth/${provider.toLowerCase()}?enableRealLogin=true&redirectUrl=${encodeURIComponent(redirectUrl)}`;
+            const authUrl = `/api/social-auth/${provider.toLowerCase()}?enableRealLogin=true&redirectUrl=${encodeURIComponent(redirectUrl)}`;
+            console.log(`Full auth URL: ${authUrl}`);
+            window.location.href = authUrl;
           }, 1500);
           
           return; // Stop further execution since we're redirecting

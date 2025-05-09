@@ -53,37 +53,29 @@ declare module 'express-session' {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set trust proxy to work with secure cookies behind proxies (important for OAuth in production)
-  if (process.env.NODE_ENV === 'production') {
-    console.log("Running in production mode - enabling trust proxy");
-    app.set('trust proxy', 1);
-  }
   // Setup Google OAuth authentication if credentials are available
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     console.log("Setting up Google OAuth authentication");
     
-    // Configure session middleware for multiple environments
+    // Configure session middleware
     app.use(session({
       secret: process.env.SESSION_SECRET || 'cpxtb-session-secret',
       resave: false,
       saveUninitialized: true,
-      cookie: { 
-        secure: process.env.NODE_ENV === 'production', // Secure cookies in production
-        sameSite: 'lax', // Helps with CSRF protection while allowing redirects
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-      }
+      cookie: { secure: false } // Set to true if using HTTPS
     }));
     
     app.use(passport.initialize());
     app.use(passport.session());
     
-    // Configure Google OAuth Strategy with multi-environment callback URL support
+    // Configure Google OAuth Strategy
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `/api/auth/google/callback`, // Use relative URL to work across environments
-      proxy: true, // Trust first proxy to ensure correct protocol is used
-      scope: ['profile', 'email']
+      callbackURL: `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:5000"}/api/auth/google/callback`,
+      scope: ['profile', 'email'],
+      // Add proxy setting to ensure proper forwarding of secure requests
+      proxy: true
     }, async (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => {
       try {
         console.log("Google authentication callback received:", profile.id);
@@ -174,88 +166,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Initial route to start Google authentication
-    app.get("/api/social-auth/google", (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const { enableRealLogin, redirectUrl } = req.query;
+    app.get("/api/social-auth/google", (req, res) => {
+      console.log("Google authentication request with query params:", req.query);
+      console.log("Google authentication request headers:", req.headers);
+      console.log("Current REPLIT_DEV_DOMAIN:", process.env.REPLIT_DEV_DOMAIN);
+      console.log("Current Google strategy callback URL:", 
+        `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:5000"}/api/auth/google/callback`);
+      
+      const { enableRealLogin, redirectUrl } = req.query;
+      
+      // Store redirect URL in session for later use
+      if (typeof redirectUrl === 'string') {
+        console.log("Storing redirectUrl in session:", redirectUrl);
+        req.session.redirectUrl = redirectUrl;
+      } else {
+        req.session.redirectUrl = '/';
+      }
+      
+      if (enableRealLogin === 'true' || !req.query.hasOwnProperty('enableRealLogin')) {
+        console.log("Redirecting to Google authentication with real authentication");
+        console.log("Google client ID used:", process.env.GOOGLE_CLIENT_ID ? "Available (first 5 chars: " + 
+          process.env.GOOGLE_CLIENT_ID.substring(0, 5) + "...)" : "Missing");
+        console.log("Google client secret used:", process.env.GOOGLE_CLIENT_SECRET ? "Available (length: " + 
+          process.env.GOOGLE_CLIENT_SECRET.length + ")" : "Missing");
         
-        // Debug request information
-        console.log("Google auth request:", {
-          host: req.headers.host,
-          originalUrl: req.originalUrl,
-          referer: req.headers.referer,
-          protocol: req.protocol,
-          secure: req.secure,
-          environment: process.env.NODE_ENV || 'development'
+        // Redirect to Google authentication
+        passport.authenticate('google', { 
+          scope: ['profile', 'email'],
+          prompt: 'select_account'
+        })(req, res);
+      } else {
+        console.log("Using fallback mock authentication");
+        // Use mock data for fallback
+        const seed = `google-${Date.now()}`;
+        const hash = crypto.createHash('sha256').update(seed).digest('hex');
+        const walletAddress = `0x${hash.substring(0, 40)}`;
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.json({
+          name: "Google User (Mock)",
+          email: "mock.user@example.com",
+          walletAddress: walletAddress,
+          balance: "10.0"
         });
-        
-        // Store redirect URL in session for later use
-        if (typeof redirectUrl === 'string') {
-          req.session.redirectUrl = redirectUrl;
-          console.log("Stored redirect URL in session:", redirectUrl);
-        } else {
-          req.session.redirectUrl = '/';
-          console.log("Using default redirect URL: /");
-        }
-        
-        if (enableRealLogin === 'true' || !req.query.hasOwnProperty('enableRealLogin')) {
-          console.log("Redirecting to Google authentication with OAuth 2.0");
-          // Redirect to Google authentication
-          passport.authenticate('google', { 
-            scope: ['profile', 'email'],
-            prompt: 'select_account',
-            session: true // Ensure session is used
-          })(req, res, next);
-        } else {
-          console.log("Using fallback mock authentication (enableRealLogin=false)");
-          // Use mock data for fallback
-          const seed = `google-${Date.now()}`;
-          const hash = crypto.createHash('sha256').update(seed).digest('hex');
-          const walletAddress = `0x${hash.substring(0, 40)}`;
-          
-          res.setHeader('Content-Type', 'application/json');
-          res.json({
-            name: "Google User (Mock)",
-            email: "mock.user@example.com",
-            walletAddress: walletAddress,
-            balance: "10.0"
-          });
-        }
-      } catch (error) {
-        console.error("Error in Google auth route:", error);
-        next(error);
       }
     });
     
     // Callback route that Google will redirect back to after authentication
     app.get("/api/auth/google/callback", 
-      (req: Request, res: Response, next: NextFunction) => {
-        console.log("Google callback received at:", req.originalUrl);
-        console.log("Request headers:", req.headers);
+      (req, res, next) => {
+        console.log("Google OAuth callback received with query params:", req.query);
+        // Log the full callback URL to verify it matches what's in Google Developer Console
+        console.log("Full callback URL:", `${req.protocol}://${req.get('host')}${req.originalUrl}`);
         next();
       },
       passport.authenticate('google', { 
         failureRedirect: '/login-error',
-        failWithError: true // Enable detailed error reporting
+        failureMessage: true,
+        failWithError: true
       }),
-      (req: Request, res: Response) => {
+      (req, res) => {
         if (req.user) {
-          console.log("Authentication successful, redirecting to merchant dashboard");
-          // Always redirect to merchant dashboard after successful Google OAuth
-          res.redirect('/merchant?loggedIn=true&provider=google');
+          console.log("Authentication successful, user is logged in");
+          console.log("User object:", req.user);
+          
+          // Get stored redirect URL from session
+          const redirectUrl = req.session.redirectUrl || '/merchant';
+          console.log("Redirecting to:", redirectUrl);
+          
+          // Add login params to the redirect URL
+          const targetUrl = new URL(redirectUrl, `${req.protocol}://${req.get('host')}`);
+          targetUrl.searchParams.set('loggedIn', 'true');
+          targetUrl.searchParams.set('provider', 'google');
+          
+          // Clear the session redirectUrl
+          delete req.session.redirectUrl;
+          
+          // Redirect to the target URL
+          res.redirect(targetUrl.toString());
         } else {
-          console.log("Authentication failed");
+          console.log("Authentication failed - no user object found");
           res.redirect('/login-error');
         }
       },
       (err: Error, req: Request, res: Response, next: NextFunction) => {
-        // This error handler will catch Passport authentication errors
-        console.error("Google OAuth error:", err);
-        res.redirect('/login-error?reason=' + encodeURIComponent(err.message));
+        console.error("Google authentication error:", err);
+        res.redirect('/login-error?reason=' + encodeURIComponent(err.message || 'Unknown error'));
       }
     );
     
     // User data endpoint to get currently logged in user
-    app.get("/api/auth/user", (req: Request, res: Response) => {
+    app.get("/api/auth/user", (req, res) => {
       if (req.isAuthenticated() && req.user) {
         res.json(req.user);
       } else {
@@ -266,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn("Google OAuth credentials not found, using mock authentication");
     
     // Use mock data if Google credentials are not configured
-    app.get("/api/social-auth/google", (req: Request, res: Response) => {
+    app.get("/api/social-auth/google", (req, res) => {
       console.log("Using mock authentication (no Google credentials)");
       const seed = `google-${Date.now()}`;
       const hash = crypto.createHash('sha256').update(seed).digest('hex');
@@ -282,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
   
-  app.get("/api/social-auth/facebook", (req: Request, res: Response) => {
+  app.get("/api/social-auth/facebook", (req, res) => {
     // Mock Facebook authentication response
     const seed = `facebook-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
@@ -299,7 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  app.get("/api/social-auth/twitter", (req: Request, res: Response) => {
+  app.get("/api/social-auth/twitter", (req, res) => {
     // Mock Twitter authentication response
     const seed = `twitter-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
@@ -317,7 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Endpoint to check if OAuth credentials are available
-  app.get("/api/auth/check-credentials", (req: Request, res: Response) => {
+  app.get("/api/auth/check-credentials", (req, res) => {
     const googleCredentialsAvailable = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
     
     console.log("Checking credentials availability. Google auth available:", googleCredentialsAvailable);
@@ -379,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/social-auth/apple", (req: Request, res: Response) => {
+  app.get("/api/social-auth/apple", (req, res) => {
     // Mock Apple authentication response
     const seed = `apple-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(seed).digest('hex');
@@ -396,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  app.post("/api/social-auth/logout", (req: Request, res: Response) => {
+  app.post("/api/social-auth/logout", (req, res) => {
     // Handle proper logout for sessions
     if (req.isAuthenticated()) {
       req.logout((err) => {
@@ -527,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get current user
-  app.get("/api/user", (req: Request, res: Response) => {
+  app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -538,7 +539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Logout endpoint for regular authentication
-  app.post("/api/logout", (req: Request, res: Response) => {
+  app.post("/api/logout", (req, res) => {
     if (req.isAuthenticated()) {
       req.logout((err) => {
         if (err) {
@@ -564,14 +565,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Function to broadcast user count to all clients
   const broadcastUserCount = () => {
-    const userCount = activeConnections.size;
-    console.log(`Broadcasting user count: ${userCount}`);
+    // Add base count of 22 to the actual connected users for marketing impression
+    const actualCount = activeConnections.size;
+    const enhancedCount = actualCount + 22;
+    console.log(`Broadcasting user count: ${enhancedCount} (actual: ${actualCount})`);
     
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({ 
           type: 'userCount', 
-          count: userCount 
+          count: enhancedCount 
         }));
       }
     });
@@ -596,10 +599,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Handle subscription requests
           ws.send(JSON.stringify({ type: 'subscribed', channel: data.channel }));
         } else if (data.type === 'getUserCount') {
-          // Send user count directly to the requesting client
+          // Send enhanced user count directly to the requesting client
+          const actualCount = activeConnections.size;
+          const enhancedCount = actualCount + 22;
           ws.send(JSON.stringify({ 
             type: 'userCount', 
-            count: activeConnections.size 
+            count: enhancedCount 
           }));
         }
       } catch (error) {
@@ -617,10 +622,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       broadcastUserCount();
     });
     
-    // Send initial connection confirmation
+    // Send initial connection confirmation with enhanced count
+    const actualCount = activeConnections.size;
+    const enhancedCount = actualCount + 22;
     ws.send(JSON.stringify({ 
       type: 'connected',
-      userCount: activeConnections.size
+      userCount: enhancedCount
     }));
   });
   

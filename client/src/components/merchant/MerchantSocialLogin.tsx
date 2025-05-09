@@ -292,9 +292,7 @@ const MerchantSocialLogin: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium mb-2">CPXTB Balance</p>
                   <p className="text-xl font-bold">
-                    {(serverWalletData.walletAddress === '0x6122b8784718d954659369dde67c79d9f0e4ac67' || walletAddress === '0x6122b8784718d954659369dde67c79d9f0e4ac67') 
-                      ? "100.0" 
-                      : (serverWalletData.balance || balance || '0.0')} 
+                    {serverWalletData.balance || balance || '0.0'} 
                     <span className="text-sm font-normal">CPXTB</span>
                   </p>
                 </div>

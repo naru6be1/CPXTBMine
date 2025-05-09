@@ -53,26 +53,36 @@ declare module 'express-session' {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set trust proxy to work with secure cookies behind proxies (important for OAuth in production)
+  if (process.env.NODE_ENV === 'production') {
+    console.log("Running in production mode - enabling trust proxy");
+    app.set('trust proxy', 1);
+  }
   // Setup Google OAuth authentication if credentials are available
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     console.log("Setting up Google OAuth authentication");
     
-    // Configure session middleware
+    // Configure session middleware for multiple environments
     app.use(session({
       secret: process.env.SESSION_SECRET || 'cpxtb-session-secret',
       resave: false,
       saveUninitialized: true,
-      cookie: { secure: false } // Set to true if using HTTPS
+      cookie: { 
+        secure: process.env.NODE_ENV === 'production', // Secure cookies in production
+        sameSite: 'lax', // Helps with CSRF protection while allowing redirects
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
     }));
     
     app.use(passport.initialize());
     app.use(passport.session());
     
-    // Configure Google OAuth Strategy
+    // Configure Google OAuth Strategy with multi-environment callback URL support
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:3000"}/api/auth/google/callback`,
+      callbackURL: `/api/auth/google/callback`, // Use relative URL to work across environments
+      proxy: true, // Trust first proxy to ensure correct protocol is used
       scope: ['profile', 'email']
     }, async (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => {
       try {
@@ -164,43 +174,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Initial route to start Google authentication
-    app.get("/api/social-auth/google", (req, res) => {
-      const { enableRealLogin, redirectUrl } = req.query;
-      
-      // Store redirect URL in session for later use
-      if (typeof redirectUrl === 'string') {
-        req.session.redirectUrl = redirectUrl;
-      } else {
-        req.session.redirectUrl = '/';
-      }
-      
-      if (enableRealLogin === 'true' || !req.query.hasOwnProperty('enableRealLogin')) {
-        console.log("Redirecting to Google authentication");
-        // Redirect to Google authentication
-        passport.authenticate('google', { 
-          scope: ['profile', 'email'],
-          prompt: 'select_account'
-        })(req, res);
-      } else {
-        console.log("Using fallback mock authentication");
-        // Use mock data for fallback
-        const seed = `google-${Date.now()}`;
-        const hash = crypto.createHash('sha256').update(seed).digest('hex');
-        const walletAddress = `0x${hash.substring(0, 40)}`;
+    app.get("/api/social-auth/google", (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { enableRealLogin, redirectUrl } = req.query;
         
-        res.setHeader('Content-Type', 'application/json');
-        res.json({
-          name: "Google User (Mock)",
-          email: "mock.user@example.com",
-          walletAddress: walletAddress,
-          balance: "10.0"
+        // Debug request information
+        console.log("Google auth request:", {
+          host: req.headers.host,
+          originalUrl: req.originalUrl,
+          referer: req.headers.referer,
+          protocol: req.protocol,
+          secure: req.secure,
+          environment: process.env.NODE_ENV || 'development'
         });
+        
+        // Store redirect URL in session for later use
+        if (typeof redirectUrl === 'string') {
+          req.session.redirectUrl = redirectUrl;
+          console.log("Stored redirect URL in session:", redirectUrl);
+        } else {
+          req.session.redirectUrl = '/';
+          console.log("Using default redirect URL: /");
+        }
+        
+        if (enableRealLogin === 'true' || !req.query.hasOwnProperty('enableRealLogin')) {
+          console.log("Redirecting to Google authentication with OAuth 2.0");
+          // Redirect to Google authentication
+          passport.authenticate('google', { 
+            scope: ['profile', 'email'],
+            prompt: 'select_account',
+            session: true // Ensure session is used
+          })(req, res, next);
+        } else {
+          console.log("Using fallback mock authentication (enableRealLogin=false)");
+          // Use mock data for fallback
+          const seed = `google-${Date.now()}`;
+          const hash = crypto.createHash('sha256').update(seed).digest('hex');
+          const walletAddress = `0x${hash.substring(0, 40)}`;
+          
+          res.setHeader('Content-Type', 'application/json');
+          res.json({
+            name: "Google User (Mock)",
+            email: "mock.user@example.com",
+            walletAddress: walletAddress,
+            balance: "10.0"
+          });
+        }
+      } catch (error) {
+        console.error("Error in Google auth route:", error);
+        next(error);
       }
     });
     
     // Callback route that Google will redirect back to after authentication
     app.get("/api/auth/google/callback", 
-      passport.authenticate('google', { failureRedirect: '/login-error' }),
+      (req: Request, res: Response, next: NextFunction) => {
+        console.log("Google callback received at:", req.originalUrl);
+        console.log("Request headers:", req.headers);
+        next();
+      },
+      passport.authenticate('google', { 
+        failureRedirect: '/login-error',
+        failWithError: true // Enable detailed error reporting
+      }),
       (req, res) => {
         if (req.user) {
           console.log("Authentication successful, redirecting to merchant dashboard");
@@ -210,6 +246,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Authentication failed");
           res.redirect('/login-error');
         }
+      },
+      (err: Error, req: Request, res: Response, next: NextFunction) => {
+        // This error handler will catch Passport authentication errors
+        console.error("Google OAuth error:", err);
+        res.redirect('/login-error?reason=' + encodeURIComponent(err.message));
       }
     );
     

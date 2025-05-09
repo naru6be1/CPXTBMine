@@ -122,6 +122,28 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, [walletAddress, refreshBalance]);
   
+  // Set up automatic periodic refresh of wallet balance (every 30 seconds)
+  useEffect(() => {
+    if (!walletAddress) return;
+    
+    console.log('Setting up automatic balance refresh for wallet:', walletAddress);
+    
+    // Do an initial refresh immediately
+    refreshBalance();
+    
+    // Then set up an interval for periodic refreshes
+    const intervalId = setInterval(() => {
+      console.log('Auto-refreshing wallet balance...');
+      refreshBalance();
+    }, 30000); // 30 seconds
+    
+    // Clean up the interval when component unmounts or wallet changes
+    return () => {
+      console.log('Clearing automatic balance refresh interval');
+      clearInterval(intervalId);
+    };
+  }, [walletAddress, refreshBalance]);
+  
   // Copy wallet address to clipboard
   const copyWalletAddress = useCallback(() => {
     if (walletAddress) {

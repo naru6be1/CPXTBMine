@@ -862,6 +862,36 @@ export class DatabaseStorage implements IStorage {
       );
   }
   
+  async markExpiredPayments(): Promise<number> {
+    const expiredPayments = await this.getExpiredPayments();
+    console.log(`Found ${expiredPayments.length} expired payments to update`);
+    
+    let updatedCount = 0;
+    
+    for (const payment of expiredPayments) {
+      try {
+        // Update each expired payment to have the 'expired' status
+        const [updatedPayment] = await db
+          .update(payments)
+          .set({
+            status: 'expired',
+            updatedAt: new Date()
+          })
+          .where(eq(payments.id, payment.id))
+          .returning();
+          
+        if (updatedPayment) {
+          console.log(`Payment ${payment.id} (${payment.paymentReference}) marked as expired`);
+          updatedCount++;
+        }
+      } catch (error) {
+        console.error(`Error marking payment ${payment.id} as expired:`, error);
+      }
+    }
+    
+    return updatedCount;
+  }
+  
   async getPendingPayments(): Promise<Payment[]> {
     // Debug the query we're about to run
     console.log(`Getting pending payments at ${new Date().toISOString()}`);

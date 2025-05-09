@@ -69,10 +69,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(passport.session());
     
     // Configure Google OAuth Strategy
+    // Log the active production domain for debugging
+    console.log("PRODUCTION_DOMAIN environment variable:", process.env.PRODUCTION_DOMAIN || "Not set");
+    console.log("REPLIT_DEV_DOMAIN environment variable:", process.env.REPLIT_DEV_DOMAIN || "Not set");
+    
+    // Determine the callback URL based on environment
+    const callbackURL = process.env.PRODUCTION_DOMAIN 
+      ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback` 
+      : (process.env.REPLIT_DEV_DOMAIN 
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback` 
+          : "http://localhost:5000/api/auth/google/callback");
+          
+    console.log("Using Google OAuth callback URL:", callbackURL);
+    
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:5000"}/api/auth/google/callback`,
+      callbackURL: callbackURL,
       scope: ['profile', 'email'],
       // Add proxy setting to ensure proper forwarding of secure requests
       proxy: true
@@ -171,7 +184,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Google authentication request headers:", req.headers);
       console.log("Current REPLIT_DEV_DOMAIN:", process.env.REPLIT_DEV_DOMAIN);
       console.log("Current Google strategy callback URL:", 
-        `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:5000"}/api/auth/google/callback`);
+        process.env.PRODUCTION_DOMAIN 
+          ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback` 
+          : (process.env.REPLIT_DEV_DOMAIN 
+              ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback` 
+              : "http://localhost:5000/api/auth/google/callback"));
       
       const { enableRealLogin, redirectUrl } = req.query;
       

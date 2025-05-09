@@ -1,3 +1,7 @@
+// Load environment variables from .env file first
+import * as dotenv from "dotenv";
+dotenv.config();
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -78,9 +82,15 @@ app.use((req, res, next) => {
 
     // Set BASE_URL for password reset links if not set
     if (!process.env.BASE_URL) {
-      // Use the production domain for the application
-      process.env.BASE_URL = 'https://cpxtbmining.com';
-      log(`Setting BASE_URL to production domain: ${process.env.BASE_URL} for password reset emails`);
+      // Use the production domain if available, otherwise use REPLIT_DEV_DOMAIN or localhost
+      if (process.env.PRODUCTION_DOMAIN) {
+        process.env.BASE_URL = `https://${process.env.PRODUCTION_DOMAIN}`;
+      } else if (process.env.REPLIT_DEV_DOMAIN) {
+        process.env.BASE_URL = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else {
+        process.env.BASE_URL = 'http://localhost:5000';
+      }
+      log(`Setting BASE_URL to: ${process.env.BASE_URL} for password reset emails and other links`);
     }
 
     // Check for required environment variables

@@ -35,8 +35,12 @@ async function createTestPendingPayment() {
         created_at, 
         updated_at, 
         expires_at,
-        success_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        success_url,
+        exchange_rate,
+        required_amount,
+        received_amount,
+        remaining_amount
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
       [
         1,                  // merchant_id (using ID 1 for testing)
         paymentReference,   // payment_reference
@@ -46,7 +50,11 @@ async function createTestPendingPayment() {
         new Date(),         // created_at
         new Date(),         // updated_at
         expiresAt,          // expires_at
-        'https://example.com/success'  // success_url
+        'https://example.com/success',  // success_url
+        '2.50',             // exchange_rate (1 USD = 2.5 CPXTB)
+        '25.00',            // required_amount (amount in CPXTB)
+        '0.00',             // received_amount (none received yet)
+        '25.00'             // remaining_amount (full amount remaining)
       ]
     );
 

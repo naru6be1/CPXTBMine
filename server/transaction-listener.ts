@@ -68,8 +68,19 @@ async function processTransferEvent(
         // Get merchant's wallet address and normalize it
         const merchantAddress = merchant.walletAddress.toLowerCase();
         
-        // Log for debugging
-        console.log(`Payment ${payment.id}: Merchant=${payment.merchantId}, Merchant Address=${merchantAddress}, Transaction To=${recipientAddress}`);
+        // Enhanced logging for address matching
+        console.log(`MATCHING ADDRESSES | Payment ${payment.id}: Merchant=${payment.merchantId}`);
+        console.log(`- Merchant Address from DB: ${merchantAddress}`);
+        console.log(`- Transaction Recipient:    ${recipientAddress}`);
+        console.log(`- Is Match: ${merchantAddress === recipientAddress ? 'YES ✅' : 'NO ❌'}`);
+        
+        // Detailed hex comparison for troubleshooting
+        console.log('- Hex comparison:');
+        for (let i = 0; i < merchantAddress.length; i++) {
+          if (merchantAddress[i] !== recipientAddress[i]) {
+            console.log(`  Position ${i}: ${merchantAddress[i]} vs ${recipientAddress[i]}`);
+          }
+        }
         
         if (merchantAddress === recipientAddress) {
           const paymentType = merchantAddress === recipientAddress ? '(Direct to merchant)' : '(Via treasury with warning)';

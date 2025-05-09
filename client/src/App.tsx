@@ -41,6 +41,7 @@ const SocialLoginTestPage = lazy(() => import("@/pages/social-login-test"));
 const PayPage = lazy(() => import("@/pages/pay-page"));
 const ClaimTokensPage = lazy(() => import("@/pages/claim-tokens"));
 const BuyCPXTBPage = lazy(() => import("@/pages/buy-cpxtb"));
+const PresentationPage = lazy(() => import("@/pages/presentation"));
 
 // No games
 
@@ -113,6 +114,7 @@ function Router() {
         <Route path="/reports" component={Home} /> {/* Placeholder until Reports page is created */}
         <Route path="/payments" component={Home} /> {/* Placeholder until Payments page is created */}
         <Route path="/settings" component={ProfilePage} /> {/* Placeholder until Settings page is created */}
+        <Route path="/presentation" component={PresentationPage} />
         
         <Route component={NotFound} />
       </Switch>

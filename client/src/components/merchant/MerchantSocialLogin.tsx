@@ -13,6 +13,12 @@ const MerchantSocialLogin: React.FC = () => {
   const [userInfoState, setUserInfoState] = useState<any>(null);
   const { toast } = useToast();
   
+  // Track server-authenticated wallet data
+  const [serverWalletData, setServerWalletData] = useState<{
+    walletAddress?: string;
+    balance?: string;
+  }>({});
+
   // Attempt to fetch user info from the server to ensure we have the latest data
   useEffect(() => {
     const fetchUserFromServer = async () => {
@@ -34,6 +40,21 @@ const MerchantSocialLogin: React.FC = () => {
             "User";
             
           console.log("Using display name:", displayName, "from user data:", userData);
+          
+          // Store server-authenticated wallet data if available
+          if (userData.walletAddress) {
+            console.log("Using server-authenticated wallet:", userData.walletAddress);
+            setServerWalletData({
+              walletAddress: userData.walletAddress,
+              balance: userData.balance || "0.0"
+            });
+            
+            // If this is a real authentication, clear any demo values from localStorage
+            if (userData.provider === 'google' && !userData.isDemoUser) {
+              console.log("Real Google auth detected - clearing any demo values from localStorage");
+              localStorage.removeItem('cpxtb_user');
+            }
+          }
           
           setUserInfoState({
             name: displayName,

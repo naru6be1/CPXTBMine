@@ -1037,6 +1037,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API endpoint to get crypto wallet balance
+  app.get("/api/balance", async (req, res) => {
+    try {
+      const { address } = req.query;
+      
+      if (!address || typeof address !== 'string') {
+        return res.status(400).json({ message: "Wallet address is required" });
+      }
+
+      // Create a client to interact with the blockchain
+      const client = createPublicClient({
+        chain: base,
+        transport: http(
+          process.env.BASE_RPC_API_KEY 
+            ? `https://base-mainnet.g.alchemy.com/v2/${process.env.BASE_RPC_API_KEY}`
+            : "https://mainnet.base.org"
+        ),
+      });
+
+      // Query the token contract for balance
+      const walletAddress = address.toLowerCase();
+      console.log("Getting balance for wallet address:", walletAddress);
+
+      try {
+        // Get balance from smart contract
+        const balance = await client.readContract({
+          address: CPXTB_TOKEN_ADDRESS,
+          abi: parseAbi([
+            "function balanceOf(address owner) view returns (uint256)",
+          ]),
+          functionName: "balanceOf",
+          args: [walletAddress],
+        });
+
+        // Convert balance from wei to ether (with 18 decimals)
+        const formattedBalance = formatUnits(balance as bigint, 18);
+        console.log(`Wallet ${walletAddress} balance: ${formattedBalance} CPXTB`);
+
+        res.json({ 
+          balance: formattedBalance,
+          walletAddress,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Error querying token balance:", error);
+        res.status(500).json({ message: "Failed to retrieve token balance" });
+      }
+    } catch (error: any) {
+      console.error("Error in balance endpoint:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // API endpoint to get payments for a merchant (MUST come before the :id route!)
   app.get("/api/merchants/payments", async (req, res) => {
     try {

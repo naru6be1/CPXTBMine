@@ -92,15 +92,23 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
   
   // Function to refresh balance
   const refreshBalance = useCallback(async () => {
-    if (!walletAddress) return;
+    if (!walletAddress) {
+      console.log('No wallet address available, skipping balance refresh');
+      return;
+    }
     
     try {
+      console.log(`Refreshing balance for wallet: ${walletAddress}`);
       const response = await fetch(`/api/balance?address=${walletAddress}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch balance');
+        const errorText = await response.text();
+        console.error(`Failed to fetch balance (${response.status}): ${errorText}`);
+        throw new Error(`Failed to fetch balance: ${response.statusText}`);
       }
       
       const data = await response.json();
+      console.log(`Retrieved balance: ${data.balance} CPXTB for wallet ${data.walletAddress}`);
       setBalance(data.balance);
       
       // Update local storage
@@ -109,9 +117,18 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         const userData = JSON.parse(storedUser);
         userData.balance = data.balance;
         localStorage.setItem('cpxtb_user', JSON.stringify(userData));
+        console.log('Updated wallet balance in local storage');
       }
+      
+      return data.balance; // Return the balance for callers who need it
     } catch (err) {
-      console.error('Error refreshing balance:', err);
+      // Convert error to string for better logging
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('Error refreshing balance:', errorMessage);
+      
+      // Don't throw the error - just log it and continue
+      // This prevents the periodic refresh from breaking
+      return null;
     }
   }, [walletAddress]);
   

@@ -408,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       name: "Facebook User",
       email: "facebook.user@example.com",
       walletAddress: walletAddress,
-      balance: "10.0"
+      balance: "0.0" // Realistic zero balance
     });
   });
   
@@ -425,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       name: "Twitter User",
       email: "twitter.user@example.com",
       walletAddress: walletAddress,
-      balance: "10.0"
+      balance: "0.0" // Realistic zero balance
     });
   });
   
@@ -506,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       name: "Apple User",
       email: "apple.user@example.com",
       walletAddress: walletAddress,
-      balance: "10.0"
+      balance: "0.0" // Realistic zero balance
     });
   });
   

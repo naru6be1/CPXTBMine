@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -14,13 +14,75 @@ import {
   Database,
   Shield,
   FileText,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 
 export default function Presentation() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
   const presentationRef = useRef<HTMLDivElement>(null);
+  
+  // Define image URLs for slides
+  const imageUrls = {
+    platform: "https://cdn.prod.website-files.com/5ff66329429d880392f6cba2/61c1bd30d54cb587a3b1c6b1_Cryptocurrency%20design%20template.png",
+    overview: "https://www.venafi.com/sites/default/files/content/body/Blockchain_Blog_1.png",
+    merchant: "https://img.freepik.com/free-vector/business-person-working-computer-office-flat-vector-illustration_1262-18403.jpg",
+    dashboard: "https://i.ytimg.com/vi/NZ9J40EZfA0/maxresdefault.jpg",
+    payment: "https://cdn.dribbble.com/users/1821386/screenshots/14723773/media/0a9e34f5fb2a7bbf0ec2bf7480e013f2.png",
+    customer: "https://img.freepik.com/free-vector/tiny-people-with-bitcoin-blockchain-cryptocurrency_74855-17541.jpg",
+    paypal: "https://s.yimg.com/os/creatr-uploaded-images/2021-03/f6955150-8ee2-11eb-9f3c-b9bc84d917f8",
+    architecture: "https://cdn.educba.com/academy/wp-content/uploads/2019/04/What-is-Enterprise-Architecture.jpg",
+    security: "https://www.bitsight.com/hs-fs/hubfs/Imported_Blog_Media/Top-Three-Information-Security-Frameworks-1.jpeg",
+    flow: "https://i.pinimg.com/originals/9a/18/c9/9a18c935c0e765282252feebac039f41.png",
+    getStarted: "https://img.freepik.com/free-vector/business-team-discussing-ideas-startup_74855-4380.jpg"
+  };
+  
+  // Function to get the right image for the current slide
+  const getSlideImage = (index: number) => {
+    switch(index) {
+      case 0: return imageUrls.platform;
+      case 1: return imageUrls.overview;
+      case 2: return imageUrls.merchant;
+      case 3: return imageUrls.dashboard;
+      case 4: return imageUrls.payment;
+      case 5: return imageUrls.customer;
+      case 6: return imageUrls.paypal;
+      case 7: return imageUrls.architecture;
+      case 8: return imageUrls.security;
+      case 9: return imageUrls.flow;
+      case 10: return imageUrls.getStarted;
+      default: return "";
+    }
+  };
+  
+  // Function to preload all images
+  useEffect(() => {
+    const preloadImages = async () => {
+      try {
+        const imagePromises = Object.values(imageUrls).map(url => {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = url;
+            img.crossOrigin = "anonymous";
+            img.onload = () => resolve(url);
+            img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+          });
+        });
+        
+        await Promise.all(imagePromises);
+        setImagesLoaded(true);
+      } catch (error) {
+        console.error("Failed to preload images:", error);
+        // If images fail to load, we'll still show the presentation without them
+        setImagesLoaded(true);
+      }
+    };
+    
+    preloadImages();
+  }, []);
 
   const slides = [
     {
@@ -158,50 +220,56 @@ export default function Presentation() {
 
   const generatePDF = async () => {
     if (!presentationRef.current) return;
+    
+    setIsGeneratingPDF(true);
 
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    
-    // Create a loading state or notification here if needed
-    
-    // We need to capture each slide individually
-    for (let i = 0; i < slides.length; i++) {
-      // Navigate to the slide
-      setCurrentSlide(i);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      // Wait for the rendering to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (!presentationRef.current) continue;
-      
-      try {
-        const canvas = await html2canvas(presentationRef.current, {
-          scale: 2,
-          useCORS: true,
-          logging: false
-        });
+      // We need to capture each slide individually
+      for (let i = 0; i < slides.length; i++) {
+        // Navigate to the slide
+        setCurrentSlide(i);
         
-        const imgData = canvas.toDataURL('image/jpeg', 0.7);
+        // Wait for the rendering to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Add new page if not the first page
-        if (i > 0) {
-          pdf.addPage();
+        if (!presentationRef.current) continue;
+        
+        try {
+          const canvas = await html2canvas(presentationRef.current, {
+            scale: 2,
+            useCORS: true,
+            logging: false
+          });
+          
+          const imgData = canvas.toDataURL('image/jpeg', 0.7);
+          
+          // Add new page if not the first page
+          if (i > 0) {
+            pdf.addPage();
+          }
+          
+          // Calculate the proper dimensions to fit the slide on the page
+          const imgWidth = pdfWidth;
+          const imgHeight = canvas.height * imgWidth / canvas.width;
+          
+          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+          
+        } catch (error) {
+          console.error("Error generating PDF slide:", error);
         }
-        
-        // Calculate the proper dimensions to fit the slide on the page
-        const imgWidth = pdfWidth;
-        const imgHeight = canvas.height * imgWidth / canvas.width;
-        
-        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
-        
-      } catch (error) {
-        console.error("Error generating PDF slide:", error);
       }
+      
+      // Save the PDF
+      pdf.save('CPXTB_Platform_Presentation.pdf');
+    } catch (error) {
+      console.error("PDF generation error:", error);
+    } finally {
+      setIsGeneratingPDF(false);
     }
-    
-    // Save the PDF
-    pdf.save('CPXTB_Platform_Presentation.pdf');
   };
 
   const toggleMenu = () => {
@@ -211,19 +279,31 @@ export default function Presentation() {
   // Render the current slide
   const renderSlideContent = () => {
     const slide = slides[currentSlide];
+    const slideImage = getSlideImage(currentSlide);
     
     return (
       <div className="flex flex-col items-center justify-center h-full w-full p-8 text-center">
-        <div className="mb-8">
+        <div className="mb-6">
           {slide.icon}
         </div>
         <h1 className="text-3xl font-bold mb-2">{slide.title}</h1>
-        {slide.subtitle && <h2 className="text-xl text-gray-600 mb-6">{slide.subtitle}</h2>}
+        {slide.subtitle && <h2 className="text-xl text-gray-600 mb-4">{slide.subtitle}</h2>}
+        
+        {slideImage && (
+          <div className="mb-6 max-w-md overflow-hidden rounded-lg shadow-md">
+            <img 
+              src={slideImage} 
+              alt={`Slide ${currentSlide + 1} illustration`} 
+              className="w-full h-auto object-cover"
+              crossOrigin="anonymous"
+            />
+          </div>
+        )}
         
         {typeof slide.content === 'string' ? (
-          <p className="text-lg">{slide.content}</p>
+          <p className="text-lg mt-4">{slide.content}</p>
         ) : (
-          <ul className="text-left list-disc pl-6 space-y-2 max-w-xl mx-auto">
+          <ul className="text-left list-disc pl-6 space-y-2 max-w-xl mx-auto mt-4">
             {slide.content.map((item, index) => (
               <li key={index} className="text-lg">{item}</li>
             ))}
@@ -256,9 +336,19 @@ export default function Presentation() {
               <button 
                 className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 onClick={generatePDF}
+                disabled={isGeneratingPDF}
               >
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
+                {isGeneratingPDF ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download PDF
+                  </>
+                )}
               </button>
             </div>
           )}

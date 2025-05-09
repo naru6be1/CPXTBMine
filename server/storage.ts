@@ -71,6 +71,7 @@ export interface IStorage {
     securityMetadata?: string
   ): Promise<Payment>;
   getExpiredPayments(): Promise<Payment[]>;
+  markExpiredPayments(): Promise<number>;
   getPendingPayments(): Promise<Payment[]>;
   getMerchantReport(merchantId: number, startDate: Date, endDate: Date): Promise<{
     totalPayments: number;

@@ -7,6 +7,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import enhancedChallengeMiddleware from "./middleware/enhanced-challenge-middleware";
 import { runDatabaseMigrations } from "./migrations";
+import { storage } from "./storage";
 
 // Add more detailed startup logging
 log("Starting server initialization with enhanced logging...");
@@ -155,6 +156,22 @@ app.use((req, res, next) => {
       log(`Environment: ${process.env.NODE_ENV || 'development'}`);
       log(`Database connection status: ${process.env.DATABASE_URL ? 'configured' : 'missing'}`);
       log("Environment variables available:", Object.keys(process.env).join(', '));
+      
+      // Set up scheduled task to mark expired payments every minute
+      log("Setting up scheduled task for expired payment monitoring");
+      setInterval(async () => {
+        try {
+          log("Running scheduled task: Checking for expired payments");
+          const updatedCount = await storage.markExpiredPayments();
+          if (updatedCount > 0) {
+            log(`✅ Successfully marked ${updatedCount} expired payments`);
+          } else {
+            log(`ℹ️ No expired payments found to update`);
+          }
+        } catch (error) {
+          console.error("❌ Error in scheduled expired payment task:", error);
+        }
+      }, 60000); // Run every 60 seconds
     });
   } catch (error) {
     console.error("Failed to start server:", error);

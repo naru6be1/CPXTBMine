@@ -6,6 +6,9 @@ import { eq } from 'drizzle-orm';
 import { payments } from '@shared/schema';
 import { WebSocket } from 'ws';
 
+// Keep track of processed transaction hashes to avoid double-processing
+const processedTransactions = new Map<string, Set<number>>();
+
 // ABI for ERC20 token - we only need the Transfer event
 const ERC20_ABI = [
   "event Transfer(address indexed from, address indexed to, uint256 value)"
@@ -56,6 +59,14 @@ async function processTransferEvent(
     for (const payment of pendingPayments) {
       try {
         console.log(`Checking pending payment ID: ${payment.id}, Reference: ${payment.paymentReference}`);
+        
+        // Check if this payment has already been processed with this transaction hash
+        // This prevents one transaction from erroneously marking multiple payments as complete
+        const processedPaymentsForTx = processedTransactions.get(txHash) || new Set<number>();
+        if (processedPaymentsForTx.has(payment.id)) {
+          console.log(`⚠️ Payment ${payment.id} already processed with transaction ${txHash} - skipping to prevent duplicate processing`);
+          continue;
+        }
         
         // Get the merchant for this payment
         const merchant = await storage.getMerchant(payment.merchantId);
@@ -186,6 +197,16 @@ async function processTransferEvent(
               remainingAmount,
               JSON.stringify(securityMetadata) // Store security check metadata
             );
+            
+            // Track that this payment has been processed with this transaction hash
+            // This prevents double-processing of the same payment with the same transaction
+            let processedPaymentsForTx = processedTransactions.get(txHash);
+            if (!processedPaymentsForTx) {
+              processedPaymentsForTx = new Set<number>();
+              processedTransactions.set(txHash, processedPaymentsForTx);
+            }
+            processedPaymentsForTx.add(payment.id);
+            console.log(`✅ Added payment ${payment.id} to processed list for transaction ${txHash}`);
             
             // FIXED: No longer doing direct DB updates to avoid duplicating email notifications
             // Instead, we rely completely on the storage.updatePaymentStatus method which handles emails appropriately

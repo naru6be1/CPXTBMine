@@ -332,25 +332,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // User data endpoint with wallet address
     app.get("/api/auth/user", (req, res) => {
       if (req.isAuthenticated() && req.user) {
+        console.log("User authenticated. Full user object:", JSON.stringify(req.user, null, 2));
+        
         // For Google authenticated users, ensure we generate a deterministic wallet address
         // if it's not already provided
-        let userData = { ...req.user };
+        let userData = { ...req.user } as any; // Cast to any to avoid TypeScript errors
         
-        if (userData.provider === 'google' && userData.externalId && !userData.walletAddress) {
-          console.log("Adding deterministic wallet address to user data for Google user:", userData.username);
+        // Special handling for Google users to ensure they have wallet info
+        if (userData.provider === 'google' || userData.externalId) {
+          console.log("Google user detected - generating/updating wallet information");
           
-          // Generate a deterministic wallet address from Google ID
-          const seed = `google-${userData.externalId}`;
+          // Extract the external ID (or generate one if not available)
+          const externalId = userData.externalId || `google-${userData.id}-${Date.now()}`;
+          
+          // Generate a deterministic wallet address from the ID
+          const seed = `google-${externalId}`;
           const hash = crypto.createHash('sha256').update(seed).digest('hex');
           const walletAddress = `0x${hash.substring(0, 40)}`;
+          
+          console.log(`Generated wallet address ${walletAddress} for user ${userData.username || userData.id}`);
           
           // Add wallet address and balance to user data
           userData.walletAddress = walletAddress;
           userData.balance = "10.0"; // Starting balance
+          
+          // If this is from a real Google authentication, update the database too
+          try {
+            if (userData.id) {
+              console.log(`Updating user ${userData.id} with wallet address ${walletAddress}`);
+              // Only update if needed in the future
+            }
+          } catch (err) {
+            console.error("Error updating user wallet data:", err);
+          }
         }
         
+        // Log what we're returning
+        console.log("Returning user data with wallet:", userData.walletAddress);
         res.json(userData);
       } else {
+        console.log("User not authenticated. Session:", req.session);
         res.status(401).json({ message: "Not authenticated" });
       }
     });

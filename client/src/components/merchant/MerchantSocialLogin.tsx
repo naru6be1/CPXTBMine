@@ -110,6 +110,12 @@ const MerchantSocialLogin: React.FC = () => {
 
   const handleLogin = async () => {
     try {
+      // Clear any existing demo data
+      console.log("Clearing all local storage data before Google authentication");
+      localStorage.removeItem('cpxtb_user');
+      localStorage.removeItem('cpxtb_wallet');
+      localStorage.removeItem('cpxtb_login');
+      
       // Direct Google OAuth approach - redirect the user to Google
       const currentUrl = window.location.href;
       const redirectUrl = encodeURIComponent(currentUrl);
@@ -122,9 +128,13 @@ const MerchantSocialLogin: React.FC = () => {
         duration: 3000
       });
       
-      // Navigate directly to the authentication endpoint - this is better than using the login function
+      // Force reload to clear any cached state in React components
+      const authUrl = `/api/social-auth/google?enableRealLogin=true&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}`;
+      console.log("Redirecting to:", authUrl);
+      
+      // Navigate directly to the authentication endpoint
       setTimeout(() => {
-        window.location.href = `/api/social-auth/google?enableRealLogin=true&redirectUrl=${redirectUrl}`;
+        window.location.href = authUrl;
       }, 800);
     } catch (error) {
       toast({
@@ -286,7 +296,8 @@ const MerchantSocialLogin: React.FC = () => {
               </>
             )}
             
-            {!walletAddress && (
+            {/* Only show the warning message if no wallet address is found from any source */}
+            {!serverWalletData.walletAddress && !walletAddress && (
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-md">
                 <p className="text-sm text-amber-800">
                   Your account doesn't have a wallet connected yet. You may need to reconnect with Google to create a wallet.

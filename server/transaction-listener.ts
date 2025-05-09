@@ -9,6 +9,29 @@ import { WebSocket } from 'ws';
 // Keep track of processed transaction hashes to avoid double-processing
 const processedTransactions = new Map<string, Set<number>>();
 
+// Track when transactions were first seen for cleanup purposes
+const transactionTimestamps = new Map<string, number>();
+
+// Set a cleanup interval to prevent memory leaks - remove old txs after 1 hour
+setInterval(() => {
+  // We don't need to persist these between server restarts
+  // This is only to prevent double-processing within a single server session
+  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+  
+  // Get entries older than one hour from our helper map
+  const oldEntries = Array.from(transactionTimestamps.entries())
+    .filter(([_, timestamp]) => timestamp < oneHourAgo);
+    
+  // Remove old entries from both maps
+  for (const [txHash, _] of oldEntries) {
+    processedTransactions.delete(txHash);
+    transactionTimestamps.delete(txHash);
+    console.log(`Removed old transaction ${txHash} from tracking to prevent memory leaks`);
+  }
+  
+  console.log(`Transaction tracking cleanup complete: ${oldEntries.length} old txs removed, ${processedTransactions.size} active txs remain`);
+}, 15 * 60 * 1000); // Check every 15 minutes
+
 // ABI for ERC20 token - we only need the Transfer event
 const ERC20_ABI = [
   "event Transfer(address indexed from, address indexed to, uint256 value)"
@@ -36,6 +59,12 @@ async function processTransferEvent(
   txHash: string
 ) {
   console.log(`Processing transfer event: ${from} -> ${to}, value: ${value.toString()}, txHash: ${txHash}`);
+  
+  // Add timestamp tracking for this transaction
+  if (!transactionTimestamps.has(txHash)) {
+    transactionTimestamps.set(txHash, Date.now());
+    console.log(`Added transaction ${txHash} to timestamp tracking`);
+  }
   
   try {
     // Get all pending payments that haven't expired yet

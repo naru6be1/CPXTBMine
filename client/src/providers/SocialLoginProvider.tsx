@@ -99,33 +99,60 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     
     try {
       console.log(`Refreshing balance for wallet: ${walletAddress}`);
-      const response = await fetch(`/api/balance?address=${walletAddress}`);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Failed to fetch balance (${response.status}): ${errorText}`);
-        throw new Error(`Failed to fetch balance: ${response.statusText}`);
+      // Add a timeout to the fetch request to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      try {
+        const response = await fetch(`/api/balance?address=${walletAddress}`, {
+          signal: controller.signal
+        });
+        
+        // Clear the timeout since the request completed
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Failed to fetch balance (${response.status}): ${errorText}`);
+          // Don't throw here, just log the error and continue
+          console.log('Balance refresh failed, will try again next cycle');
+          return; // Return early but don't break the refresh cycle
+        }
+        
+        const data = await response.json();
+        console.log(`Retrieved balance: ${data.balance} CPXTB for wallet ${data.walletAddress}`);
+        setBalance(data.balance);
+        
+        // Update local storage with new balance
+        try {
+          const storedUser = localStorage.getItem('cpxtb_user');
+          if (storedUser) {
+            const userData = JSON.parse(storedUser);
+            userData.balance = data.balance;
+            localStorage.setItem('cpxtb_user', JSON.stringify(userData));
+            console.log('Updated wallet balance in local storage');
+          }
+        } catch (localStorageError) {
+          console.error('Error updating local storage:', localStorageError);
+          // Continue even if localStorage update fails
+        }
+        
+        return data.balance; // Return the balance for callers who need it
+      } catch (fetchError: any) {
+        // Clear the timeout if the fetch threw an error
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          console.warn('Balance refresh timed out after 5 seconds');
+        } else {
+          console.error('Error during fetch operation:', fetchError);
+        }
+        return; // Return early but don't break the refresh cycle
       }
-      
-      const data = await response.json();
-      console.log(`Retrieved balance: ${data.balance} CPXTB for wallet ${data.walletAddress}`);
-      setBalance(data.balance);
-      
-      // Update local storage
-      const storedUser = localStorage.getItem('cpxtb_user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        userData.balance = data.balance;
-        localStorage.setItem('cpxtb_user', JSON.stringify(userData));
-        console.log('Updated wallet balance in local storage');
-      }
-      
-      return data.balance; // Return the balance for callers who need it
-    } catch (err) {
-      // Convert error to string for better logging
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('Error refreshing balance:', errorMessage);
-      
+    } catch (error) {
+      // This is the outer try/catch to make absolutely sure the function doesn't throw
+      console.error('Unexpected error during balance refresh:', error);
       // Don't throw the error - just log it and continue
       // This prevents the periodic refresh from breaking
       return null;

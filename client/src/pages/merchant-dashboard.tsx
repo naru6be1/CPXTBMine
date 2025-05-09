@@ -2086,7 +2086,7 @@ export default function MerchantDashboard() {
                           <h4 className="font-medium text-sm">What is Social Login Payment?</h4>
                           <p className="text-sm text-muted-foreground">
                             This QR code allows your customers to pay with CPXTB tokens without needing a crypto wallet. 
-                            They can login with their Google, Apple, or email accounts to make payments.
+                            They can login with their Google account to make payments easily and securely.
                           </p>
                         </div>
                       </div>

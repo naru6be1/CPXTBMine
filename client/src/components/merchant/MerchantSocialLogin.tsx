@@ -10,10 +10,57 @@ const MerchantSocialLogin: React.FC = () => {
   const { isLoggedIn, isLoading: socialLoading, userInfo, walletAddress, balance, login, logout, copyWalletAddress } = useSocialLogin();
   const { user, isLoading: authLoading, logoutMutation } = useAuth();
   const [copied, setCopied] = useState(false);
+  const [userInfoState, setUserInfoState] = useState<any>(null);
   const { toast } = useToast();
   
+  // Attempt to fetch user info from the server to ensure we have the latest data
+  useEffect(() => {
+    const fetchUserFromServer = async () => {
+      try {
+        const response = await fetch('/api/auth/user');
+        
+        if (response.ok) {
+          const userData = await response.json();
+          // We found server-side authentication data!
+          console.log("Found authenticated user on server:", userData);
+          setUserInfoState({
+            name: userData.username,
+            email: userData.email,
+            provider: 'google'
+          });
+        } else {
+          console.log("No server authentication found, using client-side data");
+          // Fall back to local data if available
+          if (userInfo) {
+            setUserInfoState(userInfo);
+          } else if (user) {
+            setUserInfoState({
+              name: user.username,
+              email: user.email,
+              provider: 'server'
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        // Fall back to local data on error
+        if (userInfo) {
+          setUserInfoState(userInfo);
+        } else if (user) {
+          setUserInfoState({
+            name: user.username,
+            email: user.email,
+            provider: 'server'
+          });
+        }
+      }
+    };
+    
+    fetchUserFromServer();
+  }, [user, userInfo]);
+  
   // Determine the actual authentication state by checking both regular auth and social login
-  const actuallyLoggedIn = isLoggedIn || !!user;
+  const actuallyLoggedIn = isLoggedIn || !!user || !!userInfoState;
   const isLoading = socialLoading || authLoading || logoutMutation.isPending;
   
   // For debugging
@@ -24,12 +71,28 @@ const MerchantSocialLogin: React.FC = () => {
       actuallyLoggedIn,
       user: user ? `${user.username} (${user.email || 'no email'})` : 'none',
       socialUser: userInfo ? `${userInfo.name} (${userInfo.email || 'no email'})` : 'none',
+      serverUser: userInfoState ? `${userInfoState.name} (${userInfoState.email || 'no email'})` : 'none'
     });
-  }, [isLoggedIn, user, userInfo, actuallyLoggedIn]);
+  }, [isLoggedIn, user, userInfo, userInfoState, actuallyLoggedIn]);
 
   const handleLogin = async () => {
     try {
-      await login('google');
+      // Direct Google OAuth approach - redirect the user to Google
+      const currentUrl = window.location.href;
+      const redirectUrl = encodeURIComponent(currentUrl);
+      console.log("Redirecting to Google authentication...");
+      
+      // Notify user about the redirection
+      toast({
+        title: "Redirecting to Google",
+        description: "You'll be redirected to Google to sign in.",
+        duration: 3000
+      });
+      
+      // Navigate directly to the authentication endpoint - this is better than using the login function
+      setTimeout(() => {
+        window.location.href = `/api/social-auth/google?enableRealLogin=true&redirectUrl=${redirectUrl}`;
+      }, 800);
     } catch (error) {
       toast({
         title: "Login Failed",
@@ -41,21 +104,37 @@ const MerchantSocialLogin: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      // Determine which logout method to use
-      if (user) {
-        // If user is authenticated with the traditional system, use the auth logout
+      // Always log out from both systems to be safe
+      // First, try the traditional auth logout
+      try {
         await logoutMutation.mutateAsync();
-        toast({
-          title: "Logged Out",
-          description: "You have been logged out successfully.",
-        });
-      } else if (isLoggedIn) {
-        // If user is authenticated with social login, use the social logout
-        await logout();
-      } else {
-        // Not logged in (shouldn't happen)
-        console.error("Attempting to log out when not logged in");
+      } catch (authError) {
+        console.warn("Auth logout error (may be expected):", authError);
       }
+      
+      // Then, try the social login logout
+      try {
+        await logout();
+      } catch (socialError) {
+        console.warn("Social logout error (may be expected):", socialError);
+      }
+      
+      // Also clear localStorage to ensure all client-side data is removed
+      localStorage.removeItem('cpxtb_user');
+      
+      // Clear our component state
+      setUserInfoState(null);
+      
+      // Show success message
+      toast({
+        title: "Logged Out",
+        description: "You have been logged out successfully.",
+      });
+      
+      // Refresh the page to reset all state
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
     } catch (error) {
       console.error("Logout error:", error);
       toast({
@@ -78,9 +157,9 @@ const MerchantSocialLogin: React.FC = () => {
     }
   };
 
-  // Get the displayed name and email based on available authentication methods
-  const displayName = userInfo?.name || user?.username || "User";
-  const displayEmail = userInfo?.email || user?.email || "";
+  // Get the displayed name and email based on available authentication methods, prioritizing server data
+  const displayName = userInfoState?.name || userInfo?.name || user?.username || "User";
+  const displayEmail = userInfoState?.email || userInfo?.email || user?.email || "";
 
   return (
     <Card className="w-full max-w-md shadow-md">

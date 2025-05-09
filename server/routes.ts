@@ -122,7 +122,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           // Create new user with proper structure for database insertion
           const newUserData = {
-            username: `google_${Date.now().toString(36)}`,
+            // Use the Google profile display name if available, otherwise a fallback
+            username: profile.displayName || `Google User ${profile.id.substring(0, 6)}`,
             password: await hashPassword('oauth-user'), // Use password hashing to maintain security
             referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
             email: profile.emails && profile.emails[0] ? profile.emails[0].value : undefined,
@@ -231,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Callback route that Google will redirect back to after authentication
     app.get("/api/auth/google/callback", 
-      (req, res, next) => {
+      (req: Request, res: Response, next: NextFunction) => {
         console.log("Google OAuth callback received with query params:", req.query);
         // Log the full callback URL to verify it matches what's in Google Developer Console
         console.log("Full callback URL:", `${req.protocol}://${req.get('host')}${req.originalUrl}`);
@@ -242,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         failureMessage: true,
         failWithError: true
       }),
-      (req, res) => {
+      (req: Request, res: Response) => {
         if (req.user) {
           console.log("Authentication successful, user is logged in");
           console.log("User object:", req.user);
@@ -363,6 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         // Create a new user with social login credentials
         user = await storage.createUser({
+          // Use the actual user name instead of a generated ID
           username: name,
           email: email,
           password: await hashPassword(crypto.randomBytes(20).toString('hex')), // Random password

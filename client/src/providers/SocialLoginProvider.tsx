@@ -234,7 +234,7 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, [walletAddress, toast]);
   
-  // Login with social provider
+  // Login with social provider (only supports real Google OAuth)
   const login = useCallback(async (provider: string) => {
     setIsLoading(true);
     setError(null);
@@ -242,173 +242,31 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     try {
       console.log(`Attempting to log in with ${provider}...`);
       
-      // Check for login method preference in URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const enableRealLogin = urlParams.get('useBasicLogin') !== 'true'; // Default to real login unless explicitly disabled
-      const enableWeb3Auth = urlParams.get('enableWeb3Auth') === 'true';
-      
-      if (enableWeb3Auth) {
-        console.log("Web3Auth enabled via URL parameter - attempting to use it");
-      } else if (enableRealLogin) {
-        console.log("Using real Google/social authentication for development testing");
-      } else {
-        console.log("Using BasicSocialLogin fallback solution (simplified login)");
+      // Only Google is supported
+      if (provider.toLowerCase() !== 'google') {
+        throw new Error('Only Google authentication is currently supported');
       }
       
-      // Try server API endpoint first
-      try {
-        // For real Google/social authentication, we use GET request to redirect to provider
-        if (enableRealLogin) {
-          // Show a visible notification to the user
-          toast({
-            title: "Using Real Google Authentication",
-            description: "Redirecting to Google for real account authentication...",
-            duration: 3000,
-          });
-          
-          console.log(`Redirecting to real authentication at /api/social-auth/${provider.toLowerCase()}`);
-          console.log(`Current Replit domain: ${window.location.origin}`);
-          console.log(`Redirect URL will be: ${window.location.href}`);
-          
-          // Delay redirect slightly to let toast appear
-          setTimeout(() => {
-            // Redirect to the auth endpoint which will then redirect to Google
-            const redirectUrl = window.location.href;
-            const authUrl = `/api/social-auth/${provider.toLowerCase()}?enableRealLogin=true&redirectUrl=${encodeURIComponent(redirectUrl)}`;
-            console.log(`Full auth URL: ${authUrl}`);
-            window.location.href = authUrl;
-          }, 1500);
-          
-          return; // Stop further execution since we're redirecting
-        }
-        
-        // Legacy approach - Make direct API call to get mocked user data
-        console.log(`Making fetch request to /api/social-auth/${provider.toLowerCase()}`);
-        const response = await fetch(`/api/social-auth/${provider.toLowerCase()}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            redirectUrl: window.location.href,
-            enableWeb3Auth: enableWeb3Auth,
-            enableRealLogin: false
-          }),
-        });
-        
-        // First check if the response is OK
-        if (!response.ok) {
-          console.error('Response not OK:', response.status, response.statusText);
-          throw new Error(`Authentication with ${provider} failed: ${response.statusText}`);
-        }
-        
-        // Check the content type to make sure we're getting JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('Unexpected content type:', contentType);
-          
-          // Try to get the response text to see what's being returned
-          const text = await response.text();
-          console.error('Response text (first 100 chars):', text.substring(0, 100));
-          
-          throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}`);
-        }
-        
-        // Parse the JSON response
-        const data = await response.json();
-        console.log('Login successful:', data);
-        
-        // Store user data
-        let userDetails: UserInfo = {
-          name: data.name || 'User',
-          email: data.email || 'user@example.com',
-          provider: provider
-        };
-        
-        setUserInfo(userDetails);
-        setWalletAddress(data.walletAddress);
-        setBalance(data.balance || '0');
-        setIsLoggedIn(true);
-        
-        // Save to local storage for persistence
-        localStorage.setItem('cpxtb_user', JSON.stringify({
-          userInfo: userDetails,
-          walletAddress: data.walletAddress,
-          balance: data.balance || '0'
-        }));
-        
-        toast({
-          title: "Login Successful",
-          description: `Connected with ${provider}`,
-        });
-        
-        // Force page reload to ensure UI updates correctly
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      } catch (parseError: any) {
-        console.error('Error during API authentication process, using fallback:', parseError);
-        
-        // FALLBACK: If API call fails, use client-side simulation
-        // This ensures users can still complete their tasks even if the API has issues
-        console.log('Using fallback client-side simulation for social login');
-        
-        // Generate a deterministic wallet address based on timestamp and some randomness
-        const timestamp = Date.now();
-        const randomSuffix = Math.floor(Math.random() * 1000000).toString(16);
-        const seed = timestamp.toString(16) + randomSuffix;
-        const address = '0x' + Array.from({ length: 40 }, (_, i) => {
-          const hash = (seed.charCodeAt(i % seed.length) * (i + 1)) % 16;
-          return '0123456789abcdef'[hash];
-        }).join('');
-        
-        // Create user info based on selected provider
-        let userDetails: UserInfo = {
-          name: 'Demo User',
-          email: 'demo@example.com',
-          provider: provider
-        };
-        
-        if (provider === 'google') {
-          userDetails.name = 'Google User';
-          userDetails.email = `user_${randomSuffix.substring(0,4)}@gmail.com`;
-        } else if (provider === 'facebook') {
-          userDetails.name = 'Facebook User';
-          userDetails.email = `user_${randomSuffix.substring(0,4)}@facebook.com`;
-        } else if (provider === 'twitter') {
-          userDetails.name = 'Twitter User';
-          userDetails.email = `user_${randomSuffix.substring(0,4)}@twitter.com`;
-        } else if (provider === 'apple') {
-          userDetails.name = 'Apple User';
-          userDetails.email = `user_${randomSuffix.substring(0,4)}@icloud.com`;
-        }
-        
-        // Apply state updates
-        setUserInfo(userDetails);
-        setWalletAddress(address);
-        setBalance('500.0'); // Give enough balance to complete most payments
-        setIsLoggedIn(true);
-        
-        // Save to local storage for persistence
-        localStorage.setItem('cpxtb_user', JSON.stringify({
-          userInfo: userDetails,
-          walletAddress: address,
-          balance: '500.0' 
-        }));
-        
-        toast({
-          title: "Login Successful (Fallback Mode)",
-          description: `Connected with ${provider}`,
-        });
-        
-        // Add a slight delay to ensure state updates are complete
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Force page reload to ensure UI updates correctly
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      }
+      // Show a visible notification to the user
+      toast({
+        title: "Google Authentication",
+        description: "Redirecting to Google for account authentication...",
+        duration: 3000,
+      });
+      
+      console.log(`Redirecting to Google authentication at /api/social-auth/${provider.toLowerCase()}`);
+      console.log(`Current Replit domain: ${window.location.origin}`);
+      console.log(`Redirect URL will be: ${window.location.href}`);
+      
+      // Delay redirect slightly to let toast appear
+      setTimeout(() => {
+        // Redirect to the auth endpoint which will then redirect to Google
+        const redirectUrl = window.location.href;
+        const authUrl = `/api/social-auth/${provider.toLowerCase()}?redirectUrl=${encodeURIComponent(redirectUrl)}`;
+        console.log(`Full auth URL: ${authUrl}`);
+        window.location.href = authUrl;
+      }, 1500);
+      
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Failed to login');
@@ -418,41 +276,6 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         description: err.message || `Could not connect with ${provider}`,
         variant: "destructive",
       });
-      
-      // Even in the case of error, try a last-chance recovery approach
-      try {
-        console.log("Attempting emergency fallback login...");
-        // Create emergency fallback data
-        const timestamp = Date.now();
-        const emergencySeed = timestamp.toString(16);
-        const emergencyAddress = '0x' + Array.from({ length: 40 }, () => {
-          return '0123456789abcdef'[Math.floor(Math.random() * 16)];
-        }).join('');
-        
-        let emergencyUserDetails: UserInfo = {
-          name: `${provider.charAt(0).toUpperCase() + provider.slice(1)} Emergency User`,
-          email: `emergency_${timestamp.toString(36)}@example.com`,
-          provider: provider
-        };
-        
-        // Set emergency login data
-        localStorage.setItem('cpxtb_user', JSON.stringify({
-          userInfo: emergencyUserDetails,
-          walletAddress: emergencyAddress,
-          balance: '500.0'
-        }));
-        
-        // Don't update state here, just add to localStorage and let the app reload
-        console.log("Emergency fallback data saved to localStorage");
-        
-        // Recommend reloading the page
-        toast({
-          title: 'Recovery Attempt',
-          description: 'Please reload the page to apply emergency login',
-        });
-      } catch (emergencyError) {
-        console.error('Emergency fallback failed:', emergencyError);
-      }
     } finally {
       setIsLoading(false);
     }

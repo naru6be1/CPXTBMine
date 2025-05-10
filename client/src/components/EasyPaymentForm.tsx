@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { BasicSocialLogin } from '@/components/BasicSocialLogin';
+import EnhancedSocialLogin from '@/components/EnhancedSocialLogin';
 
 interface EasyPaymentFormProps {
   merchantAddress: string;
@@ -332,11 +332,11 @@ const EasyPaymentForm: React.FC<EasyPaymentFormProps> = ({
           </p>
         </div>
         
-        {/* Use BasicSocialLogin for authentication */}
-        <BasicSocialLogin 
+        {/* Use EnhancedSocialLogin for authentication */}
+        <EnhancedSocialLogin 
           showCard={false}
           onSuccess={(userData) => {
-            console.log("Social login successful with BasicSocialLogin component:", userData);
+            console.log("Social login successful:", userData);
             setUserData(userData);
             setIsAuthenticated(true);
             
@@ -345,11 +345,11 @@ const EasyPaymentForm: React.FC<EasyPaymentFormProps> = ({
             
             toast({
               title: "Login Successful",
-              description: `Welcome ${userData.userInfo?.name || 'back'}!`,
+              description: `Welcome ${userData.name || 'back'}!`,
             });
           }}
           onError={(error) => {
-            console.error("Social login failed with BasicSocialLogin component:", error);
+            console.error("Social login failed:", error);
             toast({
               title: "Login Failed",
               description: error.message || "Could not complete the login process",

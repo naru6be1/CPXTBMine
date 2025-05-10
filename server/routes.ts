@@ -394,21 +394,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   } else {
-    console.warn("Google OAuth credentials not found, using mock authentication");
+    console.warn("Google OAuth credentials not found");
     
-    // Use mock data if Google credentials are not configured
+    // Return error when OAuth credentials are missing
     app.get("/api/social-auth/google", (req, res) => {
-      console.log("Using mock authentication (no Google credentials)");
-      const seed = `google-${Date.now()}`;
-      const hash = crypto.createHash('sha256').update(seed).digest('hex');
-      const walletAddress = `0x${hash.substring(0, 40)}`;
-      
-      res.setHeader('Content-Type', 'application/json');
-      res.json({
-        name: "Google User (Mock)",
-        email: "mock.user@example.com",
-        walletAddress: walletAddress,
-        balance: "0.0" // Realistic zero balance
+      res.status(503).json({
+        success: false,
+        message: 'Google authentication is not configured'
       });
     });
   }

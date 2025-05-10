@@ -330,7 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const host = req.get('host') || '';
         if (process.env.NODE_ENV === 'development' && 
             process.env.PRODUCTION_DOMAIN && 
-            host.includes(process.env.PRODUCTION_DOMAIN)) {
+            host && host.includes(process.env.PRODUCTION_DOMAIN)) {
           console.log("WARNING: Production domain detected in Google OAuth callback in development mode");
           console.log("This suggests a potential callback URL mismatch in the Google Developer Console");
         }

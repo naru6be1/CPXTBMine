@@ -91,9 +91,14 @@ function ProfileButton() {
 }
 
 // Check Balance button component
-function CheckBalanceButton() {
+function CheckBalanceButton({ merchantWalletAddress }: { merchantWalletAddress?: string }) {
+  // Create URL with wallet address parameter if available
+  const balanceUrl = merchantWalletAddress 
+    ? `/check-balance?address=${encodeURIComponent(merchantWalletAddress)}`
+    : '/check-balance';
+    
   return (
-    <Link href="/check-balance">
+    <Link href={balanceUrl}>
       <Button 
         variant="outline" 
         size="sm" 
@@ -1604,7 +1609,11 @@ export default function MerchantDashboard() {
         <div className="flex items-center gap-2">
           {userData && (
             <>
-              <CheckBalanceButton />
+              <CheckBalanceButton 
+                merchantWalletAddress={merchantData?.merchants && merchantData.merchants.length > 0 
+                  ? merchantData.merchants[0].walletAddress 
+                  : undefined} 
+              />
               <ClaimTokensButton />
               <ProfileButton />
               <LogoutButton />

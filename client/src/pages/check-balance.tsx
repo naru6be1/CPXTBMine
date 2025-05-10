@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 
 export default function CheckBalance() {
-  const [walletAddress, setWalletAddress] = useState<string>('0x6122b8784718d954659369dde67c79d9f0e4ac67');
+  // Get address from URL query parameter if available
+  const [location] = useLocation();
+  const params = new URLSearchParams(location.split('?')[1] || '');
+  const addressParam = params.get('address');
+  
+  const [walletAddress, setWalletAddress] = useState<string>(
+    addressParam || '0x6122b8784718d954659369dde67c79d9f0e4ac67'
+  );
   const [balance, setBalance] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
+  
+  // Define checkBalance function first, so we can reference it in useEffect
   const checkBalance = async () => {
     if (!walletAddress || walletAddress.length < 40) {
       toast({

@@ -59,6 +59,18 @@ export default function CheckBalance() {
       setIsLoading(false);
     }
   };
+  
+  // Auto-check balance when loading with address parameter
+  useEffect(() => {
+    if (addressParam) {
+      // Small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        checkBalance();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressParam]);
 
   return (
     <div className="container mx-auto py-10 px-4">

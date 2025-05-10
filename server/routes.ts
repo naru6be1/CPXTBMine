@@ -255,6 +255,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Google authentication request with query params:", req.query);
       console.log("Google authentication request headers:", req.headers);
       console.log("Current REPLIT_DEV_DOMAIN:", process.env.REPLIT_DEV_DOMAIN);
+      console.log("Current NODE_ENV:", process.env.NODE_ENV);
+      console.log("Current PRODUCTION_DOMAIN:", process.env.PRODUCTION_DOMAIN);
       console.log("Current Google strategy callback URL:", 
         process.env.NODE_ENV === 'production' && process.env.PRODUCTION_DOMAIN
           ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback` 
@@ -320,6 +322,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Google OAuth callback received with query params:", req.query);
         // Log the full callback URL to verify it matches what's in Google Developer Console
         console.log("Full callback URL:", `${req.protocol}://${req.get('host')}${req.originalUrl}`);
+        console.log("NODE_ENV:", process.env.NODE_ENV);
+        console.log("REPLIT_DEV_DOMAIN:", process.env.REPLIT_DEV_DOMAIN);
+        console.log("Original referrer:", req.headers.referer || 'none');
+        
+        // If we're in development with a production domain in the URL, warn about potential issues
+        const host = req.get('host') || '';
+        if (process.env.NODE_ENV === 'development' && 
+            process.env.PRODUCTION_DOMAIN && 
+            host.includes(process.env.PRODUCTION_DOMAIN)) {
+          console.log("WARNING: Production domain detected in Google OAuth callback in development mode");
+          console.log("This suggests a potential callback URL mismatch in the Google Developer Console");
+        }
+        
         next();
       },
       passport.authenticate('google', { 

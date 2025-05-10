@@ -96,6 +96,10 @@ function CheckBalanceButton({ merchantWalletAddress }: { merchantWalletAddress?:
   const balanceUrl = merchantWalletAddress 
     ? `/check-balance?address=${encodeURIComponent(merchantWalletAddress)}`
     : '/check-balance';
+  
+  // Log debug info to console
+  console.log("CheckBalanceButton - Wallet Address:", merchantWalletAddress);
+  console.log("CheckBalanceButton - Balance URL:", balanceUrl);
     
   return (
     <Link href={balanceUrl}>
@@ -103,6 +107,7 @@ function CheckBalanceButton({ merchantWalletAddress }: { merchantWalletAddress?:
         variant="outline" 
         size="sm" 
         className="flex items-center gap-1 hover:bg-blue-50 border-blue-200 text-blue-600"
+        onClick={() => console.log("Check Balance button clicked, URL:", balanceUrl)}
       >
         <Wallet className="h-4 w-4" />
         Check Balance
@@ -1614,6 +1619,8 @@ export default function MerchantDashboard() {
                   ? merchantData.merchants[0].walletAddress 
                   : undefined} 
               />
+              {/* Debug info - will remove after fixing */}
+              {merchantData && <div className="hidden">{JSON.stringify(merchantData)}</div>}
               <ClaimTokensButton />
               <ProfileButton />
               <LogoutButton />
@@ -1624,6 +1631,13 @@ export default function MerchantDashboard() {
       <p className="mb-8 text-muted-foreground">
         Accept CPXTB token payments for your business
       </p>
+      
+      {/* Debug info that will show merchant wallet address in UI */}
+      {merchantData?.merchants && merchantData.merchants.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-900 rounded-md">
+          <p className="text-sm">Debug: Merchant wallet address: {merchantData.merchants[0].walletAddress}</p>
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-8">

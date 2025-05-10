@@ -12,6 +12,10 @@ export default function CheckBalance() {
   const params = new URLSearchParams(location.split('?')[1] || '');
   const addressParam = params.get('address');
   
+  // Debug logs
+  console.log("Check Balance Page - Location:", location);
+  console.log("Check Balance Page - Address parameter:", addressParam);
+  
   const [walletAddress, setWalletAddress] = useState<string>(
     addressParam || '0x6122b8784718d954659369dde67c79d9f0e4ac67'
   );
@@ -60,11 +64,18 @@ export default function CheckBalance() {
     }
   };
   
+  // Log wallet address whenever it changes
+  useEffect(() => {
+    console.log("Wallet address state updated:", walletAddress);
+  }, [walletAddress]);
+  
   // Auto-check balance when loading with address parameter
   useEffect(() => {
     if (addressParam) {
+      console.log("Address parameter found, will check balance automatically");
       // Small delay to ensure component is fully mounted
       const timer = setTimeout(() => {
+        console.log("Checking balance for:", walletAddress);
         checkBalance();
       }, 300);
       return () => clearTimeout(timer);

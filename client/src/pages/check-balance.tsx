@@ -129,7 +129,13 @@ export default function CheckBalance() {
               <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
                 <h3 className="text-sm font-medium text-blue-800 mb-1">Wallet Balance</h3>
                 <p className="text-2xl font-bold text-blue-900">{balance} <span className="text-sm font-normal">CPXTB</span></p>
-                <p className="text-xs text-blue-700 mt-1">
+                
+                {/* USDT Equivalent calculation */}
+                <p className="text-sm text-blue-800 mt-1">
+                  ≈ ${(parseFloat(balance || '0') * 0.002177).toFixed(2)} <span className="text-xs font-normal">USDT</span>
+                </p>
+                
+                <p className="text-xs text-blue-700 mt-2">
                   Address: <span className="font-mono">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
                 </p>
               </div>

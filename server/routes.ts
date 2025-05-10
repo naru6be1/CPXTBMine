@@ -125,8 +125,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("REPLIT_DEV_DOMAIN environment variable:", process.env.REPLIT_DEV_DOMAIN || "Not set");
     
     // Determine the callback URL based on environment
-    const callbackURL = process.env.PRODUCTION_DOMAIN 
-      ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback` 
+    // For development, always use the REPLIT_DEV_DOMAIN or localhost
+    // Never redirect to production in development mode
+    const callbackURL = process.env.NODE_ENV === 'production' && process.env.PRODUCTION_DOMAIN
+      ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback`
       : (process.env.REPLIT_DEV_DOMAIN 
           ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback` 
           : "http://localhost:5000/api/auth/google/callback");
@@ -254,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Google authentication request headers:", req.headers);
       console.log("Current REPLIT_DEV_DOMAIN:", process.env.REPLIT_DEV_DOMAIN);
       console.log("Current Google strategy callback URL:", 
-        process.env.PRODUCTION_DOMAIN 
+        process.env.NODE_ENV === 'production' && process.env.PRODUCTION_DOMAIN
           ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback` 
           : (process.env.REPLIT_DEV_DOMAIN 
               ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback` 

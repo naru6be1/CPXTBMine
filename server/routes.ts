@@ -413,39 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
   
-  app.get("/api/social-auth/facebook", (req, res) => {
-    // Mock Facebook authentication response
-    const seed = `facebook-${Date.now()}`;
-    const hash = crypto.createHash('sha256').update(seed).digest('hex');
-    const walletAddress = `0x${hash.substring(0, 40)}`;
-    
-    // Explicitly set content type to ensure proper parsing
-    res.setHeader('Content-Type', 'application/json');
-    
-    res.json({
-      name: "Facebook User",
-      email: "facebook.user@example.com",
-      walletAddress: walletAddress,
-      balance: "0.0" // Realistic zero balance
-    });
-  });
-  
-  app.get("/api/social-auth/twitter", (req, res) => {
-    // Mock Twitter authentication response
-    const seed = `twitter-${Date.now()}`;
-    const hash = crypto.createHash('sha256').update(seed).digest('hex');
-    const walletAddress = `0x${hash.substring(0, 40)}`;
-    
-    // Explicitly set content type to ensure proper parsing
-    res.setHeader('Content-Type', 'application/json');
-    
-    res.json({
-      name: "Twitter User",
-      email: "twitter.user@example.com",
-      walletAddress: walletAddress,
-      balance: "0.0" // Realistic zero balance
-    });
-  });
+  // Facebook and Twitter mock auth endpoints removed
   
   // Endpoint to check if OAuth credentials are available
   app.get("/api/auth/check-credentials", (req, res) => {
@@ -461,72 +429,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Handle callback for social auth demo login to create server-side session
-  app.post("/api/social-auth/google/callback", async (req, res) => {
-    try {
-      const { name, email, walletAddress } = req.body;
-      
-      if (!name || !email) {
-        return res.status(400).send('Missing required user data');
-      }
-      
-      // Find or create a user with this email
-      let user = await storage.getUserByEmail(email);
-      
-      if (!user) {
-        // Create a new user with social login credentials
-        user = await storage.createUser({
-          // Use the actual user name instead of a generated ID
-          username: name,
-          email: email,
-          password: await hashPassword(crypto.randomBytes(20).toString('hex')), // Random password
-          referralCode: `REF${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-          externalId: `demo-${Date.now()}`,
-          provider: 'google',
-          accumulatedCPXTB: 0 // Add the required field
-        });
-        
-        console.log('Created new user from demo social login:', user.id);
-      } else {
-        console.log('Found existing user for demo social login:', user.id);
-      }
-      
-      // Log the user in by creating a session
-      req.login(user, (err) => {
-        if (err) {
-          console.error('Error creating session for demo social login:', err);
-          return res.status(500).send('Authentication error');
-        }
-        
-        // Return success message with redirect instruction
-        return res.status(200).json({
-          success: true,
-          message: 'Authentication successful',
-          redirectUrl: '/merchant'
-        });
-      });
-    } catch (error) {
-      console.error('Demo social auth callback error:', error);
-      res.status(500).send('Server error processing demo social login');
-    }
-  });
+    // Demo social auth callback endpoint removed
   
-  app.get("/api/social-auth/apple", (req, res) => {
-    // Mock Apple authentication response
-    const seed = `apple-${Date.now()}`;
-    const hash = crypto.createHash('sha256').update(seed).digest('hex');
-    const walletAddress = `0x${hash.substring(0, 40)}`;
-    
-    // Explicitly set content type to ensure proper parsing
-    res.setHeader('Content-Type', 'application/json');
-    
-    res.json({
-      name: "Apple User",
-      email: "apple.user@example.com",
-      walletAddress: walletAddress,
-      balance: "0.0" // Realistic zero balance
-    });
-  });
+  // Apple mock auth endpoint removed
   
   app.post("/api/social-auth/logout", (req, res) => {
     // Handle proper logout for sessions

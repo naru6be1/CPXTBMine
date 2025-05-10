@@ -295,6 +295,44 @@ const MerchantSocialLogin: React.FC = () => {
                     {serverWalletData.balance || balance || '0.0'} 
                     <span className="text-sm font-normal">CPXTB</span>
                   </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2 text-xs" 
+                    onClick={() => {
+                      console.log("Manually refreshing balance");
+                      // Try to refresh directly from the server
+                      const address = serverWalletData.walletAddress || walletAddress;
+                      if (address) {
+                        fetch(`/api/balance?address=${address}`)
+                          .then(res => res.json())
+                          .then(data => {
+                            console.log("Refreshed balance:", data);
+                            if (data.balance) {
+                              // Update our local state
+                              setServerWalletData(prev => ({
+                                ...prev,
+                                balance: data.balance
+                              }));
+                              toast({
+                                title: "Balance Updated",
+                                description: `Your balance is ${data.balance} CPXTB`,
+                              });
+                            }
+                          })
+                          .catch(err => {
+                            console.error("Error refreshing balance:", err);
+                            toast({
+                              title: "Error Refreshing Balance",
+                              description: "Please try again later",
+                              variant: "destructive"
+                            });
+                          });
+                      }
+                    }}
+                  >
+                    Refresh Balance
+                  </Button>
                 </div>
               </>
             )}

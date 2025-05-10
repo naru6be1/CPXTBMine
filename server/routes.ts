@@ -49,6 +49,8 @@ import session from 'express-session';
 declare module 'express-session' {
   interface SessionData {
     redirectUrl?: string;
+    paymentContext?: boolean;
+    paymentReference?: string;
   }
 }
 
@@ -263,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store payment context if provided
       if (context === 'payment') {
         console.log("Payment context detected in authentication request");
-        req.session.paymentContext = true;
+        (req.session as any).paymentContext = true;
       }
       
       // Store redirect URL in session for later use
@@ -333,16 +335,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Check if this is a payment-related authentication
           const isPaymentRedirect = redirectUrl.includes('/pay/');
-          const hasPaymentContext = req.session.paymentContext === true;
+          const hasPaymentContext = (req.session as any).paymentContext === true;
           
           // If this appears to be a payment page or has payment context, make sure we're not redirecting to merchant dashboard
           if (isPaymentRedirect || hasPaymentContext) {
             console.log("Payment-related authentication detected, ensuring redirect to payment page");
             
             // If we have payment context but no specific payment URL, check if we have a payment reference
-            if (hasPaymentContext && !isPaymentRedirect && req.session.paymentReference) {
+            if (hasPaymentContext && !isPaymentRedirect && (req.session as any).paymentReference) {
               // Redirect to the specific payment page
-              redirectUrl = `/pay/${req.session.paymentReference}`;
+              redirectUrl = `/pay/${(req.session as any).paymentReference}`;
               console.log("Redirecting to specific payment:", redirectUrl);
             }
           } else if (redirectUrl === '/') {
@@ -351,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Clean up payment context from session
-          delete req.session.paymentContext;
+          delete (req.session as any).paymentContext;
           
           console.log("Redirecting to:", redirectUrl);
           

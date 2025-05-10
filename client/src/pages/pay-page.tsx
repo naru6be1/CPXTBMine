@@ -6,7 +6,6 @@ import { Separator } from '@/components/ui/separator';
 import { QRCodeSVG } from 'qrcode.react';
 import { useSocialLogin } from '@/providers/SocialLoginProvider';
 import { useToast } from '@/hooks/use-toast';
-import BasicSocialLogin from '@/components/BasicSocialLogin';
 import EnhancedSocialLogin from '@/components/EnhancedSocialLogin';
 import { 
   Loader2, 
@@ -41,9 +40,13 @@ export default function PayPage() {
   // Fetch payment data
   // Check if this is a direct QR code access - if so, we need to make sure social login appears
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
     // If URL starts with /pay/ and doesn't have loggedIn=true parameter, consider it a QR code access
     const isDirectAccess = window.location.pathname.startsWith('/pay/') && 
-                          !new URLSearchParams(window.location.search).has('loggedIn');
+                          !urlParams.has('loggedIn');
+                          
+    // Check if the payment has a payment context flag - important for authentication redirects
+    const hasPaymentContext = urlParams.has('paymentContext');
     
     // Add diagnostic logging to help troubleshoot social login issues
     console.log("PayPage - QR code access detection:");
@@ -52,9 +55,10 @@ export default function PayPage() {
     console.log("- Is logged in:", isLoggedIn);
     console.log("- Wallet address:", walletAddress);
     console.log("- Is direct QR access:", isDirectAccess);
+    console.log("- Has payment context:", hasPaymentContext);
     
-    if (isDirectAccess) {
-      console.log("Direct QR code access detected - forcing social login to appear");
+    if (isDirectAccess || hasPaymentContext) {
+      console.log("Direct QR code access or payment context detected - forcing social login to appear");
       setIsDirectQrAccess(true);
     } else {
       setIsDirectQrAccess(false);
@@ -750,7 +754,6 @@ export default function PayPage() {
               {/* Enhanced login component with real Google Auth support */}
               <EnhancedSocialLogin 
                 showCard={false}
-                useRealLogin={new URLSearchParams(window.location.search).get('enableRealLogin') === 'true'}
                 onSuccess={(userData) => {
                   console.log("PayPage - Social login successful:", userData);
                   console.log("PayPage - Direct QR access state:", isDirectQrAccess);

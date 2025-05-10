@@ -266,10 +266,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { enableRealLogin, redirectUrl, context } = req.query;
       
-      // Store payment context if provided
-      if (context === 'payment') {
+      // Store payment context if provided - allow both explicit 'payment' flag 
+      // and detect paymentContext in redirectUrl
+      if (context === 'payment' || 
+          (typeof redirectUrl === 'string' && 
+           (redirectUrl.includes('/pay/') || redirectUrl.includes('paymentContext=true')))) {
         console.log("Payment context detected in authentication request");
         (req.session as any).paymentContext = true;
+        
+        // Extract payment reference from URL if present
+        if (typeof redirectUrl === 'string') {
+          const payUrl = new URL(redirectUrl);
+          const pathParts = payUrl.pathname.split('/');
+          if (pathParts.length > 2 && pathParts[1] === 'pay') {
+            const paymentRef = pathParts[2];
+            console.log("Payment reference extracted from redirect URL:", paymentRef);
+            (req.session as any).paymentReference = paymentRef;
+          }
+        }
       }
       
       // Store redirect URL in session for later use

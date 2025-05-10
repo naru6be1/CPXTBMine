@@ -7,13 +7,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Link, useLocation } from 'wouter';
 
 export default function CheckBalance() {
-  // Get address from URL query parameter if available
-  const [location] = useLocation();
-  const params = new URLSearchParams(location.split('?')[1] || '');
+  // Get address from URL query parameter using window.location instead of useLocation
+  // This approach is more reliable for URL parameters
+  const params = new URLSearchParams(window.location.search);
   const addressParam = params.get('address');
   
   // Debug logs
-  console.log("Check Balance Page - Location:", location);
+  console.log("Check Balance Page - URL:", window.location.href);
+  console.log("Check Balance Page - Search params:", window.location.search);
   console.log("Check Balance Page - Address parameter:", addressParam);
   
   const [walletAddress, setWalletAddress] = useState<string>(

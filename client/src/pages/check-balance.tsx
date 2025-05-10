@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link, useLocation } from 'wouter';
+import { apiRequest } from "@/lib/queryClient";
 
 export default function CheckBalance() {
   // Get address from URL query parameter using window.location instead of useLocation
@@ -22,7 +23,33 @@ export default function CheckBalance() {
   );
   const [balance, setBalance] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState<number>(0.002177); // Default value
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
+  const [rateError, setRateError] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  // Function to fetch the current exchange rate
+  const fetchExchangeRate = async () => {
+    setIsLoadingRate(true);
+    setRateError(null);
+    try {
+      const response = await fetch('/api/exchange-rate');
+      const data = await response.json();
+      
+      if (data.success && data.exchangeRate) {
+        setExchangeRate(Number(data.exchangeRate));
+        console.log("Updated exchange rate:", data.exchangeRate);
+      } else {
+        setRateError("Failed to get current exchange rate");
+        console.error("Exchange rate API error:", data);
+      }
+    } catch (error) {
+      setRateError("Error fetching exchange rate");
+      console.error("Exchange rate fetch error:", error);
+    } finally {
+      setIsLoadingRate(false);
+    }
+  };
   
   // Define checkBalance function first, so we can reference it in useEffect
   const checkBalance = async () => {

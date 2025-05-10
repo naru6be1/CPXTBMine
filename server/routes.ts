@@ -1046,6 +1046,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // API endpoint to get crypto wallet balance
+  app.get("/api/exchange-rate", async (req, res) => {
+    try {
+      // Pool address and ABI from client/src/components/price-display.tsx
+      const POOL_ADDRESS = '0x18fec483ad7f68df0f9cca34d82792376b8d18d0';
+      const POOL_ABI = parseAbi([
+        'function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
+      ]);
+      
+      // Create a public client for Base network
+      const publicClient = createPublicClient({
+        chain: base,
+        transport: http('https://mainnet.base.org')
+      });
+      
+      // Get reserves data from the pool
+      const reservesData = await publicClient.readContract({
+        address: POOL_ADDRESS as `0x${string}`,
+        abi: POOL_ABI,
+        functionName: 'getReserves',
+      });
+      
+      // Get reserves with proper decimal handling
+      const reserve0 = BigInt(reservesData[0].toString()); // CPXTB reserve (18 decimals)
+      const reserve1 = BigInt(reservesData[1].toString()); // WETH reserve (18 decimals)
+      
+      // Calculate CPXTB price in WETH
+      const priceInWei = (reserve0 * BigInt(10 ** 18)) / reserve1;
+      const priceInEth = Number(priceInWei) / 10 ** 18;
+      
+      // Fetch ETH/USD price from CoinGecko
+      try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+        const data = await response.json();
+        const ethUsdPrice = data.ethereum.usd;
+        
+        // Calculate USD price: CPXTB price in ETH * ETH price in USD
+        const usdPrice = (priceInEth * ethUsdPrice).toFixed(6);
+        
+        return res.status(200).json({
+          success: true,
+          exchangeRate: usdPrice,
+          ethPrice: priceInEth.toString(),
+          ethUsdPrice: ethUsdPrice
+        });
+      } catch (error) {
+        // If CoinGecko API fails, fall back to a default USD value
+        const fallbackRate = 0.002177;
+        return res.status(200).json({
+          success: true,
+          exchangeRate: fallbackRate,
+          ethPrice: priceInEth.toString(),
+          fallback: true
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching exchange rate:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch exchange rate",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   app.get("/api/balance", async (req, res) => {
     const startTime = Date.now();
     try {

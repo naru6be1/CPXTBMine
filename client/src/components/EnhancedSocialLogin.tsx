@@ -40,8 +40,14 @@ export function EnhancedSocialLogin({
       console.log("Initiating Google authentication...");
       const currentUrl = window.location.href;
       const redirectUrl = encodeURIComponent(currentUrl);
+      
+      // Check if this is a payment page
+      const isPaymentPage = window.location.pathname.includes('/pay/');
+      console.log("Authentication from payment page:", isPaymentPage);
+      
       // Navigate directly to the authentication endpoint
-      window.location.href = `/api/social-auth/google?redirectUrl=${redirectUrl}`;
+      // Add payment context if this is a payment page
+      window.location.href = `/api/social-auth/google?redirectUrl=${redirectUrl}${isPaymentPage ? '&context=payment' : ''}`;
     } catch (error: any) {
       console.error('Social login error:', error);
       toast({

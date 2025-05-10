@@ -142,6 +142,11 @@ export default function CheckBalance() {
             )}
             
             <div className="border-t border-gray-200 pt-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-md p-2 mb-3">
+                <p className="text-xs text-gray-600">
+                  <span className="font-medium">Exchange Rate:</span> 1 CPXTB = $0.002177 USDT
+                </p>
+              </div>
               <h3 className="text-sm font-medium mb-2">Quick Check</h3>
               <div className="grid grid-cols-1 gap-2">
                 <Button 

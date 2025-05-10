@@ -17,7 +17,7 @@ interface SocialLoginContextType {
   login: (provider: string) => Promise<void>;
   logout: () => Promise<void>;
   copyWalletAddress: () => void;
-  refreshBalance: () => void;
+  refreshBalance: () => Promise<string | null>;
 }
 
 const defaultContext: SocialLoginContextType = {
@@ -30,7 +30,7 @@ const defaultContext: SocialLoginContextType = {
   login: async () => {},
   logout: async () => {},
   copyWalletAddress: () => {},
-  refreshBalance: () => {},
+  refreshBalance: async () => null,
 };
 
 const SocialLoginContext = createContext<SocialLoginContextType>(defaultContext);
@@ -107,11 +107,11 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, []);
   
-  // Function to refresh balance
-  const refreshBalance = useCallback(async () => {
+  // Function to refresh balance from blockchain
+  const refreshBalance = useCallback(async (): Promise<string | null> => {
     if (!walletAddress) {
       console.log('No wallet address available, skipping balance refresh');
-      return;
+      return null;
     }
     
     try {
@@ -132,10 +132,8 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`Failed to fetch balance (${response.status}): ${errorText}`);
-          // Don't throw here, just log the error and continue
-          console.log('Balance refresh failed, will try again next cycle');
           // Don't reset the balance on failure - keep the last known good value
-          return; // Return early but don't break the refresh cycle
+          return null;
         }
         
         const data = await response.json();
@@ -143,7 +141,6 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         setBalance(data.balance);
         
         // Save the non-zero balance as the "last known good balance" for future use
-        // This helps during deployment transitions when the balance API may temporarily fail
         if (data.balance && parseFloat(data.balance) > 0) {
           localStorage.setItem('cpxtb_last_known_balance', data.balance);
           console.log(`Saved last known good balance: ${data.balance} CPXTB`);
@@ -173,13 +170,11 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         } else {
           console.error('Error during fetch operation:', fetchError);
         }
-        return; // Return early but don't break the refresh cycle
+        return null;
       }
     } catch (error) {
       // This is the outer try/catch to make absolutely sure the function doesn't throw
       console.error('Unexpected error during balance refresh:', error);
-      // Don't throw the error - just log it and continue
-      // This prevents the periodic refresh from breaking
       return null;
     }
   }, [walletAddress]);
@@ -297,6 +292,7 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       // Clear from local storage
       localStorage.removeItem('cpxtb_user');
+      localStorage.removeItem('cpxtb_last_known_balance');
       
       toast({
         title: "Logout Successful",

@@ -68,7 +68,7 @@ if (typeof window !== 'undefined') {
       return originalOpen.call(window, url, target, features);
     };
     
-    console.log('Web3Auth disabled by default - using BasicSocialLogin fallback solution');
+    console.log('Web3Auth disabled by default');
   } else {
     console.log('Web3Auth explicitly enabled with URL parameter - using whitelisted domain: https://1ceb706b-817d-4c3a-92ce-0335b2e3890c-00-26akl9dnpcsqg.picard.replit.dev');
     (window as any).__WEB3AUTH_DISABLED__ = false;

@@ -1,11 +1,8 @@
-// Load Web3Auth disabler first to prevent automatic dialogs
-import './lib/web3auth-disable';
-
-// Then load polyfills
+// Load polyfills
 import './lib/polyfills';
 
-// Log that polyfills have been initialized in main
-console.log('Main script running - Web3Auth disabled');
+// Log that main script is running
+console.log('Main script running');
 
 // Use modern React 18 features for better performance
 import { createRoot } from "react-dom/client";

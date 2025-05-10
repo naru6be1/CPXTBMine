@@ -97,6 +97,20 @@ export default function CheckBalance() {
     console.log("Wallet address state updated:", walletAddress);
   }, [walletAddress]);
   
+  // Fetch exchange rate on component mount and periodically
+  useEffect(() => {
+    // Fetch exchange rate initially
+    fetchExchangeRate();
+    
+    // Set up auto-refresh for exchange rate (every 2 minutes)
+    const exchangeRateInterval = setInterval(() => {
+      console.log("Auto-refreshing exchange rate...");
+      fetchExchangeRate();
+    }, 120000); // 2 minutes
+    
+    return () => clearInterval(exchangeRateInterval);
+  }, []);
+
   // Auto-check balance when loading with address parameter
   useEffect(() => {
     if (addressParam) {
@@ -157,9 +171,10 @@ export default function CheckBalance() {
                 <h3 className="text-sm font-medium text-blue-800 mb-1">Wallet Balance</h3>
                 <p className="text-2xl font-bold text-blue-900">{balance} <span className="text-sm font-normal">CPXTB</span></p>
                 
-                {/* USDT Equivalent calculation */}
+                {/* USDT Equivalent calculation using dynamic exchange rate */}
                 <p className="text-sm text-blue-800 mt-1">
-                  ≈ ${(parseFloat(balance || '0') * 0.002177).toFixed(2)} <span className="text-xs font-normal">USDT</span>
+                  ≈ ${(parseFloat(balance || '0') * exchangeRate).toFixed(2)} <span className="text-xs font-normal">USDT</span>
+                  {isLoadingRate && <span className="ml-1 text-xs text-blue-600">(updating...)</span>}
                 </p>
                 
                 <p className="text-xs text-blue-700 mt-2">
@@ -170,9 +185,30 @@ export default function CheckBalance() {
             
             <div className="border-t border-gray-200 pt-4">
               <div className="bg-gray-50 border border-gray-200 rounded-md p-2 mb-3">
-                <p className="text-xs text-gray-600">
-                  <span className="font-medium">Exchange Rate:</span> 1 CPXTB = $0.002177 USDT
-                </p>
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-gray-600">
+                    <span className="font-medium">Exchange Rate:</span> 1 CPXTB = ${exchangeRate.toFixed(6)} USDT
+                  </p>
+                  {isLoadingRate ? (
+                    <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
+                  ) : (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-5 w-5 p-0" 
+                      onClick={fetchExchangeRate}
+                      title="Refresh exchange rate"
+                    >
+                      <RefreshCw className="h-3 w-3 text-gray-400" />
+                    </Button>
+                  )}
+                </div>
+                {rateError && (
+                  <p className="text-xs text-red-500 mt-1 flex items-center">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    {rateError}
+                  </p>
+                )}
               </div>
               <h3 className="text-sm font-medium mb-2">Quick Check</h3>
               <div className="grid grid-cols-1 gap-2">

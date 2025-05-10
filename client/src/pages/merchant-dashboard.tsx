@@ -41,7 +41,8 @@ import {
   Globe,
   Eye,
   ArrowLeft,
-  User
+  User,
+  Wallet
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -84,6 +85,22 @@ function ProfileButton() {
       >
         <User className="h-4 w-4" />
         My Profile
+      </Button>
+    </Link>
+  );
+}
+
+// Check Balance button component
+function CheckBalanceButton() {
+  return (
+    <Link href="/check-balance">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="flex items-center gap-1 hover:bg-blue-50 border-blue-200 text-blue-600"
+      >
+        <Wallet className="h-4 w-4" />
+        Check Balance
       </Button>
     </Link>
   );
@@ -1587,6 +1604,7 @@ export default function MerchantDashboard() {
         <div className="flex items-center gap-2">
           {userData && (
             <>
+              <CheckBalanceButton />
               <ClaimTokensButton />
               <ProfileButton />
               <LogoutButton />

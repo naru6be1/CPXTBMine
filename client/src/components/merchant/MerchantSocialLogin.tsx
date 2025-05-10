@@ -295,44 +295,75 @@ const MerchantSocialLogin: React.FC = () => {
                     {serverWalletData.balance || balance || '0.0'} 
                     <span className="text-sm font-normal">CPXTB</span>
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2 text-xs" 
-                    onClick={() => {
-                      console.log("Manually refreshing balance");
-                      // Try to refresh directly from the server
-                      const address = serverWalletData.walletAddress || walletAddress;
-                      if (address) {
-                        fetch(`/api/balance?address=${address}`)
+                  <div className="flex gap-2 mt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs" 
+                      onClick={() => {
+                        console.log("Manually refreshing balance");
+                        // Try to refresh directly from the server
+                        const address = serverWalletData.walletAddress || walletAddress;
+                        if (address) {
+                          fetch(`/api/balance?address=${address}`)
+                            .then(res => res.json())
+                            .then(data => {
+                              console.log("Refreshed balance:", data);
+                              if (data.balance) {
+                                // Update our local state
+                                setServerWalletData(prev => ({
+                                  ...prev,
+                                  balance: data.balance
+                                }));
+                                toast({
+                                  title: "Balance Updated",
+                                  description: `Your balance is ${data.balance} CPXTB`,
+                                });
+                              }
+                            })
+                            .catch(err => {
+                              console.error("Error refreshing balance:", err);
+                              toast({
+                                title: "Error Refreshing Balance",
+                                description: "Please try again later",
+                                variant: "destructive"
+                              });
+                            });
+                        }
+                      }}
+                    >
+                      Refresh Balance
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="text-xs" 
+                      onClick={() => {
+                        console.log("Checking specific wallet balance");
+                        // Check the balance for the specified wallet address
+                        const specificAddress = "0x6122b8784718d954659369dde67c79d9f0e4ac67";
+                        fetch(`/api/balance?address=${specificAddress}`)
                           .then(res => res.json())
                           .then(data => {
-                            console.log("Refreshed balance:", data);
-                            if (data.balance) {
-                              // Update our local state
-                              setServerWalletData(prev => ({
-                                ...prev,
-                                balance: data.balance
-                              }));
-                              toast({
-                                title: "Balance Updated",
-                                description: `Your balance is ${data.balance} CPXTB`,
-                              });
-                            }
+                            console.log(`Wallet ${specificAddress} balance:`, data);
+                            toast({
+                              title: "Treasury Wallet Balance",
+                              description: `Wallet ${specificAddress.slice(0, 6)}...${specificAddress.slice(-4)} has ${data.balance} CPXTB`,
+                            });
                           })
                           .catch(err => {
-                            console.error("Error refreshing balance:", err);
+                            console.error("Error checking specific wallet:", err);
                             toast({
-                              title: "Error Refreshing Balance",
-                              description: "Please try again later",
+                              title: "Error Checking Wallet",
+                              description: "Could not retrieve balance for the specified wallet",
                               variant: "destructive"
                             });
                           });
-                      }
-                    }}
-                  >
-                    Refresh Balance
-                  </Button>
+                      }}
+                    >
+                      Check Treasury Wallet
+                    </Button>
+                  </div>
                 </div>
               </>
             )}

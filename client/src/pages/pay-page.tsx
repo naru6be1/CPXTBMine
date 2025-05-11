@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,10 @@ import {
 export default function PayPage() {
   const { paymentReference } = useParams<{ paymentReference: string }>();
   const [, setLocation] = useLocation();
+  const { isLoggedIn, userInfo, walletAddress, balance, login, refreshBalance } = useSocialLogin();
+  const { toast } = useToast();
+  const initialLoad = useRef(true); // Track initial render to avoid effect errors
+  
   const [paymentData, setPaymentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,8 +96,6 @@ export default function PayPage() {
   const [isBuyingTokens, setIsBuyingTokens] = useState(false);
   const [purchaseAmount, setPurchaseAmount] = useState("");
   const [isDirectQrAccess, setIsDirectQrAccess] = useState(false);
-  const { isLoggedIn, userInfo, walletAddress, balance, login, refreshBalance } = useSocialLogin();
-  const { toast } = useToast();
 
   // Fetch payment data
   // PAYMENT CONTEXT MANAGEMENT - Direct approach to handle authentication and payment state

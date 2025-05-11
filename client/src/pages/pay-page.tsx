@@ -28,6 +28,36 @@ export default function PayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [autoRefreshAttempted, setAutoRefreshAttempted] = useState(false);
+  
+  // EMERGENCY FIX: Force reload the page if user is authenticated but page is stuck
+  useEffect(() => {
+    // Check if we have authentication complete flags
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasAuthCompleted = urlParams.has('authCompleted');
+    
+    if (isLoggedIn && loading && !autoRefreshAttempted) {
+      // Start a timer to check if we're still loading after authentication
+      const timeoutId = setTimeout(() => {
+        // If we're still loading after 5 seconds, force a page refresh
+        if (loading && hasAuthCompleted) {
+          console.log("⚠️ Payment page still loading after authentication, forcing refresh...");
+          setAutoRefreshAttempted(true);
+          
+          toast({
+            title: "Refreshing Payment Data",
+            description: "Loading payment details...",
+            duration: 3000
+          });
+          
+          // Force a hard refresh with cache clearing
+          window.location.href = `${window.location.pathname}?paymentContext=true&authCompleted=true&t=${Date.now()}`;
+        }
+      }, 5000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [loading, autoRefreshAttempted]);
   const [regeneratingPayment, setRegeneratingPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -131,9 +161,36 @@ export default function PayPage() {
         return;
       }
       
+      // EMERGENCY FIX: Implement fetch with retry logic to improve reliability
+      const fetchWithRetry = async (url: string, retries = 3, delay = 800): Promise<Response> => {
+        try {
+          const response = await fetch(url);
+          if (response.ok) return response;
+          
+          // If we got a 5xx response and have retries left, try again
+          if (response.status >= 500 && retries > 0) {
+            console.warn(`Server error (${response.status}), retrying... (${retries} attempts left)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, retries - 1, delay * 1.5);
+          }
+          
+          return response;
+        } catch (error) {
+          // If we have network errors and retries left, try again
+          if (retries > 0) {
+            console.warn(`Network error, retrying... (${retries} attempts left)`, error);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, retries - 1, delay * 1.5);
+          }
+          throw error;
+        }
+      };
+      
       try {
-        // FIXED URL PATH: Corrected endpoint to match server-side implementation
-        const response = await fetch(`/api/payments/public/${paymentReference}`);
+        // FIXED URL PATH: Corrected endpoint with cache-busting timestamp
+        const timestamp = Date.now();
+        console.log("Fetching payment data with timestamp:", timestamp);
+        const response = await fetchWithRetry(`/api/payments/public/${paymentReference}?t=${timestamp}`);
         
         if (!response.ok) {
           if (response.status === 404) {

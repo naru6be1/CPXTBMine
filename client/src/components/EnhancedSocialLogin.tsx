@@ -38,33 +38,48 @@ export function EnhancedSocialLogin({
     try {
       // Directly redirect to Google OAuth endpoint
       console.log("Initiating Google authentication...");
-      const currentUrl = window.location.href;
+      
+      // Get the current URL for redirection
+      let currentUrl = window.location.href;
+      
+      // Always ensure we have paymentContext=true in payment pages
+      if (window.location.pathname.includes('/pay/') && !window.location.search.includes('paymentContext=true')) {
+        // Add paymentContext parameter if it's missing
+        const separator = window.location.search ? '&' : '?';
+        currentUrl = `${currentUrl}${separator}paymentContext=true`;
+        console.log("Enhanced URL with payment context:", currentUrl);
+      }
+      
       const redirectUrl = encodeURIComponent(currentUrl);
       
-      // Check if this is a payment page
+      // Determine payment and context flags
       const isPaymentPage = window.location.pathname.includes('/pay/');
-      
-      // Check if we have paymentContext in the URL parameters
       const hasPaymentContext = window.location.search.includes('paymentContext=true');
+      const paymentRef = isPaymentPage ? window.location.pathname.split('/')[2] : null;
       
-      console.log("Authentication from payment page:", {
+      console.log("ENHANCED SOCIAL LOGIN - AUTH REQUEST:", {
         isPaymentPage,
         hasPaymentContext,
         currentUrl,
+        paymentRef,
         path: window.location.pathname,
         search: window.location.search
       });
       
-      // Navigate directly to the authentication endpoint
-      // Add payment context if this is a payment page or we have paymentContext=true in URL
+      // Build authentication URL with improved context detection
       let authUrl = `/api/social-auth/google?redirectUrl=${redirectUrl}`;
       
       // Always include context=payment for payment pages
       if (isPaymentPage || hasPaymentContext) {
         authUrl += '&context=payment';
+        
+        // Also include the payment reference directly for more reliable tracking
+        if (paymentRef) {
+          authUrl += `&paymentRef=${paymentRef}`;
+        }
       }
       
-      console.log("Redirecting to authentication URL:", authUrl);
+      console.log("REDIRECTING TO AUTH URL:", authUrl);
       window.location.href = authUrl;
     } catch (error: any) {
       console.error('Social login error:', error);

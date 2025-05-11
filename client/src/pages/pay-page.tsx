@@ -38,32 +38,74 @@ export default function PayPage() {
   const { toast } = useToast();
 
   // Fetch payment data
-  // Check if this is a direct QR code access - if so, we need to make sure social login appears
+  // Detect QR code access and handle login state for payment context
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    // If URL starts with /pay/ and doesn't have loggedIn=true parameter, consider it a QR code access
-    const isDirectAccess = window.location.pathname.startsWith('/pay/') && 
-                          !urlParams.has('loggedIn');
-                          
-    // Check if the payment has a payment context flag - important for authentication redirects
+    
+    // There are three key scenarios:
+    // 1. Direct QR access - user scanned QR without being logged in
+    // 2. Post-auth redirect - user was redirected here after Google auth with loggedIn=true
+    // 3. Payment context - special flag that enforces this is a payment flow
+    
+    // Check for these flags
+    const hasLoggedInParam = urlParams.has('loggedIn');
     const hasPaymentContext = urlParams.has('paymentContext');
+    const isGoogleAuth = urlParams.get('provider') === 'google';
     
-    // Add diagnostic logging to help troubleshoot social login issues
-    console.log("PayPage - QR code access detection:");
-    console.log("- Current URL path:", window.location.pathname);
-    console.log("- URL parameters:", window.location.search);
-    console.log("- Is logged in:", isLoggedIn);
-    console.log("- Wallet address:", walletAddress);
-    console.log("- Is direct QR access:", isDirectAccess);
-    console.log("- Has payment context:", hasPaymentContext);
+    // If we detect both loggedIn and paymentContext, this is a successful redirect
+    // after Google auth for payment
+    const isPostAuthRedirect = hasLoggedInParam && hasPaymentContext && isGoogleAuth;
     
-    if (isDirectAccess || hasPaymentContext) {
-      console.log("Direct QR code access or payment context detected - forcing social login to appear");
+    // If URL starts with /pay/ and doesn't have loggedIn=true parameter, consider it a direct QR access
+    const isDirectAccess = window.location.pathname.startsWith('/pay/') && !hasLoggedInParam;
+    
+    // Add enhanced diagnostic logging for troubleshooting
+    console.log("PAY PAGE - QR CODE ACCESS DETECTION:", {
+      currentUrl: window.location.href,
+      path: window.location.pathname,
+      search: window.location.search,
+      isLoggedIn,
+      hasWallet: Boolean(walletAddress),
+      walletAddress: walletAddress || "none",
+      hasLoggedInParam,
+      hasPaymentContext,
+      isGoogleAuth,
+      isDirectAccess,
+      isPostAuthRedirect
+    });
+    
+    // Logic for determining if we show social login section:
+    // 1. Always show it for direct QR access (no auth)
+    // 2. Always show it if payment context is set but not logged in
+    // 3. Don't show it if we're already authenticated post-redirect
+    
+    if (isPostAuthRedirect && isLoggedIn) {
+      // We just came back from Google auth and we're logged in - hide login section
+      console.log("POST-AUTH REDIRECT: User is authenticated, hiding social login");
+      setIsDirectQrAccess(false);
+    } else if (isDirectAccess || hasPaymentContext || !isLoggedIn) {
+      // Either direct access, payment context, or not logged in - show login section
+      console.log("SHOWING SOCIAL LOGIN: Direct access, payment context, or not logged in");
       setIsDirectQrAccess(true);
     } else {
+      // Normal navigation to page while logged in
+      console.log("NORMAL NAVIGATION: User is already logged in");
       setIsDirectQrAccess(false);
     }
-  }, [isLoggedIn, walletAddress]);
+    
+    // If we just completed Google authentication, remove these parameters from URL
+    // to prevent issues with browser refreshes
+    if (isPostAuthRedirect && isLoggedIn) {
+      // Keep the payment reference but clean up the URL
+      try {
+        const cleanUrl = `/pay/${paymentReference}`;
+        window.history.replaceState({}, '', cleanUrl);
+        console.log("Cleaned up URL after authentication:", cleanUrl);
+      } catch (err) {
+        console.error("Failed to clean up URL:", err);
+      }
+    }
+  }, [isLoggedIn, walletAddress, paymentReference]);
 
   useEffect(() => {
     const fetchPaymentData = async () => {

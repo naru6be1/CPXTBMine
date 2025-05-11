@@ -265,40 +265,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback` 
               : "http://localhost:5000/api/auth/google/callback"));
       
-      const { enableRealLogin, redirectUrl, context } = req.query;
-      console.log("Checking for payment context in request...");
+      // Extract all relevant query parameters
+      const { enableRealLogin, redirectUrl, context, paymentRef } = req.query;
+      console.log("SOCIAL AUTH - CHECKING PAYMENT CONTEXT:", {
+        context,
+        paymentRef,
+        redirectUrl
+      });
       
-      // Store payment context if provided - more explicit checks
+      // Enhanced payment context detection
       const hasExplicitPaymentContext = context === 'payment';
       const hasPaymentUrlInRedirect = typeof redirectUrl === 'string' && redirectUrl.includes('/pay/');
       const hasPaymentContextInRedirect = typeof redirectUrl === 'string' && redirectUrl.includes('paymentContext=true');
+      const hasExplicitPaymentRef = typeof paymentRef === 'string' && paymentRef.length > 0;
       
       // Log all the ways we detect payment context
-      console.log("Payment context detection:", {
+      console.log("PAYMENT CONTEXT DETECTION:", {
         hasExplicitPaymentContext,
         hasPaymentUrlInRedirect,
         hasPaymentContextInRedirect,
+        hasExplicitPaymentRef,
+        explicitPaymentRef: paymentRef,
         fullRedirectUrl: redirectUrl
       });
       
-      if (hasExplicitPaymentContext || hasPaymentUrlInRedirect || hasPaymentContextInRedirect) {
-        console.log("PAYMENT CONTEXT DETECTED - Saving to session");
+      // Determine if this is payment-related authentication
+      const isPaymentRelated = hasExplicitPaymentContext || 
+                               hasPaymentUrlInRedirect || 
+                               hasPaymentContextInRedirect ||
+                               hasExplicitPaymentRef;
+      
+      if (isPaymentRelated) {
+        console.log("🚨 PAYMENT CONTEXT DETECTED - Saving to session 🚨");
         (req.session as any).paymentContext = true;
         
-        // Extract payment reference from URL if present
-        if (typeof redirectUrl === 'string' && hasPaymentUrlInRedirect) {
+        // First check for explicit payment reference - highest priority
+        if (hasExplicitPaymentRef) {
+          console.log("EXPLICIT PAYMENT REFERENCE FOUND:", paymentRef);
+          (req.session as any).paymentReference = paymentRef;
+        }
+        // Then try to extract from redirect URL
+        else if (typeof redirectUrl === 'string' && hasPaymentUrlInRedirect) {
           try {
             const payUrl = new URL(redirectUrl);
             const pathParts = payUrl.pathname.split('/');
             if (pathParts.length > 2 && pathParts[1] === 'pay') {
-              const paymentRef = pathParts[2].split('?')[0]; // Remove any query params
-              console.log("PAYMENT REFERENCE EXTRACTED:", paymentRef);
-              (req.session as any).paymentReference = paymentRef;
+              const extractedPaymentRef = pathParts[2].split('?')[0]; // Remove any query params
+              console.log("PAYMENT REFERENCE EXTRACTED FROM URL:", extractedPaymentRef);
+              (req.session as any).paymentReference = extractedPaymentRef;
             }
           } catch (err) {
             console.error("Error extracting payment reference:", err);
           }
         }
+        
+        // Verify what we saved
+        console.log("PAYMENT CONTEXT SAVED TO SESSION:", {
+          paymentContext: (req.session as any).paymentContext,
+          paymentReference: (req.session as any).paymentReference || 'none'
+        });
       }
       
       // Store redirect URL in session for later use

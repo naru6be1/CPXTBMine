@@ -109,9 +109,27 @@ export default function AuthRedirectHandler() {
       const timeoutId = setTimeout(() => {
         // Check for signs that the page might be stuck (no content loaded after a delay)
         const paymentCard = document.querySelector('[data-payment-card]');
+        const loadingCard = document.querySelector('[data-loading-card]');
+        const errorCard = document.querySelector('[data-error-card]');
+        const successCard = document.querySelector('[data-success-card]');
         const loadingSpinner = document.querySelector('[data-loading-spinner]');
         
-        if ((!paymentCard || loadingSpinner) && !refreshAttempted) {
+        // Only refresh if we're still seeing loading indicators or no payment card is visible
+        const validCardVisible = paymentCard || errorCard || successCard;
+        const isStuck = (!validCardVisible || (loadingCard && loadingSpinner)) && !refreshAttempted;
+        
+        console.log("🔍 Payment page status check:", {
+          validCardVisible,
+          paymentCardPresent: !!paymentCard,
+          loadingCardPresent: !!loadingCard,
+          errorCardPresent: !!errorCard,
+          successCardPresent: !!successCard,
+          loadingSpinnerPresent: !!loadingSpinner,
+          isStuck,
+          refreshAttempted
+        });
+        
+        if (isStuck) {
           console.log("⚠️ Payment page appears to be stuck. Forcing refresh...");
           setRefreshAttempted(true);
           

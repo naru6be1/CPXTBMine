@@ -426,7 +426,7 @@ export default function PayPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-        <Card className="w-full max-w-md shadow-xl">
+        <Card className="w-full max-w-md shadow-xl" data-error-card>
           <CardHeader>
             <CardTitle>Payment Error</CardTitle>
             <CardDescription>
@@ -464,7 +464,7 @@ export default function PayPage() {
   if (paymentComplete) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-        <Card className="w-full max-w-md shadow-xl">
+        <Card className="w-full max-w-md shadow-xl" data-success-card>
           <CardHeader>
             <CardTitle>Payment Successful</CardTitle>
             <CardDescription>
@@ -542,7 +542,7 @@ export default function PayPage() {
   // Main payment page
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-md shadow-xl" data-payment-card>
         <CardHeader>
           <CardTitle>CPXTB Payment</CardTitle>
           <CardDescription>

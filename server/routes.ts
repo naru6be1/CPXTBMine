@@ -372,10 +372,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (isPaymentRedirect || hasPaymentContext) {
             console.log("Payment-related authentication detected, ensuring redirect to payment page");
             
+            // Extract payment reference from the redirectUrl if it includes /pay/
+            if (isPaymentRedirect) {
+              const pathParts = redirectUrl.split('/');
+              if (pathParts.length > 2 && pathParts[1] === 'pay') {
+                const paymentRef = pathParts[2].split('?')[0]; // Remove any query params
+                console.log("Extracted payment reference from URL:", paymentRef);
+                
+                // Ensure we have the paymentContext parameter in the URL
+                redirectUrl = `/pay/${paymentRef}?paymentContext=true`;
+                console.log("Enhanced redirect URL with payment context:", redirectUrl);
+              }
+            }
             // If we have payment context but no specific payment URL, check if we have a payment reference
-            if (hasPaymentContext && !isPaymentRedirect && (req.session as any).paymentReference) {
-              // Redirect to the specific payment page
-              redirectUrl = `/pay/${(req.session as any).paymentReference}`;
+            else if (hasPaymentContext && (req.session as any).paymentReference) {
+              // Redirect to the specific payment page with paymentContext param
+              redirectUrl = `/pay/${(req.session as any).paymentReference}?paymentContext=true`;
               console.log("Redirecting to specific payment:", redirectUrl);
             }
           } else if (redirectUrl === '/') {

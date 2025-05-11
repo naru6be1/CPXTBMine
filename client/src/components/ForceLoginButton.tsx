@@ -3,16 +3,16 @@ import { Button } from '@/components/ui/button';
 import { useSocialLogin } from '../providers/SocialLoginProvider';
 import { useToast } from '@/hooks/use-toast';
 
+type ForceLoginButtonProps = {
+  className?: string;
+};
+
 /**
  * A special button component that uses the force-login mechanism
  * for development and mobile environments where Google OAuth
  * may have cookie handling issues.
  */
-export default function ForceLoginButton({
-  variant = 'outline',
-  size = 'sm',
-  className = '',
-}) {
+export default function ForceLoginButton({ className = '' }: ForceLoginButtonProps) {
   const { login } = useSocialLogin();
   const { toast } = useToast();
 
@@ -37,8 +37,8 @@ export default function ForceLoginButton({
 
   return (
     <Button
-      variant={variant}
-      size={size}
+      variant="outline"
+      size="sm"
       className={className}
       onClick={handleForceLogin}
     >

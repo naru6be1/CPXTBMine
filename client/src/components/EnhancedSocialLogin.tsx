@@ -67,12 +67,20 @@ export function EnhancedSocialLogin({
       });
       
       // EMERGENCY FIX: Store payment reference in session storage for emergency redirect
+      // This is read by AuthRedirectHandler to redirect back to the correct payment page
+      // after authentication if needed
       if (isPaymentPage && paymentRef) {
-        console.log("📝 Storing payment reference in session storage:", paymentRef);
+        console.log("📝 CRITICAL - Storing payment reference for auth redirect:", paymentRef);
+        
+        // Store in sessionStorage for persistence
         sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
+        
         // Set an expiration time - 10 minutes from now
         const expiry = Date.now() + (10 * 60 * 1000);
         sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+        
+        // Also store the full URL as a backup
+        sessionStorage.setItem('cpxtb_payment_url', currentUrl);
       }
       
       // Build authentication URL with improved context detection

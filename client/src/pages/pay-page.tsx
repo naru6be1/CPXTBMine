@@ -51,6 +51,7 @@ export default function PayPage() {
     const hasLoggedInParam = urlParams.has('loggedIn');
     const hasPaymentContext = urlParams.has('paymentContext');
     const isGoogleAuth = urlParams.get('provider') === 'google';
+    const hasAuthComplete = urlParams.has('authCompleted');
     
     // If we detect both loggedIn and paymentContext, this is a successful redirect
     // after Google auth for payment
@@ -58,6 +59,21 @@ export default function PayPage() {
     
     // If URL starts with /pay/ and doesn't have loggedIn=true parameter, consider it a direct QR access
     const isDirectAccess = window.location.pathname.startsWith('/pay/') && !hasLoggedInParam;
+    
+    // EMERGENCY FIX FOR GOOGLE AUTH: Save payment reference in sessionStorage
+    // This allows recovery if the redirect after Google auth fails
+    if (window.location.pathname.startsWith('/pay/')) {
+      const paymentRef = window.location.pathname.split('/')[2];
+      if (paymentRef) {
+        // Save payment reference in sessionStorage for redirect recovery
+        console.log("STORING PAYMENT REFERENCE IN SESSION STORAGE:", paymentRef);
+        sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
+        
+        // Set expiration time (10 minutes)
+        const expiry = Date.now() + (10 * 60 * 1000);
+        sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+      }
+    }
     
     // Add enhanced diagnostic logging for troubleshooting
     console.log("PAY PAGE - QR CODE ACCESS DETECTION:", {

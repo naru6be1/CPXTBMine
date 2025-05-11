@@ -51,19 +51,36 @@ export function EnhancedSocialLogin({
     }
     
     // Priority 3: Check session storage for saved reference
-    const storedRef = sessionStorage.getItem('cpxtb_payment_ref');
-    const storedRefExpiry = sessionStorage.getItem('cpxtb_payment_ref_expiry');
+    const sessionRef = sessionStorage.getItem('cpxtb_payment_ref');
+    const sessionRefExpiry = sessionStorage.getItem('cpxtb_payment_ref_expiry');
     
-    if (storedRef && storedRefExpiry) {
-      const expiryTime = parseInt(storedRefExpiry);
+    if (sessionRef && sessionRefExpiry) {
+      const expiryTime = parseInt(sessionRefExpiry);
       if (expiryTime > Date.now()) {
-        console.log("📋 Found valid payment reference in session storage:", storedRef);
-        return storedRef;
+        console.log("📋 Found valid payment reference in session storage:", sessionRef);
+        return sessionRef;
       } else {
-        console.log("⚠️ Found expired payment reference in session storage:", storedRef);
+        console.log("⚠️ Found expired payment reference in session storage:", sessionRef);
         // Clean up expired reference
         sessionStorage.removeItem('cpxtb_payment_ref');
         sessionStorage.removeItem('cpxtb_payment_ref_expiry');
+      }
+    }
+    
+    // Priority 4: Check local storage as fallback (more persistent across browser sessions)
+    const localRef = localStorage.getItem('cpxtb_payment_ref');
+    const localRefExpiry = localStorage.getItem('cpxtb_payment_ref_expiry');
+    
+    if (localRef && localRefExpiry) {
+      const expiryTime = parseInt(localRefExpiry);
+      if (expiryTime > Date.now()) {
+        console.log("📋 Found valid payment reference in local storage:", localRef);
+        return localRef;
+      } else {
+        console.log("⚠️ Found expired payment reference in local storage:", localRef);
+        // Clean up expired reference
+        localStorage.removeItem('cpxtb_payment_ref');
+        localStorage.removeItem('cpxtb_payment_ref_expiry');
       }
     }
     
@@ -114,12 +131,19 @@ export function EnhancedSocialLogin({
       if (paymentRef) {
         console.log("📝 CRITICAL - Storing payment reference for auth redirect:", paymentRef);
         
-        // Store in sessionStorage for persistence
+        // Store in both sessionStorage and localStorage for maximum persistence
+        // This ensures we have multiple recovery paths if one storage method fails
         sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
+        localStorage.setItem('cpxtb_payment_ref', paymentRef);
         
         // Set an expiration time - 10 minutes from now
         const expiry = Date.now() + (10 * 60 * 1000);
         sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+        localStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+        
+        // Store more context information for recovery
+        localStorage.setItem('cpxtb_auth_intent', 'true');
+        localStorage.setItem('cpxtb_auth_intent_timestamp', Date.now().toString());
         
         // Compute and store the full URL - this handles cases where we recovered the reference
         // from session storage or URL parameters but aren't currently on the payment page
@@ -139,8 +163,16 @@ export function EnhancedSocialLogin({
           console.log("📝 Constructed payment URL for post-auth redirect:", paymentUrl);
         }
         
-        // Store the payment URL for backup navigation
+        // Store the payment URL for backup navigation in both storage methods
         sessionStorage.setItem('cpxtb_payment_url', paymentUrl);
+        localStorage.setItem('cpxtb_payment_url', paymentUrl);
+        
+        // Also store the URL with explicit login/payment context flags
+        const enhancedUrl = new URL(paymentUrl, window.location.origin);
+        enhancedUrl.searchParams.set('paymentContext', 'true');
+        enhancedUrl.searchParams.set('loggedIn', 'true');
+        enhancedUrl.searchParams.set('t', Date.now().toString());
+        localStorage.setItem('cpxtb_enhanced_payment_url', enhancedUrl.toString());
       }
       
       // Build authentication URL with improved context detection

@@ -32,9 +32,20 @@ export default function AuthRedirectHandler() {
       const isOnPaymentPage = currentPath.includes('/pay/');
       
       // Enhanced reference detection that uses multiple sources
-      const storedPaymentRef = sessionStorage.getItem('cpxtb_payment_ref');
-      const storedRefExpiry = sessionStorage.getItem('cpxtb_payment_ref_expiry');
-      const storedPaymentUrl = sessionStorage.getItem('cpxtb_payment_url');
+      const sessionPaymentRef = sessionStorage.getItem('cpxtb_payment_ref');
+      const sessionRefExpiry = sessionStorage.getItem('cpxtb_payment_ref_expiry');
+      const sessionPaymentUrl = sessionStorage.getItem('cpxtb_payment_url');
+      
+      // Also check localStorage (more persistent across browser sessions)
+      const localPaymentRef = localStorage.getItem('cpxtb_payment_ref');
+      const localRefExpiry = localStorage.getItem('cpxtb_payment_ref_expiry');
+      const localPaymentUrl = localStorage.getItem('cpxtb_payment_url');
+      const enhancedPaymentUrl = localStorage.getItem('cpxtb_enhanced_payment_url');
+      
+      // Combine storage sources
+      const storedPaymentRef = sessionPaymentRef || localPaymentRef;
+      const storedRefExpiry = sessionRefExpiry || localRefExpiry;
+      const storedPaymentUrl = sessionPaymentUrl || localPaymentUrl || enhancedPaymentUrl;
       
       // Check URL parameters for any payment reference
       const urlParams = new URLSearchParams(window.location.search);
@@ -52,19 +63,29 @@ export default function AuthRedirectHandler() {
       const hasAuthCompletedParam = window.location.search.includes('authCompleted=true');
       const justAuthenticated = hasLoggedInParam || (user && !isOnPaymentPage);
       
-      console.log("🔍 AUTH REDIRECT HANDLER - Enhanced Check:", {
+      console.log("🔍 AUTH REDIRECT HANDLER - Multi-Source Check:", {
         currentPath,
         isOnPaymentPage,
+        sessionPaymentRef,
+        localPaymentRef, 
         storedPaymentRef,
         urlPaymentRef,
         effectivePaymentRef,
+        hasSessionRef: !!sessionPaymentRef,
+        hasLocalRef: !!localPaymentRef,
         hasStoredRef: !!storedPaymentRef,
         hasUrlRef: !!urlPaymentRef, 
         hasLoggedInParam,
         hasAuthCompletedParam,
         justAuthenticated,
         isValidStoredRef,
-        storedPaymentUrl: storedPaymentUrl ? 'present' : 'none',
+        sessionPaymentUrl: sessionPaymentUrl ? 'present' : 'none',
+        localPaymentUrl: localPaymentUrl ? 'present' : 'none',
+        enhancedPaymentUrl: enhancedPaymentUrl ? 'present' : 'none',
+        effectivePaymentUrl: storedPaymentUrl ? 'present' : 'none',
+        // Check localStorage for auth intent/completion
+        authIntent: localStorage.getItem('cpxtb_auth_intent') === 'true',
+        authCompleted: localStorage.getItem('cpxtb_auth_completed') === 'true',
         user: user ? 'authenticated' : 'none'
       });
       
@@ -83,6 +104,10 @@ export default function AuthRedirectHandler() {
           duration: 3000
         });
         
+        // Store authentication status flag in localStorage (more persistent than sessionStorage)
+        localStorage.setItem('cpxtb_auth_completed', 'true');
+        localStorage.setItem('cpxtb_auth_timestamp', Date.now().toString());
+        
         // Try to use the stored URL if available, otherwise construct a new one
         let paymentUrl;
         
@@ -91,11 +116,12 @@ export default function AuthRedirectHandler() {
           const storedUrl = new URL(storedPaymentUrl, window.location.origin);
           storedUrl.searchParams.set('paymentContext', 'true');
           storedUrl.searchParams.set('authCompleted', 'true');
+          storedUrl.searchParams.set('loggedIn', 'true'); // Add this explicitly
           storedUrl.searchParams.set('t', Date.now().toString());
           paymentUrl = storedUrl.pathname + storedUrl.search;
         } else {
           // Construct the payment URL with all necessary parameters and cache busting
-          paymentUrl = `/pay/${effectivePaymentRef}?paymentContext=true&authCompleted=true&t=${Date.now()}`;
+          paymentUrl = `/pay/${effectivePaymentRef}?paymentContext=true&authCompleted=true&loggedIn=true&t=${Date.now()}`;
         }
         
         // Use direct window.location.href for most reliable redirect

@@ -32,6 +32,8 @@ export default function PayPage() {
   
   // DIRECT POST-AUTH VERIFICATION: Force a login state verify immediately on page load
   useEffect(() => {
+    if (initialLoad.current) return; // Skip on first render until variables are initialized
+    
     // Check URL parameters for auth flags
     const urlParams = new URLSearchParams(window.location.search);
     const hasAuthCompleted = urlParams.has('authCompleted');
@@ -83,7 +85,7 @@ export default function PayPage() {
         return () => clearTimeout(timeoutId);
       }
     }
-  }, [isLoggedIn, loading, isDirectQrAccess, autoRefreshAttempted, walletAddress]);
+  }, [isLoggedIn, loading, isDirectQrAccess, autoRefreshAttempted, walletAddress, toast]);
   const [regeneratingPayment, setRegeneratingPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);

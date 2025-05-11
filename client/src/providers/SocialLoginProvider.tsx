@@ -51,6 +51,29 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     console.log('URL parameters:', window.location.search);
     console.log('Is QR code payment page:', window.location.pathname.startsWith('/pay/'));
     
+    // EMERGENCY REDIRECT FIX: Check if we need to forcibly redirect
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasLoggedInParam = urlParams.has('loggedIn');
+    const hasPaymentContext = urlParams.has('paymentContext');
+    const isGoogleAuth = urlParams.get('provider') === 'google';
+    
+    // If we detect both loggedIn and paymentContext from Google auth, but we're not on a payment page,
+    // we need to forcibly redirect to the correct payment page
+    if (hasLoggedInParam && hasPaymentContext && isGoogleAuth && !window.location.pathname.startsWith('/pay/')) {
+      console.log("🚨 EMERGENCY REDIRECT DETECTED!");
+      console.log("We have returned from Google auth with payment context but aren't on a payment page.");
+      
+      // Get payment reference from session storage (set during auth init)
+      const savedPaymentRef = sessionStorage.getItem('cpxtb_payment_ref');
+      
+      if (savedPaymentRef) {
+        // We have a saved payment reference - redirect immediately
+        console.log(`Forcibly redirecting to payment page: /pay/${savedPaymentRef}`);
+        window.location.href = `/pay/${savedPaymentRef}?paymentContext=true&loggedIn=true&provider=google`;
+        return; // Skip the rest of initialization
+      }
+    }
+    
     const storedUser = localStorage.getItem('cpxtb_user');
     
     if (storedUser) {

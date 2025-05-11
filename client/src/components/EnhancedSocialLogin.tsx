@@ -66,6 +66,15 @@ export function EnhancedSocialLogin({
         search: window.location.search
       });
       
+      // EMERGENCY FIX: Store payment reference in session storage for emergency redirect
+      if (isPaymentPage && paymentRef) {
+        console.log("📝 Storing payment reference in session storage:", paymentRef);
+        sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
+        // Set an expiration time - 10 minutes from now
+        const expiry = Date.now() + (10 * 60 * 1000);
+        sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+      }
+      
       // Build authentication URL with improved context detection
       let authUrl = `/api/social-auth/google?redirectUrl=${redirectUrl}`;
       

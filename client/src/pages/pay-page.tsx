@@ -40,6 +40,19 @@ export default function PayPage() {
   const [isBuyingTokens, setIsBuyingTokens] = useState(false);
   const [purchaseAmount, setPurchaseAmount] = useState("");
   
+  // DEVELOPMENT MODE: Attempt force login for development environments
+  useEffect(() => {
+    const isDevelopmentEnv = window.location.hostname.includes('replit.dev') || 
+                             window.location.hostname.includes('localhost');
+    const isMobileBrowser = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // If in development environment and not logged in, attempt force login
+    if ((isDevelopmentEnv || isMobileBrowser) && !isLoggedIn && !loading) {
+      console.log("⚡ PAY PAGE: Development environment detected, attempting force login...");
+      login('google'); // This will use force-login in development environments
+    }
+  }, [isLoggedIn, loading, login]);
+
   // DIRECT POST-AUTH VERIFICATION: Force a login state verify immediately on page load
   useEffect(() => {
     if (initialLoad.current) {

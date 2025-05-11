@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useSocialLogin } from '../providers/SocialLoginProvider';
+import ForceLoginButton from './ForceLoginButton';
 
 /**
  * Direct payment redirect solution component.
@@ -18,6 +19,8 @@ export default function AuthRedirectHandler() {
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   const [refreshAttempted, setRefreshAttempted] = useState(false);
   const [forceLoginAttempted, setForceLoginAttempted] = useState(false);
+  const [loginLoopDetected, setLoginLoopDetected] = useState(false);
+  const [loginAttemptCount, setLoginAttemptCount] = useState(0);
   
   // PART 0: Attempt force login for development environments or mobile browsers
   useEffect(() => {
@@ -272,6 +275,56 @@ export default function AuthRedirectHandler() {
     }
   }, [user, refreshAttempted, toast]);
   
+  // PART 3: Track and detect login loops
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasLoggedInParam = urlParams.has('loggedIn');
+    const hasAuthCompleteParam = urlParams.has('authCompleted');
+    const isGoogleAuthFlow = urlParams.has('provider') && urlParams.get('provider') === 'google';
+    
+    // Check if we're in an authentication flow
+    if (hasLoggedInParam || hasAuthCompleteParam || isGoogleAuthFlow) {
+      // Increment login attempt count
+      setLoginAttemptCount(prev => {
+        const newCount = prev + 1;
+        
+        // Store attempt count for page refresh persistence
+        localStorage.setItem('cpxtb_login_attempt_count', newCount.toString());
+        
+        // If we've tried more than 3 times, flag a login loop
+        if (newCount >= 3) {
+          setLoginLoopDetected(true);
+          // Store the loop detection for persistence
+          localStorage.setItem('cpxtb_login_loop_detected', 'true');
+          
+          toast({
+            title: "Authentication Issue Detected",
+            description: "Multiple login attempts detected. Try direct login instead.",
+            duration: 8000,
+          });
+        }
+        
+        return newCount;
+      });
+    }
+  }, [toast]);
+  
+  // Load stored login attempt data on mount
+  useEffect(() => {
+    const storedCount = localStorage.getItem('cpxtb_login_attempt_count');
+    const storedLoopDetected = localStorage.getItem('cpxtb_login_loop_detected');
+    
+    if (storedCount) {
+      const count = parseInt(storedCount);
+      setLoginAttemptCount(count);
+      
+      // If count is high or loop explicitly detected, set the flag
+      if (count >= 3 || storedLoopDetected === 'true') {
+        setLoginLoopDetected(true);
+      }
+    }
+  }, []);
+  
   // Reset flags when navigating to a new page
   useEffect(() => {
     const resetFlagsForNewPath = () => {
@@ -287,6 +340,41 @@ export default function AuthRedirectHandler() {
     };
   }, []);
   
-  // This is a utility component, it doesn't render anything
+  // Function to dismiss the login loop popup and reset counters
+  const dismissLoginLoopHelp = () => {
+    setLoginLoopDetected(false);
+    setLoginAttemptCount(0);
+    localStorage.removeItem('cpxtb_login_loop_detected');
+    localStorage.removeItem('cpxtb_login_attempt_count');
+  };
+
+  // This component now conditionally renders a help box if a login loop is detected
+  if (loginLoopDetected) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50 p-4 bg-blue-50 border border-blue-300 rounded-lg shadow-lg max-w-sm">
+        <button 
+          onClick={dismissLoginLoopHelp}
+          className="absolute top-2 right-2 text-blue-400 hover:text-blue-700"
+          aria-label="Close"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div className="flex flex-col">
+          <h3 className="font-bold text-blue-800">Authentication Loop Detected</h3>
+          <p className="text-sm text-blue-600 mb-3">
+            We've detected multiple login attempts. Google authentication may be having issues with cookies.
+          </p>
+          <ForceLoginButton 
+            className="bg-blue-100 hover:bg-blue-200 border-blue-300 w-full" 
+          />
+        </div>
+      </div>
+    );
+  }
+  
+  // Otherwise, renders nothing
   return null;
 }

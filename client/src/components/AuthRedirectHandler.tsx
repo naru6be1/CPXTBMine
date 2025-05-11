@@ -31,39 +31,50 @@ export default function AuthRedirectHandler() {
       const currentPath = window.location.pathname || '';
       const isOnPaymentPage = currentPath.includes('/pay/');
       
-      // Check if we have a stored payment reference
+      // Enhanced reference detection that uses multiple sources
       const storedPaymentRef = sessionStorage.getItem('cpxtb_payment_ref');
       const storedRefExpiry = sessionStorage.getItem('cpxtb_payment_ref_expiry');
       const storedPaymentUrl = sessionStorage.getItem('cpxtb_payment_url');
       
+      // Check URL parameters for any payment reference
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlPaymentRef = urlParams.get('paymentRef');
+      
+      // Merge reference sources with priority (URL parameter > stored reference)
+      const effectivePaymentRef = urlPaymentRef || storedPaymentRef;
+      
       // Check if the reference is still valid (not expired)
-      const isValidStoredRef = storedPaymentRef && storedRefExpiry && 
-                              parseInt(storedRefExpiry) > Date.now();
+      const isValidStoredRef = effectivePaymentRef && 
+                              (urlPaymentRef || (storedRefExpiry && parseInt(storedRefExpiry) > Date.now()));
       
       // Check if we just authenticated (either from loggedIn param or user state change)
       const hasLoggedInParam = window.location.search.includes('loggedIn=true');
       const hasAuthCompletedParam = window.location.search.includes('authCompleted=true');
       const justAuthenticated = hasLoggedInParam || (user && !isOnPaymentPage);
       
-      console.log("🔍 AUTH REDIRECT HANDLER - Check:", {
+      console.log("🔍 AUTH REDIRECT HANDLER - Enhanced Check:", {
         currentPath,
         isOnPaymentPage,
         storedPaymentRef,
+        urlPaymentRef,
+        effectivePaymentRef,
         hasStoredRef: !!storedPaymentRef,
+        hasUrlRef: !!urlPaymentRef, 
         hasLoggedInParam,
         hasAuthCompletedParam,
         justAuthenticated,
         isValidStoredRef,
+        storedPaymentUrl: storedPaymentUrl ? 'present' : 'none',
         user: user ? 'authenticated' : 'none'
       });
       
       // DIRECT REDIRECT: If we're not on a payment page, just authenticated,
-      // and have a valid stored reference, perform an immediate redirect
+      // and have a valid payment reference, perform an immediate redirect
       if (!isOnPaymentPage && justAuthenticated && isValidStoredRef) {
         // Mark that we've attempted a redirect to prevent loops
         setRedirectAttempted(true);
         
-        console.log("🚨 EMERGENCY PAYMENT REDIRECT: Redirecting to payment page for", storedPaymentRef);
+        console.log("🚨 ENHANCED PAYMENT REDIRECT: Redirecting to payment page for", effectivePaymentRef);
         
         // Show toast to inform the user
         toast({
@@ -72,8 +83,20 @@ export default function AuthRedirectHandler() {
           duration: 3000
         });
         
-        // Construct the payment URL with all necessary parameters and cache busting
-        const paymentUrl = `/pay/${storedPaymentRef}?paymentContext=true&authCompleted=true&t=${Date.now()}`;
+        // Try to use the stored URL if available, otherwise construct a new one
+        let paymentUrl;
+        
+        if (storedPaymentUrl && effectivePaymentRef === storedPaymentRef) {
+          // Use stored URL but ensure authCompleted flag is set
+          const storedUrl = new URL(storedPaymentUrl, window.location.origin);
+          storedUrl.searchParams.set('paymentContext', 'true');
+          storedUrl.searchParams.set('authCompleted', 'true');
+          storedUrl.searchParams.set('t', Date.now().toString());
+          paymentUrl = storedUrl.pathname + storedUrl.search;
+        } else {
+          // Construct the payment URL with all necessary parameters and cache busting
+          paymentUrl = `/pay/${effectivePaymentRef}?paymentContext=true&authCompleted=true&t=${Date.now()}`;
+        }
         
         // Use direct window.location.href for most reliable redirect
         console.log("⚡ PERFORMING DIRECT BROWSER REDIRECT TO:", paymentUrl);
@@ -118,7 +141,7 @@ export default function AuthRedirectHandler() {
         const validCardVisible = paymentCard || errorCard || successCard;
         const isStuck = (!validCardVisible || (loadingCard && loadingSpinner)) && !refreshAttempted;
         
-        console.log("🔍 Payment page status check:", {
+        console.log("🔍 Enhanced Payment Page Status Check:", {
           validCardVisible,
           paymentCardPresent: !!paymentCard,
           loadingCardPresent: !!loadingCard,
@@ -126,7 +149,11 @@ export default function AuthRedirectHandler() {
           successCardPresent: !!successCard,
           loadingSpinnerPresent: !!loadingSpinner,
           isStuck,
-          refreshAttempted
+          refreshAttempted,
+          timestamp: new Date().toISOString(),
+          hasAuthCompletedFlag: window.location.search.includes('authCompleted=true'),
+          hasPaymentContextFlag: window.location.search.includes('paymentContext=true'),
+          url: window.location.href
         });
         
         if (isStuck) {
@@ -139,14 +166,27 @@ export default function AuthRedirectHandler() {
             duration: 3000
           });
           
-          // Get the current URL and force a refresh with a new timestamp
+          // Enhanced URL handling for more reliable refresh
           const currentUrl = new URL(window.location.href);
+          
+          // Ensure critical payment context flags are present
+          currentUrl.searchParams.set('paymentContext', 'true');
+          currentUrl.searchParams.set('authCompleted', 'true');
+          
+          // Add cache-busting timestamp 
           currentUrl.searchParams.set('t', Date.now().toString());
           
-          // Force a page reload to fix any stale state
+          // Add a special flag to indicate this is a refresh attempt
+          currentUrl.searchParams.set('refreshAttempt', '1');
+          
+          // Log the URL we're refreshing to
+          console.log("⚡ REFRESHING PAGE TO:", currentUrl.toString());
+          
+          // Force a page reload to fix any stale state after a small delay
+          // to ensure toast is shown and logs are completed
           setTimeout(() => {
             window.location.href = currentUrl.toString();
-          }, 500);
+          }, 800);
         }
       }, 5000); // Wait 5 seconds before checking
       

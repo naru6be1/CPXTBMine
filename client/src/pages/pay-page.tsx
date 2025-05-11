@@ -33,10 +33,20 @@ export default function PayPage() {
   const [error, setError] = useState<string | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [autoRefreshAttempted, setAutoRefreshAttempted] = useState(false);
+  const [isDirectQrAccess, setIsDirectQrAccess] = useState(false);
+  const [regeneratingPayment, setRegeneratingPayment] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isBuyingTokens, setIsBuyingTokens] = useState(false);
+  const [purchaseAmount, setPurchaseAmount] = useState("");
   
   // DIRECT POST-AUTH VERIFICATION: Force a login state verify immediately on page load
   useEffect(() => {
-    if (initialLoad.current) return; // Skip on first render until variables are initialized
+    if (initialLoad.current) {
+      // Mark the first render as complete, but skip execution
+      initialLoad.current = false;
+      return;
+    }
     
     // Check URL parameters for auth flags
     const urlParams = new URLSearchParams(window.location.search);
@@ -90,12 +100,7 @@ export default function PayPage() {
       }
     }
   }, [isLoggedIn, loading, isDirectQrAccess, autoRefreshAttempted, walletAddress, toast]);
-  const [regeneratingPayment, setRegeneratingPayment] = useState(false);
-  const [paymentComplete, setPaymentComplete] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [isBuyingTokens, setIsBuyingTokens] = useState(false);
-  const [purchaseAmount, setPurchaseAmount] = useState("");
-  const [isDirectQrAccess, setIsDirectQrAccess] = useState(false);
+// State declarations moved to the top of the component
 
   // Fetch payment data
   // PAYMENT CONTEXT MANAGEMENT - Direct approach to handle authentication and payment state

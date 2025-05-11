@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { useSocialLogin } from '@/providers/SocialLoginProvider';
 
 /**
  * Direct payment redirect solution component.
@@ -8,12 +9,15 @@ import { useToast } from '@/hooks/use-toast';
  * redirect users to the correct payment page if needed.
  * 
  * EMERGENCY FIX: Using direct window.location for more reliable redirects
+ * AUTO-LOGIN FIX: Using force-login for development and mobile environments
  */
 export default function AuthRedirectHandler() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
+  const { login } = useSocialLogin(); // Import SocialLoginProvider's login function
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   const [refreshAttempted, setRefreshAttempted] = useState(false);
+  const [forceLoginAttempted, setForceLoginAttempted] = useState(false);
   
   // PART 1: Handle post-authentication redirects for payment pages
   useEffect(() => {

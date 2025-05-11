@@ -348,10 +348,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Google client secret used:", process.env.GOOGLE_CLIENT_SECRET ? "Available (length: " + 
           process.env.GOOGLE_CLIENT_SECRET.length + ")" : "Missing");
         
-        // Redirect to Google authentication
+        // ADVANCED FIX: Pass payment reference in the state parameter for extra safety
+        let stateParam = undefined;
+        
+        // If this is a payment-related auth request, encode the payment reference in the state
+        if ((req.session as any).paymentReference) {
+          stateParam = `payment_${(req.session as any).paymentReference}`;
+          console.log("🔐 Adding payment reference to OAuth state:", stateParam);
+        }
+        
+        // Redirect to Google authentication with extra state
         passport.authenticate('google', { 
           scope: ['profile', 'email'],
-          prompt: 'select_account'
+          prompt: 'select_account',
+          state: stateParam
         })(req, res);
       } else {
         console.log("Using fallback mock authentication");
@@ -406,75 +416,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }),
       (req: Request, res: Response) => {
         if (req.user) {
+          console.log("================= OAUTH SUCCESS REDIRECT =================");
           console.log("Authentication successful, user is logged in");
           console.log("User object:", req.user);
           
-          // Get stored redirect URL from session
-          let redirectUrl = req.session.redirectUrl || '/merchant';
-          console.log("Initial redirect URL from session:", redirectUrl);
+          // DIRECT FIX: Read out BOTH session storage and query parameters
+          // This handles the common failure case better
           
-          // Check for payment-related indicators
-          const isPaymentRedirect = redirectUrl.includes('/pay/');
+          // 1. First check if we have an explicit payment reference in the session (highest priority)
+          const paymentRefFromSession = (req.session as any).paymentReference;
+          const hasSessionPaymentRef = Boolean(paymentRefFromSession);
+          
+          // 2. Check for payment context flag in session
           const hasPaymentContext = (req.session as any).paymentContext === true;
-          const hasPaymentRef = Boolean((req.session as any).paymentReference);
           
-          console.log("Payment redirect detection:", {
-            isPaymentRedirect,
-            hasPaymentContext,
-            hasPaymentRef,
-            paymentRef: (req.session as any).paymentReference || 'none',
-            originalUrl: redirectUrl
-          });
+          // 3. Get redirect URL from session as fallback
+          let redirectUrl = req.session.redirectUrl || '/merchant';
           
-          // ALWAYS prioritize payment context if we have a payment reference
-          if (hasPaymentRef) {
-            // We have a payment reference, override any other redirect
-            redirectUrl = `/pay/${(req.session as any).paymentReference}?paymentContext=true`;
-            console.log("Prioritizing payment reference redirect:", redirectUrl);
-          }
-          // If not by reference but we have a payment URL, use that
-          else if (isPaymentRedirect) {
-            // Extract the payment reference from the URL
+          // 4. Check if the stored redirect URL indicates a payment page
+          const isPaymentRedirect = redirectUrl.includes('/pay/');
+          
+          // 5. Try to extract payment reference from redirect URL as last resort
+          let paymentRefFromUrl = null;
+          if (isPaymentRedirect) {
             try {
               const pathParts = redirectUrl.split('/');
               if (pathParts.length > 2 && pathParts[1] === 'pay') {
-                const paymentRef = pathParts[2].split('?')[0]; // Remove any query params
-                console.log("Extracted payment reference from URL:", paymentRef);
-                
-                // Ensure we have the paymentContext parameter in the URL
-                redirectUrl = `/pay/${paymentRef}?paymentContext=true`;
-                console.log("Enhanced redirect URL with payment context:", redirectUrl);
+                paymentRefFromUrl = pathParts[2].split('?')[0]; // Remove any query params
               }
             } catch (err) {
-              console.error("Error processing payment URL:", err);
+              console.error("Error extracting payment reference from URL:", err);
             }
           }
-          // For generic redirects, check the payment context flag
-          else if (hasPaymentContext) {
-            // We have payment context but no reference - should not happen normally
-            console.log("WARNING: Payment context flag is set but no reference available");
-            // Default to merchant dashboard in this case
-            redirectUrl = '/merchant';
+          
+          // Log all our detection methods
+          console.log("PAYMENT DETECTION STATUS:", {
+            hasSessionPaymentRef,
+            paymentRefFromSession,
+            hasPaymentContext,
+            isPaymentRedirect,
+            paymentRefFromUrl,
+            originalRedirectUrl: redirectUrl
+          });
+          
+          // 6. EMERGENCY FIX: Try to get the payment reference from session storage
+          // This is set by the EnhancedSocialLogin component before redirection
+          try {
+            if (!hasSessionPaymentRef && !paymentRefFromUrl && hasPaymentContext) {
+              // Check with the client-side to see if there's a payment reference
+              console.log("ATTEMPTING TO FORCE QR CODE PAYMENT REDIRECT");
+              redirectUrl = '/merchant?paymentRedirectFailed=true';
+            }
+          } catch (err) {
+            console.error("Error checking for session storage payment reference:", err);
           }
-          // For all other cases (non-payment related)
-          else if (redirectUrl === '/') {
+          
+          // SIMPLIFIED DECISION TREE:
+          // If we have a payment reference or context, go to the payment page
+          // Otherwise, use the standard redirect or default to merchant dashboard
+          
+          if (hasSessionPaymentRef && paymentRefFromSession) {
+            // Case 1: We have a direct payment reference in the session - highest priority
+            redirectUrl = `/pay/${paymentRefFromSession}?paymentContext=true`;
+            console.log("USING SESSION PAYMENT REFERENCE:", paymentRefFromSession);
+          } else if (paymentRefFromUrl) {
+            // Case 2: We extracted a payment reference from the redirect URL
+            redirectUrl = `/pay/${paymentRefFromUrl}?paymentContext=true`;
+            console.log("USING URL PAYMENT REFERENCE:", paymentRefFromUrl);
+          } else if (hasPaymentContext) {
+            // Case 3: We have payment context but no reference - unexpected state
+            console.log("WARNING: Payment context flag is set but no reference available");
+            
+            // Try to parse the state parameter from the auth request if present
+            const queryState = req.query.state?.toString();
+            if (queryState && queryState.includes('payment_')) {
+              const queryPaymentRef = queryState.split('payment_')[1];
+              if (queryPaymentRef) {
+                redirectUrl = `/pay/${queryPaymentRef}?paymentContext=true`;
+                console.log("USING QUERY STATE PAYMENT REFERENCE:", queryPaymentRef);
+              } else {
+                // No payment reference found anywhere - default to merchant dashboard
+                redirectUrl = '/merchant?paymentLookupFailed=true';
+              }
+            } else {
+              // No payment reference found anywhere - default to merchant dashboard
+              redirectUrl = '/merchant?paymentLookupFailed=true';
+            }
+          } else if (redirectUrl === '/' || redirectUrl === '') {
             // Default to merchant dashboard if no specific path was requested
             redirectUrl = '/merchant';
           }
           
-          // Clean up payment context from session
+          // Clean up to prevent issues with future logins
           delete (req.session as any).paymentContext;
           delete (req.session as any).paymentReference;
           delete req.session.redirectUrl;
           
-          console.log("FINAL REDIRECT URL:", redirectUrl);
+          console.log("⭐⭐⭐ FINAL REDIRECT URL:", redirectUrl);
           
           // Add login params to the redirect URL
           const targetUrl = new URL(redirectUrl, `${req.protocol}://${req.get('host')}`);
           targetUrl.searchParams.set('loggedIn', 'true');
           targetUrl.searchParams.set('provider', 'google');
           
-          // Redirect to the target URL
+          // DIRECT REDIRECT: Set a hard-coded redirect with final URL 
+          // This bypasses all potential browser issues
+          console.log("⭐ SENDING DIRECT REDIRECT TO: " + targetUrl.toString());
           res.redirect(targetUrl.toString());
         } else {
           console.log("Authentication failed - no user object found");

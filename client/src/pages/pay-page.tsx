@@ -161,29 +161,52 @@ export default function PayPage() {
         return;
       }
       
-      // EMERGENCY FIX: Implement fetch with retry logic to improve reliability
-      const fetchWithRetry = async (url: string, retries = 3, delay = 800): Promise<Response> => {
-        try {
-          const response = await fetch(url);
-          if (response.ok) return response;
-          
-          // If we got a 5xx response and have retries left, try again
-          if (response.status >= 500 && retries > 0) {
-            console.warn(`Server error (${response.status}), retrying... (${retries} attempts left)`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchWithRetry(url, retries - 1, delay * 1.5);
+      // EMERGENCY FIX: Implement enhanced fetch with exponential backoff retry logic
+      const fetchWithRetry = async (url: string, maxRetries = 3, initialDelay = 800): Promise<Response> => {
+        let currentRetry = 0;
+        
+        const performFetch = async (): Promise<Response> => {
+          try {
+            console.log(`Fetch attempt ${currentRetry + 1}/${maxRetries + 1} for ${url}`);
+            
+            // Add cache-busting timestamp to prevent browser caching
+            const urlWithTimestamp = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+            
+            const response = await fetch(urlWithTimestamp);
+            if (response.ok) {
+              console.log(`Fetch successful on attempt ${currentRetry + 1}`);
+              return response;
+            }
+            
+            // Get status code to log
+            const status = response.status;
+            console.warn(`Fetch failed with status ${status} on attempt ${currentRetry + 1}`);
+            
+            // If we got a 5xx response or certain 4xx responses and have retries left, try again
+            if ((response.status >= 500 || response.status === 408 || response.status === 429) && currentRetry < maxRetries) {
+              currentRetry++;
+              const currentDelay = initialDelay * Math.pow(1.5, currentRetry); // Exponential backoff
+              console.warn(`Server error (${response.status}), retrying in ${currentDelay}ms... (${maxRetries - currentRetry} attempts left)`);
+              await new Promise(resolve => setTimeout(resolve, currentDelay));
+              return performFetch();
+            }
+            
+            // If all retries failed or not a retryable error
+            return response;
+          } catch (error) {
+            // If we have network errors and retries left, try again
+            if (currentRetry < maxRetries) {
+              currentRetry++;
+              const currentDelay = initialDelay * Math.pow(1.5, currentRetry);
+              console.warn(`Network error, retrying in ${currentDelay}ms... (${maxRetries - currentRetry} attempts left)`, error);
+              await new Promise(resolve => setTimeout(resolve, currentDelay));
+              return performFetch();
+            }
+            throw error;
           }
-          
-          return response;
-        } catch (error) {
-          // If we have network errors and retries left, try again
-          if (retries > 0) {
-            console.warn(`Network error, retrying... (${retries} attempts left)`, error);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchWithRetry(url, retries - 1, delay * 1.5);
-          }
-          throw error;
-        }
+        };
+        
+        return performFetch();
       };
       
       try {

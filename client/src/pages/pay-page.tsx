@@ -416,7 +416,7 @@ export default function PayPage() {
           </CardHeader>
           
           <CardContent className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" data-loading-spinner />
           </CardContent>
         </Card>
       </div>

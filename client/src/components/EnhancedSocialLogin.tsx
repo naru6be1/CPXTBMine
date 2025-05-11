@@ -43,11 +43,29 @@ export function EnhancedSocialLogin({
       
       // Check if this is a payment page
       const isPaymentPage = window.location.pathname.includes('/pay/');
-      console.log("Authentication from payment page:", isPaymentPage);
+      
+      // Check if we have paymentContext in the URL parameters
+      const hasPaymentContext = window.location.search.includes('paymentContext=true');
+      
+      console.log("Authentication from payment page:", {
+        isPaymentPage,
+        hasPaymentContext,
+        currentUrl,
+        path: window.location.pathname,
+        search: window.location.search
+      });
       
       // Navigate directly to the authentication endpoint
-      // Add payment context if this is a payment page
-      window.location.href = `/api/social-auth/google?redirectUrl=${redirectUrl}${isPaymentPage ? '&context=payment' : ''}`;
+      // Add payment context if this is a payment page or we have paymentContext=true in URL
+      let authUrl = `/api/social-auth/google?redirectUrl=${redirectUrl}`;
+      
+      // Always include context=payment for payment pages
+      if (isPaymentPage || hasPaymentContext) {
+        authUrl += '&context=payment';
+      }
+      
+      console.log("Redirecting to authentication URL:", authUrl);
+      window.location.href = authUrl;
     } catch (error: any) {
       console.error('Social login error:', error);
       toast({

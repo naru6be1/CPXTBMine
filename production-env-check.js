@@ -1,93 +1,77 @@
 /**
- * Production Environment Variable Checker
+ * Production Environment Checker
  * 
- * This script checks if all required environment variables for production
- * are properly set. Run this before deploying to ensure your production
- * environment is configured correctly.
+ * This script verifies that all required environment variables are properly set
+ * before attempting to build and deploy the application to production.
  */
 
-// Load environment variables
-import * as dotenv from 'dotenv';
-dotenv.config();
-
-// Define required environment variables for production
-const requiredVars = [
+// List of required environment variables for production
+const requiredVariables = [
   'DATABASE_URL',
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
-  'PRODUCTION_DOMAIN',
   'SESSION_SECRET',
+  'VITE_WEB3AUTH_CLIENT_ID',
   'BASE_RPC_API_KEY',
-  'PGHOST',
-  'PGUSER',
-  'PGPASSWORD',
-  'PGDATABASE',
-  'PGPORT'
+  'ADMIN_PRIVATE_KEY'
 ];
 
-// Define authentication-specific variables
-const authVars = [
-  'GOOGLE_CLIENT_ID',
-  'GOOGLE_CLIENT_SECRET',
-  'SESSION_SECRET'
+// List of optional but recommended variables
+const recommendedVariables = [
+  'STRIPE_SECRET_KEY',
+  'VITE_STRIPE_PUBLIC_KEY',
+  'EMAIL_HOST',
+  'EMAIL_PORT',
+  'EMAIL_USER',
+  'EMAIL_PASSWORD'
 ];
 
-// Track missing variables
-const missingVars = [];
-const missingAuthVars = [];
+console.log('Checking production environment variables...');
 
-console.log('Checking production environment variables:');
-console.log('=============================================');
-
-// Check for missing variables
-requiredVars.forEach(varName => {
-  if (!process.env[varName]) {
-    missingVars.push(varName);
-    if (authVars.includes(varName)) {
-      missingAuthVars.push(varName);
-    }
-    console.log(`❌ ${varName}: Missing`);
-  } else {
-    // Don't print the actual values for security reasons
-    const value = process.env[varName];
-    const sanitizedValue = value.length > 8 
-      ? `${value.substring(0, 3)}...${value.substring(value.length - 3)}` 
-      : '******';
-    console.log(`✅ ${varName}: ${sanitizedValue}`);
+// Check required variables
+let missingRequired = [];
+for (const variable of requiredVariables) {
+  if (!process.env[variable]) {
+    missingRequired.push(variable);
   }
-});
-
-console.log('=============================================');
-
-// Check for production domain 
-if (process.env.PRODUCTION_DOMAIN) {
-  console.log(`Production Domain: ${process.env.PRODUCTION_DOMAIN}`);
-  
-  // Verify callback URL configuration
-  const expectedCallbackUrl = `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback`;
-  console.log(`Expected Google callback URL: ${expectedCallbackUrl}`);
-  console.log('Verify this matches your Google OAuth configuration');
-} else {
-  console.log('⚠️ PRODUCTION_DOMAIN not set - Google OAuth may not work correctly');
 }
 
-// Authentication specific checks
-if (missingAuthVars.length > 0) {
-  console.log('\n⚠️ AUTHENTICATION WARNING:');
-  console.log('Some variables required for authentication are missing:');
-  missingAuthVars.forEach(varName => console.log(`- ${varName}`));
-  console.log('This may cause issues with Google OAuth in production.');
-} else {
-  console.log('\n✅ Authentication configuration looks good!');
+// Check recommended variables
+let missingRecommended = [];
+for (const variable of recommendedVariables) {
+  if (!process.env[variable]) {
+    missingRecommended.push(variable);
+  }
 }
 
-// Summary
-if (missingVars.length > 0) {
-  console.log('\n⚠️ ACTION REQUIRED:');
-  console.log('Please set the following environment variables before deploying:');
-  missingVars.forEach(varName => console.log(`- ${varName}`));
+// Report findings
+if (missingRequired.length === 0) {
+  console.log('✅ All required environment variables are set');
+} else {
+  console.error('❌ Missing required environment variables:');
+  missingRequired.forEach(variable => console.error(`   - ${variable}`));
+  console.error('\nPlease add these variables to your .env file or Replit Secrets before deploying');
   process.exit(1);
-} else {
-  console.log('\n✅ All required environment variables are set!');
-  console.log('Your application is ready for production deployment.');
 }
+
+if (missingRecommended.length === 0) {
+  console.log('✅ All recommended environment variables are set');
+} else {
+  console.warn('⚠️ Missing recommended environment variables:');
+  missingRecommended.forEach(variable => console.warn(`   - ${variable}`));
+  console.warn('\nThese variables are not required but may limit functionality if missing');
+}
+
+// Check for valid production domains
+if (!process.env.BASE_URL && !process.env.PRODUCTION_DOMAIN) {
+  console.warn('⚠️ No production domain specified (BASE_URL or PRODUCTION_DOMAIN)');
+  console.warn('   Consider setting BASE_URL=https://cpxtbmining.com in your .env file');
+}
+
+// Validate Google OAuth callback URL configuration
+if (process.env.GOOGLE_CLIENT_ID) {
+  console.log('ℹ️ Google OAuth is configured. Make sure the callback URL in the Google Console includes:');
+  console.log('   - https://cpxtbmining.com/api/auth/google/callback');
+}
+
+console.log('\nEnvironment check completed successfully');

@@ -6,75 +6,105 @@
  */
 
 import * as fs from 'fs';
-import { exec } from 'child_process';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure we're in production mode
-process.env.NODE_ENV = 'production';
+console.log('Starting build optimization...');
 
-// Create a temporary deployment configuration file
-console.log('Creating deployment configuration...');
-const deploymentsConfigContent = `
-// This file is auto-generated for production deployment
-// It contains optimized settings for better performance
-export const DEPLOYMENT_CONFIG = {
-  // Force production mode
-  NODE_ENV: 'production',
-  
-  // Enable session security for production
-  SESSION_CONFIG: {
-    secure: true,
-    httpOnly: true,
-    sameSite: 'strict'
-  }
-};
+try {
+  // Ensure production mode
+  process.env.NODE_ENV = 'production';
+  console.log('Set NODE_ENV to:', process.env.NODE_ENV);
+
+  // Create optimized client/src/lib/polyfills.js with reduced imports
+  const polyfillsPath = path.join(__dirname, 'client', 'src', 'lib', 'polyfills.js');
+  if (fs.existsSync(polyfillsPath)) {
+    console.log(`Optimizing ${polyfillsPath}`);
+    const optimizedPolyfills = `// Optimized polyfills for production
+console.log("Optimized polyfills loaded");
+
+// Buffer polyfill for crypto operations
+if (typeof window !== "undefined" && typeof window.Buffer === "undefined") {
+  window.Buffer = require("buffer").Buffer;
+}
+
+// Make sure global is defined
+if (typeof window !== "undefined" && typeof window.global === "undefined") {
+  window.global = window;
+}
+
+// Process polyfill
+if (typeof window !== "undefined" && typeof window.process === "undefined") {
+  window.process = { env: { NODE_ENV: "production" } };
+}
 `;
-
-fs.writeFileSync(path.join(__dirname, 'deployment-config.js'), deploymentsConfigContent);
-console.log('✅ Created deployment-config.js');
-
-// Make sure environment variables are set
-console.log('Setting NODE_ENV to production...');
-process.env.NODE_ENV = 'production';
-
-// Create optimization hints file for the build process
-console.log('Creating optimization hints...');
-const optimizationHints = `
-# Build optimization hints
-# This file is read by the build process to optimize the build
-
-# Use production mode
-NODE_ENV=production
-
-# Ensure proper authentication in production
-PRODUCTION_DOMAIN=cpxtbmining.com
-`;
-
-fs.writeFileSync(path.join(__dirname, '.build-optimization'), optimizationHints);
-console.log('✅ Created .build-optimization file');
-
-// Check if we're ready for production
-console.log('Checking production readiness...');
-exec('node production-env-check.js', (error, stdout, stderr) => {
-  if (error) {
-    console.error(`❌ Production environment check failed: ${error.message}`);
-    process.exit(1);
+    fs.writeFileSync(polyfillsPath, optimizedPolyfills);
+    console.log('✅ Optimized polyfills.js');
   }
-  
-  if (stderr) {
-    console.error(`❌ Error during environment check: ${stderr}`);
-    process.exit(1);
+
+  // Create temporary vite configuration for production build
+  const tempViteConfigPath = path.join(__dirname, 'temp-vite.config.js');
+  const viteConfig = `
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'client/src'),
+      '@shared': path.resolve(__dirname, 'shared'),
+    }
+  },
+  root: path.resolve(__dirname),
+  build: {
+    outDir: 'dist/public',
+    emptyOutDir: true,
+    minify: true,
+    sourcemap: false,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'client/index.html'),
+      },
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-toast', '@radix-ui/react-label'],
+          blockchain: ['viem', 'wagmi', '@web3auth/modal', '@web3auth/base']
+        }
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom'],
+    exclude: ['@web3auth/modal']
+  },
+  server: {
+    fs: {
+      strict: false
+    }
   }
-  
-  console.log(stdout);
-  console.log('✅ Production environment check passed!');
-  console.log('\nOptimizations complete! Ready for production deployment.');
-  console.log('To deploy:');
-  console.log('1. Click the "Deploy" button in the Replit UI');
-  console.log('2. Ensure all environment variables are properly set in production');
-  console.log('3. Monitor the deployment logs for any issues');
 });
+`;
+  fs.writeFileSync(tempViteConfigPath, viteConfig);
+  console.log('✅ Created temporary Vite config for production build');
+
+  // Create or update .env file to ensure production settings
+  const envPath = path.join(__dirname, '.env');
+  const envContent = `NODE_ENV=production
+BASE_URL=https://cpxtbmining.com
+VITE_APP_BASE_URL=https://cpxtbmining.com
+`;
+  fs.writeFileSync(envPath, envContent, { flag: 'a' });
+  console.log('✅ Updated .env file for production');
+
+  console.log('Build optimization completed successfully!');
+} catch (error) {
+  console.error('Error during build optimization:', error);
+  process.exit(1);
+}

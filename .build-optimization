@@ -1,0 +1,9 @@
+
+# Build optimization hints
+# This file is read by the build process to optimize the build
+
+# Use production mode
+NODE_ENV=production
+
+# Ensure proper authentication in production
+PRODUCTION_DOMAIN=cpxtbmining.com

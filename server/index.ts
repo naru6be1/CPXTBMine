@@ -2,27 +2,6 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
-// Ensure we're in development mode when in Replit development environment
-if (process.env.REPLIT_DEV_DOMAIN) {
-  process.env.NODE_ENV = 'development';
-  console.log("Replit development environment detected, setting NODE_ENV to 'development'");
-}
-
-// Log the current NODE_ENV setting
-console.log(`Current NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
-
-// If NODE_ENV is not set, explicitly set it for consistent behavior
-if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'development'; 
-  console.log(`NODE_ENV was not set, explicitly setting to 'development'`);
-}
-
-// If PRODUCTION_DOMAIN is set but we're in development, log a warning
-if (process.env.PRODUCTION_DOMAIN && process.env.NODE_ENV === 'development') {
-  console.log("WARNING: PRODUCTION_DOMAIN is set but we're running in development mode");
-  console.log("Google OAuth will use local callback URLs, not production URLs");
-}
-
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";

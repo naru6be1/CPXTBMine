@@ -135,12 +135,56 @@ app.use((req, res, next) => {
     // Setup Vite or static serving
     if (app.get("env") === "development") {
       log("Setting up Vite development server...");
-      await setupVite(app, server);
-      log("Vite development server setup complete");
+      try {
+        await setupVite(app, server);
+        log("Vite development server setup complete");
+      } catch (error) {
+        log("Error setting up Vite development server: " + (error as Error).message);
+        log("Will continue without frontend serving");
+        
+        // Add a fallback route for API requests
+        app.use("*", (req, res, next) => {
+          if (req.originalUrl.startsWith('/api')) {
+            return next();
+          }
+          
+          res.status(200).send(`
+            <html>
+              <head><title>CPXTB Platform - API Mode</title></head>
+              <body>
+                <h1>CPXTB API Server</h1>
+                <p>API server is running. Frontend development server is not available.</p>
+              </body>
+            </html>
+          `);
+        });
+      }
     } else {
       log("Setting up static file serving...");
-      serveStatic(app);
-      log("Static file serving setup complete");
+      try {
+        serveStatic(app);
+        log("Static file serving setup complete");
+      } catch (error) {
+        log("Error setting up static serving: " + (error as Error).message);
+        log("Will continue with API-only mode");
+        
+        // Add a fallback route for API requests
+        app.use("*", (req, res, next) => {
+          if (req.originalUrl.startsWith('/api')) {
+            return next();
+          }
+          
+          res.status(200).send(`
+            <html>
+              <head><title>CPXTB Platform - API Mode</title></head>
+              <body>
+                <h1>CPXTB API Server</h1>
+                <p>API server is running. Frontend is not available.</p>
+              </body>
+            </html>
+          `);
+        });
+      }
     }
 
     const port = process.env.PORT || 5000;

@@ -7,7 +7,6 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useSocialLogin } from '@/providers/SocialLoginProvider';
 import { useToast } from '@/hooks/use-toast';
 import EnhancedSocialLogin from '@/components/EnhancedSocialLogin';
-import ForceLoginButton from '@/components/ForceLoginButton';
 import { 
   Loader2, 
   ShoppingBag, 
@@ -544,17 +543,6 @@ export default function PayPage() {
                 </div>
               </div>
             </div>
-            
-            {/* Authentication help section - only show when authentication errors are detected */}
-            {error && (error.includes('authenticate') || error.includes('login') || error.includes('credentials') || error.includes('session')) && (
-              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-800">
-                <h4 className="font-semibold mb-1">Having trouble logging in?</h4>
-                <p className="text-sm mb-3">If you're experiencing issues with Google authentication, try our direct login option:</p>
-                <div className="flex justify-center">
-                  <ForceLoginButton className="bg-blue-100 hover:bg-blue-200 border-blue-300" />
-                </div>
-              </div>
-            )}
           </CardContent>
           
           <CardFooter>

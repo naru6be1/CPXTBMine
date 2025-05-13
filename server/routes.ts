@@ -587,66 +587,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(401).json({ message: "Not authenticated" });
       }
     });
-    
-    // DEVELOPMENT & MOBILE SPECIAL AUTH ROUTE
-    // This route is for development and mobile browsers where cookie handling is inconsistent
-    // It allows authentication to be forced by providing email and external ID
-    app.post("/api/auth/force-login", (req, res) => {
-      try {
-        console.log("🔐 FORCE LOGIN ATTEMPT:", req.body);
-        const { email, externalId } = req.body;
-        
-        if (!email) {
-          return res.status(400).json({ message: "Email is required" });
-        }
-        
-        // Generate a deterministic user account based on the email
-        const id = 84; // Demo account ID
-        const name = "Google Demo User";
-        const provider = "google";
-        
-        // Generate deterministic wallet address
-        const effectiveId = externalId || `google-${id}-${Date.now()}`;
-        const seed = `google-${effectiveId}`;
-        const hash = crypto.createHash('sha256').update(seed).digest('hex');
-        const walletAddress = `0x${hash.substring(0, 40)}`;
-        
-        // Mobile-friendly session to avoid cookie handling issues
-        console.log("🔐 MOBILE AUTH: Setting user session for email:", email);
-        req.login({
-          id,
-          name,
-          email,
-          provider,
-          externalId: effectiveId,
-          walletAddress,
-          balance: "0.0"
-        }, (err) => {
-          if (err) {
-            console.error("🔐 MOBILE AUTH ERROR:", err);
-            return res.status(500).json({ message: "Authentication failed", error: err.message });
-          }
-          
-          // Return the user data
-          const userData = {
-            id,
-            name,
-            email,
-            provider,
-            externalId: effectiveId, 
-            walletAddress,
-            balance: "0.0",
-            isDemoUser: true
-          };
-          
-          console.log("🔐 MOBILE AUTH SUCCESS:", userData);
-          return res.json(userData);
-        });
-      } catch (error: any) {
-        console.error("🔐 FORCE LOGIN ERROR:", error);
-        res.status(500).json({ message: "Authentication failed", error: error.message });
-      }
-    });
   } else {
     console.warn("Google OAuth credentials not found");
     

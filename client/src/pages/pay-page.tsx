@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,210 +24,134 @@ import {
 export default function PayPage() {
   const { paymentReference } = useParams<{ paymentReference: string }>();
   const [, setLocation] = useLocation();
-  const { isLoggedIn, userInfo, walletAddress, balance, login, refreshBalance } = useSocialLogin();
-  const { toast } = useToast();
-  const initialLoad = useRef(true); // Track initial render to avoid effect errors
-  
   const [paymentData, setPaymentData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [autoRefreshAttempted, setAutoRefreshAttempted] = useState(false);
-  const [isDirectQrAccess, setIsDirectQrAccess] = useState(false);
+  
+  // EMERGENCY FIX: Force reload the page if user is authenticated but page is stuck
+  useEffect(() => {
+    // Check if we have authentication complete flags
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasAuthCompleted = urlParams.has('authCompleted');
+    
+    if (isLoggedIn && loading && !autoRefreshAttempted) {
+      // Start a timer to check if we're still loading after authentication
+      const timeoutId = setTimeout(() => {
+        // If we're still loading after 5 seconds, force a page refresh
+        if (loading && hasAuthCompleted) {
+          console.log("⚠️ Payment page still loading after authentication, forcing refresh...");
+          setAutoRefreshAttempted(true);
+          
+          toast({
+            title: "Refreshing Payment Data",
+            description: "Loading payment details...",
+            duration: 3000
+          });
+          
+          // Force a hard refresh with cache clearing
+          window.location.href = `${window.location.pathname}?paymentContext=true&authCompleted=true&t=${Date.now()}`;
+        }
+      }, 5000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [loading, autoRefreshAttempted]);
   const [regeneratingPayment, setRegeneratingPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isBuyingTokens, setIsBuyingTokens] = useState(false);
   const [purchaseAmount, setPurchaseAmount] = useState("");
-  
-  // DEVELOPMENT MODE: Attempt force login for development environments
-  useEffect(() => {
-    const isDevelopmentEnv = window.location.hostname.includes('replit.dev') || 
-                             window.location.hostname.includes('localhost');
-    const isMobileBrowser = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // If in development environment and not logged in, attempt force login
-    if ((isDevelopmentEnv || isMobileBrowser) && !isLoggedIn && !loading) {
-      console.log("⚡ PAY PAGE: Development environment detected, attempting force login...");
-      login('google'); // This will use force-login in development environments
-    }
-  }, [isLoggedIn, loading, login]);
-
-  // DIRECT POST-AUTH VERIFICATION: Force a login state verify immediately on page load
-  useEffect(() => {
-    if (initialLoad.current) {
-      // Mark the first render as complete, but skip execution
-      initialLoad.current = false;
-      return;
-    }
-    
-    // Check URL parameters for auth flags
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasAuthCompleted = urlParams.has('authCompleted');
-    const hasLoggedInParam = urlParams.has('loggedIn');
-    
-    // Also check localStorage for persisted authentication state
-    const storedAuthCompleted = localStorage.getItem('cpxtb_auth_completed') === 'true';
-    
-    // Combine auth signals
-    const hasAnyAuthSignal = isLoggedIn || hasAuthCompleted || hasLoggedInParam || storedAuthCompleted;
-    
-    console.log("🔑 POST-AUTH VERIFICATION:", {
-      isLoggedInFromProvider: isLoggedIn,
-      hasAuthCompletedInUrl: hasAuthCompleted,
-      hasLoggedInParamInUrl: hasLoggedInParam,
-      storedAuthCompleted,
-      hasAnyAuthSignal,
-      walletAddress: walletAddress || "none"
-    });
-    
-    // If we have any signals that auth is complete but still showing login screen
-    if (hasAnyAuthSignal && isDirectQrAccess) {
-      console.log("⚠️ Authentication signals detected but still showing login screen - forcing refresh");
-      
-      // Mark authentication as complete in localStorage
-      localStorage.setItem('cpxtb_auth_completed', 'true');
-      localStorage.setItem('cpxtb_auth_completion_timestamp', Date.now().toString());
-      
-      // Force state update to hide login form
-      setIsDirectQrAccess(false);
-      
-      // Refresh payment data if needed
-      if (loading && !autoRefreshAttempted) {
-        console.log("⚠️ Payment page still loading after authentication, forcing refresh...");
-        setAutoRefreshAttempted(true);
-        
-        toast({
-          title: "Loading Payment",
-          description: "Getting latest payment data...",
-          duration: 3000
-        });
-        
-        // Force a payment data refresh
-        const timeoutId = setTimeout(() => {
-          // Force a hard refresh with cache clearing if still stuck after 2 seconds
-          window.location.href = `${window.location.pathname}?paymentContext=true&authCompleted=true&t=${Date.now()}`;
-        }, 2000);
-        
-        return () => clearTimeout(timeoutId);
-      }
-    }
-  }, [isLoggedIn, loading, isDirectQrAccess, autoRefreshAttempted, walletAddress, toast]);
-// State declarations moved to the top of the component
+  const [isDirectQrAccess, setIsDirectQrAccess] = useState(false);
+  const { isLoggedIn, userInfo, walletAddress, balance, login, refreshBalance } = useSocialLogin();
+  const { toast } = useToast();
 
   // Fetch payment data
-  // PAYMENT CONTEXT MANAGEMENT - Direct approach to handle authentication and payment state
+  // Detect QR code access and handle login state for payment context
   useEffect(() => {
-    const determinePaymentState = () => {
-      const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.search);
     
-      // There are three key scenarios:
-      // 1. Direct QR access - user scanned QR without being logged in
-      // 2. Post-auth redirect - user was redirected here after Google auth with loggedIn=true
-      // 3. Payment context - special flag that enforces this is a payment flow
-      
-      // Check for URL flags
-      const hasLoggedInParam = urlParams.has('loggedIn');
-      const hasPaymentContext = urlParams.has('paymentContext');
-      const isGoogleAuth = urlParams.get('provider') === 'google';
-      const hasAuthComplete = urlParams.has('authCompleted');
-      
-      // Check localStorage for authentication completion flags
-      const storedAuthIntent = localStorage.getItem('cpxtb_auth_intent') === 'true';
-      const storedAuthCompleted = localStorage.getItem('cpxtb_auth_completed') === 'true';
-      
-      // Consider authentication complete if:
-      // 1. We're logged in (from context provider), OR
-      // 2. URL has loggedIn=true, OR
-      // 3. localStorage indicates auth was completed
-      const authenticationComplete = isLoggedIn || hasLoggedInParam || hasAuthComplete || storedAuthCompleted;
-      
-      // If we detect an authentication completed state, store it for future reference
-      if (authenticationComplete) {
-        localStorage.setItem('cpxtb_auth_completed', 'true');
-        localStorage.setItem('cpxtb_auth_completion_timestamp', Date.now().toString());
-      }
-      
-      // CRITICAL: Store payment reference securely in multiple locations
-      if (window.location.pathname.startsWith('/pay/')) {
-        const paymentRef = window.location.pathname.split('/')[2];
-        if (paymentRef) {
-          // Store in both sessionStorage and localStorage for maximum reliability
-          console.log("📝 STORING PAYMENT REFERENCE IN MULTIPLE LOCATIONS:", paymentRef);
-          
-          // Session storage (survives page refresh)
-          sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
-          
-          // Local storage (survives browser restart, more persistent)
-          localStorage.setItem('cpxtb_payment_ref', paymentRef);
-          
-          // Set expiration time (15 minutes from now)
-          const expiry = Date.now() + (15 * 60 * 1000);
-          sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
-          localStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
-          
-          // Also store the current URL for recovery 
-          localStorage.setItem('cpxtb_payment_url', window.location.href);
-        }
-      }
-      
-      // Enhanced detection of authentication state for payment flow
-      const isDirectAccess = !authenticationComplete; 
-      
-      // Add enhanced diagnostic logging for troubleshooting
-      console.log("PAY PAGE - ENHANCED STATE DETECTION:", {
-        currentUrl: window.location.href,
-        path: window.location.pathname,
-        search: window.location.search,
-        isLoggedIn,
-        hasWallet: Boolean(walletAddress),
-        walletAddress: walletAddress || "none",
-        hasLoggedInParam,
-        hasPaymentContext,
-        isGoogleAuth,
-        hasAuthComplete,
-        storedAuthIntent,
-        storedAuthCompleted,
-        authenticationComplete,
-        shouldShowLogin: isDirectAccess
-      });
-      
-      // Set whether to show login form - only show if authentication isn't complete
-      setIsDirectQrAccess(isDirectAccess);
-      
-      // Clear URL parameters if authenticated to prevent refresh issues
-      if (authenticationComplete) {
-        try {
-          // Get current URL and clean it
-          const currentUrl = new URL(window.location.href);
-          const searchParams = new URLSearchParams(currentUrl.search);
-          
-          // Remove authentication parameters
-          searchParams.delete('loggedIn');
-          searchParams.delete('authCompleted');
-          searchParams.delete('provider');
-          
-          // Keep payment context if present
-          if (hasPaymentContext) {
-            searchParams.set('paymentContext', 'true');
-          }
-          
-          // Add timestamp to prevent caching issues
-          searchParams.set('t', Date.now().toString());
-          
-          // Build clean URL - maintain payment reference path
-          const cleanUrl = `/pay/${paymentReference}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-          window.history.replaceState({}, '', cleanUrl);
-          console.log("Cleaned up URL after authentication:", cleanUrl);
-        } catch (err) {
-          console.error("Failed to clean up URL:", err);
-        }
-      }
-    };
+    // There are three key scenarios:
+    // 1. Direct QR access - user scanned QR without being logged in
+    // 2. Post-auth redirect - user was redirected here after Google auth with loggedIn=true
+    // 3. Payment context - special flag that enforces this is a payment flow
     
-    // Run state determination
-    determinePaymentState();
-  }, [isLoggedIn, walletAddress, paymentReference, userInfo]);
+    // Check for these flags
+    const hasLoggedInParam = urlParams.has('loggedIn');
+    const hasPaymentContext = urlParams.has('paymentContext');
+    const isGoogleAuth = urlParams.get('provider') === 'google';
+    const hasAuthComplete = urlParams.has('authCompleted');
+    
+    // If we detect both loggedIn and paymentContext, this is a successful redirect
+    // after Google auth for payment
+    const isPostAuthRedirect = hasLoggedInParam && hasPaymentContext && isGoogleAuth;
+    
+    // If URL starts with /pay/ and doesn't have loggedIn=true parameter, consider it a direct QR access
+    const isDirectAccess = window.location.pathname.startsWith('/pay/') && !hasLoggedInParam;
+    
+    // EMERGENCY FIX FOR GOOGLE AUTH: Save payment reference in sessionStorage
+    // This allows recovery if the redirect after Google auth fails
+    if (window.location.pathname.startsWith('/pay/')) {
+      const paymentRef = window.location.pathname.split('/')[2];
+      if (paymentRef) {
+        // Save payment reference in sessionStorage for redirect recovery
+        console.log("STORING PAYMENT REFERENCE IN SESSION STORAGE:", paymentRef);
+        sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
+        
+        // Set expiration time (10 minutes)
+        const expiry = Date.now() + (10 * 60 * 1000);
+        sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+      }
+    }
+    
+    // Add enhanced diagnostic logging for troubleshooting
+    console.log("PAY PAGE - QR CODE ACCESS DETECTION:", {
+      currentUrl: window.location.href,
+      path: window.location.pathname,
+      search: window.location.search,
+      isLoggedIn,
+      hasWallet: Boolean(walletAddress),
+      walletAddress: walletAddress || "none",
+      hasLoggedInParam,
+      hasPaymentContext,
+      isGoogleAuth,
+      isDirectAccess,
+      isPostAuthRedirect
+    });
+    
+    // Logic for determining if we show social login section:
+    // 1. Always show it for direct QR access (no auth)
+    // 2. Always show it if payment context is set but not logged in
+    // 3. Don't show it if we're already authenticated post-redirect
+    
+    if (isPostAuthRedirect && isLoggedIn) {
+      // We just came back from Google auth and we're logged in - hide login section
+      console.log("POST-AUTH REDIRECT: User is authenticated, hiding social login");
+      setIsDirectQrAccess(false);
+    } else if (isDirectAccess || hasPaymentContext || !isLoggedIn) {
+      // Either direct access, payment context, or not logged in - show login section
+      console.log("SHOWING SOCIAL LOGIN: Direct access, payment context, or not logged in");
+      setIsDirectQrAccess(true);
+    } else {
+      // Normal navigation to page while logged in
+      console.log("NORMAL NAVIGATION: User is already logged in");
+      setIsDirectQrAccess(false);
+    }
+    
+    // If we just completed Google authentication, remove these parameters from URL
+    // to prevent issues with browser refreshes
+    if (isPostAuthRedirect && isLoggedIn) {
+      // Keep the payment reference but clean up the URL
+      try {
+        const cleanUrl = `/pay/${paymentReference}`;
+        window.history.replaceState({}, '', cleanUrl);
+        console.log("Cleaned up URL after authentication:", cleanUrl);
+      } catch (err) {
+        console.error("Failed to clean up URL:", err);
+      }
+    }
+  }, [isLoggedIn, walletAddress, paymentReference]);
 
   useEffect(() => {
     const fetchPaymentData = async () => {

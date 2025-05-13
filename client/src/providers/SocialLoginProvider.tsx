@@ -44,136 +44,6 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  // Direct authentication check with the server
-  const checkAuthentication = useCallback(async () => {
-    try {
-      console.log("🔄 Directly checking authentication status with server...");
-      
-      // Create a controller to allow timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      // Make direct API call to check authentication
-      const response = await fetch('/api/auth/user', {
-        credentials: 'include', // Important: Include credentials (cookies)
-        signal: controller.signal,
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      
-      // Clear the timeout
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const userData = await response.json();
-        console.log("✅ Authentication confirmed by server:", userData);
-        
-        // Save credentials to localStorage
-        const userToStore = {
-          userInfo: {
-            name: userData.name || userData.username || "Google User",
-            email: userData.email || "unknown@example.com",
-            provider: userData.provider || "google"
-          },
-          walletAddress: userData.walletAddress,
-          balance: userData.balance || "0",
-          isDemoUser: false
-        };
-        
-        localStorage.setItem('cpxtb_user', JSON.stringify(userToStore));
-        console.log("💾 Saved authenticated user data to localStorage");
-        
-        // Update state
-        setUserInfo(userToStore.userInfo);
-        setWalletAddress(userToStore.walletAddress);
-        setBalance(userToStore.balance);
-        setIsLoggedIn(true);
-        setError(null);
-        
-        // Set authentication marker for cross-page access
-        localStorage.setItem('cpxtb_auth_completed', 'true');
-        localStorage.setItem('cpxtb_auth_completion_timestamp', Date.now().toString());
-        
-        return true;
-      } else {
-        console.log("❌ Server reports not authenticated:", await response.text());
-        return false;
-      }
-    } catch (err) {
-      console.error("Error checking authentication:", err);
-      return false;
-    }
-  }, []);
-  
-  // Add polling for authentication status on possible auth pages
-  useEffect(() => {
-    // Check URL parameters for evidence we're in an authentication flow
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasLoggedInParam = urlParams.has('loggedIn');
-    const hasPaymentContext = urlParams.has('paymentContext');
-    const isGoogleAuth = urlParams.get('provider') === 'google';
-    const hasAuthComplete = urlParams.has('authCompleted');
-    
-    // Check if we're in a payment context
-    const isPaymentPage = window.location.pathname.startsWith('/pay/');
-    
-    // Determine if we need to poll for authentication
-    const shouldPollAuth = (isPaymentPage || hasPaymentContext) && 
-                          (hasLoggedInParam || isGoogleAuth || hasAuthComplete);
-    
-    if (shouldPollAuth && !isLoggedIn) {
-      console.log("🔍 Setting up authentication polling for payment context");
-      
-      // Create an authentication polling interval
-      const pollIntervalMs = 1000; // Poll every second
-      const maxPollAttempts = 10;  // Poll up to 10 times
-      let pollCount = 0;
-      
-      const pollAuthenticationStatus = async () => {
-        pollCount++;
-        console.log(`🔄 Authentication poll attempt ${pollCount}/${maxPollAttempts}`);
-        
-        const isAuthenticated = await checkAuthentication();
-        
-        if (isAuthenticated) {
-          console.log("🎉 Authentication polling successful!");
-          
-          // Extract payment reference for quick redirect if needed
-          if (isPaymentPage && hasPaymentContext) {
-            const pathSegments = window.location.pathname.split('/');
-            if (pathSegments.length > 2 && pathSegments[1] === 'pay') {
-              const paymentRef = pathSegments[2];
-              console.log(`✅ Authentication confirmed for payment ${paymentRef}`);
-              
-              // Store payment reference in both session and local storage
-              sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
-              localStorage.setItem('cpxtb_payment_ref', paymentRef);
-              
-              // Set expiry (15 minutes)
-              const expiry = Date.now() + (15 * 60 * 1000);
-              sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
-              localStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
-            }
-          }
-          
-          clearInterval(intervalId);
-        } else if (pollCount >= maxPollAttempts) {
-          console.log("⚠️ Max authentication poll attempts reached without success");
-          clearInterval(intervalId);
-        }
-      };
-      
-      // Start polling immediately
-      pollAuthenticationStatus();
-      const intervalId = setInterval(pollAuthenticationStatus, pollIntervalMs);
-      
-      // Clean up interval on unmount
-      return () => clearInterval(intervalId);
-    }
-  }, [isLoggedIn, checkAuthentication]);
-  
   // Load user data from local storage on component mount
   useEffect(() => {
     console.log('SocialLoginProvider initializing...');
@@ -186,44 +56,25 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     const hasLoggedInParam = urlParams.has('loggedIn');
     const hasPaymentContext = urlParams.has('paymentContext');
     const isGoogleAuth = urlParams.get('provider') === 'google';
-    const hasAuthCompleted = urlParams.has('authCompleted');
     
     // If we detect both loggedIn and paymentContext from Google auth, but we're not on a payment page,
     // we need to forcibly redirect to the correct payment page
-    if (hasLoggedInParam && hasPaymentContext && (isGoogleAuth || hasAuthCompleted) && 
-        !window.location.pathname.startsWith('/pay/')) {
+    if (hasLoggedInParam && hasPaymentContext && isGoogleAuth && !window.location.pathname.startsWith('/pay/')) {
       console.log("🚨 EMERGENCY REDIRECT DETECTED!");
       console.log("We have returned from Google auth with payment context but aren't on a payment page.");
       
-      // Check multiple storage locations for payment reference
-      const sessionPaymentRef = sessionStorage.getItem('cpxtb_payment_ref');
-      const localPaymentRef = localStorage.getItem('cpxtb_payment_ref');
-      const savedPaymentRef = sessionPaymentRef || localPaymentRef;
+      // Get payment reference from session storage (set during auth init)
+      const savedPaymentRef = sessionStorage.getItem('cpxtb_payment_ref');
       
       if (savedPaymentRef) {
         // We have a saved payment reference - redirect immediately
         console.log(`Forcibly redirecting to payment page: /pay/${savedPaymentRef}`);
-        localStorage.setItem('cpxtb_auth_completed', 'true');
-        localStorage.setItem('cpxtb_auth_completion_timestamp', Date.now().toString());
-        window.location.href = `/pay/${savedPaymentRef}?paymentContext=true&loggedIn=true&provider=google&authCompleted=true&t=${Date.now()}`;
+        window.location.href = `/pay/${savedPaymentRef}?paymentContext=true&loggedIn=true&provider=google`;
         return; // Skip the rest of initialization
       }
     }
     
-    // Try to retrieve authentication state from localStorage
     const storedUser = localStorage.getItem('cpxtb_user');
-    
-    // For mobile browsers especially, check if authentication has completed
-    const storedAuthCompleted = localStorage.getItem('cpxtb_auth_completed') === 'true';
-    const hasJustCompleted = hasLoggedInParam || hasAuthCompleted || isGoogleAuth;
-    
-    if (hasJustCompleted || storedAuthCompleted) {
-      console.log("🔐 Detected authentication completion flags - checking with server");
-      
-      // If we detect auth completion flags, directly check with server
-      // This helps fix issues on mobile browsers with cookie handling
-      checkAuthentication();
-    }
     
     if (storedUser) {
       try {
@@ -232,6 +83,7 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         
         // Additional logging for social login with QR code scenarios
         const isQrCodePage = window.location.pathname.startsWith('/pay/');
+        const hasLoggedInParam = new URLSearchParams(window.location.search).has('loggedIn');
         console.log('Social login state for QR code:', { 
           isQrCodePage, 
           hasLoggedInParam,
@@ -269,13 +121,14 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       // Log if this is a QR code access without stored user data
       const isQrCodePage = window.location.pathname.startsWith('/pay/');
+      const hasLoggedInParam = new URLSearchParams(window.location.search).has('loggedIn');
       console.log('Social login state for QR code:', { 
         isQrCodePage, 
         hasLoggedInParam,
         userDataPresent: false 
       });
     }
-  }, [checkAuthentication]);
+  }, []);
   
   // Function to refresh balance from blockchain
   const refreshBalance = useCallback(async (): Promise<string | null> => {
@@ -399,85 +252,6 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   }, [walletAddress, toast]);
   
-  // Force login directly with the server (bypassing OAuth)
-  const forceLogin = useCallback(async (email = 'demo_maap@gmail.com') => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      console.log('⚡ Attempting force login with demo email:', email);
-      
-      // Show a visible notification to the user
-      toast({
-        title: "Demo Authentication",
-        description: "Logging in with demo account...",
-        duration: 3000,
-      });
-      
-      // Make the actual force-login request
-      const response = await fetch('/api/auth/force-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          externalId: `google-demo-user-${Date.now()}`,
-        }),
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Authentication failed');
-      }
-      
-      // Get user data from response
-      const userData = await response.json();
-      console.log('⚡ Force login successful:', userData);
-      
-      // Set user data
-      setUserInfo({
-        name: userData.name,
-        email: userData.email,
-        provider: userData.provider,
-      });
-      setWalletAddress(userData.walletAddress);
-      setBalance(userData.balance || '0');
-      setIsLoggedIn(true);
-      
-      // Store user data in local storage
-      localStorage.setItem('cpxtb_user', JSON.stringify({
-        userInfo: {
-          name: userData.name,
-          email: userData.email,
-          provider: userData.provider,
-        },
-        walletAddress: userData.walletAddress,
-        balance: userData.balance || '0',
-        isDemoUser: true,
-      }));
-      
-      // Refresh balance
-      if (userData.walletAddress) {
-        refreshBalance();
-      }
-      
-      return userData;
-    } catch (error: any) {
-      console.error('⚡ Force login error:', error);
-      setError(error.message || 'Authentication failed');
-      toast({
-        title: "Authentication Failed",
-        description: error.message || 'Failed to log in with demo account',
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast, refreshBalance]);
-
   // Login with social provider (only supports real Google OAuth)
   const login = useCallback(async (provider: string) => {
     setIsLoading(true);
@@ -491,15 +265,6 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         throw new Error('Only Google authentication is currently supported');
       }
       
-      // DEVELOPMENT SHORTCUT: Use force login when Google authentication might have issues
-      if (provider.toLowerCase() === 'google' && 
-          (window.location.hostname.includes('replit.dev') || 
-           window.location.hostname.includes('localhost'))) {
-        // This is faster and more reliable for development environments
-        console.log('⚡ Using force login for development environment');
-        return await forceLogin();
-      }
-      
       // Show a visible notification to the user
       toast({
         title: "Google Authentication",
@@ -510,26 +275,6 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
       console.log(`Redirecting to Google authentication at /api/social-auth/${provider.toLowerCase()}`);
       console.log(`Current Replit domain: ${window.location.origin}`);
       console.log(`Redirect URL will be: ${window.location.href}`);
-      
-      // Save key information to session storage before redirect
-      try {
-        // For QR code payments, store payment reference in session 
-        // This is a backup approach in case URL parameters are lost during redirects
-        const paymentRefMatch = window.location.pathname.match(/\/pay\/([^\/]+)/);
-        if (paymentRefMatch) {
-          const paymentRef = paymentRefMatch[1];
-          console.log(`Saving payment reference to session before redirect: ${paymentRef}`);
-          sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
-          localStorage.setItem('cpxtb_payment_ref', paymentRef);
-          sessionStorage.setItem('cpxtb_payment_url', window.location.href);
-          localStorage.setItem('cpxtb_payment_url', window.location.href);
-          // Also add a timestamp to know when this was saved
-          sessionStorage.setItem('cpxtb_auth_timestamp', Date.now().toString());
-          localStorage.setItem('cpxtb_auth_timestamp', Date.now().toString());
-        }
-      } catch (e) {
-        console.error('Error saving payment reference to session storage:', e);
-      }
       
       // Delay redirect slightly to let toast appear
       setTimeout(() => {
@@ -552,7 +297,7 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
     } finally {
       setIsLoading(false);
     }
-  }, [toast, forceLogin]);
+  }, [toast]);
   
   // Logout function
   const logout = useCallback(async () => {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { useSocialLogin } from '../providers/SocialLoginProvider';
 
 /**
  * Direct payment redirect solution component.
@@ -9,64 +8,13 @@ import { useSocialLogin } from '../providers/SocialLoginProvider';
  * redirect users to the correct payment page if needed.
  * 
  * EMERGENCY FIX: Using direct window.location for more reliable redirects
- * AUTO-LOGIN FIX: Using force-login for development and mobile environments
  */
 export default function AuthRedirectHandler() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
-  const { login } = useSocialLogin(); // Import SocialLoginProvider's login function
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   const [refreshAttempted, setRefreshAttempted] = useState(false);
-  const [forceLoginAttempted, setForceLoginAttempted] = useState(false);
   
-  // PART 0: Attempt force login for development environments or mobile browsers
-  useEffect(() => {
-    // Skip if user is already authenticated or if we've already attempted force login
-    if (user || isLoading || forceLoginAttempted) {
-      return;
-    }
-    
-    // Check if we're in a development environment or Replit preview
-    const isDevelopmentEnv = window.location.hostname.includes('replit.dev') || 
-                         window.location.hostname.includes('localhost');
-    
-    // Check if this is possibly a mobile browser using a simple detection
-    const isMobileBrowser = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // Check if we have URL signals that we're in an authentication flow
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasAuthParams = urlParams.has('loggedIn') || 
-                          urlParams.has('authCompleted') || 
-                          urlParams.has('provider');
-    
-    // Detect if this is a payment page access
-    const isPaymentPage = window.location.pathname.startsWith('/pay/');
-    
-    // Determine if we should attempt force login
-    const shouldAttemptForceLogin = (isDevelopmentEnv || isMobileBrowser) && 
-                                    (isPaymentPage || hasAuthParams);
-    
-    if (shouldAttemptForceLogin) {
-      console.log('⚡ AUTH REDIRECT: Attempting force login for development/mobile environment');
-      
-      // Mark that we've attempted it to prevent loops
-      setForceLoginAttempted(true);
-      
-      // Use the Google login which will detect development environments and use force login
-      try {
-        login('google');
-        
-        toast({
-          title: 'Development Login',
-          description: 'Using auto-login for development environment',
-          duration: 3000
-        });
-      } catch (error) {
-        console.error('Force login attempt failed:', error);
-      }
-    }
-  }, [user, isLoading, forceLoginAttempted, login, toast]);
-
   // PART 1: Handle post-authentication redirects for payment pages
   useEffect(() => {
     // Only run this if we're not already in a redirect attempt

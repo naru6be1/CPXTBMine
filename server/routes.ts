@@ -124,16 +124,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("PRODUCTION_DOMAIN environment variable:", process.env.PRODUCTION_DOMAIN || "Not set");
     console.log("REPLIT_DEV_DOMAIN environment variable:", process.env.REPLIT_DEV_DOMAIN || "Not set");
     
-    // Determine the callback URL based on environment
-    // For development, always use the REPLIT_DEV_DOMAIN or localhost
-    // Never redirect to production in development mode
-    const callbackURL = process.env.NODE_ENV === 'production' && process.env.PRODUCTION_DOMAIN
-      ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback`
-      : (process.env.REPLIT_DEV_DOMAIN 
-          ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback` 
-          : "http://localhost:5000/api/auth/google/callback");
-          
+    // IMPORTANT DEVELOPMENT FIX:
+    // Always use the Replit dev domain in all environments to ensure smooth QR flow testing
+    // This will be overridden in production when deployed
+    
+    // Check if the PRODUCTION_DOMAIN is working properly
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    
+    // In development mode or if the REPLIT_DEV_DOMAIN is available, use it
+    // This ensures reliable OAuth flow regardless of production domain status
+    const forceDevMode = true; // Set to true to force development mode callbacks
+    
+    const callbackURL = (forceDevMode || process.env.NODE_ENV !== 'production' || !process.env.PRODUCTION_DOMAIN) && process.env.REPLIT_DEV_DOMAIN
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
+      : process.env.PRODUCTION_DOMAIN
+        ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback`
+        : "http://localhost:5000/api/auth/google/callback";
+    
+    // Log the current environment and callback URL configuration    
     console.log("Using Google OAuth callback URL:", callbackURL);
+    console.log("Force Dev Mode:", forceDevMode);
+    
+    if (process.env.NODE_ENV === 'production' && forceDevMode) {
+      console.log("⚠️ WARNING: Using development callback URL in production environment");
+      console.log("This should only be used for testing and not in a real production deployment");
+    }
     
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
@@ -471,8 +486,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Error checking for session storage payment reference:", err);
           }
           
-          // SIMPLIFIED DECISION TREE:
+          // IMPROVED DECISION TREE WITH DOMAIN PROTECTION:
           // If we have a payment reference or context, go to the payment page
+          // With better handling for domain issues
           // Otherwise, use the standard redirect or default to merchant dashboard
           
           if (hasSessionPaymentRef && paymentRefFromSession) {

@@ -175,8 +175,27 @@ export function EnhancedSocialLogin({
         localStorage.setItem('cpxtb_enhanced_payment_url', enhancedUrl.toString());
       }
       
-      // Build authentication URL with improved context detection
-      let authUrl = `/api/social-auth/google?redirectUrl=${redirectUrl}`;
+      // DOMAIN PROTECTION - Ensure we're using relative URLs for OAuth redirects
+      // This prevents issues with misconfigured production domains
+      const sanitizeUrl = (url: string): string => {
+        try {
+          // Parse the URL to get only the path + query components
+          const parsedUrl = new URL(url);
+          return `${parsedUrl.pathname}${parsedUrl.search}`;
+        } catch (err) {
+          console.error("Error sanitizing URL:", url, err);
+          return url; // Return original if parsing fails
+        }
+      };
+      
+      // If redirectUrl has a full domain, strip it to just the path
+      // This prevents issues with domain mismatches
+      const safeRedirectUrl = redirectUrl.includes('http')
+        ? encodeURIComponent(sanitizeUrl(decodeURIComponent(redirectUrl)))
+        : redirectUrl;
+      
+      // Build authentication URL with improved context detection and domain protection
+      let authUrl = `/api/social-auth/google?redirectUrl=${safeRedirectUrl}`;
       
       // Always include context=payment for payment pages
       if (isPaymentPage || hasPaymentContext) {
@@ -187,6 +206,9 @@ export function EnhancedSocialLogin({
           authUrl += `&paymentRef=${paymentRef}`;
         }
       }
+      
+      // Add timestamp to prevent caching issues
+      authUrl += `&t=${Date.now()}`;
       
       console.log("REDIRECTING TO AUTH URL:", authUrl);
       window.location.href = authUrl;

@@ -523,12 +523,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             redirectUrl = '/merchant';
           }
           
+          // Domain protection: Check if the redirect contains a domain that might cause issues
+          const hasExternalDomain = redirectUrl.includes('http://') || redirectUrl.includes('https://');
+          
+          // Rewrite redirects to use relative URLs if they contain domains
+          // This ensures we don't try to go to a domain that's not working
+          if (hasExternalDomain) {
+            try {
+              const url = new URL(redirectUrl);
+              console.log("Found absolute URL in redirect:", redirectUrl);
+              console.log("Converting to relative path:", url.pathname + url.search);
+              redirectUrl = url.pathname + url.search;
+            } catch (err) {
+              console.error("Error parsing external URL:", redirectUrl, err);
+              // Default to safe merchant path if URL parsing fails
+              redirectUrl = '/merchant';
+            }
+          }
+          
           // Clean up to prevent issues with future logins
           delete (req.session as any).paymentContext;
           delete (req.session as any).paymentReference;
           delete req.session.redirectUrl;
           
           console.log("⭐⭐⭐ FINAL REDIRECT URL:", redirectUrl);
+          console.log("AUTHENTICATION COMPLETED SUCCESSFULLY");
           
           // Add login params to the redirect URL
           const targetUrl = new URL(redirectUrl, `${req.protocol}://${req.get('host')}`);

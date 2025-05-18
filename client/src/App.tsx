@@ -118,6 +118,7 @@ function Router() {
         <Route path="/settings" component={ProfilePage} /> {/* Placeholder until Settings page is created */}
         <Route path="/presentation" component={PresentationPage} />
         <Route path="/check-balance" component={CheckBalancePage} />
+        <Route path="/staking" component={StakingPage} />
         
         <Route component={NotFound} />
       </Switch>

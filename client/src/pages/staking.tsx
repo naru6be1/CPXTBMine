@@ -128,7 +128,7 @@ export default function StakingPage() {
   // Mutation for creating a staking position
   const stakingMutation = useMutation({
     mutationFn: async ({ planId, amount }: { planId: number, amount: string }) => {
-      if (!walletConnected || !address) {
+      if (!isConnected || !address) {
         throw new Error("Wallet not connected");
       }
       
@@ -286,7 +286,7 @@ export default function StakingPage() {
     }
     
     // Check if user has enough balance
-    if (parseFloat(balance || "0") < parseFloat(stakingAmount)) {
+    if (parseFloat(tokenBalance?.formatted || "0") < parseFloat(stakingAmount)) {
       toast({
         title: "Insufficient balance",
         description: "You don't have enough CPXTB tokens in your wallet",
@@ -409,8 +409,8 @@ export default function StakingPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {!walletConnected ? (
-                <Button onClick={connectWallet} className="w-full">Connect Wallet to Stake</Button>
+              {!isConnected ? (
+                <Button onClick={() => connect({ connector: connectors[0] })} className="w-full">Connect Wallet to Stake</Button>
               ) : (
                 <>
                   <div>
@@ -425,13 +425,13 @@ export default function StakingPage() {
                       />
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" 
-                          onClick={() => setStakingAmount(balance || "0")}>
+                          onClick={() => setStakingAmount(tokenBalance?.formatted || "0")}>
                           Max
                         </Button>
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1.5">
-                      Available Balance: {formatCPXTB(balance || "0")}
+                      Available Balance: {formatCPXTB(tokenBalance?.formatted || "0")}
                     </p>
                   </div>
                   

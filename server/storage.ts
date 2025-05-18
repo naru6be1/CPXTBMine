@@ -1,9 +1,11 @@
 import { 
-  users, miningPlans, merchants, payments,
+  users, miningPlans, merchants, payments, stakingPlans, stakingPositions,
   type User, type InsertUser, 
   type MiningPlan, type InsertMiningPlan,
   type Merchant, type InsertMerchant,
-  type Payment, type InsertPayment 
+  type Payment, type InsertPayment,
+  type StakingPlan, type InsertStakingPlan,
+  type StakingPosition, type InsertStakingPosition
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, gte, sql, desc, lt, asc } from "drizzle-orm";

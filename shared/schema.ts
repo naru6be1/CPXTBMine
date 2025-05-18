@@ -271,3 +271,96 @@ export const emailLog = pgTable("email_log", {
 
 export type EmailLog = typeof emailLog.$inferSelect;
 export type InsertEmailLog = typeof emailLog.$inferInsert;
+
+// Staking tables for the token staking rewards system
+export const stakingPlans = pgTable("staking_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  minAmount: numeric("min_amount", { precision: 20, scale: 8 }).notNull(),
+  lockPeriodDays: integer("lock_period_days").notNull(),
+  aprPercentage: numeric("apr_percentage", { precision: 5, scale: 2 }).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const stakingPositions = pgTable("staking_positions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  stakingPlanId: integer("staking_plan_id").notNull().references(() => stakingPlans.id),
+  walletAddress: text("wallet_address").notNull(),
+  amountStaked: numeric("amount_staked", { precision: 20, scale: 8 }).notNull(),
+  rewardsEarned: numeric("rewards_earned", { precision: 20, scale: 8 }).default("0").notNull(),
+  lastRewardCalculation: timestamp("last_reward_calculation").defaultNow().notNull(),
+  startDate: timestamp("start_date").defaultNow().notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  transactionHash: text("transaction_hash").notNull(),
+  withdrawalTransactionHash: text("withdrawal_transaction_hash"),
+  hasWithdrawn: boolean("has_withdrawn").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Define staking-related relations
+export const stakingPlansRelations = relations(stakingPlans, ({ many }) => ({
+  positions: many(stakingPositions),
+}));
+
+export const stakingPositionsRelations = relations(stakingPositions, ({ one }) => ({
+  user: one(users, {
+    fields: [stakingPositions.userId],
+    references: [users.id],
+  }),
+  plan: one(stakingPlans, {
+    fields: [stakingPositions.stakingPlanId],
+    references: [stakingPlans.id],
+  }),
+}));
+
+// Create schema for staking plans
+export const insertStakingPlanSchema = createInsertSchema(stakingPlans)
+  .omit({
+    id: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    name: z.string().min(2),
+    description: z.string().min(10),
+    minAmount: z.number().positive(),
+    lockPeriodDays: z.number().int().positive(),
+    aprPercentage: z.number().positive().max(100),
+  });
+
+// Create schema for staking positions
+export const insertStakingPositionSchema = createInsertSchema(stakingPositions)
+  .omit({
+    id: true,
+    rewardsEarned: true,
+    lastRewardCalculation: true,
+    isActive: true,
+    withdrawalTransactionHash: true,
+    hasWithdrawn: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Ethereum address"),
+    amountStaked: z.number().positive(),
+    startDate: z.union([z.date(), z.string()]).transform(val => 
+      val instanceof Date ? val : new Date(val)
+    ),
+    endDate: z.union([z.date(), z.string()]).transform(val => 
+      val instanceof Date ? val : new Date(val)
+    ),
+    transactionHash: z.string(),
+  });
+
+export type StakingPlan = typeof stakingPlans.$inferSelect;
+export type InsertStakingPlan = z.infer<typeof insertStakingPlanSchema>;
+
+export type StakingPosition = typeof stakingPositions.$inferSelect;
+export type InsertStakingPosition = z.infer<typeof insertStakingPositionSchema>;

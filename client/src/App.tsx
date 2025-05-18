@@ -43,6 +43,7 @@ const ClaimTokensPage = lazy(() => import("@/pages/claim-tokens"));
 const BuyCPXTBPage = lazy(() => import("@/pages/buy-cpxtb"));
 const PresentationPage = lazy(() => import("@/pages/presentation"));
 const CheckBalancePage = lazy(() => import("@/pages/check-balance"));
+const StakingPage = lazy(() => import("@/pages/staking"));
 
 // No games
 

@@ -1,8 +1,8 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { useAccount, useConnect, useDisconnect, useBalance, useWalletClient } from "wagmi";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "./use-toast";
 import { formatEther, parseEther } from "viem";
-import { CPXTB_TOKEN_ADDRESS } from "@/lib/constants";
+import { CPXTB_TOKEN_ADDRESS } from "../lib/constants";
 
 interface WalletContextType {
   address: `0x${string}` | undefined;
@@ -17,9 +17,9 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-export function WalletProvider({ children }: { children: React.ReactNode }) {
+export function WalletProvider({ children }: { children: ReactNode }) {
   const { address, isConnected } = useAccount();
-  const { connect, connectors, isPending: isConnecting } = useConnect();
+  const { connect, connectors, isLoading: isConnecting } = useConnect();
   const { disconnect: wagmiDisconnect } = useDisconnect();
   const { data: tokenBalance } = useBalance({
     address,

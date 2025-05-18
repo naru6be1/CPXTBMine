@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useWallet } from "@/hooks/use-wallet";
+import { useAccount, useConnect, useDisconnect, useBalance } from "wagmi";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow, format } from "date-fns";
 import { ArrowRight, Calendar, Clock, Coins, LockKeyhole, Trophy, Wallet } from "lucide-react";
@@ -51,7 +51,14 @@ interface StakingStats {
 
 export default function StakingPage() {
   const { user } = useAuth();
-  const { walletConnected, address, balance, connectWallet, sendTransaction } = useWallet();
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+  const { data: tokenBalance } = useBalance({
+    address,
+    token: "0x96a0Cc3c0fc5d07818E763E1B25bc78ab4170D1b" as `0x${string}`,
+    enabled: !!address,
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [stakingAmount, setStakingAmount] = useState("");

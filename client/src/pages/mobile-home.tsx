@@ -43,7 +43,7 @@ export default function MobileHome() {
       title: "Merchant Dashboard",
       description: "Access your merchant tools and payment history",
       icon: <BarChart className="h-5 w-5 text-orange-500" />,
-      link: "/merchant"
+      link: "/mobile-merchant"
     }
   ]);
 

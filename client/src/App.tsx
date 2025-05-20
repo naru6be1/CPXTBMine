@@ -124,6 +124,7 @@ function Router() {
         <Route path="/mobile" component={MobileAppPage} />
         <Route path="/mobile-home" component={MobileHomePage} />
         <Route path="/mobile-profile" component={lazy(() => import("./pages/mobile-profile"))} />
+        <Route path="/mobile-merchant" component={lazy(() => import("./pages/mobile-merchant"))} />
         
         <Route component={NotFound} />
       </Switch>

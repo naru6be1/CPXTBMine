@@ -46,6 +46,7 @@ const BuyCPXTBPage = lazy(() => import("@/pages/buy-cpxtb"));
 const PresentationPage = lazy(() => import("@/pages/presentation"));
 const CheckBalancePage = lazy(() => import("@/pages/check-balance"));
 const MobileAppPage = lazy(() => import("./pages/mobile-app"));
+const MobileHomePage = lazy(() => import("./pages/mobile-home"));
 
 // No games
 
@@ -121,6 +122,7 @@ function Router() {
         <Route path="/presentation" component={PresentationPage} />
         <Route path="/check-balance" component={CheckBalancePage} />
         <Route path="/mobile" component={MobileAppPage} />
+        <Route path="/mobile-home" component={MobileHomePage} />
         
         <Route component={NotFound} />
       </Switch>
@@ -273,7 +275,7 @@ function App() {
                 <AuthRedirectHandler />
                 <HamburgerMenu />
                 <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
-                  <Link href="/mobile">
+                  <Link href="/mobile-home">
                     <Button variant="outline" size="sm" className="mr-2">
                       Mobile App
                     </Button>

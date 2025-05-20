@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, AlertCircle, CopyIcon, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link, useLocation } from 'wouter';
 import { apiRequest } from "@/lib/queryClient";
+import MobileLayout from '@/components/mobile-layout';
+import "../styles/pancake-theme.css";
 
 export default function CheckBalance() {
   // Get address from URL query parameter using window.location instead of useLocation
@@ -26,6 +27,7 @@ export default function CheckBalance() {
   const [exchangeRate, setExchangeRate] = useState<number>(0.002177); // Default value
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   
   // Function to fetch the current exchange rate
@@ -91,6 +93,16 @@ export default function CheckBalance() {
       setIsLoading(false);
     }
   };
+
+  const handleCopyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: "Copied!",
+      description: "Address copied to clipboard",
+    });
+  };
   
   // Log wallet address whenever it changes
   useEffect(() => {
@@ -126,126 +138,127 @@ export default function CheckBalance() {
   }, [addressParam]);
 
   return (
-    <div className="container mx-auto py-10 px-4">
-      <div className="flex justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <RefreshCw className="h-5 w-5" />
-              CPXTB Wallet Balance Checker
-            </CardTitle>
-            <CardDescription>
-              Check the CPXTB balance of any wallet address on the Base blockchain
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-4">
-            <div>
-              <label htmlFor="wallet-address" className="text-sm font-medium mb-2 block">
-                Wallet Address
-              </label>
-              <div className="flex space-x-2">
-                <Input
-                  id="wallet-address"
-                  placeholder="Enter a wallet address (0x...)"
-                  value={walletAddress}
-                  onChange={(e) => setWalletAddress(e.target.value)}
-                  className="font-mono text-xs"
-                />
-                <Button 
-                  onClick={checkBalance}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Check
-                </Button>
-              </div>
-            </div>
-            
-            {balance !== null && (
-              <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-                <h3 className="text-sm font-medium text-blue-800 mb-1">Wallet Balance</h3>
-                <p className="text-2xl font-bold text-blue-900">{balance} <span className="text-sm font-normal">CPXTB</span></p>
+    <MobileLayout title="Balance Checker" activeTab="wallet">
+      {/* Tab Navigation */}
+      <div className="bg-slate-800 rounded-xl p-1 flex mb-4">
+        <button className="flex-1 bg-cyan-500 text-white py-2 px-4 rounded-lg font-medium">
+          Check Balance
+        </button>
+        <button className="flex-1 text-slate-400 py-2 px-4 rounded-lg font-medium">
+          Transactions
+        </button>
+      </div>
+
+      {/* Balance Card */}
+      <div className="bg-slate-800 rounded-xl p-4 mb-4">
+        <div className="mb-4">
+          <div className="text-sm text-slate-400 mb-2">Wallet Address</div>
+          <div className="bg-slate-700 rounded-xl p-3 flex justify-between items-center">
+            <Input
+              placeholder="Enter a wallet address (0x...)"
+              value={walletAddress}
+              onChange={(e) => setWalletAddress(e.target.value)}
+              className="bg-transparent border-none font-mono text-xs flex-1 focus:outline-none focus:ring-0"
+            />
+            <Button 
+              onClick={checkBalance}
+              disabled={isLoading}
+              className="ml-2 bg-cyan-500 hover:bg-cyan-600 h-9 w-9 p-0"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+        
+        {balance !== null && (
+          <div className="bg-slate-700 rounded-xl p-5 mb-4">
+            <h3 className="text-sm font-medium text-slate-400 mb-2">Wallet Balance</h3>
+            <div className="flex items-center justify-between mb-1">
+              <div>
+                <p className="text-2xl font-bold text-white">{balance} <span className="text-sm font-normal text-slate-300">CPXTB</span></p>
                 
                 {/* USDT Equivalent calculation using dynamic exchange rate */}
-                <p className="text-sm text-blue-800 mt-1">
+                <p className="text-sm text-slate-300 mt-1">
                   ≈ ${(parseFloat(balance || '0') * exchangeRate).toFixed(2)} <span className="text-xs font-normal">USDT</span>
-                  {isLoadingRate && <span className="ml-1 text-xs text-blue-600">(updating...)</span>}
-                </p>
-                
-                <p className="text-xs text-blue-700 mt-2">
-                  Address: <span className="font-mono">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
+                  {isLoadingRate && <span className="ml-1 text-xs text-cyan-400">(updating...)</span>}
                 </p>
               </div>
-            )}
-            
-            <div className="border-t border-gray-200 pt-4">
-              <div className="bg-gray-50 border border-gray-200 rounded-md p-2 mb-3">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs text-gray-600">
-                    <span className="font-medium">Exchange Rate:</span> 1 CPXTB = ${exchangeRate.toFixed(6)} USDT
-                  </p>
-                  {isLoadingRate ? (
-                    <Loader2 className="h-3 w-3 animate-spin text-gray-400" />
-                  ) : (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-5 w-5 p-0" 
-                      onClick={fetchExchangeRate}
-                      title="Refresh exchange rate"
-                    >
-                      <RefreshCw className="h-3 w-3 text-gray-400" />
-                    </Button>
-                  )}
+              <div className="flex flex-col items-center">
+                <div className="p-3 bg-cyan-500 rounded-full mb-2">
+                  <RefreshCw className="h-5 w-5 text-white" />
                 </div>
-                {rateError && (
-                  <p className="text-xs text-red-500 mt-1 flex items-center">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    {rateError}
-                  </p>
-                )}
-              </div>
-              <h3 className="text-sm font-medium mb-2">Quick Check</h3>
-              <div className="grid grid-cols-1 gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setWalletAddress('0x6122b8784718d954659369dde67c79d9f0e4ac67');
-                    setTimeout(checkBalance, 100);
-                  }}
-                >
-                  Check Treasury Wallet
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setWalletAddress('0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27');
-                    setTimeout(checkBalance, 100);
-                  }}
-                >
-                  Check Platform Wallet
-                </Button>
+                <span className="text-xs text-slate-400">Refresh</span>
               </div>
             </div>
-          </CardContent>
+            
+            <div className="flex items-center justify-between text-xs mt-3 pt-3 border-t border-slate-600">
+              <span className="text-slate-400">Address</span>
+              <div className="flex items-center">
+                <span className="font-mono mr-2">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</span>
+                <button 
+                  className="text-cyan-400 p-1" 
+                  onClick={() => handleCopyToClipboard(walletAddress)}
+                >
+                  {copied ? <CheckCircle2 className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div>
+          <div className="bg-slate-700/50 rounded-lg p-3 mb-4">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-slate-400 text-sm">Exchange Rate</span>
+              <div className="flex items-center">
+                <span className="text-sm">1 CPXTB = ${exchangeRate.toFixed(6)} USDT</span>
+                {isLoadingRate ? (
+                  <Loader2 className="h-3 w-3 animate-spin ml-2 text-cyan-400" />
+                ) : (
+                  <button 
+                    className="ml-2 text-cyan-400" 
+                    onClick={fetchExchangeRate}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+            {rateError && (
+              <p className="text-xs text-red-400 mt-1 flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {rateError}
+              </p>
+            )}
+          </div>
           
-          <CardFooter className="flex justify-between">
-            <Link href="/merchant">
-              <Button variant="ghost" size="sm">Go to Merchant Dashboard</Button>
-            </Link>
-            <Link href="/">
-              <Button variant="ghost" size="sm">Back to Home</Button>
-            </Link>
-          </CardFooter>
-        </Card>
+          <div className="text-sm text-white mb-2">Quick Check</div>
+          <div className="grid grid-cols-1 gap-2">
+            <Button 
+              className="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-medium"
+              onClick={() => {
+                setWalletAddress('0x6122b8784718d954659369dde67c79d9f0e4ac67');
+                setTimeout(checkBalance, 100);
+              }}
+            >
+              Check Treasury Wallet
+            </Button>
+            <Button 
+              className="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-medium"
+              onClick={() => {
+                setWalletAddress('0xce3CB5b5A05eDC80594F84740Fd077c80292Bd27');
+                setTimeout(checkBalance, 100);
+              }}
+            >
+              Check Platform Wallet
+            </Button>
+          </div>
+        </div>
       </div>
-    </div>
+    </MobileLayout>
   );
 }

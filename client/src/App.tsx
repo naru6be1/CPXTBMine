@@ -19,7 +19,6 @@ import { SocialLoginProvider } from "./providers/SocialLoginProvider";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-
 // Lazy-loaded components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Home = lazy(() => import("@/pages/home"));
@@ -44,7 +43,6 @@ const ClaimTokensPage = lazy(() => import("@/pages/claim-tokens"));
 const BuyCPXTBPage = lazy(() => import("@/pages/buy-cpxtb"));
 const PresentationPage = lazy(() => import("@/pages/presentation"));
 const CheckBalancePage = lazy(() => import("@/pages/check-balance"));
-const StakingPage = lazy(() => import("@/pages/staking"));
 
 // No games
 
@@ -119,7 +117,6 @@ function Router() {
         <Route path="/settings" component={ProfilePage} /> {/* Placeholder until Settings page is created */}
         <Route path="/presentation" component={PresentationPage} />
         <Route path="/check-balance" component={CheckBalancePage} />
-        <Route path="/staking" component={StakingPage} />
         
         <Route component={NotFound} />
       </Switch>

@@ -38,7 +38,6 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createPublicClient, http, parseAbi, parseAbiItem, formatUnits } from "viem";
 import { base } from "wagmi/chains";
 import { createWalletClient } from "viem";
-import { registerStakingRoutes } from "./staking-routes";
 import { privateKeyToAccount } from "viem/accounts";
 import { startPaymentMonitoring } from "./transaction-listener";
 import { registerTestChallengeRoutes } from "./test-challenge-route";
@@ -1574,10 +1573,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Check PayPal configuration status
   app.get("/api/paypal/status", checkPayPalStatus);
-  
-  // Register staking routes
-  registerStakingRoutes(app);
-  console.log("Staking routes registered successfully");
   
   return httpServer;
 }

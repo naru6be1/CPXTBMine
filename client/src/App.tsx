@@ -19,6 +19,7 @@ import { SocialLoginProvider } from "./providers/SocialLoginProvider";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import AuthRedirectHandler from "@/components/AuthRedirectHandler";
+import "./styles/pancake-theme.css";
 
 // Lazy-loaded components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -44,6 +45,7 @@ const ClaimTokensPage = lazy(() => import("@/pages/claim-tokens"));
 const BuyCPXTBPage = lazy(() => import("@/pages/buy-cpxtb"));
 const PresentationPage = lazy(() => import("@/pages/presentation"));
 const CheckBalancePage = lazy(() => import("@/pages/check-balance"));
+const MobileAppPage = lazy(() => import("./pages/mobile-app"));
 
 // No games
 
@@ -118,6 +120,7 @@ function Router() {
         <Route path="/settings" component={ProfilePage} /> {/* Placeholder until Settings page is created */}
         <Route path="/presentation" component={PresentationPage} />
         <Route path="/check-balance" component={CheckBalancePage} />
+        <Route path="/mobile" component={MobileAppPage} />
         
         <Route component={NotFound} />
       </Switch>
@@ -270,6 +273,11 @@ function App() {
                 <AuthRedirectHandler />
                 <HamburgerMenu />
                 <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
+                  <Link href="/mobile">
+                    <Button variant="outline" size="sm" className="mr-2">
+                      Mobile App
+                    </Button>
+                  </Link>
                   <ThemeToggle />
                   <LiveUserCount />
                 </div>

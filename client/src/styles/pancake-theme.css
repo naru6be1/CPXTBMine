@@ -1,0 +1,162 @@
+/* Mobile-style dark theme inspired by PancakeSwap */
+
+.pancake-theme {
+  --background: #1e293b;
+  --card-background: #0f172a;
+  --primary: #0ea5e9;
+  --primary-foreground: #ffffff;
+  --secondary: #334155;
+  --accent: #f59e0b;
+  --text: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+  --input: #1e293b;
+}
+
+.pancake-theme body {
+  background-color: var(--background);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+}
+
+.pancake-theme .app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: var(--background);
+}
+
+.pancake-theme .app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--card-background);
+  border-bottom: 1px solid var(--border);
+}
+
+.pancake-theme .app-tabs {
+  display: flex;
+  background-color: var(--card-background);
+  border-radius: 16px;
+  padding: 0.25rem;
+  margin: 1rem;
+}
+
+.pancake-theme .app-tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.75rem;
+  font-weight: 500;
+  border-radius: 12px;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.pancake-theme .app-tab.active {
+  background-color: var(--secondary);
+  color: var(--text);
+}
+
+.pancake-theme .swap-card {
+  background-color: var(--card-background);
+  border-radius: 24px;
+  margin: 1rem;
+  padding: 1.25rem;
+}
+
+.pancake-theme .token-input-container {
+  background-color: var(--secondary);
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.pancake-theme .token-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 16px;
+  background-color: var(--card-background);
+  cursor: pointer;
+}
+
+.pancake-theme .token-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.pancake-theme .token-input {
+  background-color: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 1.25rem;
+  text-align: right;
+  width: 100%;
+  outline: none;
+}
+
+.pancake-theme .swap-button-container {
+  margin-top: 1rem;
+}
+
+.pancake-theme .swap-button {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 16px;
+  width: 100%;
+  padding: 1rem;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pancake-theme .swap-button:hover {
+  opacity: 0.9;
+}
+
+.pancake-theme .swap-button:disabled {
+  background-color: var(--secondary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.pancake-theme .bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  background-color: var(--card-background);
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+.pancake-theme .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.pancake-theme .nav-item.active {
+  color: var(--primary);
+}
+
+.pancake-theme .nav-icon {
+  margin-bottom: 0.25rem;
+}
+
+/* Media queries for responsiveness */
+@media (min-width: 768px) {
+  .pancake-theme .app-container {
+    border-radius: 0;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+}

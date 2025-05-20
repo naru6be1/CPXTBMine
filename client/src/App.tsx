@@ -123,6 +123,7 @@ function Router() {
         <Route path="/check-balance" component={CheckBalancePage} />
         <Route path="/mobile" component={MobileAppPage} />
         <Route path="/mobile-home" component={MobileHomePage} />
+        <Route path="/mobile-profile" component={lazy(() => import("./pages/mobile-profile"))} />
         
         <Route component={NotFound} />
       </Switch>

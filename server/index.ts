@@ -2,6 +2,27 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
+// Ensure we're in development mode when in Replit development environment
+if (process.env.REPLIT_DEV_DOMAIN) {
+  process.env.NODE_ENV = 'development';
+  console.log("Replit development environment detected, setting NODE_ENV to 'development'");
+}
+
+// Log the current NODE_ENV setting
+console.log(`Current NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+
+// If NODE_ENV is not set, explicitly set it for consistent behavior
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development'; 
+  console.log(`NODE_ENV was not set, explicitly setting to 'development'`);
+}
+
+// If PRODUCTION_DOMAIN is set but we're in development, log a warning
+if (process.env.PRODUCTION_DOMAIN && process.env.NODE_ENV === 'development') {
+  console.log("WARNING: PRODUCTION_DOMAIN is set but we're running in development mode");
+  console.log("Google OAuth will use local callback URLs, not production URLs");
+}
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -135,56 +156,12 @@ app.use((req, res, next) => {
     // Setup Vite or static serving
     if (app.get("env") === "development") {
       log("Setting up Vite development server...");
-      try {
-        await setupVite(app, server);
-        log("Vite development server setup complete");
-      } catch (error) {
-        log("Error setting up Vite development server: " + (error as Error).message);
-        log("Will continue without frontend serving");
-        
-        // Add a fallback route for API requests
-        app.use("*", (req, res, next) => {
-          if (req.originalUrl.startsWith('/api')) {
-            return next();
-          }
-          
-          res.status(200).send(`
-            <html>
-              <head><title>CPXTB Platform - API Mode</title></head>
-              <body>
-                <h1>CPXTB API Server</h1>
-                <p>API server is running. Frontend development server is not available.</p>
-              </body>
-            </html>
-          `);
-        });
-      }
+      await setupVite(app, server);
+      log("Vite development server setup complete");
     } else {
       log("Setting up static file serving...");
-      try {
-        serveStatic(app);
-        log("Static file serving setup complete");
-      } catch (error) {
-        log("Error setting up static serving: " + (error as Error).message);
-        log("Will continue with API-only mode");
-        
-        // Add a fallback route for API requests
-        app.use("*", (req, res, next) => {
-          if (req.originalUrl.startsWith('/api')) {
-            return next();
-          }
-          
-          res.status(200).send(`
-            <html>
-              <head><title>CPXTB Platform - API Mode</title></head>
-              <body>
-                <h1>CPXTB API Server</h1>
-                <p>API server is running. Frontend is not available.</p>
-              </body>
-            </html>
-          `);
-        });
-      }
+      serveStatic(app);
+      log("Static file serving setup complete");
     }
 
     const port = process.env.PORT || 5000;

@@ -6,7 +6,6 @@ import { Separator } from '@/components/ui/separator';
 import { QRCodeSVG } from 'qrcode.react';
 import { useSocialLogin } from '@/providers/SocialLoginProvider';
 import { useToast } from '@/hooks/use-toast';
-import BasicSocialLogin from '@/components/BasicSocialLogin';
 import EnhancedSocialLogin from '@/components/EnhancedSocialLogin';
 import { 
   Loader2, 
@@ -29,6 +28,36 @@ export default function PayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [autoRefreshAttempted, setAutoRefreshAttempted] = useState(false);
+  
+  // EMERGENCY FIX: Force reload the page if user is authenticated but page is stuck
+  useEffect(() => {
+    // Check if we have authentication complete flags
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasAuthCompleted = urlParams.has('authCompleted');
+    
+    if (isLoggedIn && loading && !autoRefreshAttempted) {
+      // Start a timer to check if we're still loading after authentication
+      const timeoutId = setTimeout(() => {
+        // If we're still loading after 5 seconds, force a page refresh
+        if (loading && hasAuthCompleted) {
+          console.log("⚠️ Payment page still loading after authentication, forcing refresh...");
+          setAutoRefreshAttempted(true);
+          
+          toast({
+            title: "Refreshing Payment Data",
+            description: "Loading payment details...",
+            duration: 3000
+          });
+          
+          // Force a hard refresh with cache clearing
+          window.location.href = `${window.location.pathname}?paymentContext=true&authCompleted=true&t=${Date.now()}`;
+        }
+      }, 5000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [loading, autoRefreshAttempted]);
   const [regeneratingPayment, setRegeneratingPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -39,27 +68,90 @@ export default function PayPage() {
   const { toast } = useToast();
 
   // Fetch payment data
-  // Check if this is a direct QR code access - if so, we need to make sure social login appears
+  // Detect QR code access and handle login state for payment context
   useEffect(() => {
-    // If URL starts with /pay/ and doesn't have loggedIn=true parameter, consider it a QR code access
-    const isDirectAccess = window.location.pathname.startsWith('/pay/') && 
-                          !new URLSearchParams(window.location.search).has('loggedIn');
+    const urlParams = new URLSearchParams(window.location.search);
     
-    // Add diagnostic logging to help troubleshoot social login issues
-    console.log("PayPage - QR code access detection:");
-    console.log("- Current URL path:", window.location.pathname);
-    console.log("- URL parameters:", window.location.search);
-    console.log("- Is logged in:", isLoggedIn);
-    console.log("- Wallet address:", walletAddress);
-    console.log("- Is direct QR access:", isDirectAccess);
+    // There are three key scenarios:
+    // 1. Direct QR access - user scanned QR without being logged in
+    // 2. Post-auth redirect - user was redirected here after Google auth with loggedIn=true
+    // 3. Payment context - special flag that enforces this is a payment flow
     
-    if (isDirectAccess) {
-      console.log("Direct QR code access detected - forcing social login to appear");
+    // Check for these flags
+    const hasLoggedInParam = urlParams.has('loggedIn');
+    const hasPaymentContext = urlParams.has('paymentContext');
+    const isGoogleAuth = urlParams.get('provider') === 'google';
+    const hasAuthComplete = urlParams.has('authCompleted');
+    
+    // If we detect both loggedIn and paymentContext, this is a successful redirect
+    // after Google auth for payment
+    const isPostAuthRedirect = hasLoggedInParam && hasPaymentContext && isGoogleAuth;
+    
+    // If URL starts with /pay/ and doesn't have loggedIn=true parameter, consider it a direct QR access
+    const isDirectAccess = window.location.pathname.startsWith('/pay/') && !hasLoggedInParam;
+    
+    // EMERGENCY FIX FOR GOOGLE AUTH: Save payment reference in sessionStorage
+    // This allows recovery if the redirect after Google auth fails
+    if (window.location.pathname.startsWith('/pay/')) {
+      const paymentRef = window.location.pathname.split('/')[2];
+      if (paymentRef) {
+        // Save payment reference in sessionStorage for redirect recovery
+        console.log("STORING PAYMENT REFERENCE IN SESSION STORAGE:", paymentRef);
+        sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
+        
+        // Set expiration time (10 minutes)
+        const expiry = Date.now() + (10 * 60 * 1000);
+        sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+      }
+    }
+    
+    // Add enhanced diagnostic logging for troubleshooting
+    console.log("PAY PAGE - QR CODE ACCESS DETECTION:", {
+      currentUrl: window.location.href,
+      path: window.location.pathname,
+      search: window.location.search,
+      isLoggedIn,
+      hasWallet: Boolean(walletAddress),
+      walletAddress: walletAddress || "none",
+      hasLoggedInParam,
+      hasPaymentContext,
+      isGoogleAuth,
+      isDirectAccess,
+      isPostAuthRedirect
+    });
+    
+    // Logic for determining if we show social login section:
+    // 1. Always show it for direct QR access (no auth)
+    // 2. Always show it if payment context is set but not logged in
+    // 3. Don't show it if we're already authenticated post-redirect
+    
+    if (isPostAuthRedirect && isLoggedIn) {
+      // We just came back from Google auth and we're logged in - hide login section
+      console.log("POST-AUTH REDIRECT: User is authenticated, hiding social login");
+      setIsDirectQrAccess(false);
+    } else if (isDirectAccess || hasPaymentContext || !isLoggedIn) {
+      // Either direct access, payment context, or not logged in - show login section
+      console.log("SHOWING SOCIAL LOGIN: Direct access, payment context, or not logged in");
       setIsDirectQrAccess(true);
     } else {
+      // Normal navigation to page while logged in
+      console.log("NORMAL NAVIGATION: User is already logged in");
       setIsDirectQrAccess(false);
     }
-  }, [isLoggedIn, walletAddress]);
+    
+    // If we just completed Google authentication, remove these parameters from URL
+    // to prevent issues with browser refreshes
+    if (isPostAuthRedirect && isLoggedIn) {
+      // Keep the payment reference but clean up the URL
+      try {
+        const cleanUrl = `/pay/${paymentReference}`;
+        window.history.replaceState({}, '', cleanUrl);
+        console.log("Cleaned up URL after authentication:", cleanUrl);
+      } catch (err) {
+        console.error("Failed to clean up URL:", err);
+      }
+    }
+  }, [isLoggedIn, walletAddress, paymentReference]);
 
   useEffect(() => {
     const fetchPaymentData = async () => {
@@ -69,9 +161,59 @@ export default function PayPage() {
         return;
       }
       
+      // EMERGENCY FIX: Implement enhanced fetch with exponential backoff retry logic
+      const fetchWithRetry = async (url: string, maxRetries = 3, initialDelay = 800): Promise<Response> => {
+        let currentRetry = 0;
+        
+        const performFetch = async (): Promise<Response> => {
+          try {
+            console.log(`Fetch attempt ${currentRetry + 1}/${maxRetries + 1} for ${url}`);
+            
+            // Add cache-busting timestamp to prevent browser caching
+            const urlWithTimestamp = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+            
+            const response = await fetch(urlWithTimestamp);
+            if (response.ok) {
+              console.log(`Fetch successful on attempt ${currentRetry + 1}`);
+              return response;
+            }
+            
+            // Get status code to log
+            const status = response.status;
+            console.warn(`Fetch failed with status ${status} on attempt ${currentRetry + 1}`);
+            
+            // If we got a 5xx response or certain 4xx responses and have retries left, try again
+            if ((response.status >= 500 || response.status === 408 || response.status === 429) && currentRetry < maxRetries) {
+              currentRetry++;
+              const currentDelay = initialDelay * Math.pow(1.5, currentRetry); // Exponential backoff
+              console.warn(`Server error (${response.status}), retrying in ${currentDelay}ms... (${maxRetries - currentRetry} attempts left)`);
+              await new Promise(resolve => setTimeout(resolve, currentDelay));
+              return performFetch();
+            }
+            
+            // If all retries failed or not a retryable error
+            return response;
+          } catch (error) {
+            // If we have network errors and retries left, try again
+            if (currentRetry < maxRetries) {
+              currentRetry++;
+              const currentDelay = initialDelay * Math.pow(1.5, currentRetry);
+              console.warn(`Network error, retrying in ${currentDelay}ms... (${maxRetries - currentRetry} attempts left)`, error);
+              await new Promise(resolve => setTimeout(resolve, currentDelay));
+              return performFetch();
+            }
+            throw error;
+          }
+        };
+        
+        return performFetch();
+      };
+      
       try {
-        // FIXED URL PATH: Corrected endpoint to match server-side implementation
-        const response = await fetch(`/api/payments/public/${paymentReference}`);
+        // FIXED URL PATH: Corrected endpoint with cache-busting timestamp
+        const timestamp = Date.now();
+        console.log("Fetching payment data with timestamp:", timestamp);
+        const response = await fetchWithRetry(`/api/payments/public/${paymentReference}?t=${timestamp}`);
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -288,7 +430,7 @@ export default function PayPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-        <Card className="w-full max-w-md shadow-xl">
+        <Card className="w-full max-w-md shadow-xl" data-loading-card>
           <CardHeader>
             <CardTitle>Loading Payment</CardTitle>
             <CardDescription>
@@ -297,7 +439,7 @@ export default function PayPage() {
           </CardHeader>
           
           <CardContent className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" data-loading-spinner />
           </CardContent>
         </Card>
       </div>
@@ -307,7 +449,7 @@ export default function PayPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-        <Card className="w-full max-w-md shadow-xl">
+        <Card className="w-full max-w-md shadow-xl" data-error-card>
           <CardHeader>
             <CardTitle>Payment Error</CardTitle>
             <CardDescription>
@@ -345,7 +487,7 @@ export default function PayPage() {
   if (paymentComplete) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-        <Card className="w-full max-w-md shadow-xl">
+        <Card className="w-full max-w-md shadow-xl" data-success-card>
           <CardHeader>
             <CardTitle>Payment Successful</CardTitle>
             <CardDescription>
@@ -423,7 +565,7 @@ export default function PayPage() {
   // Main payment page
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-md shadow-xl" data-payment-card>
         <CardHeader>
           <CardTitle>CPXTB Payment</CardTitle>
           <CardDescription>
@@ -750,7 +892,6 @@ export default function PayPage() {
               {/* Enhanced login component with real Google Auth support */}
               <EnhancedSocialLogin 
                 showCard={false}
-                useRealLogin={new URLSearchParams(window.location.search).get('enableRealLogin') === 'true'}
                 onSuccess={(userData) => {
                   console.log("PayPage - Social login successful:", userData);
                   console.log("PayPage - Direct QR access state:", isDirectQrAccess);

@@ -56,9 +56,12 @@ export default function SimplePaymentQRGenerator({
   useEffect(() => {
     if (paymentReference) {
       const baseUrl = window.location.origin;
-      const newPaymentLink = `${baseUrl}/pay/${paymentReference}`;
+      // Include paymentContext parameter to ensure we stay on payment page after login
+      const newPaymentLink = `${baseUrl}/pay/${paymentReference}?paymentContext=true`;
       setPaymentLink(newPaymentLink);
       setQrCodeData(newPaymentLink);
+      
+      console.log("Generated QR code payment link with context:", newPaymentLink);
     }
   }, [paymentReference, amount, merchantId]);
 

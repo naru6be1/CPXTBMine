@@ -32,22 +32,186 @@ export function EnhancedSocialLogin({
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useSocialLogin();
   
+  // Enhanced function to check for and restore payment references from multiple sources
+  const checkForRestorablePaymentReference = (): string | null => {
+    // Priority 1: Check URL path for direct payment reference
+    const pathSegments = window.location.pathname.split('/');
+    if (pathSegments.length > 2 && pathSegments[1] === 'pay') {
+      const pathRef = pathSegments[2];
+      console.log("📋 Found payment reference in URL path:", pathRef);
+      return pathRef;
+    }
+    
+    // Priority 2: Check URL parameters for payment reference
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramRef = urlParams.get('paymentRef');
+    if (paramRef) {
+      console.log("📋 Found payment reference in URL parameters:", paramRef);
+      return paramRef;
+    }
+    
+    // Priority 3: Check session storage for saved reference
+    const sessionRef = sessionStorage.getItem('cpxtb_payment_ref');
+    const sessionRefExpiry = sessionStorage.getItem('cpxtb_payment_ref_expiry');
+    
+    if (sessionRef && sessionRefExpiry) {
+      const expiryTime = parseInt(sessionRefExpiry);
+      if (expiryTime > Date.now()) {
+        console.log("📋 Found valid payment reference in session storage:", sessionRef);
+        return sessionRef;
+      } else {
+        console.log("⚠️ Found expired payment reference in session storage:", sessionRef);
+        // Clean up expired reference
+        sessionStorage.removeItem('cpxtb_payment_ref');
+        sessionStorage.removeItem('cpxtb_payment_ref_expiry');
+      }
+    }
+    
+    // Priority 4: Check local storage as fallback (more persistent across browser sessions)
+    const localRef = localStorage.getItem('cpxtb_payment_ref');
+    const localRefExpiry = localStorage.getItem('cpxtb_payment_ref_expiry');
+    
+    if (localRef && localRefExpiry) {
+      const expiryTime = parseInt(localRefExpiry);
+      if (expiryTime > Date.now()) {
+        console.log("📋 Found valid payment reference in local storage:", localRef);
+        return localRef;
+      } else {
+        console.log("⚠️ Found expired payment reference in local storage:", localRef);
+        // Clean up expired reference
+        localStorage.removeItem('cpxtb_payment_ref');
+        localStorage.removeItem('cpxtb_payment_ref_expiry');
+      }
+    }
+    
+    return null;
+  };
+  
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     
     try {
       // Directly redirect to Google OAuth endpoint
       console.log("Initiating Google authentication...");
-      const currentUrl = window.location.href;
+      
+      // Get the current URL for redirection
+      let currentUrl = window.location.href;
+      
+      // Always ensure we have paymentContext=true in payment pages
+      if (window.location.pathname.includes('/pay/') && !window.location.search.includes('paymentContext=true')) {
+        // Add paymentContext parameter if it's missing
+        const separator = window.location.search ? '&' : '?';
+        currentUrl = `${currentUrl}${separator}paymentContext=true`;
+        console.log("Enhanced URL with payment context:", currentUrl);
+      }
+      
       const redirectUrl = encodeURIComponent(currentUrl);
       
-      // Check if this is a payment page
+      // Determine payment and context flags with enhanced reference detection
       const isPaymentPage = window.location.pathname.includes('/pay/');
-      console.log("Authentication from payment page:", isPaymentPage);
+      const hasPaymentContext = window.location.search.includes('paymentContext=true');
       
-      // Navigate directly to the authentication endpoint
-      // Add payment context if this is a payment page
-      window.location.href = `/api/social-auth/google?redirectUrl=${redirectUrl}${isPaymentPage ? '&context=payment' : ''}`;
+      // Use our new enhanced reference detection function to find the payment reference
+      // across multiple possible storage locations
+      const detectedPaymentRef = checkForRestorablePaymentReference();
+      const paymentRef = detectedPaymentRef;
+      
+      console.log("ENHANCED SOCIAL LOGIN - AUTH REQUEST:", {
+        isPaymentPage,
+        hasPaymentContext,
+        currentUrl,
+        paymentRef,
+        path: window.location.pathname,
+        search: window.location.search
+      });
+      
+      // ENHANCED FIX: Store payment reference in session storage for reliable redirect
+      // This is read by AuthRedirectHandler to redirect back to the correct payment page
+      // after authentication if needed
+      if (paymentRef) {
+        console.log("📝 CRITICAL - Storing payment reference for auth redirect:", paymentRef);
+        
+        // Store in both sessionStorage and localStorage for maximum persistence
+        // This ensures we have multiple recovery paths if one storage method fails
+        sessionStorage.setItem('cpxtb_payment_ref', paymentRef);
+        localStorage.setItem('cpxtb_payment_ref', paymentRef);
+        
+        // Set an expiration time - 10 minutes from now
+        const expiry = Date.now() + (10 * 60 * 1000);
+        sessionStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+        localStorage.setItem('cpxtb_payment_ref_expiry', expiry.toString());
+        
+        // Store more context information for recovery
+        localStorage.setItem('cpxtb_auth_intent', 'true');
+        localStorage.setItem('cpxtb_auth_intent_timestamp', Date.now().toString());
+        
+        // Compute and store the full URL - this handles cases where we recovered the reference
+        // from session storage or URL parameters but aren't currently on the payment page
+        let paymentUrl = currentUrl;
+        
+        // If we're not already on a payment page, construct the payment URL
+        if (!isPaymentPage) {
+          // Base path to the payment
+          const basePath = `/pay/${paymentRef}`;
+          
+          // Add essential parameters
+          const params = new URLSearchParams();
+          params.set('paymentContext', 'true');
+          params.set('t', Date.now().toString());
+          
+          paymentUrl = `${basePath}?${params.toString()}`;
+          console.log("📝 Constructed payment URL for post-auth redirect:", paymentUrl);
+        }
+        
+        // Store the payment URL for backup navigation in both storage methods
+        sessionStorage.setItem('cpxtb_payment_url', paymentUrl);
+        localStorage.setItem('cpxtb_payment_url', paymentUrl);
+        
+        // Also store the URL with explicit login/payment context flags
+        const enhancedUrl = new URL(paymentUrl, window.location.origin);
+        enhancedUrl.searchParams.set('paymentContext', 'true');
+        enhancedUrl.searchParams.set('loggedIn', 'true');
+        enhancedUrl.searchParams.set('t', Date.now().toString());
+        localStorage.setItem('cpxtb_enhanced_payment_url', enhancedUrl.toString());
+      }
+      
+      // DOMAIN PROTECTION - Ensure we're using relative URLs for OAuth redirects
+      // This prevents issues with misconfigured production domains
+      const sanitizeUrl = (url: string): string => {
+        try {
+          // Parse the URL to get only the path + query components
+          const parsedUrl = new URL(url);
+          return `${parsedUrl.pathname}${parsedUrl.search}`;
+        } catch (err) {
+          console.error("Error sanitizing URL:", url, err);
+          return url; // Return original if parsing fails
+        }
+      };
+      
+      // If redirectUrl has a full domain, strip it to just the path
+      // This prevents issues with domain mismatches
+      const safeRedirectUrl = redirectUrl.includes('http')
+        ? encodeURIComponent(sanitizeUrl(decodeURIComponent(redirectUrl)))
+        : redirectUrl;
+      
+      // Build authentication URL with improved context detection and domain protection
+      let authUrl = `/api/social-auth/google?redirectUrl=${safeRedirectUrl}`;
+      
+      // Always include context=payment for payment pages
+      if (isPaymentPage || hasPaymentContext) {
+        authUrl += '&context=payment';
+        
+        // Also include the payment reference directly for more reliable tracking
+        if (paymentRef) {
+          authUrl += `&paymentRef=${paymentRef}`;
+        }
+      }
+      
+      // Add timestamp to prevent caching issues
+      authUrl += `&t=${Date.now()}`;
+      
+      console.log("REDIRECTING TO AUTH URL:", authUrl);
+      window.location.href = authUrl;
     } catch (error: any) {
       console.error('Social login error:', error);
       toast({

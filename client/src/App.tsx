@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SocialLoginProvider } from "./providers/SocialLoginProvider";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import AuthRedirectHandler from "@/components/AuthRedirectHandler";
 
 // Lazy-loaded components for better performance
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -265,6 +266,8 @@ function App() {
           <ThemeProvider defaultTheme="dark" storageKey="cpxtb-theme">
             <SocialLoginProvider>
               <AuthProvider>
+                {/* Global post-auth redirect handler */}
+                <AuthRedirectHandler />
                 <HamburgerMenu />
                 <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
                   <ThemeToggle />

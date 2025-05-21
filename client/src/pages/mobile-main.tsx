@@ -14,7 +14,9 @@ export default function MobileMain() {
       {/* Header */}
       <header className="flex items-center justify-between p-4 bg-slate-800/80">
         <div className="flex items-center space-x-2">
-          <img src="/assets/cpxtb-logo.svg" alt="Logo" className="w-8 h-8" />
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-xs font-bold text-white">CPXTB</span>
+          </div>
           <span className="font-medium">CPXTB Platform</span>
         </div>
         <div className="flex space-x-3 items-center">
@@ -38,7 +40,7 @@ export default function MobileMain() {
       <div className="bg-gradient-to-b from-slate-800 to-slate-900 px-4 py-12">
         <div className="flex flex-col items-center text-center">
           <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mb-6">
-            <img src="/assets/cpxtb-logo.svg" alt="CPXTB" className="w-12 h-12" />
+            <span className="text-2xl font-bold text-white">CPXTB</span>
           </div>
           
           <h1 className="text-3xl font-bold mb-4">

@@ -356,43 +356,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      if (enableRealLogin === 'true' || !req.query.hasOwnProperty('enableRealLogin')) {
-        console.log("Redirecting to Google authentication with real authentication");
-        console.log("Google client ID used:", process.env.GOOGLE_CLIENT_ID ? "Available (first 5 chars: " + 
-          process.env.GOOGLE_CLIENT_ID.substring(0, 5) + "...)" : "Missing");
-        console.log("Google client secret used:", process.env.GOOGLE_CLIENT_SECRET ? "Available (length: " + 
-          process.env.GOOGLE_CLIENT_SECRET.length + ")" : "Missing");
-        
-        // ADVANCED FIX: Pass payment reference in the state parameter for extra safety
-        let stateParam = undefined;
-        
-        // If this is a payment-related auth request, encode the payment reference in the state
-        if ((req.session as any).paymentReference) {
-          stateParam = `payment_${(req.session as any).paymentReference}`;
-          console.log("🔐 Adding payment reference to OAuth state:", stateParam);
-        }
-        
-        // Redirect to Google authentication with extra state
-        passport.authenticate('google', { 
-          scope: ['profile', 'email'],
-          prompt: 'select_account',
-          state: stateParam
-        })(req, res);
-      } else {
-        console.log("Using fallback mock authentication");
-        // Use mock data for fallback
-        const seed = `google-${Date.now()}`;
-        const hash = crypto.createHash('sha256').update(seed).digest('hex');
-        const walletAddress = `0x${hash.substring(0, 40)}`;
-        
-        res.setHeader('Content-Type', 'application/json');
-        res.json({
-          name: "Google User (Mock)",
-          email: "mock.user@example.com",
-          walletAddress: walletAddress,
-          balance: "10.0"
-        });
+      // Always use real Google authentication
+      console.log("Redirecting to Google authentication with real authentication");
+      console.log("Google client ID used:", process.env.GOOGLE_CLIENT_ID ? "Available (first 5 chars: " + 
+        process.env.GOOGLE_CLIENT_ID.substring(0, 5) + "...)" : "Missing");
+      console.log("Google client secret used:", process.env.GOOGLE_CLIENT_SECRET ? "Available (length: " + 
+        process.env.GOOGLE_CLIENT_SECRET.length + ")" : "Missing");
+      
+      // ADVANCED FIX: Pass payment reference in the state parameter for extra safety
+      let stateParam = undefined;
+      
+      // If this is a payment-related auth request, encode the payment reference in the state
+      if ((req.session as any).paymentReference) {
+        stateParam = `payment_${(req.session as any).paymentReference}`;
+        console.log("🔐 Adding payment reference to OAuth state:", stateParam);
       }
+      
+      // Redirect to Google authentication with extra state
+      passport.authenticate('google', { 
+        scope: ['profile', 'email'],
+        prompt: 'select_account',
+        state: stateParam
+      })(req, res);
     });
     
     // Callback route that Google will redirect back to after authentication

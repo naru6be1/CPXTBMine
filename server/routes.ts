@@ -135,7 +135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // This ensures reliable OAuth flow regardless of production domain status
     const forceDevMode = true; // Set to true to force development mode callbacks
     
-    const callbackURL = (forceDevMode || process.env.NODE_ENV !== 'production' || !process.env.PRODUCTION_DOMAIN) && process.env.REPLIT_DEV_DOMAIN
+    // Force development mode to use Replit domain for Google auth
+    const useReplitDomain = true;
+    
+    // Always use the Replit domain URL in development environment
+    const callbackURL = useReplitDomain && process.env.REPLIT_DEV_DOMAIN
       ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
       : process.env.PRODUCTION_DOMAIN
         ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback`

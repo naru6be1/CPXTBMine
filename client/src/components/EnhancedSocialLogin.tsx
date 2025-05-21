@@ -210,17 +210,7 @@ export function EnhancedSocialLogin({
       // Add timestamp to prevent caching issues
       authUrl += `&t=${Date.now()}`;
       
-      // Explicitly force real authentication
-      authUrl += '&enableRealLogin=true';
-      
       console.log("REDIRECTING TO AUTH URL:", authUrl);
-      
-      // Show a toast notification to let the user know what's happening
-      toast({
-        title: "Google Authentication",
-        description: "Redirecting to Google for login...",
-      });
-      
       window.location.href = authUrl;
     } catch (error: any) {
       console.error('Social login error:', error);

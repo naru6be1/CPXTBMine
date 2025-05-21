@@ -306,7 +306,9 @@ export default function MobileMain() {
       {/* Footer */}
       <div className="mt-auto bg-slate-800 py-6 px-4">
         <div className="flex justify-center mb-4">
-          <img src="/assets/cpxtb-logo.svg" alt="CPXTB" className="w-10 h-10" />
+          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-xs font-bold text-white">CPXTB</span>
+          </div>
         </div>
         
         <div className="grid grid-cols-2 gap-4 mb-6">

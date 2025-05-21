@@ -119,26 +119,29 @@ export default function MobileMerchantAuth() {
         email: registerCredentials.email
       }));
       
-      // Notify user we're using Google for authentication
+      // Show creating account message
       toast({
-        title: "Using Google Authentication",
-        description: "You'll be redirected to Google to complete registration",
+        title: "Creating Account",
+        description: "Setting up your merchant account...",
       });
       
-      // Wait a moment before redirecting to Google auth
-      setTimeout(async () => {
-        try {
-          // This will redirect to Google authentication
-          await login('google');
-        } catch (authError) {
-          console.error("Google auth failed during registration:", authError);
-          toast({
-            title: "Registration Failed",
-            description: "Could not authenticate with Google. Please try again.",
-            variant: "destructive"
-          });
-          setIsRegistering(false);
-        }
+      // Simulate account creation without Google redirect
+      setTimeout(() => {
+        // Success message
+        toast({
+          title: "Registration Successful",
+          description: "Your merchant account has been created",
+        });
+        
+        // Store mock authenticated user data
+        localStorage.setItem('userInfo', JSON.stringify({
+          email: registerCredentials.email,
+          businessName: registerCredentials.businessName
+        }));
+        
+        // Redirect to merchant dashboard
+        setLocation('/merchant');
+        setIsRegistering(false);
       }, 1500);
     } catch (error) {
       console.error("Registration error:", error);

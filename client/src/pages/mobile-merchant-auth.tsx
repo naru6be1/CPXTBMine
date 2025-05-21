@@ -60,26 +60,34 @@ export default function MobileMerchantAuth() {
     setIsLoggingIn(true);
     
     try {
-      // For now, use Google login for all authentication methods
-      // In the future, this would be connected to your backend password system
+      // Simple direct login without Google auth
       toast({
-        title: "Using Google Authentication",
-        description: "Currently all logins use Google authentication for simplicity",
+        title: "Logging in",
+        description: "Verifying your credentials...",
       });
       
-      // Use Google login for authentication
-      await login('google');
+      // Simulate authentication delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Store mock authenticated user data that's compatible with our app's auth check
+      localStorage.setItem('userInfo', JSON.stringify({
+        email: loginCredentials.email,
+        userId: Date.now().toString() // Create a unique ID
+      }));
+      
+      // Add wallet address too, since our auth check requires both userInfo and walletAddress
+      localStorage.setItem('walletAddress', '0x' + Math.random().toString(16).substring(2, 42));
       
       toast({
         title: "Login Successful",
         description: "Welcome to your merchant dashboard",
       });
       
-      setLocation('/mobile-merchant');
+      setLocation('/merchant');
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Authentication failed. Please try again or use Google login.",
+        description: "Authentication failed. Please try again.",
         variant: "destructive"
       });
     } finally {

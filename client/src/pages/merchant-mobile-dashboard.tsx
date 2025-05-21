@@ -165,8 +165,12 @@ export default function MerchantMobileDashboard() {
       currency: 'CPXTB'
     };
     
-    // Create QR code data
-    const qrData = JSON.stringify(paymentData);
+    // Create a proper payment URL instead of raw JSON
+    const baseUrl = window.location.origin;
+    const paymentUrl = `${baseUrl}/pay?amount=${amount}&ref=${reference}&merchant=${encodeURIComponent(businessName || contactEmail || 'Merchant')}`;
+    
+    // Use the payment URL as QR code data
+    const qrData = paymentUrl;
     
     // Simulate loading with a timeout
     setTimeout(() => {

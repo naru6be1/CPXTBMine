@@ -35,7 +35,7 @@ export default function MobileMerchant() {
         title: "Authentication Required",
         description: "Please login to access the merchant dashboard",
       });
-      setLocation('/mobile-merchant-auth');
+      setLocation('/auth');
     }
   }, [userInfo, walletAddress, setLocation, toast]);
   

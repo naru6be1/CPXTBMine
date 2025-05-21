@@ -105,6 +105,7 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route path="/legal-documents" component={LegalPage} />
+        <Route path="/auth" component={lazy(() => import("./pages/mobile-merchant-auth"))} />
         <Route path="/mobile-merchant-auth" component={lazy(() => import("./pages/mobile-merchant-auth"))} />
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />

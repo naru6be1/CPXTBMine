@@ -76,7 +76,7 @@ export default function MerchantMobileDashboard() {
         description: "Please login to access the merchant dashboard",
         variant: "destructive"
       });
-      setLocation('/mobile-merchant-auth');
+      setLocation('/auth');
       return;
     }
 
@@ -160,7 +160,7 @@ export default function MerchantMobileDashboard() {
         title: "Signed Out",
         description: "You've been signed out successfully",
       });
-      setLocation('/mobile-merchant-auth');
+      setLocation('/auth');
     } catch (error) {
       toast({
         title: "Error",
@@ -182,7 +182,7 @@ export default function MerchantMobileDashboard() {
               </div>
               <div>
                 <h2 className="font-medium text-white">
-                  {userInfo?.username || 'Merchant'}
+                  {userInfo?.email ? userInfo.email.split('@')[0] : 'Merchant'}
                 </h2>
                 <p className="text-xs text-slate-400">{userInfo?.email}</p>
               </div>

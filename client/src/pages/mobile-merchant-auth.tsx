@@ -60,8 +60,14 @@ export default function MobileMerchantAuth() {
     setIsLoggingIn(true);
     
     try {
-      // In a production app, you would authenticate with your backend
-      // For demo purposes, we'll use Google login
+      // For now, use Google login for all authentication methods
+      // In the future, this would be connected to your backend password system
+      toast({
+        title: "Using Google Authentication",
+        description: "Currently all logins use Google authentication for simplicity",
+      });
+      
+      // Use Google login for authentication
       await login('google');
       
       toast({
@@ -73,7 +79,7 @@ export default function MobileMerchantAuth() {
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: "Authentication failed. Please try again or use Google login.",
         variant: "destructive"
       });
     } finally {
@@ -107,28 +113,40 @@ export default function MobileMerchantAuth() {
     setIsRegistering(true);
     
     try {
-      // In a production app, you would register with your backend
-      // For demo purposes, we'll simulate a successful registration
-      setTimeout(() => {
-        toast({
-          title: "Registration Successful",
-          description: "Your merchant account has been created",
-        });
-        
-        // Switch to login tab
-        setAuthTab('login');
-        setLoginCredentials({
-          email: registerCredentials.email,
-          password: ''
-        });
+      // Store registration info for later use
+      localStorage.setItem('pendingRegistration', JSON.stringify({
+        businessName: registerCredentials.businessName,
+        email: registerCredentials.email
+      }));
+      
+      // Notify user we're using Google for authentication
+      toast({
+        title: "Using Google Authentication",
+        description: "You'll be redirected to Google to complete registration",
+      });
+      
+      // Wait a moment before redirecting to Google auth
+      setTimeout(async () => {
+        try {
+          // This will redirect to Google authentication
+          await login('google');
+        } catch (authError) {
+          console.error("Google auth failed during registration:", authError);
+          toast({
+            title: "Registration Failed",
+            description: "Could not authenticate with Google. Please try again.",
+            variant: "destructive"
+          });
+          setIsRegistering(false);
+        }
       }, 1500);
     } catch (error) {
+      console.error("Registration error:", error);
       toast({
         title: "Registration Failed",
         description: "Could not create your account. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsRegistering(false);
     }
   };

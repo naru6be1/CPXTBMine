@@ -16,7 +16,13 @@ export default function MobileMain() {
           <img src="/assets/cpxtb-logo.svg" alt="Logo" className="w-8 h-8" />
           <span className="font-medium">CPXTB Platform</span>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex space-x-3 items-center">
+          <Link href="/mobile-home">
+            <div className="bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg flex items-center text-xs text-slate-300 mr-1">
+              <Wallet className="h-3 w-3 mr-1" />
+              Mobile App
+            </div>
+          </Link>
           <Link href="/mobile-auth">
             <Button 
               className="bg-cyan-500 hover:bg-cyan-600 px-3 py-1 rounded-full text-sm font-medium"

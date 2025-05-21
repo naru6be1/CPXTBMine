@@ -74,12 +74,21 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     }
     
+    // Look for demo user and remove it if found
     const storedUser = localStorage.getItem('cpxtb_user');
     
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser);
         console.log('Found stored user data:', userData);
+        
+        // Check if this is a demo user and clear it
+        if (userData.isDemoUser === true || 
+            (userData.userInfo && userData.userInfo.email === 'demo_maap@gmail.com')) {
+          console.log('Detected demo user, clearing stored data to allow real authentication');
+          localStorage.removeItem('cpxtb_user');
+          return; // Exit early to avoid using demo data
+        }
         
         // Additional logging for social login with QR code scenarios
         const isQrCodePage = window.location.pathname.startsWith('/pay/');

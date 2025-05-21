@@ -2,7 +2,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, CheckCircle2, Shield, Wallet, CreditCard, 
-  BarChart, Clock, ChevronRight, Globe, Zap, Lock, DollarSign
+  BarChart, Clock, ChevronRight, Globe, Zap, Lock, DollarSign,
+  Check
 } from 'lucide-react';
 import { Link } from 'wouter';
 import "../styles/pancake-theme.css";
@@ -67,14 +68,79 @@ export default function MobileMain() {
       </div>
       
       {/* Device Preview */}
-      <div className="relative -mt-10 mb-12 px-4">
-        <div className="bg-slate-800 rounded-xl p-5 shadow-lg shadow-black/30">
-          <div className="relative flex justify-center items-center py-4">
-            <div className="absolute z-10 bg-blue-500 h-14 w-14 rounded-xl flex items-center justify-center">
-              <DollarSign className="h-8 w-8 text-white" />
+      <div className="relative -mt-6 mb-12">
+        <div className="bg-slate-800/50 py-8 px-4">
+          <div className="text-center mb-5">
+            <h2 className="text-xl font-bold text-white">Payment Solutions for Any Device</h2>
+            <p className="text-sm text-slate-400 mt-1">Seamless experience across desktop, tablet and mobile</p>
+          </div>
+          
+          {/* Device Illustrations */}
+          <div className="relative mt-8 mb-4">
+            {/* Desktop */}
+            <div className="bg-slate-700 rounded-xl w-full max-w-md mx-auto p-3 shadow-lg z-20 relative">
+              <div className="bg-slate-800 rounded-lg p-2">
+                <div className="flex items-center mb-3">
+                  <div className="h-3 w-3 rounded-full bg-red-500 mr-2"></div>
+                  <div className="h-3 w-3 rounded-full bg-yellow-500 mr-2"></div>
+                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                </div>
+                <div className="bg-slate-900 rounded-md p-3 mb-2">
+                  <div className="flex justify-between items-center">
+                    <div className="w-24 h-4 bg-slate-700 rounded"></div>
+                    <div className="w-14 h-4 bg-blue-500 rounded"></div>
+                  </div>
+                </div>
+                <div className="bg-slate-900 rounded-md p-3">
+                  <div className="flex justify-between">
+                    <div className="w-32 h-6 bg-slate-700 rounded"></div>
+                    <div className="w-10 h-6 bg-blue-500 rounded"></div>
+                  </div>
+                  <div className="mt-2 flex space-x-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                      <DollarSign className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="w-full h-3 bg-slate-700 rounded mb-1"></div>
+                      <div className="w-3/4 h-3 bg-slate-700 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="relative z-0 w-48 h-36 bg-slate-700 rounded-xl mr-6"></div>
-            <div className="relative z-0 w-32 h-24 bg-slate-700 rounded-xl"></div>
+            
+            {/* Tablet - positioned absolutely for overlap effect */}
+            <div className="absolute -bottom-12 right-4 bg-slate-700 rounded-xl w-40 p-2 shadow-lg">
+              <div className="bg-slate-800 rounded-lg p-1">
+                <div className="bg-slate-900 rounded-md p-2 mb-1">
+                  <div className="w-16 h-3 bg-blue-500 rounded mb-1"></div>
+                  <div className="w-20 h-2 bg-slate-700 rounded"></div>
+                </div>
+                <div className="bg-slate-900 rounded-md p-2">
+                  <div className="w-full h-2 bg-slate-700 rounded mb-1"></div>
+                  <div className="w-8 h-8 bg-blue-500 rounded-full mx-auto flex items-center justify-center">
+                    <Check className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Mobile - positioned absolutely for overlap effect */}
+            <div className="absolute -bottom-8 left-4 bg-slate-700 rounded-xl w-20 p-1 shadow-lg">
+              <div className="bg-slate-800 rounded-lg p-1">
+                <div className="bg-slate-900 rounded-md p-1 mb-1">
+                  <div className="w-8 h-2 bg-blue-500 rounded mb-1"></div>
+                  <div className="w-10 h-1 bg-slate-700 rounded"></div>
+                </div>
+                <div className="bg-slate-900 rounded-md p-1">
+                  <div className="flex justify-center">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <ArrowRight className="h-3 w-3 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

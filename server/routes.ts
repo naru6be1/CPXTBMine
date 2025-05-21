@@ -135,23 +135,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // This ensures reliable OAuth flow regardless of production domain status
     const forceDevMode = true; // Set to true to force development mode callbacks
     
-    // Force development mode to use Replit domain for Google auth
-    const useReplitDomain = true;
+    // In production mode, use the production domain
+    const isProd = process.env.NODE_ENV === 'production';
+    const useProductionDomain = isProd && process.env.PRODUCTION_DOMAIN;
     
-    // Always use the Replit domain URL in development environment
-    const callbackURL = useReplitDomain && process.env.REPLIT_DEV_DOMAIN
-      ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
-      : process.env.PRODUCTION_DOMAIN
-        ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback`
+    // Set callback URL based on environment
+    const callbackURL = useProductionDomain 
+      ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback`
+      : process.env.REPLIT_DEV_DOMAIN
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
         : "http://localhost:5000/api/auth/google/callback";
     
     // Log the current environment and callback URL configuration    
     console.log("Using Google OAuth callback URL:", callbackURL);
     console.log("Force Dev Mode:", forceDevMode);
     
-    if (process.env.NODE_ENV === 'production' && forceDevMode) {
-      console.log("⚠️ WARNING: Using development callback URL in production environment");
-      console.log("This should only be used for testing and not in a real production deployment");
+    if (process.env.NODE_ENV === 'production') {
+      console.log("📢 Production environment detected");
+      console.log(`Using production callback URL: ${callbackURL}`);
+      console.log("Make sure this URL is authorized in your Google Developer Console");
     }
     
     passport.use(new GoogleStrategy({

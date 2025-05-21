@@ -133,11 +133,15 @@ export default function MobileMerchantAuth() {
           description: "Your merchant account has been created",
         });
         
-        // Store mock authenticated user data
+        // Store mock authenticated user data that's compatible with our app's auth check
         localStorage.setItem('userInfo', JSON.stringify({
           email: registerCredentials.email,
-          businessName: registerCredentials.businessName
+          businessName: registerCredentials.businessName,
+          userId: Date.now().toString() // Create a unique ID
         }));
+        
+        // Add wallet address too, since our auth check requires both userInfo and walletAddress
+        localStorage.setItem('walletAddress', '0x' + Math.random().toString(16).substring(2, 42));
         
         // Redirect to merchant dashboard
         setLocation('/merchant');

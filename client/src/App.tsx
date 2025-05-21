@@ -128,6 +128,7 @@ function Router() {
         <Route path="/mobile-auth" component={lazy(() => import("./pages/mobile-auth"))} />
         <Route path="/mobile-pay" component={lazy(() => import("./pages/mobile-pay"))} />
         <Route path="/mobile-wallet" component={lazy(() => import("./pages/mobile-wallet"))} />
+        <Route path="/mobile-landing" component={lazy(() => import("./pages/mobile-landing"))} />
         
         <Route component={NotFound} />
       </Switch>

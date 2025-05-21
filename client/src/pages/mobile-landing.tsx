@@ -65,11 +65,21 @@ export default function MobileLanding() {
       {/* Payment Devices Illustration */}
       <div className="bg-slate-800 rounded-xl p-5 mb-8 relative overflow-hidden">
         <div className="flex justify-center">
-          <img 
-            src="https://i.imgur.com/ZSG3cZF.png" 
-            alt="Payment solutions on multiple devices" 
-            className="rounded-lg w-full max-w-[300px] object-contain"
-          />
+          <div className="w-full flex flex-col items-center">
+            <div className="relative mb-4 mt-2">
+              <div className="bg-slate-700 w-64 h-32 rounded-xl flex items-center justify-center">
+                <div className="bg-blue-500 w-16 h-16 rounded-full flex items-center justify-center">
+                  <CreditCard className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-slate-700 w-20 h-20 rounded-lg flex items-center justify-center">
+                <div className="bg-green-500/20 w-10 h-10 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 mt-2">Payment solutions on multiple devices</p>
+          </div>
         </div>
       </div>
       

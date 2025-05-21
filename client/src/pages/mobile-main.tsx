@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, CheckCircle2, Shield, Wallet, CreditCard, 
-  BarChart, Clock, ChevronRight, Globe, Zap, Lock
+  BarChart, Clock, ChevronRight, Globe, Zap, Lock, DollarSign
 } from 'lucide-react';
 import { Link } from 'wouter';
 import "../styles/pancake-theme.css";
@@ -63,11 +63,13 @@ export default function MobileMain() {
       {/* Device Preview */}
       <div className="relative -mt-10 mb-12 px-4">
         <div className="bg-slate-800 rounded-xl p-5 shadow-lg shadow-black/30">
-          <img 
-            src="https://i.imgur.com/ZSG3cZF.png" 
-            alt="Payment solutions on multiple devices" 
-            className="rounded-lg w-full object-contain"
-          />
+          <div className="relative flex justify-center items-center py-4">
+            <div className="absolute z-10 bg-blue-500 h-14 w-14 rounded-xl flex items-center justify-center">
+              <DollarSign className="h-8 w-8 text-white" />
+            </div>
+            <div className="relative z-0 w-48 h-36 bg-slate-700 rounded-xl mr-6"></div>
+            <div className="relative z-0 w-32 h-24 bg-slate-700 rounded-xl"></div>
+          </div>
         </div>
       </div>
       

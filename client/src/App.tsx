@@ -96,7 +96,7 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <Route path="/" component={Home} />
+        <Route path="/" component={lazy(() => import("./pages/mobile-main"))} />
         <Route path="/blog" component={BlogPage} />
         <Route path="/blog/:slug" component={BlogPost} />
         <Route path="/about" component={AboutPage} />
@@ -105,7 +105,7 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route path="/legal-documents" component={LegalPage} />
-        <Route path="/auth" component={AuthPage} />
+        <Route path="/auth" component={lazy(() => import("./pages/mobile-merchant-auth"))} />
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/profile" component={ProfilePage} />

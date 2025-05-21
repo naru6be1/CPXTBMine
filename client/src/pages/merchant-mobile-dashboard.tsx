@@ -105,9 +105,31 @@ export default function MerchantMobileDashboard() {
   }, [userInfo, walletAddress, setLocation, toast]);
 
   const checkMerchantAccount = () => {
-    // This would normally check with the backend if the user has a registered merchant account
-    // For now, we'll assume they don't have one
-    setHasMerchantAccount(false);
+    // Get stored merchant data from localStorage
+    const storedUserInfo = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo') || '{}') : null;
+    
+    // Consider user as having a merchant account if they have userInfo with businessName or email
+    if (storedUserInfo && (storedUserInfo.businessName || storedUserInfo.email)) {
+      setHasMerchantAccount(true);
+      
+      // Set merchant data from stored info
+      if (storedUserInfo.businessName) {
+        setBusinessName(storedUserInfo.businessName);
+      }
+      
+      if (storedUserInfo.email) {
+        setContactEmail(storedUserInfo.email);
+      }
+      
+      // Set some sample transactions for the merchant dashboard
+      setMerchantStats({
+        totalPayments: 3,
+        totalRevenue: '450.75',
+        pendingPayments: 1
+      });
+    } else {
+      setHasMerchantAccount(false);
+    }
   };
 
   const handleCopyAddress = () => {

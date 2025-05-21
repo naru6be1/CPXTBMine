@@ -34,8 +34,12 @@ export default function MobileMerchantAuth() {
 
   // Check if user is already logged in
   useEffect(() => {
-    if (userInfo && walletAddress) {
-      setLocation('/mobile-merchant');
+    // Check both context auth and localStorage auth
+    const storedUserInfo = localStorage.getItem('userInfo');
+    const storedWalletAddress = localStorage.getItem('walletAddress');
+    
+    if ((userInfo && walletAddress) || (storedUserInfo && storedWalletAddress)) {
+      setLocation('/merchant');
     }
   }, [userInfo, walletAddress, setLocation]);
 
@@ -69,21 +73,30 @@ export default function MobileMerchantAuth() {
       // Simulate authentication delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Store mock authenticated user data that's compatible with our app's auth check
+      // Store merchant data with business info for better dashboard display
       localStorage.setItem('userInfo', JSON.stringify({
         email: loginCredentials.email,
-        userId: Date.now().toString() // Create a unique ID
+        userId: Date.now().toString(), // Create a unique ID
+        businessName: `${loginCredentials.email.split('@')[0]}'s Business`, // Create business name from email
+        role: 'merchant'
       }));
       
       // Add wallet address too, since our auth check requires both userInfo and walletAddress
       localStorage.setItem('walletAddress', '0x' + Math.random().toString(16).substring(2, 42));
+      
+      // Also set these in session storage for redundancy
+      sessionStorage.setItem('isLoggedIn', 'true');
+      sessionStorage.setItem('userRole', 'merchant');
       
       toast({
         title: "Login Successful",
         description: "Welcome to your merchant dashboard",
       });
       
-      setLocation('/merchant');
+      // Short delay before redirect to ensure data is saved
+      setTimeout(() => {
+        setLocation('/merchant');
+      }, 500);
     } catch (error) {
       toast({
         title: "Login Failed",
@@ -141,17 +154,24 @@ export default function MobileMerchantAuth() {
           description: "Your merchant account has been created",
         });
         
-        // Store mock authenticated user data that's compatible with our app's auth check
+        // Store merchant data with complete profile for better dashboard display
         localStorage.setItem('userInfo', JSON.stringify({
           email: registerCredentials.email,
           businessName: registerCredentials.businessName,
-          userId: Date.now().toString() // Create a unique ID
+          userId: Date.now().toString(), // Create a unique ID
+          role: 'merchant',
+          registrationDate: new Date().toISOString()
         }));
         
         // Add wallet address too, since our auth check requires both userInfo and walletAddress
-        localStorage.setItem('walletAddress', '0x' + Math.random().toString(16).substring(2, 42));
+        const walletAddress = '0x' + Math.random().toString(16).substring(2, 42);
+        localStorage.setItem('walletAddress', walletAddress);
         
-        // Redirect to merchant dashboard
+        // Also set these in session storage for redundancy
+        sessionStorage.setItem('isLoggedIn', 'true');
+        sessionStorage.setItem('userRole', 'merchant');
+        
+        // Short delay before redirect to ensure data is saved
         setLocation('/merchant');
         setIsRegistering(false);
       }, 1500);

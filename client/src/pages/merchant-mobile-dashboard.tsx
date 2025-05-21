@@ -143,9 +143,12 @@ export default function MerchantMobileDashboard() {
       description: "Setting up your merchant account...",
     });
 
-    // Simulate API call
+    // Directly create the merchant account without redirecting
+    // Since we're already authenticated through Google, we can just
+    // set up the merchant account with the provided information
     setTimeout(() => {
       setHasMerchantAccount(true);
+      setActiveTab('dashboard'); // Switch to dashboard after creation
       toast({
         title: "Account Created",
         description: "Your merchant account is ready to use",

@@ -69,8 +69,16 @@ export default function MerchantMobileDashboard() {
   ]);
 
   useEffect(() => {
+    // Get authentication data from localStorage if not available through context
+    const storedUserInfo = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo') || '{}') : null;
+    const storedWalletAddress = localStorage.getItem('walletAddress');
+    
+    // Use either context auth or localStorage auth
+    const effectiveUserInfo = userInfo || storedUserInfo;
+    const effectiveWalletAddress = walletAddress || storedWalletAddress;
+    
     // Check if user is authenticated
-    if (!userInfo || !walletAddress) {
+    if (!effectiveUserInfo) {
       toast({
         title: "Not authenticated",
         description: "Please login to access the merchant dashboard",
@@ -81,8 +89,13 @@ export default function MerchantMobileDashboard() {
     }
 
     // Set email from user info if available
-    if (userInfo && userInfo.email) {
-      setContactEmail(userInfo.email);
+    if (effectiveUserInfo && effectiveUserInfo.email) {
+      setContactEmail(effectiveUserInfo.email);
+    }
+    
+    // Set business name if available
+    if (effectiveUserInfo && effectiveUserInfo.businessName) {
+      setBusinessName(effectiveUserInfo.businessName);
     }
 
     // Fetch merchant data (mocked for now)

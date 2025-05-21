@@ -109,7 +109,7 @@ function Router() {
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/profile" component={ProfilePage} />
-        <ProtectedRoute path="/merchant" component={MerchantDashboard} />
+        <ProtectedRoute path="/merchant" component={lazy(() => import("./pages/merchant-mobile-dashboard"))} />
         <Route path="/payment" component={PaymentPage} />
         <Route path="/payment/:reference" component={PaymentPage} />
         <Route path="/easy-payment" component={EasyPaymentPage} />

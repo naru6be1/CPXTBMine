@@ -27,6 +27,18 @@ export default function MobileMerchant() {
     pendingPayments: 0
   });
   
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!userInfo || !walletAddress) {
+      // Redirect to login page if not authenticated
+      toast({
+        title: "Authentication Required",
+        description: "Please login to access the merchant dashboard",
+      });
+      setLocation('/mobile-merchant-auth');
+    }
+  }, [userInfo, walletAddress, setLocation, toast]);
+  
   // Mock recent transactions data
   const [recentTransactions, setRecentTransactions] = useState([
     {

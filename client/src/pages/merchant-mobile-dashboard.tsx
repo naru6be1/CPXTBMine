@@ -19,7 +19,6 @@ import {
   TabsList, 
   TabsTrigger 
 } from '@/components/ui/tabs';
-import { QRCodeSVG } from 'qrcode.react';
 
 export default function MerchantMobileDashboard() {
   const { toast } = useToast();
@@ -30,7 +29,6 @@ export default function MerchantMobileDashboard() {
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [amount, setAmount] = useState('10.00');
   const [reference, setReference] = useState(`PAY-${Date.now().toString().substring(5, 13)}`);
-  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -105,31 +103,9 @@ export default function MerchantMobileDashboard() {
   }, [userInfo, walletAddress, setLocation, toast]);
 
   const checkMerchantAccount = () => {
-    // Get stored merchant data from localStorage
-    const storedUserInfo = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo') || '{}') : null;
-    
-    // Consider user as having a merchant account if they have userInfo with businessName or email
-    if (storedUserInfo && (storedUserInfo.businessName || storedUserInfo.email)) {
-      setHasMerchantAccount(true);
-      
-      // Set merchant data from stored info
-      if (storedUserInfo.businessName) {
-        setBusinessName(storedUserInfo.businessName);
-      }
-      
-      if (storedUserInfo.email) {
-        setContactEmail(storedUserInfo.email);
-      }
-      
-      // Set some sample transactions for the merchant dashboard
-      setMerchantStats({
-        totalPayments: 3,
-        totalRevenue: '450.75',
-        pendingPayments: 1
-      });
-    } else {
-      setHasMerchantAccount(false);
-    }
+    // This would normally check with the backend if the user has a registered merchant account
+    // For now, we'll assume they don't have one
+    setHasMerchantAccount(false);
   };
 
   const handleCopyAddress = () => {
@@ -155,22 +131,8 @@ export default function MerchantMobileDashboard() {
     }
 
     setIsGeneratingQr(true);
-    
-    // Generate payment data for QR code
-    const paymentData = {
-      amount: amount,
-      reference: reference,
-      merchant: businessName || contactEmail || 'Merchant',
-      timestamp: new Date().toISOString(),
-      currency: 'CPXTB'
-    };
-    
-    // Create QR code data
-    const qrData = JSON.stringify(paymentData);
-    
-    // Simulate loading with a timeout
+    // Here you would normally generate a QR code for payment
     setTimeout(() => {
-      setQrCodeData(qrData);
       setIsGeneratingQr(false);
       toast({
         title: "QR Code Generated",
@@ -405,53 +367,26 @@ export default function MerchantMobileDashboard() {
                               placeholder="PAY-123456"
                             />
                           </div>
-                          {qrCodeData ? (
-                            <div className="flex flex-col items-center space-y-3 mt-2 mb-4">
-                              <div className="bg-white p-3 rounded-xl">
-                                <QRCodeSVG 
-                                  value={qrCodeData}
-                                  size={200}
-                                  bgColor={"#ffffff"}
-                                  fgColor={"#000000"}
-                                  level={"L"}
-                                  includeMargin={false}
-                                />
-                              </div>
-                              <div className="text-center text-sm text-slate-300">
-                                <p>Amount: <span className="font-bold">{amount} CPXTB</span></p>
-                                <p>Reference: {reference}</p>
-                              </div>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="border-slate-600 text-xs"
-                                onClick={() => setQrCodeData(null)}
-                              >
-                                Create New QR Code
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button 
-                              className="w-full bg-blue-600 hover:bg-blue-700"
-                              onClick={handleGenerateQrCode}
-                              disabled={isGeneratingQr}
-                            >
-                              {isGeneratingQr ? (
-                                <>
-                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                  Generating...
-                                </>
-                              ) : (
-                                <>
-                                  <QrCode className="h-4 w-4 mr-2" />
-                                  Generate QR Code
-                                </>
-                              )}
-                            </Button>
-                          )}
+                          <Button 
+                            className="w-full bg-blue-600 hover:bg-blue-700"
+                            onClick={handleGenerateQrCode}
+                            disabled={isGeneratingQr}
+                          >
+                            {isGeneratingQr ? (
+                              <>
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <QrCode className="h-4 w-4 mr-2" />
+                                Generate QR Code
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </DialogContent>
                     </Dialog>

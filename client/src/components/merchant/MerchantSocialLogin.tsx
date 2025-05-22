@@ -138,9 +138,11 @@ const MerchantSocialLogin: React.FC = () => {
       // CRITICAL: For Google auth to work on cpxtbmining.com/au, your Google Developer Console
       // must have this EXACT callback URL registered: https://cpxtbmining.com/api/auth/google/callback
       
-      // IMPORTANT: Use the proper auth endpoint that matches Google's requirements
-      // Use consistent auth path across all site sections
-      const authUrlTemplate = '/api/auth/google?redirect_after_login=${redirectUrl}';
+      // IMPORTANT: When on the /au path, we need to preserve that in the auth URL
+      // This ensures we're using the proper auth path for the current context
+      const authUrlTemplate = isProdWithAuPath 
+        ? '/au/api/auth/google?redirect_after_login=${redirectUrl}'
+        : '/api/auth/google?redirect_after_login=${redirectUrl}';
       
       // Replace the placeholders with actual values
       const authUrl = authUrlTemplate.replace('${redirectUrl}', redirectUrl);

@@ -135,17 +135,21 @@ const MerchantSocialLogin: React.FC = () => {
       // For cpxtbmining.com/au, we need to use the right path structure
       const isProdWithAuPath = isProdDomain && window.location.pathname.startsWith('/au');
       
-      // Choose the correct auth endpoint based on domain and path
+      // IMPORTANT: Use the exact auth endpoint that matches your Google Developer Console
+      // For cpxtbmining.com, make sure you've registered EXACTLY these callback URLs:
+      // 1. https://cpxtbmining.com/api/auth/google/callback
+      // 2. https://cpxtbmining.com/au/api/auth/google/callback
+      
       let authUrl;
       if (isProdWithAuPath) {
-        // Production with /au path
-        authUrl = '/au/api/auth/google?enableRealLogin=true&fromProduction=true&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}';
+        // For users on the /au path on production
+        authUrl = '/au/api/auth/google?redirectUrl=${redirectUrl}&t=${Date.now()}';
       } else if (isProdDomain) {
-        // Production without /au path  
-        authUrl = '/api/auth/google?enableRealLogin=true&fromProduction=true&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}';
+        // For users on the root path on production  
+        authUrl = '/api/auth/google?redirectUrl=${redirectUrl}&t=${Date.now()}';
       } else {
-        // Development environment
-        authUrl = '/api/social-auth/google?enableRealLogin=true&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}';
+        // For development environment
+        authUrl = '/api/auth/google?redirectUrl=${redirectUrl}&t=${Date.now()}';
       }
       
       // Replace the placeholders with actual values

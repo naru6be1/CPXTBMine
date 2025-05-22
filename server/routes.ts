@@ -178,20 +178,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Make sure this URL is authorized in your Google Developer Console");
     }
     
-    // Create a dynamic Google Strategy that adjusts the callback URL based on the request path
-    // This is crucial for handling both /au and root path callback URLs
+    // Set up Google Strategy with the exact callback URL from Google Developer Console
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: callbackURL,
+      // Use a fixed callback URL that matches exactly what's in Google Developer Console
+      callbackURL: useProductionDomain ? 
+        "https://cpxtbmining.com/api/auth/google/callback" : 
+        callbackURL,
       scope: ['profile', 'email'],
-      // Enable proxy to properly handle secure requests through a proxy server
-      proxy: true,
-      // Add passReqToCallback to allow callback URL customization based on request
-      passReqToCallback: true
-    }, async (req: Request, accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => {
-      // Log the full request path for debugging
-      console.log("Request path in Google callback:", req.path);
+      // Enable proxy to properly handle secure requests
+      proxy: true
+    }, async (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => {
+      // Start Google authentication process
       try {
         console.log("Google authentication callback received:", profile.id);
         
@@ -414,8 +413,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })(req, res);
     });
     
-    // Add all possible callback routes that Google might use
-    app.get(["/api/social-auth/google/callback", "/api/auth/google/callback", "/au/api/auth/google/callback", "/au/api/social-auth/google/callback"], 
+    // Add explicit callback routes for Google auth
+    // These routes must match exactly what's configured in Google Developer Console
+    app.get(["/api/auth/google/callback", "/au/api/auth/google/callback"], 
       (req: Request, res: Response, next: NextFunction) => {
         console.log("================= GOOGLE OAUTH CALLBACK RECEIVED =================");
         console.log("Google OAuth callback received with query params:", req.query);

@@ -632,8 +632,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } else {
     console.warn("Google OAuth credentials not found");
     
-    // Alternative route for Google auth in production even if credentials appear missing
-    app.get("/api/social-auth/google", (req, res) => {
+    // Add routes for all possible Google auth paths to ensure compatibility
+    app.get(["/api/social-auth/google", "/api/auth/google", "/au/api/auth/google", "/au/api/social-auth/google"], (req, res) => {
+      console.log("Google auth endpoint called with path:", req.path, "query:", req.query);
       // Check if this might be a production request
       const isProdDomain = req.query.fromProduction === 'true';
       const forceAuth = req.query.enableRealLogin === 'true';

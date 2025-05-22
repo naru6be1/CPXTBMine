@@ -194,8 +194,9 @@ export function EnhancedSocialLogin({
         ? encodeURIComponent(sanitizeUrl(decodeURIComponent(redirectUrl)))
         : redirectUrl;
       
-      // Build authentication URL with improved context detection and domain protection
-      let authUrl = `/api/social-auth/google?redirectUrl=${safeRedirectUrl}`;
+      // Use exact authentication URL that matches Google Developer Console
+      // This MUST match what's registered in Google Developer Console
+      let authUrl = `/api/auth/google?redirectUrl=${safeRedirectUrl}`;
       
       // Always include context=payment for payment pages
       if (isPaymentPage || hasPaymentContext) {

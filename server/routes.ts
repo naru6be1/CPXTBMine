@@ -182,9 +182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      // For production, use the EXACT callback URL from Google Console
-      // This must match what's registered in Google Developer Console
-      callbackURL: "https://cpxtbmining.com/api/auth/google/callback",
+      // IMPORTANT: The callbackURL must match EXACTLY what's registered in Google Console
+      // Note: In your Google Developer Console, you must register this exact URL
+      callbackURL: "https://cpxtbmining.com/au/api/auth/google/callback",
       scope: ['profile', 'email'],
       // Enable proxy to properly handle secure requests
       proxy: true

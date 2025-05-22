@@ -129,10 +129,13 @@ const MerchantSocialLogin: React.FC = () => {
       });
       
       // Force real Google login in production environment and use a unique timestamp
-      const isProdDomain = window.location.hostname === 'cpxtbmining.com';
+      const isProdDomain = window.location.hostname.includes('cpxtbmining.com');
       
       // Use the correct authentication endpoint which is /api/social-auth/google
-      const authUrl = `/api/social-auth/google?enableRealLogin=true&fromProduction=${isProdDomain}&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}`;
+      // Also include any URL path components like /au if they exist
+      const currentPath = window.location.pathname;
+      const basePath = currentPath.startsWith('/au') ? '/au' : '';
+      const authUrl = `${basePath}/api/social-auth/google?enableRealLogin=true&fromProduction=${isProdDomain}&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}`;
       console.log("Redirecting to Google auth:", authUrl, "Production domain:", isProdDomain);
       
       // Navigate directly to the authentication endpoint

@@ -131,20 +131,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check if the PRODUCTION_DOMAIN is working properly
     console.log("NODE_ENV:", process.env.NODE_ENV);
     
-    // In development mode or if the REPLIT_DEV_DOMAIN is available, use it
-    // This ensures reliable OAuth flow regardless of production domain status
-    const forceDevMode = true; // Set to true to force development mode callbacks
+    // Only use development mode when explicitly in development environment
+    // This ensures proper OAuth flow in production
+    const forceDevMode = process.env.NODE_ENV !== 'production';
     
     // In production mode, use the production domain
     const isProd = process.env.NODE_ENV === 'production';
     const useProductionDomain = isProd && process.env.PRODUCTION_DOMAIN;
     
+    // Log important authentication settings for debugging
+    console.log("Google Auth Configuration:");
+    console.log("- NODE_ENV:", process.env.NODE_ENV);
+    console.log("- Is Production:", isProd);
+    console.log("- Production Domain:", process.env.PRODUCTION_DOMAIN);
+    console.log("- Replit Dev Domain:", process.env.REPLIT_DEV_DOMAIN);
+    
+    // Get the correct domain to use
+    const domain = useProductionDomain ? process.env.PRODUCTION_DOMAIN : 
+                  process.env.REPLIT_DEV_DOMAIN ? process.env.REPLIT_DEV_DOMAIN : 
+                  "localhost:5000";
+                  
+    const protocol = domain === "localhost:5000" ? "http" : "https";
+    
     // Set callback URL based on environment
-    const callbackURL = useProductionDomain 
-      ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback`
-      : process.env.REPLIT_DEV_DOMAIN
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
-        : "http://localhost:5000/api/auth/google/callback";
+    const callbackURL = `${protocol}://${domain}/api/auth/google/callback`;
+    
+    console.log("- Google Auth Callback URL:", callbackURL);
     
     // Log the current environment and callback URL configuration    
     console.log("Using Google OAuth callback URL:", callbackURL);

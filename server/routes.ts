@@ -628,8 +628,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } else {
     console.warn("Google OAuth credentials not found");
     
-    // Return error when OAuth credentials are missing
+    // Alternative route for Google auth in production even if credentials appear missing
     app.get("/api/social-auth/google", (req, res) => {
+      // Check if this might be a production request
+      const isProdDomain = req.query.fromProduction === 'true';
+      const forceAuth = req.query.enableRealLogin === 'true';
+      
+      if (isProdDomain || forceAuth) {
+        console.log("Attempting Google auth in production mode, redirecting to passport flow");
+        
+        // Force passport to use Google authentication anyway
+        return passport.authenticate('google', { 
+          scope: ['profile', 'email'],
+          // Use the redirectUrl if provided
+          state: req.query.redirectUrl ? Buffer.from(req.query.redirectUrl as string).toString('base64') : undefined
+        })(req, res);
+      }
+      
+      // Default error for non-production environments
       res.status(503).json({
         success: false,
         message: 'Google authentication is not configured'

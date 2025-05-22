@@ -154,13 +154,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const protocol = domain === "localhost:5000" ? "http" : "https";
     
     // Set callback URL based on environment
-    const callbackURL = `${protocol}://${domain}/api/auth/google/callback`;
+    // Make sure this exactly matches what's in Google Developer Console
+    const callbackURL = `${protocol}://${domain}/api/social-auth/google/callback`;
     
     console.log("- Google Auth Callback URL:", callbackURL);
     
-    // Log the current environment and callback URL configuration    
-    console.log("Using Google OAuth callback URL:", callbackURL);
-    console.log("Force Dev Mode:", forceDevMode);
+    // Log the current environment and callback URL configuration with extra details
+    console.log("🔍 GOOGLE AUTH DEBUG INFO:");
+    console.log("- Using Google OAuth callback URL:", callbackURL);
+    console.log("- Force Dev Mode:", forceDevMode);
+    console.log("- Client ID available:", !!process.env.GOOGLE_CLIENT_ID);
+    console.log("- Client Secret available:", !!process.env.GOOGLE_CLIENT_SECRET);
     
     if (process.env.NODE_ENV === 'production') {
       console.log("📢 Production environment detected");

@@ -412,8 +412,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })(req, res);
     });
     
-    // Create specific callback routes for Google auth
-    app.get("/api/auth/google/callback", 
+    // Create specific callback routes for Google auth that match EXACTLY what's in Google Console
+    // Both of these must be registered in Google Developer Console
+    app.get(["/api/auth/google/callback", "/au/api/auth/google/callback", "/api/social-auth/google/callback"], 
       (req: Request, res: Response, next: NextFunction) => {
         console.log("================= GOOGLE OAUTH CALLBACK RECEIVED =================");
         console.log("Google OAuth callback received with query params:", req.query);

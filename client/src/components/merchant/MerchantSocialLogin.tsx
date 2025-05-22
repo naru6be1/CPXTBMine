@@ -135,25 +135,15 @@ const MerchantSocialLogin: React.FC = () => {
       // For cpxtbmining.com/au, we need to use the right path structure
       const isProdWithAuPath = isProdDomain && window.location.pathname.startsWith('/au');
       
-      // CRITICAL: Use the EXACT auth endpoint as registered in Google Developer Console
-      // For cpxtbmining.com, one of these URLs MUST be registered in Google Developer Console:
-      // 1. https://cpxtbmining.com/api/auth/google/callback
-      // 2. https://cpxtbmining.com/au/api/auth/google/callback
+      // For Google authentication to work, your Google Developer Console must have
+      // EXACTLY this URL registered: https://cpxtbmining.com/api/auth/google/callback
       
-      // Determine the exact URL to use for Google authentication
-      let authUrl;
-      
-      // Always use consistent paths based on Google Developer Console registration
-      if (isProdWithAuPath) {
-        // When on /au path, use the special /au prefixed authentication URL
-        authUrl = '/au/api/auth/google?redirect_after_login=${redirectUrl}';
-      } else {
-        // For all other cases, use the root authentication URL
-        authUrl = '/api/auth/google?redirect_after_login=${redirectUrl}';
-      }
+      // IMPORTANT: Always use the same auth endpoint regardless of path
+      // Using the root path for auth ensures Google redirects correctly
+      const authUrlTemplate = '/api/auth/google?redirect_after_login=${redirectUrl}';
       
       // Replace the placeholders with actual values
-      authUrl = authUrl.replace('${redirectUrl}', redirectUrl).replace('${Date.now()}', Date.now().toString());
+      const authUrl = authUrlTemplate.replace('${redirectUrl}', redirectUrl);
       console.log("Redirecting to Google auth:", authUrl, "Production domain:", isProdDomain);
       
       // Navigate directly to the authentication endpoint

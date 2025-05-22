@@ -297,10 +297,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Current PRODUCTION_DOMAIN:", process.env.PRODUCTION_DOMAIN);
       console.log("Current Google strategy callback URL:", 
         process.env.NODE_ENV === 'production' && process.env.PRODUCTION_DOMAIN
-          ? `https://${process.env.PRODUCTION_DOMAIN}/api/auth/google/callback` 
+          ? `https://${process.env.PRODUCTION_DOMAIN}/api/social-auth/google/callback` 
           : (process.env.REPLIT_DEV_DOMAIN 
-              ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback` 
-              : "http://localhost:5000/api/auth/google/callback"));
+              ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/social-auth/google/callback` 
+              : "http://localhost:5000/api/social-auth/google/callback"));
       
       // Extract all relevant query parameters
       const { enableRealLogin, redirectUrl, context, paymentRef } = req.query;
@@ -403,7 +403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Callback route that Google will redirect back to after authentication
-    app.get("/api/auth/google/callback", 
+    app.get("/api/social-auth/google/callback", 
       (req: Request, res: Response, next: NextFunction) => {
         console.log("================= GOOGLE OAUTH CALLBACK RECEIVED =================");
         console.log("Google OAuth callback received with query params:", req.query);

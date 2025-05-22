@@ -178,11 +178,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Make sure this URL is authorized in your Google Developer Console");
     }
     
-    // Set up Google Strategy with the exact callback URL from Google Developer Console
+    // Set up Google Strategy with the exact callback URL
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      // Use a fixed callback URL that matches exactly what's in Google Developer Console
+      // For production use exact callback URL from Google Console
       callbackURL: useProductionDomain ? 
         "https://cpxtbmining.com/api/auth/google/callback" : 
         callbackURL,
@@ -644,29 +644,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   } else {
     console.warn("Google OAuth credentials not found");
     
-    // Add routes for all possible Google auth paths to ensure compatibility
-    app.get(["/api/social-auth/google", "/api/auth/google", "/au/api/auth/google", "/au/api/social-auth/google"], (req, res) => {
-      console.log("Google auth endpoint called with path:", req.path, "query:", req.query);
-      // Check if this might be a production request
-      const isProdDomain = req.query.fromProduction === 'true';
-      const forceAuth = req.query.enableRealLogin === 'true';
+    // Simplified Google auth routes that match exactly what's registered in Google Console
+    app.get(["/api/auth/google", "/au/api/auth/google"], (req, res) => {
+      console.log("Google auth init endpoint called with path:", req.path);
       
-      if (isProdDomain || forceAuth) {
-        console.log("Attempting Google auth in production mode, redirecting to passport flow");
-        
-        // Force passport to use Google authentication anyway
-        return passport.authenticate('google', { 
-          scope: ['profile', 'email'],
-          // Use the redirectUrl if provided
-          state: req.query.redirectUrl ? Buffer.from(req.query.redirectUrl as string).toString('base64') : undefined
-        })(req, res);
+      // Get the redirect URL if provided
+      const redirectUrl = req.query.redirectUrl ? req.query.redirectUrl as string : '';
+      
+      // Store the redirect URL in the session
+      if (redirectUrl) {
+        req.session.redirectUrl = redirectUrl;
+        console.log("Storing redirect URL in session:", redirectUrl);
       }
       
-      // Default error for non-production environments
-      res.status(503).json({
-        success: false,
-        message: 'Google authentication is not configured'
-      });
+      // Check if this is from the /au path
+      const isAuPath = req.path.startsWith('/au/');
+      
+      // Use the specific callback URL that matches exactly what's in Google console
+      const callbackURL = isAuPath 
+        ? "https://cpxtbmining.com/au/api/auth/google/callback"
+        : "https://cpxtbmining.com/api/auth/google/callback";
+        
+      console.log("Using callback URL:", callbackURL);
+      
+      // Force passport to use Google authentication with exact callback URL
+      passport.authenticate('google', { 
+        scope: ['profile', 'email'],
+        // Store the redirect URL in the state if provided
+        state: redirectUrl ? Buffer.from(redirectUrl).toString('base64') : undefined
+      })(req, res);
     });
   }
   

@@ -153,9 +153,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   
     const protocol = domain === "localhost:5000" ? "http" : "https";
     
-    // Set callback URL based on environment
-    // Make sure this exactly matches what's in Google Developer Console
-    const callbackURL = `${protocol}://${domain}/api/social-auth/google/callback`;
+    // Configure multiple callback URLs to support both regular and /au paths
+    // Google Developer Console must have BOTH of these callback URLs registered
+    const callbackURLs = [
+      `${protocol}://${domain}/api/auth/google/callback`,
+      `${protocol}://${domain}/au/api/auth/google/callback`
+    ];
+    
+    // Use the main callback URL for Passport configuration
+    const callbackURL = callbackURLs[0];
     
     console.log("- Google Auth Callback URL:", callbackURL);
     
@@ -172,14 +178,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Make sure this URL is authorized in your Google Developer Console");
     }
     
+    // Create a dynamic Google Strategy that adjusts the callback URL based on the request path
+    // This is crucial for handling both /au and root path callback URLs
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: callbackURL,
       scope: ['profile', 'email'],
-      // Add proxy setting to ensure proper forwarding of secure requests
-      proxy: true
-    }, async (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => {
+      // Enable proxy to properly handle secure requests through a proxy server
+      proxy: true,
+      // Add passReqToCallback to allow callback URL customization based on request
+      passReqToCallback: true
+    }, async (req: Request, accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => {
+      // Log the full request path for debugging
+      console.log("Request path in Google callback:", req.path);
       try {
         console.log("Google authentication callback received:", profile.id);
         
@@ -402,8 +414,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })(req, res);
     });
     
-    // Callback route that Google will redirect back to after authentication
-    app.get("/api/social-auth/google/callback", 
+    // Add all possible callback routes that Google might use
+    app.get(["/api/social-auth/google/callback", "/api/auth/google/callback", "/au/api/auth/google/callback", "/au/api/social-auth/google/callback"], 
       (req: Request, res: Response, next: NextFunction) => {
         console.log("================= GOOGLE OAUTH CALLBACK RECEIVED =================");
         console.log("Google OAuth callback received with query params:", req.query);

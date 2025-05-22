@@ -2,8 +2,9 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
-// Ensure we're in development mode when in Replit development environment
-if (process.env.REPLIT_DEV_DOMAIN) {
+// Only override NODE_ENV if explicitly running in Replit's development environment
+// This allows the production environment to be respected when deployed
+if (process.env.REPLIT_DEV_DOMAIN && !process.env.NODE_ENV) {
   process.env.NODE_ENV = 'development';
   console.log("Replit development environment detected, setting NODE_ENV to 'development'");
 }
@@ -11,10 +12,16 @@ if (process.env.REPLIT_DEV_DOMAIN) {
 // Log the current NODE_ENV setting
 console.log(`Current NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 
-// If NODE_ENV is not set, explicitly set it for consistent behavior
+// If NODE_ENV is not set, check if we're in production environment
 if (!process.env.NODE_ENV) {
-  process.env.NODE_ENV = 'development'; 
-  console.log(`NODE_ENV was not set, explicitly setting to 'development'`);
+  // Check if we're likely in production based on domain settings
+  if (process.env.PRODUCTION_DOMAIN && process.env.PRODUCTION_DOMAIN === "cpxtbmining.com") {
+    process.env.NODE_ENV = 'production';
+    console.log(`Setting NODE_ENV to 'production' for domain: ${process.env.PRODUCTION_DOMAIN}`);
+  } else {
+    process.env.NODE_ENV = 'development'; 
+    console.log(`NODE_ENV was not set, explicitly setting to 'development'`);
+  }
 }
 
 // If PRODUCTION_DOMAIN is set but we're in development, log a warning

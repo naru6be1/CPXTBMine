@@ -131,11 +131,25 @@ const MerchantSocialLogin: React.FC = () => {
       // Force real Google login in production environment and use a unique timestamp
       const isProdDomain = window.location.hostname.includes('cpxtbmining.com');
       
-      // Use the correct authentication endpoint which is /api/social-auth/google
-      // Also include any URL path components like /au if they exist
-      const currentPath = window.location.pathname;
-      const basePath = currentPath.startsWith('/au') ? '/au' : '';
-      const authUrl = `${basePath}/api/social-auth/google?enableRealLogin=true&fromProduction=${isProdDomain}&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}`;
+      // Use the production Google auth endpoint when on production domain
+      // For cpxtbmining.com/au, we need to use the right path structure
+      const isProdWithAuPath = isProdDomain && window.location.pathname.startsWith('/au');
+      
+      // Choose the correct auth endpoint based on domain and path
+      let authUrl;
+      if (isProdWithAuPath) {
+        // Production with /au path
+        authUrl = '/au/api/auth/google?enableRealLogin=true&fromProduction=true&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}';
+      } else if (isProdDomain) {
+        // Production without /au path  
+        authUrl = '/api/auth/google?enableRealLogin=true&fromProduction=true&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}';
+      } else {
+        // Development environment
+        authUrl = '/api/social-auth/google?enableRealLogin=true&redirectUrl=${redirectUrl}&forceRefresh=${Date.now()}';
+      }
+      
+      // Replace the placeholders with actual values
+      authUrl = authUrl.replace('${redirectUrl}', redirectUrl).replace('${Date.now()}', Date.now().toString());
       console.log("Redirecting to Google auth:", authUrl, "Production domain:", isProdDomain);
       
       // Navigate directly to the authentication endpoint

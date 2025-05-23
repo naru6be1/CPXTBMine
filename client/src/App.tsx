@@ -278,8 +278,9 @@ function App() {
           <ThemeProvider defaultTheme="dark" storageKey="cpxtb-theme">
             <SocialLoginProvider>
               <AuthProvider>
-                {/* Global post-auth redirect handler */}
+                {/* Global post-auth redirect handlers */}
                 <AuthRedirectHandler />
+                <AuthCheck />
                 <HamburgerMenu />
                 <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
                   <Link href="/mobile-home">

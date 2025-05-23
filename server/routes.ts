@@ -448,7 +448,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         failureMessage: true,
         failWithError: true,
         // Ensure session persistence
-        keepSessionInfo: true
+        keepSessionInfo: true,
+        session: true
       }),
       (req: Request, res: Response) => {
         if (req.user) {
@@ -456,10 +457,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Authentication successful, user is logged in");
           console.log("User object:", req.user);
           
-          // Simplified login - directly set user and redirect
-          // The regenerate can cause issues in some environments
-          req.session.user = req.user;
-          req.session.isAuthenticated = true;
+          // TypeScript compatible session handling
+          (req.session as any).user = req.user;
+          (req.session as any).isAuthenticated = true;
           
           console.log("Setting user in session directly:", req.user);
           
@@ -475,6 +475,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.error("Error saving session:", err);
               return res.redirect(isAuPath ? '/au/login' : '/login');
             }
+            
+            // Set a cookie directly to help with auth detection
+            res.cookie('auth_verified', 'true', { 
+              maxAge: 3600000, // 1 hour
+              httpOnly: false // Allow JS to read
+            });
+            
+            console.log("Set auth_verified cookie to help with frontend detection");
             
             // Redirect to merchant dashboard with proper path
             return res.redirect(redirectPath);

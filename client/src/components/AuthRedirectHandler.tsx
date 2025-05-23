@@ -27,9 +27,16 @@ export default function AuthRedirectHandler() {
       // Skip if already attempted to prevent loops
       if (redirectAttempted) return;
       
-      // Detect if we're already on a payment page
+      // Detect if we're already on a payment page and check for /au prefix
       const currentPath = window.location.pathname || '';
+      const isAuPath = currentPath.startsWith('/au/');
       const isOnPaymentPage = currentPath.includes('/pay/');
+      
+      console.log("Current path analysis:", { 
+        currentPath, 
+        isAuPath,
+        isOnPaymentPage 
+      });
       
       // Enhanced reference detection that uses multiple sources
       const sessionPaymentRef = sessionStorage.getItem('cpxtb_payment_ref');
@@ -121,7 +128,9 @@ export default function AuthRedirectHandler() {
           paymentUrl = storedUrl.pathname + storedUrl.search;
         } else {
           // Construct the payment URL with all necessary parameters and cache busting
-          paymentUrl = `/pay/${effectivePaymentRef}?paymentContext=true&authCompleted=true&loggedIn=true&t=${Date.now()}`;
+          // Preserve /au prefix if we're on that path
+          const urlPrefix = isAuPath ? '/au' : '';
+          paymentUrl = `${urlPrefix}/pay/${effectivePaymentRef}?paymentContext=true&authCompleted=true&loggedIn=true&t=${Date.now()}`;
         }
         
         // Use direct window.location.href for most reliable redirect

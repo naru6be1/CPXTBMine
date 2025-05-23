@@ -281,15 +281,24 @@ export const SocialLoginProvider: React.FC<{ children: ReactNode }> = ({ childre
         duration: 3000,
       });
       
-      console.log(`Redirecting to Google authentication at /api/social-auth/${provider.toLowerCase()}`);
-      console.log(`Current Replit domain: ${window.location.origin}`);
+      // Check if we're in the /au path
+      const isAuPath = window.location.pathname.startsWith('/au/');
+      console.log(`Path check: isAuPath = ${isAuPath}, current path = ${window.location.pathname}`);
+      
+      // Use the appropriate endpoint with the /au prefix if needed
+      const authEndpoint = isAuPath 
+        ? `/au/api/social-auth/${provider.toLowerCase()}`
+        : `/api/social-auth/${provider.toLowerCase()}`;
+        
+      console.log(`Redirecting to Google authentication at ${authEndpoint}`);
+      console.log(`Current domain: ${window.location.origin}`);
       console.log(`Redirect URL will be: ${window.location.href}`);
       
       // Delay redirect slightly to let toast appear
       setTimeout(() => {
         // Redirect to the auth endpoint which will then redirect to Google
         const redirectUrl = window.location.href;
-        const authUrl = `/api/social-auth/${provider.toLowerCase()}?redirectUrl=${encodeURIComponent(redirectUrl)}`;
+        const authUrl = `${authEndpoint}?redirectUrl=${encodeURIComponent(redirectUrl)}`;
         console.log(`Full auth URL: ${authUrl}`);
         window.location.href = authUrl;
       }, 1500);

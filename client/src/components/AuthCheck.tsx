@@ -36,10 +36,20 @@ export function AuthCheck() {
       
       // Case 2: User just completed Google OAuth (detected by auth_verified cookie)
       else if (hasAuthVerifiedCookie() && !user && (isLoginPage || isAuLoginPage)) {
-        console.log('Auth verified cookie detected, but user not loaded yet. Refreshing auth state.');
+        console.log('Auth verified cookie detected, but user not loaded yet.');
         
-        // Force page reload to refresh auth state (safer than just refetching query)
-        window.location.reload();
+        // Check if we've already tried refreshing to prevent endless reload loops
+        const hasRefreshedParam = new URLSearchParams(window.location.search).has('refreshed');
+        if (!hasRefreshedParam) {
+          console.log('First refresh attempt, adding refreshed parameter and reloading');
+          // Add a parameter to track that we've already tried refreshing once
+          const url = new URL(window.location.href);
+          url.searchParams.set('refreshed', 'true');
+          // Force page reload to refresh auth state with the tracking parameter
+          window.location.href = url.toString();
+        } else {
+          console.log('Already attempted refresh, not reloading again to prevent loop');
+        }
       }
       
       // Case 3: Not authenticated and accessing protected route 

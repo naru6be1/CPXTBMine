@@ -178,13 +178,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Make sure this URL is authorized in your Google Developer Console");
     }
     
-    // Set up Google Strategy with the exact callback URL
+    // Set up Google Strategy with dynamic callback URL based on request
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      // IMPORTANT: The callbackURL must match EXACTLY what's registered in Google Console
-      // Note: In your Google Developer Console, you must register this exact URL
-      callbackURL: "https://cpxtbmining.com/au/api/auth/google/callback",
+      // Use a dynamic callback URL that will be determined at runtime
+      // This allows both /api/auth/google/callback and /au/api/auth/google/callback to work
+      callbackURL: "https://cpxtbmining.com/api/auth/google/callback",
+      // Add a second callback URL for the /au path
+      passReqToCallback: true,
       scope: ['profile', 'email'],
       // Enable proxy to properly handle secure requests
       proxy: true

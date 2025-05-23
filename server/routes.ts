@@ -418,8 +418,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       (req: Request, res: Response, next: NextFunction) => {
         console.log("================= GOOGLE OAUTH CALLBACK RECEIVED =================");
         console.log("Google OAuth callback received with query params:", req.query);
-        // Log the full callback URL to verify it matches what's in Google Developer Console
-        console.log("Full callback URL:", `${req.protocol}://${req.get('host')}${req.originalUrl}`);
+        console.log("Full callback URL (THIS SHOULD MATCH GOOGLE CONSOLE):", `${req.protocol}://${req.get('host')}${req.originalUrl}`);
+        console.log("Headers:", req.headers);
+        console.log("User in request:", req.user ? "User exists" : "No user yet");
         console.log("NODE_ENV:", process.env.NODE_ENV);
         console.log("REPLIT_DEV_DOMAIN:", process.env.REPLIT_DEV_DOMAIN);
         console.log("Original referrer:", req.headers.referer || 'none');
@@ -455,32 +456,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Authentication successful, user is logged in");
           console.log("User object:", req.user);
           
-          // Make sure to regenerate the session when authentication succeeds 
-          // This helps prevent session fixation attacks
-          req.session.regenerate((err) => {
+          // Simplified login - directly set user and redirect
+          // The regenerate can cause issues in some environments
+          req.session.user = req.user;
+          req.session.isAuthenticated = true;
+          
+          console.log("Setting user in session directly:", req.user);
+          
+          // Determine redirect path with /au prefix if needed
+          const isAuPath = req.path.startsWith('/au/');
+          const redirectPath = isAuPath ? '/au/merchant' : '/merchant';
+          
+          console.log("Redirecting authenticated user to:", redirectPath);
+          
+          // Save session and redirect
+          req.session.save((err) => {
             if (err) {
-              console.error("Error regenerating session:", err);
-              return res.redirect('/login-error');
+              console.error("Error saving session:", err);
+              return res.redirect(isAuPath ? '/au/login' : '/login');
             }
             
-            // Explicitly save the user in the session to maintain login state
-            req.session.user = req.user;
-            console.log("Session regenerated with user:", req.session.user);
-            
-            // Force session save to ensure persistence
-            req.session.save((err) => {
-              if (err) {
-                console.error("Error saving session:", err);
-                return res.redirect('/login-error');
-              }
-              
-              // Default redirect to merchant dashboard
-              const redirectUrl = '/merchant';
-              console.log("Redirecting to:", redirectUrl);
-              
-              // Send user to merchant dashboard
-              return res.redirect(redirectUrl);
-            });
+            // Redirect to merchant dashboard with proper path
+            return res.redirect(redirectPath);
           });
           
           // Early return to prevent further execution

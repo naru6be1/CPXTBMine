@@ -49,19 +49,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: async ({ queryKey }) => {
       try {
+        console.log("Checking auth status with credentials");
         const res = await fetch(queryKey[0] as string, {
           credentials: "include",
         });
         
         if (res.status === 401) {
+          console.log("Auth check returned 401 - not authenticated");
           return null;
         }
         
-        return await res.json();
+        const userData = await res.json();
+        console.log("Auth check successful, user data:", userData);
+        return userData;
       } catch (error) {
+        console.error("Error checking auth status:", error);
         return null;
       }
     },
+    staleTime: 0, // Don't cache auth status
+    refetchOnWindowFocus: true, // Refresh when window regains focus (after Google redirect)
   });
 
   const loginMutation = useMutation({

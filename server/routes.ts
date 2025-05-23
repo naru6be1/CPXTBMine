@@ -445,7 +445,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       passport.authenticate('google', { 
         failureRedirect: '/login-error',
         failureMessage: true,
-        failWithError: true
+        failWithError: true,
+        // Ensure session persistence
+        keepSessionInfo: true
       }),
       (req: Request, res: Response) => {
         if (req.user) {
@@ -453,18 +455,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Authentication successful, user is logged in");
           console.log("User object:", req.user);
           
+          // Make sure to regenerate the session when authentication succeeds 
+          // This helps prevent session fixation attacks
+          req.session.regenerate((err) => {
+            if (err) {
+              console.error("Error regenerating session:", err);
+              return res.redirect('/login-error');
+            }
+            
+            // Explicitly save the user in the session to maintain login state
+            req.session.user = req.user;
+            console.log("Session regenerated with user:", req.session.user);
+            
+            // Force session save to ensure persistence
+            req.session.save((err) => {
+              if (err) {
+                console.error("Error saving session:", err);
+                return res.redirect('/login-error');
+              }
+              
+              // Default redirect to merchant dashboard
+              const redirectUrl = '/merchant';
+              console.log("Redirecting to:", redirectUrl);
+              
+              // Send user to merchant dashboard
+              return res.redirect(redirectUrl);
+            });
+          });
+          
+          // Early return to prevent further execution
+          return;
+          
+          // Original logic remains below as a fallback
           // DIRECT FIX: Read out BOTH session storage and query parameters
           // This handles the common failure case better
           
-          // 1. First check if we have an explicit payment reference in the session (highest priority)
-          const paymentRefFromSession = (req.session as any).paymentReference;
-          const hasSessionPaymentRef = Boolean(paymentRefFromSession);
-          
-          // 2. Check for payment context flag in session
-          const hasPaymentContext = (req.session as any).paymentContext === true;
-          
-          // 3. Get redirect URL from session as fallback
-          let redirectUrl = req.session.redirectUrl || '/merchant';
+          // Get redirect URL from session as fallback
+          //let redirectUrl = req.session.redirectUrl || '/merchant';
           
           // 4. Check if the stored redirect URL indicates a payment page
           const isPaymentRedirect = redirectUrl.includes('/pay/');

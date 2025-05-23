@@ -464,8 +464,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Setting user in session directly:", req.user);
           
           // Determine redirect path with /au prefix if needed
-          const isAuPath = req.path.startsWith('/au/');
+          // Check both the request path and if there's an explicit parameter
+          const hasRetainAuPathParam = req.query.retain_au_path === 'true';
+          const isAuPath = req.path.startsWith('/au/') || hasRetainAuPathParam;
           const redirectPath = isAuPath ? '/au/merchant' : '/merchant';
+          
+          console.log("Path analysis:", {
+            requestPath: req.path,
+            hasRetainAuPathParam,
+            isAuPathDecision: isAuPath,
+            finalRedirectPath: redirectPath
+          });
           
           console.log("Redirecting authenticated user to:", redirectPath);
           

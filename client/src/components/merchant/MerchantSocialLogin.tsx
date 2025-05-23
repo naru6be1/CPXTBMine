@@ -141,7 +141,7 @@ const MerchantSocialLogin: React.FC = () => {
       // IMPORTANT: When on the /au path, we need to preserve that in the auth URL
       // This ensures we're using the proper auth path for the current context
       const authUrlTemplate = isProdWithAuPath 
-        ? '/au/api/auth/google?redirect_after_login=${redirectUrl}'
+        ? '/au/api/auth/google?redirect_after_login=${redirectUrl}&retain_au_path=true'
         : '/api/auth/google?redirect_after_login=${redirectUrl}';
       
       // Replace the placeholders with actual values

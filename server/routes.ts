@@ -478,25 +478,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
             finalRedirectPath: redirectPath
           });
           
-          console.log("Redirecting authenticated user to:", redirectPath);
+          console.log("Redirecting authenticated user to merchant dashboard:", redirectPath);
           
-          // Save session and redirect
-          req.session.save((err) => {
-            if (err) {
-              console.error("Error saving session:", err);
+          // Force regeneration of the session to prevent session fixation
+          const oldSession = { ...req.session };
+          req.session.regenerate((regenerateErr) => {
+            if (regenerateErr) {
+              console.error("Error regenerating session:", regenerateErr);
               return res.redirect(isAuPath ? '/au/login' : '/login');
             }
+            
+            // Copy authenticated user data to the new session
+            (req.session as any).user = req.user;
+            (req.session as any).isAuthenticated = true;
             
             // Set a cookie directly to help with auth detection
             res.cookie('auth_verified', 'true', { 
               maxAge: 3600000, // 1 hour
-              httpOnly: false // Allow JS to read
+              httpOnly: false, // Allow JS to read
+              path: '/' // Ensure cookie is available on all paths
             });
             
-            console.log("Set auth_verified cookie to help with frontend detection");
+            // Set additional cookie for merchant dashboard
+            res.cookie('merchant_redirect', 'true', {
+              maxAge: 60000, // 1 minute
+              httpOnly: false
+            });
             
-            // Redirect to merchant dashboard with proper path
-            return res.redirect(redirectPath);
+            console.log("Set auth cookies to help with frontend detection");
+            
+            // Save the regenerated session
+            req.session.save((saveErr) => {
+              if (saveErr) {
+                console.error("Error saving regenerated session:", saveErr);
+                return res.redirect(isAuPath ? '/au/login' : '/login');
+              }
+              
+              // Redirect to merchant dashboard with proper path and query parameters
+              const redirectUrl = `${redirectPath}?auth=true&t=${Date.now()}`;
+              console.log("Final redirect URL:", redirectUrl);
+              return res.redirect(redirectUrl);
+            });
           });
           
           // Early return to prevent further execution

@@ -19,6 +19,7 @@ import { SocialLoginProvider } from "./providers/SocialLoginProvider";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import AuthRedirectHandler from "@/components/AuthRedirectHandler";
+import { AuthCheck } from "@/components/AuthCheck";
 import "./styles/pancake-theme.css";
 
 // Lazy-loaded components for better performance

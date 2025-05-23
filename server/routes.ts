@@ -1083,18 +1083,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get active mining plans
+  // Mining features have been removed
   app.get("/api/mining-plans/:walletAddress", async (req, res) => {
-    try {
-      const { walletAddress } = req.params;
-      const plans = await storage.getActiveMiningPlans(walletAddress);
-      res.json({ plans });
-    } catch (error: any) {
-      console.error("Error fetching mining plans:", error);
-      res.status(500).json({
-        message: "Error fetching mining plans: " + error.message
-      });
-    }
+    res.status(404).json({ 
+      message: "Mining features have been removed from the application" 
+    });
   });
 
   // Get claimable plans

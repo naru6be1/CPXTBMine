@@ -1,9 +1,7 @@
-// This component has been simplified as mining plans functionality has been removed
-// It now returns null (nothing) to effectively remove it from the home page
-
+// This component has been completely removed as mining/staking features are no longer part of the application
 import React from "react";
 
 export function MiningPlan() {
-  // Return null to render nothing
+  // Return null to prevent any errors in case any references still exist
   return null;
 }

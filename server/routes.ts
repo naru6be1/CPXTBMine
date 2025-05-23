@@ -1090,99 +1090,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Get claimable plans
+  // Mining features have been removed
   app.get("/api/mining-plans/:walletAddress/claimable", async (req, res) => {
-    try {
-      const { walletAddress } = req.params;
-
-      // Check if it's the admin wallet
-      const isAdmin = walletAddress.toLowerCase() === TREASURY_ADDRESS.toLowerCase();
-      console.log('Fetching claimable plans:', {
-        walletAddress,
-        isAdmin,
-        currentTime: new Date().toISOString()
-      });
-
-      let plans;
-      if (isAdmin) {
-        // Admin can see all expired, unwithdrawn plans
-        plans = await db
-          .select()
-          .from(miningPlans)
-          .where(
-            and(
-              eq(miningPlans.hasWithdrawn, false),
-              eq(miningPlans.isActive, true),
-              lte(miningPlans.expiresAt, sql`NOW()`)  // Only return truly expired plans
-            )
-          );
-      } else {
-        // Regular users can only see their own expired plans
-        plans = await storage.getExpiredUnwithdrawnPlans(walletAddress);
-      }
-
-      console.log('Found claimable plans:', plans.length);
-      res.json({ plans, isAdmin });
-    } catch (error: any) {
-      console.error("Error fetching claimable plans:", error);
-      res.status(500).json({
-        message: "Error fetching claimable plans: " + error.message
-      });
-    }
+    res.status(404).json({ 
+      message: "Mining features have been removed from the application" 
+    });
   });
 
-  // Create new mining plan
+  // Mining features have been removed
   app.post("/api/mining-plans", async (req, res) => {
-    try {
-      // If referral code is provided, verify it exists
-      if (req.body.referralCode) {
-        const referrer = await storage.getUserByReferralCode(req.body.referralCode);
-        if (!referrer) {
-          res.status(400).json({
-            message: "Invalid referral code"
-          });
-          return;
-        }
-      }
-
-      console.log('Creating mining plan with details:', {
-        ...req.body,
-        timestamp: new Date().toISOString()
-      });
-
-      // Validate plan data against schema
-      const planData = insertMiningPlanSchema.parse(req.body);
-
-      // Normalize addresses
-      planData.walletAddress = planData.walletAddress.toLowerCase();
-      planData.withdrawalAddress = planData.withdrawalAddress.toLowerCase();
-
-      const plan = await storage.createMiningPlan(planData);
-
-      console.log('Mining plan created successfully:', {
-        planId: plan.id,
-        walletAddress: plan.walletAddress,
-        isActive: plan.isActive,
-        expiresAt: plan.expiresAt,
-        timestamp: new Date().toISOString()
-      });
-
-      res.status(201).json({ plan });
-    } catch (error: any) {
-      console.error("Error creating mining plan:", error);
-
-      if (error.name === "ZodError") {
-        const validationError = fromZodError(error);
-        res.status(400).json({
-          message: "Invalid mining plan data: " + validationError.message
-        });
-        return;
-      }
-
-      res.status(400).json({
-        message: "Error creating mining plan: " + error.message
-      });
-    }
+    res.status(404).json({ 
+      message: "Mining features have been removed from the application" 
+    });
   });
 
   // Merchant endpoints

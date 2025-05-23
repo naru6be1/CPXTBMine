@@ -179,21 +179,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     // Set up Google Strategy with dynamic callback URL based on request
+    // Using the previously defined callbackURLs from above
+    // No need to redefine them here
+    
+    // Set up Google Strategy with support for both callback URLs
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      // Use a dynamic callback URL that will be determined at runtime
-      // This allows both /api/auth/google/callback and /au/api/auth/google/callback to work
-      callbackURL: "https://cpxtbmining.com/api/auth/google/callback",
-      // Add a second callback URL for the /au path
-      passReqToCallback: true,
+      callbackURL: callbackURLs[0], // Default URL
       scope: ['profile', 'email'],
       // Enable proxy to properly handle secure requests
       proxy: true
     }, async (accessToken: string, refreshToken: string, profile: Profile, done: VerifyCallback) => {
       // Start Google authentication process
       try {
-        console.log("Google authentication callback received:", profile.id);
+        console.log("Google authentication callback received for user:", profile.id);
         
         // Generate a deterministic wallet address from Google ID
         const seed = `google-${profile.id}`;

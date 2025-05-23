@@ -1,0 +1,35 @@
+/* CSS to remove staking-related content */
+
+/* Target the main staking announcement heading */
+h1:contains("CPXTB Platform - Staking Feature Added!"),
+h2:contains("CPXTB Platform - Staking Feature Added!"),
+h3:contains("CPXTB Platform - Staking Feature Added!"),
+div:contains("CPXTB Platform - Staking Feature Added!"),
+span:contains("CPXTB Platform - Staking Feature Added!") {
+  display: none !important;
+}
+
+/* Target specific staking sections based on the content */
+div:has(> h3:contains("New Feature: Token Staking")),
+div:has(> div:contains("New Feature: Token Staking")),
+div:has(> span:contains("New Feature: Token Staking")),
+div:has(> p:contains("New Feature: Token Staking")) {
+  display: none !important;
+}
+
+/* Target staking plans section */
+div:has(> h3:contains("Staking Plans")),
+div:has(> div:contains("Staking Plans")),
+div:has(> span:contains("Staking Plans")),
+div:has(> p:contains("Staking Plans")) {
+  display: none !important;
+}
+
+/* General approach - hide any container with staking-related text */
+div:contains("token staking feature"),
+div:contains("earn passive income by staking"),
+div:contains("Four staking plans have been implemented") {
+  display: none !important;
+}
+
+/* As a fallback, use a JavaScript solution that will be added through our StakingRemover component */

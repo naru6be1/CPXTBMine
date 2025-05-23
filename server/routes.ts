@@ -866,8 +866,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get current user
-  app.get("/api/user", (req, res) => {
+  // Get current user (support both regular and /au paths)
+  app.get(["/api/user", "/au/api/user"], (req, res) => {
+    console.log("User API called, auth status:", req.isAuthenticated());
+    console.log("Session ID:", req.sessionID);
+    console.log("Path:", req.path);
+    
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -875,6 +879,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Return user without password
     const { password: _, ...userWithoutPassword } = req.user as any;
     res.json(userWithoutPassword);
+  });
+  
+  // Special authentication check endpoint for OAuth flows
+  app.get(["/api/auth/check", "/au/api/auth/check"], (req, res) => {
+    console.log("Auth check endpoint called");
+    console.log("Authenticated:", req.isAuthenticated());
+    console.log("Session:", req.session);
+    
+    if (req.isAuthenticated()) {
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = req.user as any;
+      return res.json(userWithoutPassword);
+    }
+    
+    res.status(401).json({ error: "Not authenticated" });
   });
   
   // Logout endpoint for regular authentication

@@ -50,12 +50,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: async ({ queryKey }) => {
       try {
         console.log("Checking auth status with credentials");
-        const res = await fetch(queryKey[0] as string, {
+        
+        // Check if we have the auth_verified cookie (set by server after Google login)
+        const hasAuthCookie = document.cookie.split(';').some(c => c.trim().startsWith('auth_verified='));
+        console.log("Auth cookie present:", hasAuthCookie);
+        
+        // Specifically handle the /au path
+        const isAuPath = window.location.pathname.startsWith('/au/');
+        console.log("Is /au path:", isAuPath);
+        
+        // Try normal API endpoint first
+        let res = await fetch(queryKey[0] as string, {
           credentials: "include",
         });
         
+        // If we're on /au path and normal endpoint fails, try with /au prefix
+        if (isAuPath && res.status === 401) {
+          console.log("Trying auth check with /au prefix");
+          res = await fetch('/au' + queryKey[0] as string, {
+            credentials: "include",
+          });
+        }
+        
         if (res.status === 401) {
           console.log("Auth check returned 401 - not authenticated");
+          
+          // Check if we should try server-side endpoint in case of OAuth flow
+          if (hasAuthCookie) {
+            console.log("Auth cookie found, trying server-side auth check");
+            // Try checking with dedicated OAuth endpoint
+            const oauthCheckRes = await fetch('/api/auth/check', {
+              credentials: "include",
+            });
+            
+            if (oauthCheckRes.ok) {
+              const userData = await oauthCheckRes.json();
+              console.log("OAuth auth check successful, user data:", userData);
+              return userData;
+            }
+          }
+          
           return null;
         }
         
@@ -69,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     staleTime: 0, // Don't cache auth status
     refetchOnWindowFocus: true, // Refresh when window regains focus (after Google redirect)
+    refetchInterval: 5000, // Poll periodically to detect OAuth success
   });
 
   const loginMutation = useMutation({

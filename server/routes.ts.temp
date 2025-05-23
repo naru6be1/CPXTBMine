@@ -519,13 +519,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.redirect('/auth?error=callback_error');
         }
       });
-            hasSessionPaymentRef,
-            paymentRefFromSession,
-            hasPaymentContext,
-            isPaymentRedirect,
-            paymentRefFromUrl,
-            originalRedirectUrl: redirectUrl
-          });
           
           // 6. EMERGENCY FIX: Try to get the payment reference from session storage
           // This is set by the EnhancedSocialLogin component before redirection

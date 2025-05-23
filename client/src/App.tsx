@@ -20,6 +20,7 @@ import { ThemeProvider } from "./providers/ThemeProvider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import AuthRedirectHandler from "@/components/AuthRedirectHandler";
 import { AuthCheck } from "@/components/AuthCheck";
+import StakingRemover from "@/components/StakingRemover";
 import "./styles/pancake-theme.css";
 
 // Lazy-loaded components for better performance
@@ -285,6 +286,7 @@ function App() {
                 {/* Global post-auth redirect handlers */}
                 <AuthRedirectHandler />
                 <AuthCheck />
+                <StakingRemover />
                 <HamburgerMenu />
                 <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
                   <Link href="/mobile-home">

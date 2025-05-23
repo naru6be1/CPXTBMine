@@ -107,11 +107,14 @@ function Router() {
         <Route path="/terms-of-service" component={TermsOfServicePage} />
         <Route path="/legal-documents" component={LegalPage} />
         <Route path="/auth" component={lazy(() => import("./pages/mobile-merchant-auth"))} />
+        <Route path="/login" component={lazy(() => import("./pages/mobile-merchant-auth"))} />
+        <Route path="/au/login" component={lazy(() => import("./pages/mobile-merchant-auth"))} />
         <Route path="/mobile-merchant-auth" component={lazy(() => import("./pages/mobile-merchant-auth"))} />
         <Route path="/forgot-password" component={ForgotPasswordPage} />
         <Route path="/reset-password" component={ResetPasswordPage} />
         <Route path="/profile" component={ProfilePage} />
         <ProtectedRoute path="/merchant" component={lazy(() => import("./pages/merchant-mobile-dashboard"))} />
+        <ProtectedRoute path="/au/merchant" component={lazy(() => import("./pages/merchant-mobile-dashboard"))} />
         <Route path="/payment" component={PaymentPage} />
         <Route path="/payment/:reference" component={PaymentPage} />
         <Route path="/easy-payment" component={EasyPaymentPage} />

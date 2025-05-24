@@ -289,12 +289,8 @@ function App() {
                 <AuthCheck />
                 <StakingRemover />
                 <HamburgerMenu />
+                {/* Mobile interface controls */}
                 <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
-                  <Link href="/mobile-home">
-                    <Button variant="outline" size="sm" className="mr-2">
-                      Mobile App
-                    </Button>
-                  </Link>
                   <ThemeToggle />
                   <LiveUserCount />
                 </div>

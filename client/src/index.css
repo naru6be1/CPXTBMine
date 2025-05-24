@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force mobile mode for better UI experience */
+body {
+  background-color: #1e293b;
+  color: white;
+}
+
+/* Hide the old basic landing page */
+body > div > div > div:first-child h1:contains("Easy Cryptocurrency Payments") {
+  display: none;
+}
+
+.home-redirect {
+  display: none;
+}
+
 @layer base {
   * {
     @apply border-border;

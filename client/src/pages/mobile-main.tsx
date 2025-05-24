@@ -1,29 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, CheckCircle2, Shield, Wallet, CreditCard, 
   BarChart, Clock, ChevronRight, Globe, Zap, Lock, DollarSign,
-  Check
+  Check, User, Menu, X, Home, ShoppingCart
 } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import "../styles/pancake-theme.css";
 
 export default function MobileMain() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [location] = useLocation();
+  
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
+  
   return (
     <div className="pancake-theme min-h-screen bg-slate-900 text-white flex flex-col pb-16">
       {/* Header */}
-      <header className="flex items-center justify-between p-4 bg-slate-800/80">
+      <header className="flex items-center justify-between p-4 bg-slate-800/80 sticky top-0 z-50">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-xs font-bold text-white">CPXTB</span>
-          </div>
-          <span className="font-medium">CPXTB Platform</span>
+          <Link href="/">
+            <div className="flex items-center space-x-2 cursor-pointer">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-xs font-bold text-white">CPXTB</span>
+              </div>
+              <span className="font-medium">CPXTB Platform</span>
+            </div>
+          </Link>
         </div>
         <div className="flex space-x-3 items-center">
           <Link href="/mobile-home">
             <div className="bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg flex items-center text-xs text-slate-300 mr-1">
               <Wallet className="h-3 w-3 mr-1" />
-              Mobile App
+              Dashboard
             </div>
           </Link>
           <Link href="/mobile-auth">
@@ -33,8 +44,59 @@ export default function MobileMain() {
               Login
             </Button>
           </Link>
+          <button 
+            onClick={toggleMenu} 
+            className="p-1 rounded-md bg-slate-700 flex items-center justify-center"
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </header>
+      
+      {/* Mobile Menu Overlay */}
+      {menuOpen && (
+        <div className="fixed inset-0 bg-slate-900/95 z-40 pt-20 px-6">
+          <div className="flex flex-col space-y-4">
+            <Link href="/">
+              <div className={`p-3 rounded-lg flex items-center space-x-3 ${location === '/' ? 'bg-blue-600' : 'bg-slate-800'}`}>
+                <Home className="h-5 w-5" />
+                <span>Home</span>
+              </div>
+            </Link>
+            <Link href="/mobile-pay">
+              <div className={`p-3 rounded-lg flex items-center space-x-3 ${location === '/mobile-pay' ? 'bg-blue-600' : 'bg-slate-800'}`}>
+                <CreditCard className="h-5 w-5" />
+                <span>Make Payment</span>
+              </div>
+            </Link>
+            <Link href="/mobile-wallet">
+              <div className={`p-3 rounded-lg flex items-center space-x-3 ${location === '/mobile-wallet' ? 'bg-blue-600' : 'bg-slate-800'}`}>
+                <Wallet className="h-5 w-5" />
+                <span>Wallet</span>
+              </div>
+            </Link>
+            <Link href="/buy-cpxtb">
+              <div className={`p-3 rounded-lg flex items-center space-x-3 ${location === '/buy-cpxtb' ? 'bg-blue-600' : 'bg-slate-800'}`}>
+                <ShoppingCart className="h-5 w-5" />
+                <span>Buy CPXTB</span>
+              </div>
+            </Link>
+            <Link href="/mobile-merchant">
+              <div className={`p-3 rounded-lg flex items-center space-x-3 ${location === '/mobile-merchant' ? 'bg-blue-600' : 'bg-slate-800'}`}>
+                <BarChart className="h-5 w-5" />
+                <span>Merchant Dashboard</span>
+              </div>
+            </Link>
+            <Link href="/mobile-profile">
+              <div className={`p-3 rounded-lg flex items-center space-x-3 ${location === '/mobile-profile' ? 'bg-blue-600' : 'bg-slate-800'}`}>
+                <User className="h-5 w-5" />
+                <span>Profile</span>
+              </div>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-slate-800 to-slate-900 px-4 py-12">

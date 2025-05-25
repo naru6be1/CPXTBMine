@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPXTB Platform - Direct Navigation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background-color: #0f172a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        h1 {
+            font-size: 24px;
+            margin: 0 0 10px;
+        }
+        .subtitle {
+            color: #94a3b8;
+            margin: 0;
+        }
+        .button-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .button {
+            background-color: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .button.primary {
+            background-color: #3b82f6;
+            grid-column: span 2;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .divider {
+            height: 1px;
+            background-color: #334155;
+            margin: 20px 0;
+        }
+        footer {
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            margin-top: auto;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+        </div>
+        <h1>CPXTB Platform</h1>
+        <p class="subtitle">Direct Navigation Menu</p>
+    </header>
+
+    <div class="button-container">
+        <button class="button primary" onclick="navigateTo('/mobile-home')">Go to Dashboard</button>
+        <button class="button" onclick="navigateTo('/mobile-pay')">Pay</button>
+        <button class="button" onclick="navigateTo('/mobile-wallet')">Wallet</button>
+        <button class="button" onclick="navigateTo('/mobile-profile')">Profile</button>
+        <button class="button" onclick="navigateTo('/buy-cpxtb')">Buy CPXTB</button>
+        <button class="button" onclick="navigateTo('/check-balance')">Check Balance</button>
+        <button class="button" onclick="navigateTo('/auth')">Login</button>
+        <button class="button" onclick="navigateTo('/mobile-merchant')">Merchant</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <p style="color: #94a3b8; text-align: center;">If you're experiencing navigation issues in the main app, use these direct links to access key features.</p>
+
+    <footer>
+        CPXTB Platform © 2025
+    </footer>
+
+    <script>
+        function navigateTo(path) {
+            // This method ensures a complete page reload to the new destination
+            window.location.replace(path);
+        }
+    </script>
+</body>
+</html>

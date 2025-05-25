@@ -98,8 +98,8 @@ function Router() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <Route path="/" component={MobileHomePage} />
-        <Route path="/landing" component={MobileHomePage} />
+        <Route path="/" component={lazy(() => import("./pages/index"))} />
+        <Route path="/landing" component={lazy(() => import("./pages/index"))} />
         <Route path="/blog" component={BlogPage} />
         <Route path="/blog/:slug" component={BlogPost} />
         <Route path="/about" component={AboutPage} />

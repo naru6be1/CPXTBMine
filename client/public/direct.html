@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPXTB Direct Navigation</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #0f172a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        h1 {
+            font-size: 24px;
+            margin: 0 0 10px;
+        }
+        p {
+            color: #94a3b8;
+            margin: 0 0 20px;
+            text-align: center;
+        }
+        .nav-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .nav-btn {
+            background-color: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+        }
+        .nav-btn.primary {
+            background-color: #3b82f6;
+            grid-column: span 2;
+        }
+        .nav-btn:hover {
+            opacity: 0.9;
+        }
+        .footer {
+            margin-top: auto;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            padding-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+            </div>
+            <h1>CPXTB Platform Navigation</h1>
+            <p>Use these direct links to navigate the platform</p>
+        </header>
+
+        <div class="nav-grid">
+            <a href="/mobile-home" class="nav-btn primary">Dashboard (Home)</a>
+            <a href="/mobile-pay" class="nav-btn">Pay</a>
+            <a href="/mobile-wallet" class="nav-btn">Wallet</a>
+            <a href="/mobile-profile" class="nav-btn">Profile</a>
+            <a href="/buy-cpxtb" class="nav-btn">Buy CPXTB</a>
+            <a href="/check-balance" class="nav-btn">Check Balance</a>
+            <a href="/mobile-merchant" class="nav-btn">Merchant</a>
+            <a href="/auth" class="nav-btn">Login</a>
+        </div>
+        
+        <p style="margin-top: 20px;">This page provides direct links to bypass any navigation issues in the main app.</p>
+        
+        <div class="footer">
+            CPXTB Platform © 2025
+        </div>
+    </div>
+</body>
+</html>

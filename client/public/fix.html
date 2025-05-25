@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPXTB Platform Navigation Fix</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #0f172a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .nav-button {
+            background-color: #1e293b;
+            border: none;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            border-radius: 8px;
+        }
+        .nav-button.primary {
+            background-color: #3b82f6;
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+        </div>
+        
+        <h1>CPXTB Platform</h1>
+        <h2>Navigation Fix</h2>
+        
+        <div class="button-grid">
+            <a href="/mobile-home" class="nav-button primary">Go to Dashboard</a>
+            <a href="/mobile-pay" class="nav-button">Pay</a>
+            <a href="/mobile-wallet" class="nav-button">Wallet</a>
+            <a href="/mobile-profile" class="nav-button">Profile</a>
+            <a href="/buy-cpxtb" class="nav-button">Buy CPXTB</a>
+            <a href="/check-balance" class="nav-button">Check Balance</a>
+            <a href="/mobile-merchant" class="nav-button">Merchant</a>
+            <a href="/auth" class="nav-button">Login</a>
+        </div>
+    </div>
+
+    <script>
+        // No JS needed - using direct links
+    </script>
+</body>
+</html>

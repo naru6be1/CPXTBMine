@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPXTB Mobile Navigation</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #0f172a;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            width: 70px;
+            height: 70px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .nav-button {
+            background-color: #1e293b;
+            border: none;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .nav-button.primary {
+            background-color: #3b82f6;
+            grid-column: span 2;
+        }
+        .bottom-nav {
+            background-color: #1e293b;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            border-radius: 10px;
+            margin-top: auto;
+        }
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #94a3b8;
+            text-decoration: none;
+            padding: 8px 0;
+            width: 25%;
+            font-size: 12px;
+        }
+        .bottom-nav-icon {
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+        </div>
+        <h1>CPXTB Platform</h1>
+        <p class="subtitle">Direct Navigation</p>
+    </header>
+
+    <div class="nav-buttons">
+        <button class="nav-button primary" onclick="navigateTo('/mobile-home')">Go to Home</button>
+        <button class="nav-button" onclick="navigateTo('/mobile-pay')">Pay</button>
+        <button class="nav-button" onclick="navigateTo('/buy-cpxtb')">Buy CPXTB</button>
+        <button class="nav-button" onclick="navigateTo('/check-balance')">Check Balance</button>
+        <button class="nav-button" onclick="navigateTo('/mobile-wallet')">Wallet</button>
+        <button class="nav-button" onclick="navigateTo('/mobile-profile')">Profile</button>
+        <button class="nav-button" onclick="navigateTo('/mobile-merchant')">Merchant</button>
+        <button class="nav-button" onclick="navigateTo('/auth')">Login</button>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="javascript:navigateTo('/mobile-pay')" class="bottom-nav-item">
+            <div class="bottom-nav-icon">↓</div>
+            <span>Pay</span>
+        </a>
+        <a href="javascript:navigateTo('/mobile-home')" class="bottom-nav-item">
+            <div class="bottom-nav-icon">⌂</div>
+            <span>Home</span>
+        </a>
+        <a href="javascript:navigateTo('/mobile-wallet')" class="bottom-nav-item">
+            <div class="bottom-nav-icon">💰</div>
+            <span>Wallet</span>
+        </a>
+        <a href="javascript:navigateTo('/mobile-profile')" class="bottom-nav-item">
+            <div class="bottom-nav-icon">👤</div>
+            <span>Profile</span>
+        </a>
+    </div>
+
+    <script>
+        function navigateTo(path) {
+            // Force a full page reload to the path
+            window.location.href = path;
+        }
+    </script>
+</body>
+</html>

@@ -143,6 +143,38 @@ export default function MobileHome() {
           <p className="text-xs text-slate-400">All transactions are securely processed on the blockchain</p>
         </div>
       </div>
+      
+      {/* Direct Navigation Buttons (Fallback) */}
+      <div className="mt-5 bg-red-900/30 rounded-xl p-4">
+        <h3 className="text-sm font-bold mb-3">Direct Navigation</h3>
+        <p className="text-xs text-red-300 mb-3">If the bottom navigation isn't working, use these direct links:</p>
+        <div className="grid grid-cols-2 gap-3">
+          <button 
+            className="bg-slate-700 py-2 px-4 rounded-lg text-sm" 
+            onClick={() => { window.location.href = "/mobile-pay"; }}
+          >
+            Go to Pay
+          </button>
+          <button 
+            className="bg-slate-700 py-2 px-4 rounded-lg text-sm" 
+            onClick={() => { window.location.href = "/mobile-home"; }}
+          >
+            Go to Home
+          </button>
+          <button 
+            className="bg-slate-700 py-2 px-4 rounded-lg text-sm" 
+            onClick={() => { window.location.href = "/mobile-wallet"; }}
+          >
+            Go to Wallet
+          </button>
+          <button 
+            className="bg-slate-700 py-2 px-4 rounded-lg text-sm" 
+            onClick={() => { window.location.href = "/mobile-profile"; }}
+          >
+            Go to Profile
+          </button>
+        </div>
+      </div>
     </MobileLayout>
   );
 }

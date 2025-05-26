@@ -1,5 +1,6 @@
 // navigation-helper.tsx
 import React from 'react';
+import { useLocation } from 'wouter';
 
 // This component provides a simple way to navigate between pages
 export const NavigationButton = ({ 
@@ -11,10 +12,12 @@ export const NavigationButton = ({
   active?: boolean,
   children: React.ReactNode 
 }) => {
+  const [, setLocation] = useLocation();
+
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Force a complete page reload to the new destination
-    window.location.replace(destination);
+    // Use proper React router navigation
+    setLocation(destination);
   };
 
   return (

@@ -1,7 +1,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { useLocation } from 'wouter';
 
 export default function IndexPage() {
+  const [, setLocation] = useLocation();
+
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center p-6">
       {/* Logo */}
@@ -14,21 +17,19 @@ export default function IndexPage() {
       
       {/* Main Navigation Buttons */}
       <div className="w-full max-w-xs mb-8">
-        <a href="/#/mobile-home" className="block w-full mb-4">
-          <Button 
-            className="w-full bg-blue-500 hover:bg-blue-600 py-6 rounded-xl font-medium"
-          >
-            Mobile Dashboard
-          </Button>
-        </a>
+        <Button 
+          onClick={() => setLocation('/mobile-home')}
+          className="w-full bg-blue-500 hover:bg-blue-600 py-6 rounded-xl font-medium mb-4"
+        >
+          Mobile Dashboard
+        </Button>
         
-        <a href="/#/auth" className="block w-full">
-          <Button 
-            className="w-full bg-green-600 hover:bg-green-700 py-6 rounded-xl font-medium"
-          >
-            Merchant Login
-          </Button>
-        </a>
+        <Button 
+          onClick={() => setLocation('/auth')}
+          className="w-full bg-green-600 hover:bg-green-700 py-6 rounded-xl font-medium"
+        >
+          Merchant Login
+        </Button>
       </div>
       
       {/* Direct Navigation Grid */}

@@ -14,11 +14,19 @@ export default function IndexPage() {
       
       {/* Main Navigation Buttons */}
       <div className="w-full max-w-xs mb-8">
-        <a href="/mobile-home" className="block w-full">
+        <a href="/#/mobile-home" className="block w-full mb-4">
           <Button 
-            className="w-full bg-blue-500 hover:bg-blue-600 py-6 rounded-xl font-medium mb-4"
+            className="w-full bg-blue-500 hover:bg-blue-600 py-6 rounded-xl font-medium"
           >
-            Go to Mobile Dashboard
+            Mobile Dashboard
+          </Button>
+        </a>
+        
+        <a href="/#/auth" className="block w-full">
+          <Button 
+            className="w-full bg-green-600 hover:bg-green-700 py-6 rounded-xl font-medium"
+          >
+            Merchant Login
           </Button>
         </a>
       </div>
